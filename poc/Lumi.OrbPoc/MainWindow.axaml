@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Lumi.OrbPoc"
+        x:Class="Lumi.OrbPoc.MainWindow"
+        Title="Lumi Orb POC"
+        Width="320" Height="500"
+        CanResize="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual">
+
+  <Window.Styles>
+    <Style Selector="TextBox#Input /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox#Input:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox#Input:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </Window.Styles>
+
+  <Panel>
+    <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Spacing="2" Margin="0,0,0,10">
+
+      <!-- 對話氣泡（非互動，點擊會穿透） -->
+      <StackPanel x:Name="Bubble" HorizontalAlignment="Center" Opacity="0" IsHitTestVisible="False"
+                  RenderTransform="translateY(8px)">
+        <StackPanel.Transitions>
+          <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" />
+          </Transitions>
+        </StackPanel.Transitions>
+        <Border MaxWidth="280" Padding="14,10" CornerRadius="16" Background="#FAF8F3"
+                BoxShadow="0 8 24 0 #59000000">
+          <TextBlock x:Name="BubbleText" Foreground="#1E2129" FontSize="14" TextWrapping="Wrap" LineHeight="22" />
+        </Border>
+        <Path Data="M0,0 L14,0 L7,8 Z" Fill="#FAF8F3" HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <!-- 光球 -->
+      <local:OrbControl x:Name="Orb" HorizontalAlignment="Center" Cursor="Hand" />
+
+      <!-- 精簡輸入列：靠近才浮現 -->
+      <Border x:Name="InputBar" Width="300" Height="48" CornerRadius="24" Padding="16,0,6,0"
+              Background="#F0151922" BorderBrush="#353C4A" BorderThickness="1"
+              Opacity="0" IsHitTestVisible="False" RenderTransform="translateY(12px)">
+        <Border.Transitions>
+          <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" />
+          </Transitions>
+        </Border.Transitions>
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox x:Name="Input" Watermark="問我一句…（Enter 送出）" VerticalAlignment="Center"
+                   Foreground="#E7E9EE" Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0" />
+          <Button x:Name="MicButton" Grid.Column="1" Width="36" Height="36" CornerRadius="18" Padding="0"
+                  Background="Transparent" ToolTip.Tip="語音輸入（POC：只跑示範流程，不錄音）"
+                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+            <Path Width="16" Height="18" Stretch="Uniform" Stroke="#C3C9D4" StrokeThickness="1.8"
+                  StrokeLineCap="Round"
+                  Data="M9,6 A3,3 0 0 1 15,6 L15,12 A3,3 0 0 1 9,12 Z M5,11 A7,7 0 0 0 19,11 M12,18 L12,21" />
+          </Button>
+        </Grid>
+      </Border>
+    </StackPanel>
+
+    <!-- 診斷 HUD（F1 或右鍵選單切換） -->
+    <Border x:Name="Hud" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top"
+            Margin="4" Padding="8,6" CornerRadius="8" Background="#E60F1218" MaxWidth="312">
+      <TextBlock x:Name="HudText" FontFamily="Menlo, Consolas, monospace" FontSize="10"
+                 Foreground="#E7E9EE" TextWrapping="Wrap" LineHeight="15" />
+    </Border>
+  </Panel>
+</Window>
