@@ -6,61 +6,148 @@
         x:Class="Lumi.App.Views.WorkbenchWindow"
         x:DataType="vm:WorkbenchViewModel"
         Title="{Binding Title}"
-        Width="960" Height="700"
+        Width="960" Height="760"
         MinWidth="560" MinHeight="420"
         WindowStartupLocation="CenterScreen">
 
-  <!-- 四塊版面：頂端列、訊息區、輸入區、狀態列。只用 token 上色。 -->
+  <Window.Styles>
+    <Style Selector="Button.chrome">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Button.round">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="CornerRadius" Value="17" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+    <Style Selector="Button.send">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+    </Style>
+    <Style Selector="Button.stop">
+      <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+  </Window.Styles>
+
+  <!-- 由上而下：頂端列、訊息流、輸入區、狀態列（ui-spec 第 2 節）。只用 token 上色。 -->
   <Grid RowDefinitions="Auto,*,Auto,Auto">
 
-    <Border Grid.Row="0" Padding="16,10"
+    <Border Grid.Row="0" Padding="12,8"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
-      <StackPanel Orientation="Horizontal" Spacing="10">
-        <Ellipse Width="14" Height="14" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center" />
-        <TextBlock Text="{Binding Title}" FontWeight="Medium" VerticalAlignment="Center" />
-      </StackPanel>
+      <Grid ColumnDefinitions="Auto,Auto,*">
+        <Button Grid.Column="0" Classes="chrome"
+                Content="{x:Static res:Strings.Workbench_NewConversation}"
+                Command="{Binding NewConversationCommand}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
+          <Ellipse Width="12" Height="12" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="Lumi" FontWeight="Medium" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Text="{Binding ModelName}" Classes="muted"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Grid>
     </Border>
 
-    <ScrollViewer Grid.Row="1">
-      <StackPanel Margin="24,20" Spacing="14">
-        <TextBlock Text="{x:Static res:Strings.Workbench_MessageArea}"
-                   FontSize="{DynamicResource LumiFontSizeCaption}"
-                   Foreground="{DynamicResource LumiTextMutedBrush}" />
+    <ScrollViewer Grid.Row="1" x:Name="MessageScroller">
+      <StackPanel Margin="24,20" Spacing="18">
+        <ItemsControl ItemsSource="{Binding Messages}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="18" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MessageViewModel">
+              <Panel>
+                <!-- 使用者：靠右、UserBubble 底色 -->
+                <Border IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="640"
+                        Padding="14,10" CornerRadius="14"
+                        Background="{DynamicResource LumiUserBubbleBrush}">
+                  <ctl:EmojiTextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                                      Foreground="{DynamicResource LumiUserBubbleTextBrush}" />
+                </Border>
 
-        <Border Padding="16" CornerRadius="10"
-                Background="{DynamicResource LumiSurfaceBrush}"
-                BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="1">
-          <StackPanel Spacing="8">
-            <TextBlock Text="字重 400：中文字重測試 Regular Weight" FontWeight="Normal" />
-            <TextBlock Text="字重 500：中文字重測試 Medium Weight" FontWeight="Medium" />
-            <TextBlock Text="字重 700：中文字重測試 Bold Weight" FontWeight="Bold" />
-            <TextBlock Classes="mono" Text="mono 400  const x = 1; // 中文註解" FontWeight="Normal" />
-            <TextBlock Classes="mono" Text="mono 700  const x = 1; // 中文註解" FontWeight="Bold" />
-            <ctl:EmojiTextBlock Text="{Binding DemoText}" TextWrapping="Wrap" />
-          </StackPanel>
+                <!-- 助理：靠左、不加底、左側小光球 -->
+                <Grid IsVisible="{Binding IsAssistant}" ColumnDefinitions="Auto,*" HorizontalAlignment="Left" MaxWidth="780">
+                  <Ellipse Grid.Column="0" Width="12" Height="12" Margin="0,5,12,0" VerticalAlignment="Top"
+                           Fill="{DynamicResource LumiAccentBrush}" />
+                  <StackPanel Grid.Column="1" Spacing="6">
+                    <!-- 思考過程：M1 最簡版，正式樣式在 M2（Q14） -->
+                    <Expander IsVisible="{Binding HasThinking}" Header="{x:Static res:Strings.Workbench_Thinking}"
+                              HorizontalAlignment="Stretch">
+                      <ctl:EmojiTextBlock Text="{Binding Thinking}" TextWrapping="Wrap"
+                                          Foreground="{DynamicResource LumiTextMutedBrush}"
+                                          FontSize="{DynamicResource LumiFontSizeCard}" />
+                    </Expander>
+                    <ctl:EmojiTextBlock IsVisible="{Binding HasText}" Text="{Binding Text}" TextWrapping="Wrap" />
+                    <TextBlock IsVisible="{Binding ShowTypingIndicator}" Text="…" Classes="muted" />
+                    <TextBlock IsVisible="{Binding IsStopped}" Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" />
+                  </StackPanel>
+                </Grid>
+              </Panel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 錯誤列：原因 + 對話內容已保留 + 重試（ui-spec 第 3 節） -->
+        <Border IsVisible="{Binding HasError}" Padding="14,10" CornerRadius="10" BorderThickness="1"
+                Background="{DynamicResource LumiWarningBackgroundBrush}"
+                BorderBrush="{DynamicResource LumiWarningBorderBrush}">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+              <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+              <TextBlock Text="{x:Static res:Strings.Workbench_ErrorKept}" Classes="muted" />
+            </StackPanel>
+            <Button Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                    Content="{x:Static res:Strings.Workbench_Retry}" Command="{Binding RetryCommand}" />
+          </Grid>
         </Border>
       </StackPanel>
     </ScrollViewer>
 
-    <Border Grid.Row="2" Margin="24,8,24,16" Padding="14,10" CornerRadius="10"
+    <Border Grid.Row="2" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
             Background="{DynamicResource LumiSurfaceBrush}"
-            BorderBrush="{DynamicResource LumiBorderStrongBrush}" BorderThickness="1">
-      <StackPanel Spacing="4">
-        <TextBlock Text="{x:Static res:Strings.Workbench_InputArea}"
-                   FontSize="{DynamicResource LumiFontSizeCaption}"
-                   Foreground="{DynamicResource LumiTextMutedBrush}" />
-        <TextBlock Text="{x:Static res:Strings.Workbench_InputPlaceholder}"
-                   Foreground="{DynamicResource LumiTextMutedBrush}" />
-      </StackPanel>
+            BorderBrush="{DynamicResource LumiBorderStrongBrush}">
+      <Grid ColumnDefinitions="*,Auto">
+        <!-- Enter 送出、Shift+Enter 換行（code-behind）；約 8 行後改捲動 -->
+        <TextBox x:Name="InputBox" Grid.Column="0"
+                 Text="{Binding InputText}"
+                 Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
+                 AcceptsReturn="True" TextWrapping="Wrap"
+                 MinHeight="40" MaxHeight="190"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="10,0,0,0" VerticalAlignment="Bottom">
+          <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Workbench_WaitingHint}"
+                     Classes="muted" VerticalAlignment="Center" />
+          <Button IsVisible="{Binding !IsResponding}" Classes="round send" Content="↑"
+                  ToolTip.Tip="{x:Static res:Strings.Workbench_Send}" Command="{Binding SendCommand}" />
+          <Button IsVisible="{Binding IsResponding}" Classes="round stop" Content="■"
+                  ToolTip.Tip="{x:Static res:Strings.Workbench_Stop}" Command="{Binding StopCommand}" />
+        </StackPanel>
+      </Grid>
     </Border>
 
+    <!-- 輸入 N · 輸出 N · 回合 N · 上下文 [進度條] 14K / 1M（ui-spec 2.3） -->
     <Border Grid.Row="3" Padding="16,6"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
-      <TextBlock Text="{x:Static res:Strings.Workbench_StatusReady}"
-                 FontSize="{DynamicResource LumiFontSizeCaption}"
-                 Foreground="{DynamicResource LumiTextMutedBrush}" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center" />
+        <ProgressBar Width="120" MinWidth="120" VerticalAlignment="Center"
+                     Minimum="0" Maximum="{Binding ContextWindow}" Value="{Binding ContextUsed}" />
+        <TextBlock Text="{Binding ContextText}" Classes="muted" VerticalAlignment="Center" />
+      </StackPanel>
     </Border>
   </Grid>
 </Window>

@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lumi.App.ViewModels"
+        xmlns:res="using:Lumi.App.Resources"
+        x:Class="Lumi.App.Views.ApiKeyDialog"
+        x:DataType="vm:ApiKeyDialogViewModel"
+        Title="{x:Static res:Strings.ApiKey_Title}"
+        Width="460" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- 缺金鑰時的最小對話框；M2 由設定頁取代，整個刪掉 -->
+  <StackPanel Margin="20" Spacing="12">
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+    <TextBox x:Name="KeyBox" Text="{Binding ApiKey}" PasswordChar="•"
+             Watermark="{x:Static res:Strings.ApiKey_Placeholder}" />
+    <TextBlock IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" Text="{Binding Error}"
+               Foreground="{DynamicResource LumiDangerBrush}" TextWrapping="Wrap" />
+    <TextBlock Text="{x:Static res:Strings.ApiKey_Note}" TextWrapping="Wrap"
+               Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button Content="{x:Static res:Strings.ApiKey_Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+      <Button Content="{x:Static res:Strings.ApiKey_Save}" Command="{Binding SaveCommand}" IsDefault="True"
+              Background="{DynamicResource LumiPrimaryButtonBrush}" Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

@@ -16,8 +16,6 @@ namespace Lumi.Providers.Anthropic;
 /// </summary>
 public sealed class AnthropicChatProvider : IChatProvider
 {
-    private static readonly SecretKey ApiKeySecret = new($"connection/{AnthropicDevOptions.ConnectionId}/api-key");
-
     private readonly HttpClient _httpClient;
     private readonly ISecretStore _secrets;
     private readonly IOptions<AnthropicDevOptions> _options;
@@ -41,7 +39,7 @@ public sealed class AnthropicChatProvider : IChatProvider
         ChatFailure? secretFailure = null;
         try
         {
-            apiKey = await _secrets.GetAsync(ApiKeySecret, ct).ConfigureAwait(false);
+            apiKey = await _secrets.GetAsync(AnthropicDevOptions.ApiKeySecret, ct).ConfigureAwait(false);
         }
         catch (SecretStoreException ex)
         {

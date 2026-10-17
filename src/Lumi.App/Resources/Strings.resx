@@ -27,11 +27,25 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
 
   <data name="Workbench_Title" xml:space="preserve"><value>Lumi 工作台</value></data>
-  <data name="Workbench_MessageArea" xml:space="preserve"><value>訊息區</value></data>
-  <data name="Workbench_InputArea" xml:space="preserve"><value>輸入區</value></data>
-  <data name="Workbench_InputPlaceholder" xml:space="preserve"><value>輸入訊息…（M1 尚未接上對話）</value></data>
-  <data name="Workbench_StatusReady" xml:space="preserve"><value>就緒</value></data>
-  <data name="Workbench_DemoText" xml:space="preserve"><value>Lumi 的字型驗收：中英文混排 The quick brown fox 跳過了懶狗。
-程式碼：dotnet build --configuration Release 中文註解
-Emoji：❤️‍🔥 ✅ 🇹🇼 👨‍👩‍👧 1️⃣ ★ ✔</value></data>
+  <data name="Workbench_NewConversation" xml:space="preserve"><value>新對話</value></data>
+  <data name="Workbench_NewConversationTitle" xml:space="preserve"><value>新對話</value></data>
+  <data name="Workbench_InputPlaceholder" xml:space="preserve"><value>輸入訊息（Enter 送出、Shift+Enter 換行）</value></data>
+  <data name="Workbench_Send" xml:space="preserve"><value>送出</value></data>
+  <data name="Workbench_Stop" xml:space="preserve"><value>停止</value></data>
+  <data name="Workbench_WaitingHint" xml:space="preserve"><value>回應結束後才能送出</value></data>
+  <data name="Workbench_Thinking" xml:space="preserve"><value>思考過程</value></data>
+  <data name="Workbench_Stopped" xml:space="preserve"><value>你已停止這次回應</value></data>
+  <data name="Workbench_ErrorKept" xml:space="preserve"><value>對話內容已保留。</value></data>
+  <data name="Workbench_Retry" xml:space="preserve"><value>重試</value></data>
+  <data name="Workbench_UnexpectedError" xml:space="preserve"><value>發生未預期的錯誤，請再試一次。</value></data>
+  <data name="Workbench_StatusFormat" xml:space="preserve"><value>輸入 {0} · 輸出 {1} · 回合 {2} · 上下文</value></data>
+  <data name="ApiKey_Title" xml:space="preserve"><value>Anthropic API 金鑰</value></data>
+  <data name="ApiKey_Missing" xml:space="preserve"><value>尚未設定 Anthropic API 金鑰，請輸入後儲存。</value></data>
+  <data name="ApiKey_Invalid" xml:space="preserve"><value>金鑰無效，請重新輸入。</value></data>
+  <data name="ApiKey_Unreadable" xml:space="preserve"><value>金鑰無法讀取，請重新輸入。</value></data>
+  <data name="ApiKey_Note" xml:space="preserve"><value>金鑰只存在這台電腦的系統安全儲存區（Windows DPAPI／macOS 鑰匙圈），不會寫進任何檔案。</value></data>
+  <data name="ApiKey_Placeholder" xml:space="preserve"><value>sk-ant-…</value></data>
+  <data name="ApiKey_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="ApiKey_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="ApiKey_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
 </root>

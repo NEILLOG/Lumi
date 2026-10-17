@@ -13,6 +13,9 @@ public sealed class AnthropicDevOptions
     /// <summary>固定用這個 <c>connection</c> id 去 <see cref="Lumi.Core.Secrets.ISecretStore"/> 取金鑰；M2 起改用連線自己的 id。</summary>
     public const string ConnectionId = "dev-anthropic";
 
+    /// <summary>金鑰在 <see cref="Lumi.Core.Secrets.ISecretStore"/> 裡的名稱；1D 的金鑰對話框也寫到這裡。</summary>
+    public static readonly Lumi.Core.Secrets.SecretKey ApiKeySecret = new($"connection/{ConnectionId}/api-key");
+
     [Required]
     [Url]
     public string BaseUrl { get; set; } = "https://api.anthropic.com";

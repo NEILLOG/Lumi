@@ -1,0 +1,192 @@
+using System.Globalization;
+using System.Text.Json;
+using Lumi.Core.Chat;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Options;
+
+namespace Lumi.Infrastructure.Persistence;
+
+/// <summary>
+/// <see cref="IConversationStore"/> 的 SQLite 實作。每次操作開一條連線（有連線池，很便宜）；
+/// 第一次使用時建立資料夾並把 schema 補到最新版。訊息的順序以 <c>seq</c> 為準，不靠 id。
+/// </summary>
+public sealed class SqliteConversationStore : IConversationStore
+{
+    private readonly string _connectionString;
+    private readonly Lazy<Task> _initialization;
+
+    public SqliteConversationStore(IOptions<PersistenceOptions> options)
+    {
+        var path = options.Value.ResolveDatabasePath();
+        _connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            ForeignKeys = true,
+        }.ToString();
+        _initialization = new Lazy<Task>(() => Task.Run(() =>
+        {
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            SqliteSchema.Migrate(connection);
+        }));
+    }
+
+    public async Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var conversation = new Conversation(Conversation.NewId(), title, now, now);
+
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "INSERT INTO conversations (id, title, created_at, updated_at) VALUES ($id, $title, $created, $updated);";
+        command.Parameters.AddWithValue("$id", conversation.Id);
+        command.Parameters.AddWithValue("$title", title);
+        command.Parameters.AddWithValue("$created", FormatTime(now));
+        command.Parameters.AddWithValue("$updated", FormatTime(now));
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        return conversation;
+    }
+
+    public async Task<Conversation?> GetLatestAsync(CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC, rowid DESC LIMIT 1;";
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+            return null;
+        return new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
+    }
+
+    public async Task<IReadOnlyList<ChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT id, role, status, model_id, content_json,
+                   input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at
+            FROM messages WHERE conversation_id = $conversation ORDER BY seq;
+            """;
+        command.Parameters.AddWithValue("$conversation", conversationId);
+
+        var messages = new List<ChatMessage>();
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var content = JsonSerializer.Deserialize<List<ContentBlock>>(reader.GetString(4))
+                          ?? throw new InvalidDataException($"訊息 {reader.GetString(0)} 的內容無法讀取。");
+            TokenUsage? usage = reader.IsDBNull(5)
+                ? null
+                : new TokenUsage(reader.GetInt32(5), reader.GetInt32(6), reader.GetInt32(7), reader.GetInt32(8));
+            messages.Add(new ChatMessage(
+                Id: reader.GetString(0),
+                Role: ParseRole(reader.GetString(1)),
+                Content: content,
+                CreatedAt: ParseTime(reader.GetString(9)),
+                Status: ParseStatus(reader.GetString(2)),
+                ModelId: reader.IsDBNull(3) ? null : reader.GetString(3),
+                Usage: usage));
+        }
+        return messages;
+    }
+
+    public async Task AppendMessageAsync(string conversationId, ChatMessage message, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+        await using (var insert = connection.CreateCommand())
+        {
+            insert.Transaction = transaction;
+            insert.CommandText = """
+                INSERT INTO messages (id, conversation_id, seq, role, status, model_id, content_json,
+                                      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at)
+                SELECT $id, $conversation, COALESCE(MAX(seq), 0) + 1, $role, $status, $model, $content,
+                       $input, $output, $cacheCreation, $cacheRead, $created
+                FROM messages WHERE conversation_id = $conversation;
+                """;
+            insert.Parameters.AddWithValue("$id", message.Id);
+            insert.Parameters.AddWithValue("$conversation", conversationId);
+            insert.Parameters.AddWithValue("$role", FormatRole(message.Role));
+            insert.Parameters.AddWithValue("$status", FormatStatus(message.Status));
+            insert.Parameters.AddWithValue("$model", (object?)message.ModelId ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$content", JsonSerializer.Serialize<IReadOnlyList<ContentBlock>>(message.Content));
+            insert.Parameters.AddWithValue("$input", (object?)message.Usage?.InputTokens ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$output", (object?)message.Usage?.OutputTokens ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$cacheCreation", (object?)message.Usage?.CacheCreationInputTokens ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$cacheRead", (object?)message.Usage?.CacheReadInputTokens ?? DBNull.Value);
+            insert.Parameters.AddWithValue("$created", FormatTime(message.CreatedAt));
+            await insert.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        await using (var touch = connection.CreateCommand())
+        {
+            touch.Transaction = transaction;
+            touch.CommandText = "UPDATE conversations SET updated_at = $updated WHERE id = $id;";
+            touch.Parameters.AddWithValue("$updated", FormatTime(DateTimeOffset.UtcNow));
+            touch.Parameters.AddWithValue("$id", conversationId);
+            await touch.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        await transaction.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task RenameAsync(string conversationId, string title, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE conversations SET title = $title WHERE id = $id;";
+        command.Parameters.AddWithValue("$title", title);
+        command.Parameters.AddWithValue("$id", conversationId);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task<SqliteConnection> OpenAsync(CancellationToken ct)
+    {
+        await _initialization.Value.WaitAsync(ct).ConfigureAwait(false);
+        var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct).ConfigureAwait(false);
+        return connection;
+    }
+
+    // 一律存 UTC、固定格式，字串排序就等於時間排序
+    private static string FormatTime(DateTimeOffset time) =>
+        time.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", CultureInfo.InvariantCulture);
+
+    private static DateTimeOffset ParseTime(string text) =>
+        DateTimeOffset.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+
+    private static string FormatRole(ChatRole role) => role switch
+    {
+        ChatRole.User => "user",
+        ChatRole.Assistant => "assistant",
+        _ => throw new ArgumentOutOfRangeException(nameof(role)),
+    };
+
+    private static ChatRole ParseRole(string text) => text switch
+    {
+        "user" => ChatRole.User,
+        "assistant" => ChatRole.Assistant,
+        _ => throw new InvalidDataException($"未知的角色：{text}"),
+    };
+
+    private static string FormatStatus(MessageStatus status) => status switch
+    {
+        MessageStatus.Complete => "complete",
+        MessageStatus.Stopped => "stopped",
+        MessageStatus.Failed => "failed",
+        _ => throw new ArgumentOutOfRangeException(nameof(status)),
+    };
+
+    private static MessageStatus ParseStatus(string text) => text switch
+    {
+        "complete" => MessageStatus.Complete,
+        "stopped" => MessageStatus.Stopped,
+        "failed" => MessageStatus.Failed,
+        _ => throw new InvalidDataException($"未知的狀態：{text}"),
+    };
+}
