@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Platform</RootNamespace>
+    <!-- LibraryImport 產生的 P/Invoke 需要 -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
+  </ItemGroup>
+
+</Project>

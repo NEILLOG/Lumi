@@ -28,6 +28,7 @@ public class DependencyRuleTests
     [Theory]
     [InlineData("Lumi.Providers")]
     [InlineData("Lumi.Infrastructure")]
+    [InlineData("Lumi.Platform")]
     public void Library_ReferencesOnlyCoreAmongLumiProjects(string name)
     {
         var assembly = Assembly.Load(name);
@@ -40,6 +41,7 @@ public class DependencyRuleTests
     [Theory]
     [InlineData("Lumi.Providers")]
     [InlineData("Lumi.Infrastructure")]
+    [InlineData("Lumi.Platform")]
     public void Library_DoesNotReferenceAvalonia(string name)
     {
         var refs = References(Assembly.Load(name));

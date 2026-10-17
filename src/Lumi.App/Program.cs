@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Fonts;
 using Lumi.Core;
+using Lumi.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -18,6 +19,7 @@ internal static class Program
             ContentRootPath = AppContext.BaseDirectory,
         });
         builder.Services.AddLumiCore();
+        builder.Services.AddLumiPlatform();
         builder.Services.AddLumiApp();
 
         using var host = builder.Build();
