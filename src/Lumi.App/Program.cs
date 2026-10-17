@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Media.Fonts;
 using Lumi.Core;
 using Lumi.Platform;
+using Lumi.Providers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -20,6 +21,7 @@ internal static class Program
         });
         builder.Services.AddLumiCore();
         builder.Services.AddLumiPlatform();
+        builder.Services.AddLumiProviders();
         builder.Services.AddLumiApp();
 
         using var host = builder.Build();
