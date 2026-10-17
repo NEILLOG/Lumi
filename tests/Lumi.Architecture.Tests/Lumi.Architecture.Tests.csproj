@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <!-- 架構測試只讀專案檔與組件資訊，這裡參考各專案以便載入組件 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Lumi.Core\Lumi.Core.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.Providers\Lumi.Providers.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.Infrastructure\Lumi.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.App\Lumi.App.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lumi.App.ViewModels"
+        xmlns:ctl="using:Lumi.App.Controls"
+        xmlns:res="using:Lumi.App.Resources"
+        x:Class="Lumi.App.Views.WorkbenchWindow"
+        x:DataType="vm:WorkbenchViewModel"
+        Title="{Binding Title}"
+        Width="960" Height="700"
+        MinWidth="560" MinHeight="420"
+        WindowStartupLocation="CenterScreen">
+
+  <!-- 四塊版面：頂端列、訊息區、輸入區、狀態列。只用 token 上色。 -->
+  <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+    <Border Grid.Row="0" Padding="16,10"
+            Background="{DynamicResource LumiChromeBrush}"
+            BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Ellipse Width="14" Height="14" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center" />
+        <TextBlock Text="{Binding Title}" FontWeight="Medium" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="24,20" Spacing="14">
+        <TextBlock Text="{x:Static res:Strings.Workbench_MessageArea}"
+                   FontSize="{DynamicResource LumiFontSizeCaption}"
+                   Foreground="{DynamicResource LumiTextMutedBrush}" />
+
+        <Border Padding="16" CornerRadius="10"
+                Background="{DynamicResource LumiSurfaceBrush}"
+                BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="1">
+          <StackPanel Spacing="8">
+            <TextBlock Text="字重 400：中文字重測試 Regular Weight" FontWeight="Normal" />
+            <TextBlock Text="字重 500：中文字重測試 Medium Weight" FontWeight="Medium" />
+            <TextBlock Text="字重 700：中文字重測試 Bold Weight" FontWeight="Bold" />
+            <TextBlock Classes="mono" Text="mono 400  const x = 1; // 中文註解" FontWeight="Normal" />
+            <TextBlock Classes="mono" Text="mono 700  const x = 1; // 中文註解" FontWeight="Bold" />
+            <ctl:EmojiTextBlock Text="{Binding DemoText}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Row="2" Margin="24,8,24,16" Padding="14,10" CornerRadius="10"
+            Background="{DynamicResource LumiSurfaceBrush}"
+            BorderBrush="{DynamicResource LumiBorderStrongBrush}" BorderThickness="1">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{x:Static res:Strings.Workbench_InputArea}"
+                   FontSize="{DynamicResource LumiFontSizeCaption}"
+                   Foreground="{DynamicResource LumiTextMutedBrush}" />
+        <TextBlock Text="{x:Static res:Strings.Workbench_InputPlaceholder}"
+                   Foreground="{DynamicResource LumiTextMutedBrush}" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="3" Padding="16,6"
+            Background="{DynamicResource LumiChromeBrush}"
+            BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
+      <TextBlock Text="{x:Static res:Strings.Workbench_StatusReady}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}"
+                 Foreground="{DynamicResource LumiTextMutedBrush}" />
+    </Border>
+  </Grid>
+</Window>
