@@ -62,6 +62,36 @@ public sealed class SqliteConversationStore : IConversationStore
         return new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
     }
 
+    public async Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT c.id, c.title, c.created_at, c.updated_at FROM conversations c
+            WHERE EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
+            ORDER BY c.updated_at DESC, c.rowid DESC LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$limit", limit);
+
+        var list = new List<Conversation>();
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            list.Add(new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3))));
+        return list;
+    }
+
+    public async Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            DELETE FROM messages WHERE id = (
+              SELECT id FROM messages WHERE conversation_id = $conversation ORDER BY seq DESC LIMIT 1);
+            """;
+        command.Parameters.AddWithValue("$conversation", conversationId);
+        return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
+    }
+
     public async Task<IReadOnlyList<ChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);

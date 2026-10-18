@@ -22,6 +22,9 @@ public partial class WorkbenchWindow : Window
         // TextBox 自己會處理 Enter，要在 tunnel 階段先攔下來
         InputBox.AddHandler(KeyDownEvent, OnInputKeyDown, RoutingStrategies.Tunnel);
         MessageScroller.ScrollChanged += OnMessageScrollChanged;
+        // 選了模型就關掉彈出選單
+        viewModel.ModelSwitcher.Selected += () => CapsuleButton.Flyout?.Hide();
+        viewModel.RetrySwitcher.Selected += () => RetryOtherModelButton.Flyout?.Hide();
         Opened += OnOpened;
     }
 

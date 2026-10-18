@@ -102,4 +102,23 @@ public static class Strings
     public static string Theme_Light => Get(nameof(Theme_Light));
     public static string Theme_Dark => Get(nameof(Theme_Dark));
     public static string Workbench_Settings => Get(nameof(Workbench_Settings));
+    public static string Workbench_ThinkingWithSeconds => Get(nameof(Workbench_ThinkingWithSeconds));
+    public static string Workbench_UsageFormat => Get(nameof(Workbench_UsageFormat));
+    public static string Workbench_Copy => Get(nameof(Workbench_Copy));
+    public static string Workbench_Copied => Get(nameof(Workbench_Copied));
+    public static string Workbench_Regenerate => Get(nameof(Workbench_Regenerate));
+    public static string Workbench_History => Get(nameof(Workbench_History));
+    public static string Workbench_HistoryEmpty => Get(nameof(Workbench_HistoryEmpty));
+    public static string Workbench_SpriteMode => Get(nameof(Workbench_SpriteMode));
+    public static string Workbench_SpriteModeSoon => Get(nameof(Workbench_SpriteModeSoon));
+    public static string Workbench_SwitchBlocked => Get(nameof(Workbench_SwitchBlocked));
+    public static string Workbench_RetryOtherModel => Get(nameof(Workbench_RetryOtherModel));
+    public static string Workbench_StatusConnected => Get(nameof(Workbench_StatusConnected));
+    public static string Workbench_StatusFailed => Get(nameof(Workbench_StatusFailed));
+    public static string Workbench_StatusUnknown => Get(nameof(Workbench_StatusUnknown));
+    public static string Workbench_NoModelClickToSetup => Get(nameof(Workbench_NoModelClickToSetup));
+    public static string ModelPicker_Search => Get(nameof(ModelPicker_Search));
+    public static string ModelPicker_Manage => Get(nameof(ModelPicker_Manage));
+    public static string ModelPicker_NoMatch => Get(nameof(ModelPicker_NoMatch));
+    public static string Workbench_Today => Get(nameof(Workbench_Today));
 }

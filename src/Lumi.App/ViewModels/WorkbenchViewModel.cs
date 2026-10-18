@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
+using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -20,10 +21,14 @@ public partial class WorkbenchViewModel : ObservableObject
     private readonly IModelCatalog _catalog;
     private readonly IApiKeyPrompt _apiKeyPrompt;
     private readonly ISettingsWindowService _settingsWindow;
+    private readonly ConnectionStatusCache _status;
+    private readonly IClipboardService _clipboard;
+    private readonly TimeProvider _time;
     private readonly ILogger<WorkbenchViewModel> _logger;
 
     private string? _conversationId;
     private CancellationTokenSource? _responseCts;
+    private TaskCompletionSource? _responseDone;
 
     public WorkbenchViewModel(
         ConversationService conversations,
@@ -31,7 +36,10 @@ public partial class WorkbenchViewModel : ObservableObject
         IModelCatalog catalog,
         IApiKeyPrompt apiKeyPrompt,
         ISettingsWindowService settingsWindow,
+        ConnectionStatusCache status,
+        IClipboardService clipboard,
         IUiDispatcher dispatcher,
+        TimeProvider time,
         ILogger<WorkbenchViewModel> logger)
     {
         _conversations = conversations;
@@ -39,16 +47,31 @@ public partial class WorkbenchViewModel : ObservableObject
         _catalog = catalog;
         _apiKeyPrompt = apiKeyPrompt;
         _settingsWindow = settingsWindow;
+        _status = status;
+        _clipboard = clipboard;
+        _time = time;
         _logger = logger;
         _notice = catalog.LoadProblem;
+
+        History = new HistoryViewModel(store, OpenConversationAsync, time);
+        ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
+        // 錯誤列的「換模型重試」：選完模型接著重送
+        RetrySwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, RetryAfterModelSwitchAsync);
+
         catalog.Changed += (_, _) => dispatcher.Post(OnModelSettingsChanged);
+        status.Changed += (_, _) => dispatcher.Post(OnConnectionStatusChanged);
     }
 
     public ObservableCollection<MessageViewModel> Messages { get; } = [];
 
+    public HistoryViewModel History { get; }
+
+    public ModelSwitcherViewModel ModelSwitcher { get; }
+
+    public ModelSwitcherViewModel RetrySwitcher { get; }
+
     private ResolvedModel? WorkbenchModel => _catalog.Resolve(_catalog.Current.WorkbenchModelId);
 
-    /// <summary>頂端顯示的模型名稱；M2 的 2D 換成可切換的膠囊。</summary>
     public string ModelName => WorkbenchModel is { } m ? m.Model.DisplayName : Strings.Workbench_NoModel;
 
     public int ContextWindow => WorkbenchModel?.Model.ContextWindow ?? 0;
@@ -72,6 +95,33 @@ public partial class WorkbenchViewModel : ObservableObject
         OnPropertyChanged(nameof(ModelName));
         OnPropertyChanged(nameof(ContextWindow));
         OnPropertyChanged(nameof(ContextText));
+        OnConnectionStatusChanged();
+    }
+
+    // ---- 連線狀態（狀態列右側） ----
+
+    private ConnectionStatus CurrentConnectionStatus =>
+        WorkbenchModel is { } m ? _status.Get(m.Connection.Id).Status : ConnectionStatus.Unknown;
+
+    public bool IsConnectionOk => CurrentConnectionStatus == ConnectionStatus.Ok;
+
+    public bool IsConnectionFailed => CurrentConnectionStatus == ConnectionStatus.Failed;
+
+    public bool IsConnectionUnknown => CurrentConnectionStatus == ConnectionStatus.Unknown;
+
+    public string ConnectionStatusText => CurrentConnectionStatus switch
+    {
+        ConnectionStatus.Ok => Strings.Workbench_StatusConnected,
+        ConnectionStatus.Failed => Strings.Workbench_StatusFailed,
+        _ => Strings.Workbench_StatusUnknown,
+    };
+
+    private void OnConnectionStatusChanged()
+    {
+        OnPropertyChanged(nameof(IsConnectionOk));
+        OnPropertyChanged(nameof(IsConnectionFailed));
+        OnPropertyChanged(nameof(IsConnectionUnknown));
+        OnPropertyChanged(nameof(ConnectionStatusText));
     }
 
     [ObservableProperty]
@@ -82,8 +132,14 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(NewConversationCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel))]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand))]
     private bool _isResponding;
+
+    /// <summary>回應中，膠囊與小精靈按鈕停用並顯示「回應中，暫時無法切換」（ui-spec 2.2）。</summary>
+    public bool ShowSwitchBlockedHint => IsResponding;
+
+    public bool CanSwitchModel => !IsResponding;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
@@ -121,6 +177,8 @@ public partial class WorkbenchViewModel : ObservableObject
         await LoadAsync(conversation);
     }
 
+    // ---- 送出、重試、重新產生、停止 ----
+
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendAsync()
     {
@@ -130,7 +188,7 @@ public partial class WorkbenchViewModel : ObservableObject
         if (Messages.Count == 0)
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
         Messages.Add(MessageViewModel.User(text));
-        await RunResponseAsync(ct => _conversations.SendAsync(conversationId, text, ct));
+        await RunResponseAsync(ct => _conversations.SendAsync(conversationId, text, ct), reloadOnFailure: false);
     }
 
     private bool CanSend() => !IsResponding && _conversationId is not null && !string.IsNullOrWhiteSpace(InputText);
@@ -139,118 +197,238 @@ public partial class WorkbenchViewModel : ObservableObject
     private Task RetryAsync()
     {
         var conversationId = _conversationId!;
-        return RunResponseAsync(ct => _conversations.RetryAsync(conversationId, ct));
+        return RunResponseAsync(ct => _conversations.RetryAsync(conversationId, ct), reloadOnFailure: false);
     }
 
     private bool CanRetry() => !IsResponding && HasError;
 
+    /// <summary>「換模型重試」：模型已經切好了，接著重送（只有最後一則是使用者訊息時才有東西可重送）。</summary>
+    private Task RetryAfterModelSwitchAsync() => RetryCommand.CanExecute(null) ? RetryAsync() : Task.CompletedTask;
+
+    /// <summary>重新產生：移除最後一則助理訊息，用同一段歷史再要一次；新回應取代舊的。</summary>
+    [RelayCommand(CanExecute = nameof(CanRegenerate))]
+    private Task RegenerateAsync()
+    {
+        var conversationId = _conversationId!;
+        ErrorMessage = null;
+        return RunResponseAsync(ct => _conversations.RegenerateAsync(conversationId, ct), reloadOnFailure: true, removeLastAssistantFirst: true);
+    }
+
+    private bool CanRegenerate() => !IsResponding && _conversationId is not null && Messages.LastOrDefault() is { IsAssistant: true };
+
     [RelayCommand(CanExecute = nameof(IsResponding))]
     private void Stop() => _responseCts?.Cancel();
 
-    [RelayCommand(CanExecute = nameof(CanStartNewConversation))]
-    private async Task NewConversationAsync()
+    /// <summary>取消目前的回應，並等它的收尾全部做完（存「已停止」、移除空泡泡）才回來。沒有回應進行中就直接回來。</summary>
+    public async Task StopAndWaitAsync()
     {
-        var conversation = await _store.CreateAsync(Strings.Workbench_NewConversationTitle);
-        await LoadAsync(conversation);
+        if (_responseDone is not { } done)
+            return;
+        _responseCts?.Cancel();
+        await done.Task;
     }
 
-    private bool CanStartNewConversation() => !IsResponding;
+    // ---- 對話：新增、切換 ----
+
+    [RelayCommand]
+    private async Task NewConversationAsync()
+    {
+        // 目前這則還沒有任何訊息：已經是空白的了，不重複建立
+        if (Messages.Count == 0 && _conversationId is not null)
+            return;
+
+        await StopAndWaitAsync();
+        var conversation = await _store.CreateAsync(Strings.Workbench_NewConversationTitle);
+        await LoadAsync(conversation);
+        await History.RefreshAsync(_conversationId);
+    }
+
+    /// <summary>從歷史抽屜切換對話。回應中會先停止（ui-spec 2.2）。</summary>
+    public async Task OpenConversationAsync(Conversation conversation)
+    {
+        if (conversation.Id == _conversationId)
+            return;
+
+        await StopAndWaitAsync();
+        await LoadAsync(conversation);
+        await History.RefreshAsync(_conversationId);
+    }
 
     private async Task LoadAsync(Conversation conversation)
     {
         _conversationId = conversation.Id;
         Title = conversation.Title;
         ErrorMessage = null;
-        Messages.Clear();
+        await ReloadMessagesAsync();
+    }
 
-        var messages = await _store.GetMessagesAsync(conversation.Id);
+    /// <summary>從資料庫重讀目前對話的訊息（讓畫面和資料庫一致）。</summary>
+    private async Task ReloadMessagesAsync()
+    {
+        var messages = await _store.GetMessagesAsync(_conversationId!);
+        Messages.Clear();
         foreach (var message in messages)
             Messages.Add(MessageViewModel.From(message));
 
-        Turns = messages.Count(m => m.Role == ChatRole.Assistant);
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
+        RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
     }
 
-    private async Task RunResponseAsync(Func<CancellationToken, IAsyncEnumerable<ChatEvent>> start)
+    /// <summary>回合數、「最後一則助理訊息」旗標（只有它有重新產生）。</summary>
+    private void RefreshMessageState()
     {
+        Turns = Messages.Count(m => m.IsAssistant && !m.IsStreaming);
+        var last = Messages.LastOrDefault();
+        foreach (var message in Messages)
+            message.IsLastAssistant = message.IsAssistant && ReferenceEquals(message, last);
+        RegenerateCommand.NotifyCanExecuteChanged();
+    }
+
+    // ---- 複製 ----
+
+    [RelayCommand]
+    private async Task CopyAsync(MessageViewModel? message)
+    {
+        if (message is null || !message.HasText)
+            return;
+
+        await _clipboard.SetTextAsync(message.Text);
+        message.IsCopied = true;
+        _ = ResetCopiedAsync(message);
+    }
+
+    private async Task ResetCopiedAsync(MessageViewModel message)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1.5), _time);
+        }
+        finally
+        {
+            message.IsCopied = false;
+        }
+    }
+
+    // ---- 回應流程 ----
+
+    private sealed record StreamOutcome(ChatFailure? Failure, bool Unexpected);
+
+    private async Task RunResponseAsync(
+        Func<CancellationToken, IAsyncEnumerable<ChatEvent>> start, bool reloadOnFailure, bool removeLastAssistantFirst = false)
+    {
+        var conversationId = _conversationId!;
+        var outcome = await StreamPhaseAsync(start, removeLastAssistantFirst);
+
+        // 這之後 IsResponding 已經是 false、StopAndWaitAsync 也不會再等：金鑰視窗可能開很久，
+        // 期間使用者可以自由切換對話，所以下面每一步都要確認「還是當初那則對話」。
+        if (outcome.Unexpected)
+        {
+            if (conversationId == _conversationId)
+                ErrorMessage = Strings.Workbench_UnexpectedError;
+            await History.RefreshAsync(_conversationId);
+            return;
+        }
+
+        if (outcome.Failure is not { } failure)
+        {
+            await History.RefreshAsync(_conversationId);
+            return;
+        }
+
+        if (reloadOnFailure && conversationId == _conversationId)
+            await ReloadMessagesAsync();   // 重新產生失敗時，資料庫裡舊答案可能已經被移除了：畫面跟著重讀
+
+        if (ToPromptReason(failure.Kind) is { } reason && await _apiKeyPrompt.PromptAsync(reason))
+        {
+            if (conversationId == _conversationId && !IsResponding)
+                await RetryAsync();
+            return;
+        }
+
+        if (conversationId == _conversationId)
+            ErrorMessage = failure.Message;
+        await History.RefreshAsync(_conversationId);
+    }
+
+    private async Task<StreamOutcome> StreamPhaseAsync(Func<CancellationToken, IAsyncEnumerable<ChatEvent>> start, bool removeLastAssistantFirst)
+    {
+        var done = new TaskCompletionSource();
+        _responseDone = done;
         ErrorMessage = null;
         IsResponding = true;
+
+        if (removeLastAssistantFirst && Messages.LastOrDefault() is { IsAssistant: true } old)
+            Messages.Remove(old);
+
         var assistant = MessageViewModel.StreamingAssistant();
         Messages.Add(assistant);
+        RefreshMessageState();
 
+        var connectionId = WorkbenchModel?.Connection.Id;
         using var cts = new CancellationTokenSource();
         _responseCts = cts;
         ChatFailure? failure = null;
         var unexpected = false;
         try
         {
-            await foreach (var chatEvent in start(cts.Token))
+            try
             {
-                switch (chatEvent)
+                await foreach (var chatEvent in start(cts.Token))
                 {
-                    case TextDelta delta:
-                        assistant.AppendText(delta.Text);
-                        break;
-                    case ThinkingDelta delta:
-                        assistant.AppendThinking(delta.Text);
-                        break;
-                    case UsageEvent usage:
-                        LastUsage = usage.Tokens;
-                        break;
-                    case Completed completed:
-                        assistant.Complete(completed.Message);
-                        LastUsage = completed.Message.Usage ?? LastUsage;
-                        Turns++;
-                        break;
-                    case Failed failed:
-                        failure = failed.Failure;
-                        break;
+                    switch (chatEvent)
+                    {
+                        case TextDelta delta:
+                            assistant.AppendText(delta.Text, _time.GetUtcNow());
+                            break;
+                        case ThinkingDelta delta:
+                            assistant.AppendThinking(delta.Text, _time.GetUtcNow());
+                            break;
+                        case UsageEvent usage:
+                            LastUsage = usage.Tokens;
+                            break;
+                        case Completed completed:
+                            assistant.Complete(completed.Message, _time.GetUtcNow());
+                            LastUsage = completed.Message.Usage ?? LastUsage;
+                            if (connectionId is not null)
+                                _status.Mark(connectionId, ConnectionStatus.Ok);
+                            break;
+                        case Failed failed:
+                            failure = failed.Failure;
+                            if (connectionId is not null && ConnectionStatusCache.StatusAfterFailure(failed.Failure.Kind) is { } status)
+                                _status.Mark(connectionId, status);
+                            break;
+                    }
                 }
             }
-        }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested)
-        {
-            // 使用者按了停止：有文字就標示已停止（ConversationService 已存檔），沒有就移除
-            if (assistant.HasText)
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
             {
-                assistant.MarkStopped();
-                Turns++;
+                // 使用者按了停止：有文字就標示已停止（ConversationService 已存檔），沒有就移除
+                if (assistant.HasText)
+                    assistant.MarkStopped(_time.GetUtcNow());
+                else
+                    Messages.Remove(assistant);
             }
-            else
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "對話回應發生未預期的錯誤");
+                unexpected = true;
+            }
+
+            // 失敗的回應不存檔（Q15），畫面上也移除，改顯示錯誤列
+            if (unexpected || failure is not null)
                 Messages.Remove(assistant);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "對話回應發生未預期的錯誤");
-            unexpected = true;
         }
         finally
         {
             _responseCts = null;
+            _responseDone = null;
             IsResponding = false;
+            RefreshMessageState();
+            done.TrySetResult();   // 收尾全部做完才通知：StopAndWaitAsync 之後可以放心換掉訊息列表
         }
 
-        if (unexpected)
-        {
-            Messages.Remove(assistant);
-            ErrorMessage = Strings.Workbench_UnexpectedError;
-            return;
-        }
-
-        if (failure is null)
-            return;
-
-        // 失敗的回應不存檔（Q15），畫面上也移除，改顯示錯誤列
-        Messages.Remove(assistant);
-        if (ToPromptReason(failure.Kind) is { } reason && await _apiKeyPrompt.PromptAsync(reason))
-        {
-            await RetryAsync();
-            return;
-        }
-        ErrorMessage = failure.Message;
+        return new StreamOutcome(failure, unexpected);
     }
 
     private static ApiKeyPromptReason? ToPromptReason(ChatFailureKind kind) => kind switch

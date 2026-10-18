@@ -178,4 +178,82 @@ public sealed class SqliteConversationStoreTests : IDisposable
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => NewStore().GetLatestAsync());
         Assert.Contains("較新版本", ex.Message);
     }
+
+    [Fact]
+    public async Task List_ReturnsOnlyConversationsWithMessages_NewestFirst_UpToLimit()
+    {
+        var store = NewStore();
+        var empty = await store.CreateAsync("空的");
+        var older = await store.CreateAsync("舊的");
+        var newer = await store.CreateAsync("新的");
+        await store.AppendMessageAsync(older.Id, Message(ChatRole.User, new TextBlock("a")));
+        await Task.Delay(5);
+        await store.AppendMessageAsync(newer.Id, Message(ChatRole.User, new TextBlock("b")));
+
+        var all = await store.ListAsync(100);
+
+        Assert.Equal([newer.Id, older.Id], all.Select(c => c.Id));
+        Assert.DoesNotContain(all, c => c.Id == empty.Id);
+        Assert.Equal([newer.Id], (await store.ListAsync(1)).Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task List_OrderFollowsLatestActivity()
+    {
+        var store = NewStore();
+        var a = await store.CreateAsync("A");
+        var b = await store.CreateAsync("B");
+        await store.AppendMessageAsync(a.Id, Message(ChatRole.User, new TextBlock("1")));
+        await Task.Delay(5);
+        await store.AppendMessageAsync(b.Id, Message(ChatRole.User, new TextBlock("2")));
+        await Task.Delay(5);
+
+        await store.AppendMessageAsync(a.Id, Message(ChatRole.User, new TextBlock("3")));
+
+        Assert.Equal([a.Id, b.Id], (await store.ListAsync(10)).Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task RemoveLast_RemovesOnlyTheLastMessage_AndLaterAppendsKeepOrder()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("新對話");
+        var first = Message(ChatRole.User, new TextBlock("問"));
+        var second = Message(ChatRole.Assistant, new TextBlock("舊答案"));
+        await store.AppendMessageAsync(conversation.Id, first);
+        await store.AppendMessageAsync(conversation.Id, second);
+
+        Assert.True(await store.RemoveLastMessageAsync(conversation.Id));
+        var replacement = Message(ChatRole.Assistant, new TextBlock("新答案"));
+        await store.AppendMessageAsync(conversation.Id, replacement);
+
+        var messages = await store.GetMessagesAsync(conversation.Id);
+        Assert.Equal([first.Id, replacement.Id], messages.Select(m => m.Id));
+    }
+
+    [Fact]
+    public async Task RemoveLast_DoesNotTouchOtherConversations_NorMoveUpdatedAt()
+    {
+        var store = NewStore();
+        var a = await store.CreateAsync("A");
+        var b = await store.CreateAsync("B");
+        await store.AppendMessageAsync(a.Id, Message(ChatRole.User, new TextBlock("a")));
+        await store.AppendMessageAsync(b.Id, Message(ChatRole.User, new TextBlock("b")));
+        var before = (await store.ListAsync(10)).Single(c => c.Id == a.Id).UpdatedAt;
+
+        await store.RemoveLastMessageAsync(b.Id);
+
+        Assert.Single(await store.GetMessagesAsync(a.Id));
+        Assert.Empty(await store.GetMessagesAsync(b.Id));
+        Assert.Equal(before, (await store.ListAsync(10)).Single(c => c.Id == a.Id).UpdatedAt);
+    }
+
+    [Fact]
+    public async Task RemoveLast_OnEmptyConversation_ReturnsFalse()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("空的");
+
+        Assert.False(await store.RemoveLastMessageAsync(conversation.Id));
+    }
 }

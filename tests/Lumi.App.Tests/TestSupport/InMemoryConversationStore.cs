@@ -26,6 +26,26 @@ internal sealed class InMemoryConversationStore : IConversationStore
             return Task.FromResult(_conversations.Values.OrderByDescending(c => c.UpdatedAt).FirstOrDefault());
     }
 
+    public Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult<IReadOnlyList<Conversation>>(_conversations.Values
+                .Where(c => _messages[c.Id].Count > 0)
+                .OrderByDescending(c => c.UpdatedAt).Take(limit).ToList());
+    }
+
+    public Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            var list = _messages[conversationId];
+            if (list.Count == 0)
+                return Task.FromResult(false);
+            list.RemoveAt(list.Count - 1);
+            return Task.FromResult(true);
+        }
+    }
+
     public Task<IReadOnlyList<ChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

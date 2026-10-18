@@ -10,7 +10,9 @@ public static class AppServiceCollectionExtensions
     public static IServiceCollection AddLumiApp(this IServiceCollection services)
     {
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IConfirmService, ConfirmService>();
+        services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<ConnectionStatusCache>();
         services.AddSingleton<ThemeService>();
 

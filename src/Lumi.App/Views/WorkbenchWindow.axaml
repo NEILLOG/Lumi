@@ -3,6 +3,8 @@
         xmlns:vm="using:Lumi.App.ViewModels"
         xmlns:ctl="using:Lumi.App.Controls"
         xmlns:res="using:Lumi.App.Resources"
+        xmlns:views="using:Lumi.App.Views"
+        x:Name="Root"
         x:Class="Lumi.App.Views.WorkbenchWindow"
         x:DataType="vm:WorkbenchViewModel"
         Title="{Binding Title}"
@@ -34,6 +36,26 @@
       <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
     </Style>
+    <!-- 選取列是琥珀底（歷史抽屜目前的對話）：裡面的文字改用 OnAccent，確保對比 -->
+    <Style Selector="ListBoxItem:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+    </Style>
+    <Style Selector="Button.capsule">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="14,5" />
+    </Style>
+    <Style Selector="Button.sprite:disabled">
+      <Setter Property="Foreground" Value="{DynamicResource LumiAccentTextBrush}" />
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+    <Style Selector="Button.small">
+      <Setter Property="Padding" Value="8,3" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
     <Style Selector="TextBlock.muted">
       <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
@@ -41,27 +63,82 @@
   </Window.Styles>
 
   <!-- 由上而下：頂端列、訊息流、輸入區、狀態列（ui-spec 第 2 節）。只用 token 上色。 -->
-  <Grid RowDefinitions="Auto,*,Auto,Auto">
+  <Grid RowDefinitions="Auto,*">
 
     <Border Grid.Row="0" Padding="12,8"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-        <Button Grid.Column="0" Classes="chrome"
-                Content="{x:Static res:Strings.Workbench_NewConversation}"
-                Command="{Binding NewConversationCommand}" />
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0" VerticalAlignment="Center">
-          <Ellipse Width="12" Height="12" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center" />
-          <TextBlock Text="Lumi" FontWeight="Medium" VerticalAlignment="Center" />
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
+          <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_History}" Command="{Binding History.ToggleCommand}" />
+          <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_NewConversation}" Command="{Binding NewConversationCommand}" />
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="10,0,0,0" VerticalAlignment="Center">
+            <Ellipse Width="12" Height="12" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center" />
+            <TextBlock Text="Lumi" FontWeight="Medium" VerticalAlignment="Center" />
+          </StackPanel>
         </StackPanel>
-        <TextBlock Grid.Column="2" Text="{Binding ModelName}" Classes="muted"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <Button Grid.Column="3" Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}"
-                Command="{Binding OpenSettingsCommand}" />
+
+        <!-- 模型切換膠囊：狀態點、模型名稱、連線名稱、下拉箭頭。回應中停用並說明原因 -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Button x:Name="CapsuleButton" Classes="capsule" IsEnabled="{Binding CanSwitchModel}">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <views:ModelPicker DataContext="{Binding ModelSwitcher}" />
+              </Flyout>
+            </Button.Flyout>
+            <StackPanel Orientation="Horizontal" Spacing="8" DataContext="{Binding ModelSwitcher}" x:DataType="vm:ModelSwitcherViewModel">
+              <Panel Width="10" VerticalAlignment="Center">
+                <Ellipse Width="9" Height="9" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessBrush}" />
+                <Ellipse Width="9" Height="9" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerBrush}" />
+                <Ellipse Width="9" Height="9" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiBorderStrongBrush}" />
+              </Panel>
+              <TextBlock Text="{Binding CapsuleText}" FontWeight="Medium" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding CurrentConnectionName}" Classes="muted" VerticalAlignment="Center" />
+              <TextBlock Text="▾" Classes="muted" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock IsVisible="{Binding ShowSwitchBlockedHint}" Text="{x:Static res:Strings.Workbench_SwitchBlocked}"
+                     Classes="muted" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+          <!-- 小精靈模式：M7 之前停用 -->
+          <Button Classes="chrome sprite" IsEnabled="False" Content="{x:Static res:Strings.Workbench_SpriteMode}"
+                  ToolTip.Tip="{x:Static res:Strings.Workbench_SpriteModeSoon}" />
+          <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}" Command="{Binding OpenSettingsCommand}" />
+        </StackPanel>
       </Grid>
     </Border>
 
-    <ScrollViewer Grid.Row="1" x:Name="MessageScroller">
+    <!-- 歷史對話抽屜（內嵌，開啟時把訊息區往右推） -->
+    <SplitView Grid.Row="1" IsPaneOpen="{Binding History.IsOpen}" DisplayMode="Inline" PanePlacement="Left" OpenPaneLength="260"
+               PaneBackground="{DynamicResource LumiChromeBrush}">
+      <SplitView.Pane>
+        <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel">
+          <Border DockPanel.Dock="Top" Padding="14,10" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,1">
+            <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Medium" />
+          </Border>
+          <Border BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
+            <Panel>
+              <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Workbench_HistoryEmpty}" Classes="muted"
+                         HorizontalAlignment="Center" Margin="0,24,0,0" />
+              <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent" Margin="6">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ConversationListItem">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Grid.Column="0" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Text="{Binding TimeText}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Panel>
+          </Border>
+        </DockPanel>
+      </SplitView.Pane>
+
+    <Grid RowDefinitions="*,Auto,Auto">
+    <ScrollViewer Grid.Row="0" x:Name="MessageScroller">
       <StackPanel Margin="24,20" Spacing="18">
         <!-- 一次性提示：例如設定檔損毀已改用預設 -->
         <Border IsVisible="{Binding HasNotice}" Padding="14,10" CornerRadius="10" BorderThickness="1"
@@ -98,7 +175,7 @@
                            Fill="{DynamicResource LumiAccentBrush}" />
                   <StackPanel Grid.Column="1" Spacing="6">
                     <!-- 思考過程：M1 最簡版，正式樣式在 M2（Q14） -->
-                    <Expander IsVisible="{Binding HasThinking}" Header="{x:Static res:Strings.Workbench_Thinking}"
+                    <Expander IsVisible="{Binding HasThinking}" Header="{Binding ThinkingTitle}"
                               HorizontalAlignment="Stretch">
                       <ctl:EmojiTextBlock Text="{Binding Thinking}" TextWrapping="Wrap"
                                           Foreground="{DynamicResource LumiTextMutedBrush}"
@@ -107,6 +184,15 @@
                     <ctl:EmojiTextBlock IsVisible="{Binding HasText}" Text="{Binding Text}" TextWrapping="Wrap" />
                     <TextBlock IsVisible="{Binding ShowTypingIndicator}" Text="…" Classes="muted" />
                     <TextBlock IsVisible="{Binding IsStopped}" Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" />
+
+                    <!-- 動作列：複製、重新產生（只有最後一則）、本輪 token -->
+                    <StackPanel IsVisible="{Binding ShowActions}" Orientation="Horizontal" Spacing="4">
+                      <Button Classes="chrome small" Content="{Binding CopyLabel}"
+                              Command="{Binding #Root.((vm:WorkbenchViewModel)DataContext).CopyCommand}" CommandParameter="{Binding}" />
+                      <Button Classes="chrome small" IsVisible="{Binding IsLastAssistant}" Content="{x:Static res:Strings.Workbench_Regenerate}"
+                              Command="{Binding #Root.((vm:WorkbenchViewModel)DataContext).RegenerateCommand}" />
+                      <TextBlock IsVisible="{Binding HasUsage}" Text="{Binding UsageText}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
                   </StackPanel>
                 </Grid>
               </Panel>
@@ -123,14 +209,22 @@
               <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
               <TextBlock Text="{x:Static res:Strings.Workbench_ErrorKept}" Classes="muted" />
             </StackPanel>
-            <Button Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                    Content="{x:Static res:Strings.Workbench_Retry}" Command="{Binding RetryCommand}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" VerticalAlignment="Center">
+              <Button x:Name="RetryOtherModelButton" Content="{x:Static res:Strings.Workbench_RetryOtherModel}">
+                <Button.Flyout>
+                  <Flyout Placement="BottomEdgeAlignedRight">
+                    <views:ModelPicker DataContext="{Binding RetrySwitcher}" />
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
+              <Button Content="{x:Static res:Strings.Workbench_Retry}" Command="{Binding RetryCommand}" />
+            </StackPanel>
           </Grid>
         </Border>
       </StackPanel>
     </ScrollViewer>
 
-    <Border Grid.Row="2" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
+    <Border Grid.Row="1" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
             Background="{DynamicResource LumiSurfaceBrush}"
             BorderBrush="{DynamicResource LumiBorderStrongBrush}">
       <Grid ColumnDefinitions="*,Auto">
@@ -153,15 +247,28 @@
     </Border>
 
     <!-- 輸入 N · 輸出 N · 回合 N · 上下文 [進度條] 14K / 1M（ui-spec 2.3） -->
-    <Border Grid.Row="3" Padding="16,6"
+    <Border Grid.Row="2" Padding="16,6"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center" />
-        <ProgressBar Width="120" MinWidth="120" VerticalAlignment="Center"
-                     Minimum="0" Maximum="{Binding ContextWindow}" Value="{Binding ContextUsed}" />
-        <TextBlock Text="{Binding ContextText}" Classes="muted" VerticalAlignment="Center" />
-      </StackPanel>
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center" />
+          <ProgressBar Width="120" MinWidth="120" VerticalAlignment="Center"
+                       Minimum="0" Maximum="{Binding ContextWindow}" Value="{Binding ContextUsed}" />
+          <TextBlock Text="{Binding ContextText}" Classes="muted" VerticalAlignment="Center" />
+        </StackPanel>
+        <!-- 連線狀態：最近一次回應或測試連線的結果 -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Panel Width="10" VerticalAlignment="Center">
+            <Ellipse Width="9" Height="9" IsVisible="{Binding IsConnectionOk}" Fill="{DynamicResource LumiSuccessBrush}" />
+            <Ellipse Width="9" Height="9" IsVisible="{Binding IsConnectionFailed}" Fill="{DynamicResource LumiDangerBrush}" />
+            <Ellipse Width="9" Height="9" IsVisible="{Binding IsConnectionUnknown}" Fill="{DynamicResource LumiBorderStrongBrush}" />
+          </Panel>
+          <TextBlock Text="{Binding ConnectionStatusText}" Classes="muted" />
+        </StackPanel>
+      </Grid>
     </Border>
+    </Grid>
+    </SplitView>
   </Grid>
 </Window>

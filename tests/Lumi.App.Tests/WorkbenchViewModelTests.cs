@@ -1,4 +1,5 @@
 using Lumi.App.Resources;
+using Lumi.App.Services;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
 using Lumi.Core.Chat;
@@ -9,16 +10,31 @@ namespace Lumi.App.Tests;
 public class WorkbenchViewModelTests
 {
 
-    private static (WorkbenchViewModel Vm, InMemoryConversationStore Store) Create(
+    private sealed record Rig(WorkbenchViewModel Vm, InMemoryConversationStore Store, FakeModelCatalog Catalog,
+        ConnectionStatusCache Status, FakeClipboardService Clipboard, FakeTimeProvider Time);
+
+    private static Rig CreateRig(
         IChatProvider provider, IApiKeyPrompt? prompt = null, InMemoryConversationStore? store = null, FakeModelCatalog? catalog = null,
         ISettingsWindowService? settingsWindow = null)
     {
         store ??= new InMemoryConversationStore();
         catalog ??= new FakeModelCatalog();
+        var status = new ConnectionStatusCache();
+        var clipboard = new FakeClipboardService();
+        var time = new FakeTimeProvider();
         var service = new ConversationService(provider, store, catalog);
         var vm = new WorkbenchViewModel(service, store, catalog, prompt ?? new FakeApiKeyPrompt(false),
-            settingsWindow ?? new FakeSettingsWindowService(), new SyncUiDispatcher(), NullLogger<WorkbenchViewModel>.Instance);
-        return (vm, store);
+            settingsWindow ?? new FakeSettingsWindowService(), status, clipboard, new SyncUiDispatcher(), time,
+            NullLogger<WorkbenchViewModel>.Instance);
+        return new Rig(vm, store, catalog, status, clipboard, time);
+    }
+
+    private static (WorkbenchViewModel Vm, InMemoryConversationStore Store) Create(
+        IChatProvider provider, IApiKeyPrompt? prompt = null, InMemoryConversationStore? store = null, FakeModelCatalog? catalog = null,
+        ISettingsWindowService? settingsWindow = null)
+    {
+        var rig = CreateRig(provider, prompt, store, catalog, settingsWindow);
+        return (rig.Vm, rig.Store);
     }
 
     private static Completed Reply(string text, TokenUsage? usage = null) => new(
@@ -118,7 +134,9 @@ public class WorkbenchViewModelTests
         Assert.True(vm.IsResponding);
         vm.InputText = "回應中還能打草稿";
         Assert.False(vm.SendCommand.CanExecute(null));
-        Assert.False(vm.NewConversationCommand.CanExecute(null));
+        Assert.True(vm.NewConversationCommand.CanExecute(null));   // 回應中可以按：會先停止再開新對話
+        Assert.True(vm.ShowSwitchBlockedHint);
+        Assert.False(vm.CanSwitchModel);
         Assert.True(vm.StopCommand.CanExecute(null));
 
         vm.StopCommand.Execute(null);

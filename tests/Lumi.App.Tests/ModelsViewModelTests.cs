@@ -53,10 +53,12 @@ public sealed class ModelsViewModelTests
         await host.Catalog.SaveModelAsync(model);
         var vm = host.Models;
 
+        // 等「畫面的狀態」而不是目錄的值：目錄的值先變，Changed 事件（重建清單）稍後才跑，
+        // 測試的執行緒和它同時動清單會互相干擾
         vm.WorkbenchOption = vm.DefaultOptions.Single(o => o.Id == model.Id);
-        await SettingsHost.WaitUntil(() => host.Catalog.Current.WorkbenchModelId == model.Id);
+        await SettingsHost.WaitUntil(() => vm.WorkbenchOption?.Id == model.Id && host.Catalog.Current.WorkbenchModelId == model.Id);
         vm.SpriteOption = vm.DefaultOptions.Single(o => o.Id == model.Id);
-        await SettingsHost.WaitUntil(() => host.Catalog.Current.SpriteModelId == model.Id);
+        await SettingsHost.WaitUntil(() => vm.SpriteOption?.Id == model.Id && host.Catalog.Current.SpriteModelId == model.Id);
 
         Assert.Equal(model.Id, vm.WorkbenchOption!.Id);
         Assert.Contains("工作台預設", vm.Items.Single(i => i.Id == model.Id).Badges);

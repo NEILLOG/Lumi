@@ -116,4 +116,23 @@
   <data name="Theme_Light" xml:space="preserve"><value>淺色</value></data>
   <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
   <data name="Workbench_Settings" xml:space="preserve"><value>設定</value></data>
+  <data name="Workbench_ThinkingWithSeconds" xml:space="preserve"><value>思考過程 · {0} 秒</value></data>
+  <data name="Workbench_UsageFormat" xml:space="preserve"><value>↑ 輸入 {0} · ↓ 輸出 {1} tokens</value></data>
+  <data name="Workbench_Copy" xml:space="preserve"><value>複製</value></data>
+  <data name="Workbench_Copied" xml:space="preserve"><value>已複製</value></data>
+  <data name="Workbench_Regenerate" xml:space="preserve"><value>重新產生</value></data>
+  <data name="Workbench_History" xml:space="preserve"><value>歷史對話</value></data>
+  <data name="Workbench_HistoryEmpty" xml:space="preserve"><value>還沒有對話紀錄</value></data>
+  <data name="Workbench_SpriteMode" xml:space="preserve"><value>小精靈模式</value></data>
+  <data name="Workbench_SpriteModeSoon" xml:space="preserve"><value>之後的版本提供</value></data>
+  <data name="Workbench_SwitchBlocked" xml:space="preserve"><value>回應中，暫時無法切換</value></data>
+  <data name="Workbench_RetryOtherModel" xml:space="preserve"><value>換模型重試</value></data>
+  <data name="Workbench_StatusConnected" xml:space="preserve"><value>已連線</value></data>
+  <data name="Workbench_StatusFailed" xml:space="preserve"><value>連線失敗</value></data>
+  <data name="Workbench_StatusUnknown" xml:space="preserve"><value>尚未確認</value></data>
+  <data name="Workbench_NoModelClickToSetup" xml:space="preserve"><value>未設定模型，點此開啟設定</value></data>
+  <data name="ModelPicker_Search" xml:space="preserve"><value>搜尋模型</value></data>
+  <data name="ModelPicker_Manage" xml:space="preserve"><value>管理連線與模型…</value></data>
+  <data name="ModelPicker_NoMatch" xml:space="preserve"><value>沒有符合的模型</value></data>
+  <data name="Workbench_Today" xml:space="preserve"><value>今天</value></data>
 </root>

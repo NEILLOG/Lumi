@@ -65,6 +65,40 @@ public sealed class ConversationService
         }
     }
 
+    /// <summary>
+    /// 重新產生：移除最後一則助理訊息（包含「已停止」的），用同一段歷史再要一次回應，新回應取代舊的。
+    /// 只有從尾端移除，前面的訊息沒有任何改變（agent.md 第 7 節）。最後一則不是助理訊息時丟 <see cref="InvalidOperationException"/>。
+    /// </summary>
+    public async IAsyncEnumerable<ChatEvent> RegenerateAsync(
+        string conversationId, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        Begin(conversationId);
+        try
+        {
+            var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+            if (history.Count == 0 || history[^1].Role != ChatRole.Assistant)
+                throw new InvalidOperationException("最後一則必須是助理訊息才能重新產生。");
+
+            // 沒有可用的模型時，不要先把舊的回答刪掉
+            if (_catalog.Resolve(_catalog.Current.WorkbenchModelId) is null)
+            {
+                yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
+                yield break;
+            }
+
+            await _store.RemoveLastMessageAsync(conversationId, CancellationToken.None).ConfigureAwait(false);
+
+            await foreach (var chatEvent in StreamCoreAsync(conversationId, ct).ConfigureAwait(false))
+                yield return chatEvent;
+        }
+        finally
+        {
+            End(conversationId);
+        }
+    }
+
+    private const string NoModelMessage = "還沒有可用的模型，請先到設定加入連線與模型。";
+
     private async IAsyncEnumerable<ChatEvent> StreamCoreAsync(
         string conversationId, [EnumeratorCancellation] CancellationToken ct)
     {
@@ -77,7 +111,7 @@ public sealed class ConversationService
         var model = _catalog.Resolve(_catalog.Current.WorkbenchModelId);
         if (model is null)
         {
-            yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, "還沒有可用的模型，請先到設定加入連線與模型。", Retryable: false));
+            yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
             yield break;
         }
 
