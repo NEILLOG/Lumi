@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Lumi.Core.Models;
 
 namespace Lumi.Core.Chat;
 
@@ -14,14 +15,14 @@ public sealed class ConversationService
 
     private readonly IChatProvider _provider;
     private readonly IConversationStore _store;
-    private readonly ChatDefaults _defaults;
+    private readonly IModelCatalog _catalog;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
-    public ConversationService(IChatProvider provider, IConversationStore store, ChatDefaults defaults)
+    public ConversationService(IChatProvider provider, IConversationStore store, IModelCatalog catalog)
     {
         _provider = provider;
         _store = store;
-        _defaults = defaults;
+        _catalog = catalog;
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -72,7 +73,15 @@ public sealed class ConversationService
         if (requestMessages.Count == 0 || requestMessages[^1].Role != ChatRole.User)
             throw new InvalidOperationException("最後一則訊息必須是使用者訊息才能要求回應。");
 
-        var request = new ChatRequest(_defaults.ModelId, requestMessages, _defaults.MaxTokens);
+        // 工作台用的模型＝設定裡的工作台預設模型（M2 的 Q3）；M7 的小精靈改用 SpriteModelId
+        var model = _catalog.Resolve(_catalog.Current.WorkbenchModelId);
+        if (model is null)
+        {
+            yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, "還沒有可用的模型，請先到設定加入連線與模型。", Retryable: false));
+            yield break;
+        }
+
+        var request = new ChatRequest(model, requestMessages);
         var receivedText = new StringBuilder();
 
         await using var enumerator = _provider.StreamAsync(request, ct).GetAsyncEnumerator(ct);
@@ -91,7 +100,7 @@ public sealed class ConversationService
                 {
                     var stopped = new ChatMessage(
                         ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock(receivedText.ToString())],
-                        DateTimeOffset.UtcNow, MessageStatus.Stopped, _defaults.ModelId);
+                        DateTimeOffset.UtcNow, MessageStatus.Stopped, model.Model.ModelId);
                     await _store.AppendMessageAsync(conversationId, stopped, CancellationToken.None).ConfigureAwait(false);
                 }
                 throw;

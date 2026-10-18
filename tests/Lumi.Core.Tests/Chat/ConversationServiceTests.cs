@@ -5,7 +5,7 @@ namespace Lumi.Core.Tests.Chat;
 
 public class ConversationServiceTests
 {
-    private static readonly ChatDefaults Defaults = new("test-model", 1024, 200_000);
+    private static readonly FakeModelCatalog Catalog = new();
 
     private static async Task<List<ChatEvent>> Collect(IAsyncEnumerable<ChatEvent> events)
     {
@@ -28,7 +28,7 @@ public class ConversationServiceTests
         var conversation = await store.CreateAsync("新對話");
         var reply = ScriptedChatProvider.Assistant(new ThinkingBlock("想", "sig"), new TextBlock("你好"));
         var provider = new ScriptedChatProvider(new TextDelta("你好"), new Completed(reply, StopReason.EndTurn));
-        var service = new ConversationService(provider, store, Defaults);
+        var service = new ConversationService(provider, store, Catalog);
 
         var events = await Collect(service.SendAsync(conversation.Id, "嗨"));
 
@@ -39,8 +39,8 @@ public class ConversationServiceTests
         Assert.Equal("嗨", Assert.IsType<TextBlock>(messages[0].Content[0]).Text);
         Assert.Same(reply, messages[1]);   // thinking 與 signature 原樣保存
         var request = Assert.Single(provider.Requests);
-        Assert.Equal("test-model", request.ModelId);
-        Assert.Equal(1024, request.MaxTokens);
+        Assert.Equal(FakeModelCatalog.Model, request.Model.Model);
+        Assert.Equal(FakeModelCatalog.Connection, request.Model.Connection);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class ConversationServiceTests
         var conversation = await store.CreateAsync("新對話");
         var service = new ConversationService(
             new ScriptedChatProvider(new Completed(ScriptedChatProvider.Assistant(new TextBlock("ok")), StopReason.EndTurn)),
-            store, Defaults);
+            store, Catalog);
 
         await Collect(service.SendAsync(conversation.Id, "第一個問題"));
         Assert.Equal("第一個問題", store.Get(conversation.Id).Title);
@@ -66,7 +66,7 @@ public class ConversationServiceTests
         var conversation = await store.CreateAsync("新對話");
         var failure = new ChatFailure(ChatFailureKind.Overloaded, "過載", Retryable: true);
         var service = new ConversationService(
-            new ScriptedChatProvider(new TextDelta("部分"), new Failed(failure)), store, Defaults);
+            new ScriptedChatProvider(new TextDelta("部分"), new Failed(failure)), store, Catalog);
 
         var events = await Collect(service.SendAsync(conversation.Id, "嗨"));
 
@@ -84,7 +84,7 @@ public class ConversationServiceTests
         {
             HangAfter = 3,
         };
-        var service = new ConversationService(provider, store, Defaults);
+        var service = new ConversationService(provider, store, Catalog);
         using var cts = new CancellationTokenSource();
 
         var received = new List<ChatEvent>();
@@ -113,7 +113,7 @@ public class ConversationServiceTests
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
         var provider = new ScriptedChatProvider(new ThinkingDelta("想一下")) { HangAfter = 1 };
-        var service = new ConversationService(provider, store, Defaults);
+        var service = new ConversationService(provider, store, Catalog);
         using var cts = new CancellationTokenSource();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
@@ -132,7 +132,7 @@ public class ConversationServiceTests
         var conversation = await store.CreateAsync("新對話");
         await store.AppendMessageAsync(conversation.Id, User("上次失敗的問題"));
         var provider = new ScriptedChatProvider(new Completed(ScriptedChatProvider.Assistant(new TextBlock("這次成功")), StopReason.EndTurn));
-        var service = new ConversationService(provider, store, Defaults);
+        var service = new ConversationService(provider, store, Catalog);
 
         await Collect(service.RetryAsync(conversation.Id));
 
@@ -148,7 +148,7 @@ public class ConversationServiceTests
         var conversation = await store.CreateAsync("新對話");
         await store.AppendMessageAsync(conversation.Id, User("問"));
         await store.AppendMessageAsync(conversation.Id, AssistantText("答"));
-        var service = new ConversationService(new ScriptedChatProvider(), store, Defaults);
+        var service = new ConversationService(new ScriptedChatProvider(), store, Catalog);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Collect(service.RetryAsync(conversation.Id)));
     }
@@ -159,7 +159,7 @@ public class ConversationServiceTests
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
         var provider = new ScriptedChatProvider(new TextDelta("a")) { HangAfter = 1 };
-        var service = new ConversationService(provider, store, Defaults);
+        var service = new ConversationService(provider, store, Catalog);
         using var cts = new CancellationTokenSource();
 
         await using var first = service.SendAsync(conversation.Id, "一", cts.Token).GetAsyncEnumerator();
@@ -167,6 +167,22 @@ public class ConversationServiceTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Collect(service.SendAsync(conversation.Id, "二")));
         await cts.CancelAsync();
+    }
+
+    [Fact]
+    public async Task NoModelConfigured_ProducesFailed_ButKeepsUserMessage()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("新對話");
+        var provider = new ScriptedChatProvider();
+        var service = new ConversationService(provider, store, new FakeModelCatalog(withModel: false));
+
+        var events = await Collect(service.SendAsync(conversation.Id, "嗨"));
+
+        var failed = Assert.IsType<Failed>(Assert.Single(events));
+        Assert.Equal(ChatFailureKind.ModelNotConfigured, failed.Failure.Kind);
+        Assert.Empty(provider.Requests);
+        Assert.Single(await store.GetMessagesAsync(conversation.Id));
     }
 
     [Fact]

@@ -18,8 +18,13 @@ internal sealed class FakeSecretStore : ISecretStore
     public static FakeSecretStore Empty() => new(null, null);
     public static FakeSecretStore Throwing(SecretStoreException ex) => new(null, ex);
 
-    public Task<SecretValue?> GetAsync(SecretKey key, CancellationToken ct = default) =>
-        _throwOnGet is not null ? throw _throwOnGet : Task.FromResult(_value);
+    public List<string> RequestedKeys { get; } = [];
+
+    public Task<SecretValue?> GetAsync(SecretKey key, CancellationToken ct = default)
+    {
+        RequestedKeys.Add(key.Name);
+        return _throwOnGet is not null ? throw _throwOnGet : Task.FromResult(_value);
+    }
 
     public Task SetAsync(SecretKey key, SecretValue value, CancellationToken ct = default) =>
         throw new NotSupportedException("測試不需要寫入");

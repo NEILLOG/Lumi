@@ -48,4 +48,6 @@
   <data name="ApiKey_Save" xml:space="preserve"><value>儲存</value></data>
   <data name="ApiKey_Cancel" xml:space="preserve"><value>取消</value></data>
   <data name="ApiKey_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
+  <data name="Workbench_NoModel" xml:space="preserve"><value>未設定模型</value></data>
+  <data name="Workbench_DismissNotice" xml:space="preserve"><value>知道了</value></data>
 </root>

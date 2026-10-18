@@ -13,6 +13,9 @@ public sealed record ChatFailure(
 
 public enum ChatFailureKind
 {
+    /// <summary>沒有可用的模型設定（全部刪光了，或預設模型指向不存在的連線）。</summary>
+    ModelNotConfigured,
+
     /// <summary><see cref="Lumi.Core.Secrets.ISecretStore"/> 沒有金鑰；1D 跳出輸入對話框。</summary>
     MissingApiKey,
 

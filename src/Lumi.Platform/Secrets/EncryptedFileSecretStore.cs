@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Lumi.Core.IO;
 using Lumi.Core.Secrets;
 
 namespace Lumi.Platform.Secrets;
@@ -20,7 +21,7 @@ public interface ISecretProtector
 /// 檔案內只有加密後的 base64，沒有明文。
 /// </summary>
 /// <remarks>
-/// 寫入先寫暫存檔再取代，避免寫到一半當機把整個檔案弄壞；同一程序內以 <see cref="SemaphoreSlim"/> 序列化。
+/// 寫入用 <see cref="AtomicFile"/>（先寫暫存檔再取代）；同一程序內以 <see cref="SemaphoreSlim"/> 序列化。
 /// 每次都從檔案讀，不另外快取，避免明文長時間留在記憶體。
 /// 加密的部分由 <see cref="ISecretProtector"/> 提供，所以檔案處理的邏輯在非 Windows 上也能測。
 /// </remarks>
@@ -157,27 +158,14 @@ public class EncryptedFileSecretStore : ISecretStore
 
     private async Task WriteFileAsync(SecretsFile file, CancellationToken ct)
     {
-        var tempPath = _path + ".tmp";
         try
         {
-            var directory = Path.GetDirectoryName(_path);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            await File.WriteAllBytesAsync(tempPath, JsonSerializer.SerializeToUtf8Bytes(file, JsonOptions), ct)
+            await AtomicFile.WriteAllBytesAsync(_path, JsonSerializer.SerializeToUtf8Bytes(file, JsonOptions), ct)
                 .ConfigureAwait(false);
-            File.Move(tempPath, _path, overwrite: true);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new SecretStoreException("無法寫入金鑰檔。", ex);
-        }
-        finally
-        {
-            if (File.Exists(tempPath))
-            {
-                try { File.Delete(tempPath); } catch (IOException) { /* 暫存檔留著也無妨：裡面只有加密資料 */ }
-            }
         }
     }
 

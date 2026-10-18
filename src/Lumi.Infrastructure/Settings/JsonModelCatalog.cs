@@ -1,0 +1,281 @@
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Lumi.Core.IO;
+using Lumi.Core.Models;
+using Lumi.Core.Secrets;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Lumi.Infrastructure.Settings;
+
+/// <summary>
+/// <see cref="IModelCatalog"/> 的實作：設定存在 <c>settings.json</c>（M2 的 Q1），金鑰只寫進 <see cref="ISecretStore"/>。
+/// 建構時同步讀檔（檔案很小，只在啟動時發生一次）；寫入用 <see cref="AtomicFile"/>，同一程序內序列化。
+/// </summary>
+public sealed class JsonModelCatalog : IModelCatalog
+{
+    public const int CurrentVersion = 1;
+
+    /// <summary>從 M1 搬家時建立的連線 Id：M1 的金鑰就存在 <c>connection/dev-anthropic/api-key</c>，沿用就不用搬金鑰。</summary>
+    public const string MigratedConnectionId = "dev-anthropic";
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+    };
+
+    private readonly string _path;
+    private readonly ISecretStore _secrets;
+    private readonly ILogger<JsonModelCatalog> _logger;
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private readonly bool _readOnly;
+    private volatile AppSettings _current;
+
+    public JsonModelCatalog(IOptions<ModelCatalogOptions> options, ISecretStore secrets, ILogger<JsonModelCatalog> logger)
+    {
+        _path = options.Value.ResolveSettingsPath();
+        _secrets = secrets;
+        _logger = logger;
+        (_current, _readOnly, LoadProblem) = Load();
+    }
+
+    public AppSettings Current => _current;
+
+    public string? LoadProblem { get; }
+
+    public event EventHandler<AppSettings>? Changed;
+
+    public async Task SaveConnectionAsync(ConnectionSettings connection, SecretValue? newApiKey, CancellationToken ct = default)
+    {
+        ValidateConnection(connection);
+        var secretKey = ConnectionSecrets.ApiKey(connection.Id);   // Id 格式不合法會在這裡丟 ArgumentException
+
+        string? hint;
+        if (newApiKey is not null)
+        {
+            await _secrets.SetAsync(secretKey, newApiKey, ct).ConfigureAwait(false);
+            hint = ConnectionSecrets.Hint(newApiKey);
+        }
+        else
+        {
+            // 呼叫端傳進來的提示不採信，只有真的存了金鑰才會改
+            hint = _current.Connections.FirstOrDefault(c => c.Id == connection.Id)?.ApiKeyHint;
+        }
+
+        var saved = connection with { ApiKeyHint = hint };
+        await MutateAsync(s => s with { Connections = Upsert(s.Connections, saved, c => c.Id) }, ct).ConfigureAwait(false);
+    }
+
+    public async Task ClearApiKeyAsync(string connectionId, CancellationToken ct = default)
+    {
+        RequireConnection(connectionId);
+        await _secrets.DeleteAsync(ConnectionSecrets.ApiKey(connectionId), ct).ConfigureAwait(false);
+        await MutateAsync(s => s with
+        {
+            Connections = s.Connections.Select(c => c.Id == connectionId ? c with { ApiKeyHint = null } : c).ToList(),
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteConnectionAsync(string connectionId, CancellationToken ct = default)
+    {
+        await MutateAsync(s => s with
+        {
+            Connections = s.Connections.Where(c => c.Id != connectionId).ToList(),
+            Models = s.Models.Where(m => m.ConnectionId != connectionId).ToList(),
+        }, ct).ConfigureAwait(false);
+
+        try
+        {
+            await _secrets.DeleteAsync(ConnectionSecrets.ApiKey(connectionId), ct).ConfigureAwait(false);
+        }
+        catch (SecretStoreException ex)
+        {
+            // 設定已經刪了；留下一筆用不到的金鑰不影響功能，記下來就好
+            _logger.LogWarning(ex, "刪除連線 {ConnectionId} 的金鑰失敗", connectionId);
+        }
+    }
+
+    public Task SaveModelAsync(ModelSettings model, CancellationToken ct = default)
+    {
+        ValidateModel(model);
+        RequireConnection(model.ConnectionId);
+        return MutateAsync(s => s with { Models = Upsert(s.Models, model, m => m.Id) }, ct);
+    }
+
+    public Task DeleteModelAsync(string modelSettingsId, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Models = s.Models.Where(m => m.Id != modelSettingsId).ToList() }, ct);
+
+    public Task SetWorkbenchModelAsync(string modelSettingsId, CancellationToken ct = default)
+    {
+        RequireModel(modelSettingsId);
+        return MutateAsync(s => s with { WorkbenchModelId = modelSettingsId }, ct);
+    }
+
+    public Task SetSpriteModelAsync(string modelSettingsId, CancellationToken ct = default)
+    {
+        RequireModel(modelSettingsId);
+        return MutateAsync(s => s with { SpriteModelId = modelSettingsId }, ct);
+    }
+
+    public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Theme = theme }, ct);
+
+    public ResolvedModel? Resolve(string? modelSettingsId)
+    {
+        var settings = _current;
+        var model = settings.Models.FirstOrDefault(m => m.Id == modelSettingsId);
+        var connection = model is null ? null : settings.Connections.FirstOrDefault(c => c.Id == model.ConnectionId);
+        return connection is null ? null : new ResolvedModel(model!, connection);
+    }
+
+    /// <summary>第一次啟動（沒有設定檔）時的設定：沿用 M1 的開發設定。</summary>
+    public static AppSettings CreateInitialSettings()
+    {
+        var connection = new ConnectionSettings(MigratedConnectionId, "Anthropic", ProviderFormat.Anthropic, "https://api.anthropic.com");
+        var model = new ModelSettings(ModelSettings.NewId(), MigratedConnectionId, "claude-opus-5-5", "Claude Opus 5.5",
+            MaxOutputTokens: 64_000, ContextWindow: 1_000_000, ShowThinking: true);
+        return new AppSettings([connection], [model], model.Id, model.Id, ThemePreference.System);
+    }
+
+    /// <summary>
+    /// 去掉指向不存在連線的模型；預設模型不存在時改成第一個模型（一個都沒有就是 null）。
+    /// </summary>
+    public static AppSettings Normalize(AppSettings settings)
+    {
+        var connectionIds = settings.Connections.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        var models = settings.Models.Where(m => connectionIds.Contains(m.ConnectionId)).ToList();
+
+        string? Fix(string? id) => models.Any(m => m.Id == id) ? id : models.FirstOrDefault()?.Id;
+
+        return settings with
+        {
+            Models = models,
+            WorkbenchModelId = Fix(settings.WorkbenchModelId),
+            SpriteModelId = Fix(settings.SpriteModelId),
+        };
+    }
+
+    private async Task MutateAsync(Func<AppSettings, AppSettings> change, CancellationToken ct)
+    {
+        if (_readOnly)
+            throw new InvalidOperationException(LoadProblem ?? "設定檔目前無法寫入。");
+
+        AppSettings next;
+        await _writeLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            next = Normalize(change(_current));
+            await AtomicFile.WriteAllBytesAsync(_path, Serialize(next), ct).ConfigureAwait(false);
+            _current = next;
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+
+        Changed?.Invoke(this, next);
+    }
+
+    private (AppSettings Settings, bool ReadOnly, string? Problem) Load()
+    {
+        if (!File.Exists(_path))
+        {
+            var initial = CreateInitialSettings();
+            WriteSync(initial);
+            _logger.LogInformation("建立新的設定檔 {Path}", _path);
+            return (initial, false, null);
+        }
+
+        SettingsFile? file;
+        try
+        {
+            file = JsonSerializer.Deserialize<SettingsFile>(File.ReadAllBytes(_path), JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "設定檔損毀");
+            file = null;
+        }
+
+        if (file is null || file.Connections is null || file.Models is null)
+            return RecoverFromBrokenFile();
+
+        if (file.Version > CurrentVersion)
+        {
+            // 較新版的 Lumi 寫的：不能用，也不能覆蓋，只用預設值跑、不寫檔
+            _logger.LogWarning("設定檔版本 {Version} 比程式新", file.Version);
+            return (CreateInitialSettings(),
+                true,
+                $"設定檔是較新版本的 Lumi 建立的（版本 {file.Version}），這次先用預設設定，而且不會儲存任何設定變更。");
+        }
+
+        var settings = Normalize(new AppSettings(file.Connections, file.Models, file.WorkbenchModelId, file.SpriteModelId, file.Theme));
+        return (settings, false, null);
+    }
+
+    private (AppSettings, bool, string?) RecoverFromBrokenFile()
+    {
+        var brokenPath = $"{_path}.broken-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
+        File.Move(_path, brokenPath, overwrite: true);
+        var initial = CreateInitialSettings();
+        WriteSync(initial);
+        return (initial, false, $"設定檔損毀，已改用預設設定。原本的檔案保留為 {Path.GetFileName(brokenPath)}。");
+    }
+
+    private void WriteSync(AppSettings settings) =>
+        AtomicFile.WriteAllBytesAsync(_path, Serialize(settings)).GetAwaiter().GetResult();
+
+    private static byte[] Serialize(AppSettings settings) => JsonSerializer.SerializeToUtf8Bytes(
+        new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme),
+        JsonOptions);
+
+    private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
+    {
+        var list = items.ToList();
+        var index = list.FindIndex(x => id(x) == id(item));
+        if (index >= 0) list[index] = item; else list.Add(item);
+        return list;
+    }
+
+    private void RequireConnection(string connectionId)
+    {
+        if (_current.Connections.All(c => c.Id != connectionId))
+            throw new ArgumentException($"找不到連線 {connectionId}。", nameof(connectionId));
+    }
+
+    private void RequireModel(string modelSettingsId)
+    {
+        if (_current.Models.All(m => m.Id != modelSettingsId))
+            throw new ArgumentException($"找不到模型設定 {modelSettingsId}。", nameof(modelSettingsId));
+    }
+
+    private static void ValidateConnection(ConnectionSettings connection)
+    {
+        if (string.IsNullOrWhiteSpace(connection.Name))
+            throw new ArgumentException("連線名稱不可為空。", nameof(connection));
+        if (!Uri.TryCreate(connection.BaseUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            throw new ArgumentException("Base URL 必須是 http 或 https 的完整網址。", nameof(connection));
+    }
+
+    private static void ValidateModel(ModelSettings model)
+    {
+        if (string.IsNullOrWhiteSpace(model.ModelId))
+            throw new ArgumentException("模型 ID 不可為空。", nameof(model));
+        if (string.IsNullOrWhiteSpace(model.DisplayName))
+            throw new ArgumentException("顯示名稱不可為空。", nameof(model));
+        if (model.MaxOutputTokens <= 0 || model.ContextWindow <= 0)
+            throw new ArgumentException("最大輸出與上下文上限必須大於 0。", nameof(model));
+    }
+
+    /// <summary>檔案格式。只放非機密的設定；金鑰在 <see cref="ISecretStore"/>。</summary>
+    private sealed record SettingsFile(
+        int Version,
+        IReadOnlyList<ConnectionSettings>? Connections,
+        IReadOnlyList<ModelSettings>? Models,
+        string? WorkbenchModelId,
+        string? SpriteModelId,
+        ThemePreference Theme);
+}

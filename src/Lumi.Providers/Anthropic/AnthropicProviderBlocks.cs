@@ -10,9 +10,11 @@ namespace Lumi.Providers.Anthropic;
 /// </summary>
 internal static class AnthropicProviderBlocks
 {
+    public const string ProviderName = "anthropic";
+
     public static BetaMessages.BetaContentBlockParam ToParam(ProviderBlock block) =>
         JsonSerializer.Deserialize<BetaMessages.BetaContentBlockParam>(block.RawJson)
         ?? throw new InvalidOperationException($"ProviderBlock 的 RawJson 無法還原：{block.Type}");
 
-    public static ProviderBlock FromRaw(string type, string rawJson) => new("anthropic", type, rawJson);
+    public static ProviderBlock FromRaw(string type, string rawJson) => new(ProviderName, type, rawJson);
 }

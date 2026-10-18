@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
+using Lumi.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Lumi.App.ViewModels;
@@ -16,7 +17,7 @@ public partial class WorkbenchViewModel : ObservableObject
 {
     private readonly ConversationService _conversations;
     private readonly IConversationStore _store;
-    private readonly ChatDefaults _defaults;
+    private readonly IModelCatalog _catalog;
     private readonly IApiKeyPrompt _apiKeyPrompt;
     private readonly ILogger<WorkbenchViewModel> _logger;
 
@@ -26,22 +27,45 @@ public partial class WorkbenchViewModel : ObservableObject
     public WorkbenchViewModel(
         ConversationService conversations,
         IConversationStore store,
-        ChatDefaults defaults,
+        IModelCatalog catalog,
         IApiKeyPrompt apiKeyPrompt,
+        IUiDispatcher dispatcher,
         ILogger<WorkbenchViewModel> logger)
     {
         _conversations = conversations;
         _store = store;
-        _defaults = defaults;
+        _catalog = catalog;
         _apiKeyPrompt = apiKeyPrompt;
         _logger = logger;
+        _notice = catalog.LoadProblem;
+        catalog.Changed += (_, _) => dispatcher.Post(OnModelSettingsChanged);
     }
 
     public ObservableCollection<MessageViewModel> Messages { get; } = [];
 
-    public string ModelName => _defaults.ModelId;
+    private ResolvedModel? WorkbenchModel => _catalog.Resolve(_catalog.Current.WorkbenchModelId);
 
-    public int ContextWindow => _defaults.ContextWindow;
+    /// <summary>頂端顯示的模型名稱；M2 的 2D 換成可切換的膠囊。</summary>
+    public string ModelName => WorkbenchModel is { } m ? m.Model.DisplayName : Strings.Workbench_NoModel;
+
+    public int ContextWindow => WorkbenchModel?.Model.ContextWindow ?? 0;
+
+    /// <summary>一次性的提示（例如設定檔損毀已改用預設）；按「知道了」關掉。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNotice))]
+    private string? _notice;
+
+    public bool HasNotice => Notice is not null;
+
+    [RelayCommand]
+    private void DismissNotice() => Notice = null;
+
+    private void OnModelSettingsChanged()
+    {
+        OnPropertyChanged(nameof(ModelName));
+        OnPropertyChanged(nameof(ContextWindow));
+        OnPropertyChanged(nameof(ContextText));
+    }
 
     [ObservableProperty]
     private string _title = Strings.Workbench_Title;
@@ -78,7 +102,9 @@ public partial class WorkbenchViewModel : ObservableObject
     /// <summary>最後一次回應用掉的上下文：輸入（含快取）＋輸出。</summary>
     public int ContextUsed => InputTokensTotal + (LastUsage?.OutputTokens ?? 0);
 
-    public string ContextText => $"{FormatTokens(ContextUsed)} / {FormatTokens(ContextWindow)}";
+    public string ContextText => ContextWindow > 0
+        ? $"{FormatTokens(ContextUsed)} / {FormatTokens(ContextWindow)}"
+        : FormatTokens(ContextUsed);
 
     /// <summary>啟動時載入最近一則對話；沒有就建一則空的。</summary>
     public async Task InitializeAsync()

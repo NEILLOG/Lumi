@@ -34,4 +34,6 @@ public static class Strings
     public static string ApiKey_Save => Get(nameof(ApiKey_Save));
     public static string ApiKey_Cancel => Get(nameof(ApiKey_Cancel));
     public static string ApiKey_SaveFailed => Get(nameof(ApiKey_SaveFailed));
+    public static string Workbench_NoModel => Get(nameof(Workbench_NoModel));
+    public static string Workbench_DismissNotice => Get(nameof(Workbench_DismissNotice));
 }

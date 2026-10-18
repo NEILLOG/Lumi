@@ -1,5 +1,6 @@
 using System.Net;
 using Lumi.Core.Chat;
+using Lumi.Core.Models;
 using Lumi.Providers.Anthropic;
 using Lumi.Providers.Tests.TestSupport;
 using Microsoft.Extensions.Options;
@@ -11,19 +12,24 @@ public class AnthropicChatProviderTests
     private const string FakeApiKey = "sk-ant-test-FAKE-KEY-0000";
 
     private static (AnthropicChatProvider Provider, FakeAnthropicHttpHandler Handler, CapturingLogger<AnthropicChatProvider> Logger) CreateProvider(
-        FakeAnthropicHttpHandler handler, TestSupport.FakeSecretStore? secrets = null, AnthropicDevOptions? options = null)
+        FakeAnthropicHttpHandler handler, TestSupport.FakeSecretStore? secrets = null, AnthropicProviderOptions? options = null)
     {
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.anthropic.test/") };
         var logger = new CapturingLogger<AnthropicChatProvider>();
-        var opts = Options.Create(options ?? new AnthropicDevOptions { UseServerFallbacks = false });
+        var opts = Options.Create(options ?? new AnthropicProviderOptions { UseServerFallbacks = false });
         var store = secrets ?? TestSupport.FakeSecretStore.WithKey(FakeApiKey);
         return (new AnthropicChatProvider(httpClient, store, opts, logger), handler, logger);
     }
 
-    private static ChatRequest SimpleRequest(string userText = "Hi") => new(
-        "claude-opus-5-5",
-        [new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock(userText)], DateTimeOffset.UtcNow)],
-        1024);
+    private static readonly ConnectionSettings Connection =
+        new("test-anthropic", "測試連線", ProviderFormat.Anthropic, "https://api.anthropic.test");
+
+    private static ResolvedModel Model(bool showThinking = true) =>
+        new(new ModelSettings("m1", Connection.Id, "claude-opus-5-5", "Claude Opus 5.5", 1024, 1_000_000, showThinking), Connection);
+
+    private static ChatRequest SimpleRequest(string userText = "Hi", bool showThinking = true) => new(
+        Model(showThinking),
+        [new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock(userText)], DateTimeOffset.UtcNow)]);
 
     private static async Task<List<ChatEvent>> CollectAsync(AnthropicChatProvider provider, ChatRequest request, CancellationToken ct = default)
     {
@@ -115,13 +121,12 @@ public class AnthropicChatProviderTests
         // 把它當成歷史，组第二次請求，檢查送出的 JSON 裡 signature 原封不動
         var secondHandler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
         var (provider2, handler2, _) = CreateProvider(secondHandler);
-        var history = new ChatRequest("claude-opus-5-5",
+        var history = new ChatRequest(Model(),
             [
                 new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("解 27*453")], DateTimeOffset.UtcNow),
                 assistantMessage,
                 new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("謝謝")], DateTimeOffset.UtcNow),
-            ],
-            1024);
+            ]);
 
         await CollectAsync(provider2, history);
 
@@ -284,7 +289,7 @@ public class AnthropicChatProviderTests
     public async Task ServerFallbacks_WhenEnabled_AddsFallbacksAndBetaHeader()
     {
         var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
-        var (provider, _, _) = CreateProvider(handler, options: new AnthropicDevOptions { UseServerFallbacks = true });
+        var (provider, _, _) = CreateProvider(handler, options: new AnthropicProviderOptions { UseServerFallbacks = true });
 
         await CollectAsync(provider, SimpleRequest());
 
@@ -309,6 +314,63 @@ public class AnthropicChatProviderTests
         // 還原出 overloaded_error（見實作紀錄）。
         Assert.Equal(ChatFailureKind.Overloaded, failed.Failure.Kind);
         Assert.True(failed.Failure.Retryable);
+    }
+
+    [Fact]
+    public async Task Request_UsesConnectionBaseUrl_AndConnectionApiKey()
+    {
+        var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
+        var secrets = TestSupport.FakeSecretStore.WithKey(FakeApiKey);
+        var (provider, _, _) = CreateProvider(handler, secrets);
+
+        await CollectAsync(provider, SimpleRequest());
+
+        Assert.Equal("api.anthropic.test", handler.LastRequest!.RequestUri!.Host);
+        Assert.Equal(["connection/test-anthropic/api-key"], secrets.RequestedKeys);
+    }
+
+    [Fact]
+    public async Task MissingApiKey_MessageNamesTheConnection()
+    {
+        var (provider, _, _) = CreateProvider(FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64), TestSupport.FakeSecretStore.Empty());
+
+        var events = await CollectAsync(provider, SimpleRequest());
+
+        Assert.Contains("測試連線", Assert.IsType<Failed>(Assert.Single(events)).Failure.Message);
+    }
+
+    [Fact]
+    public async Task ShowThinkingOff_OmitsThinkingParameter()
+    {
+        var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
+        var (provider, _, _) = CreateProvider(handler);
+
+        await CollectAsync(provider, SimpleRequest(showThinking: false));
+
+        using var doc = System.Text.Json.JsonDocument.Parse(handler.LastRequestBody!);
+        Assert.False(doc.RootElement.TryGetProperty("thinking", out _));
+        Assert.Equal(1024, doc.RootElement.GetProperty("max_tokens").GetInt32());
+    }
+
+    [Fact]
+    public async Task OtherProvidersBlocks_AreNotSent_AndEmptiedMessagesAreDropped()
+    {
+        var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
+        var (provider, _, _) = CreateProvider(handler);
+        var request = new ChatRequest(Model(),
+        [
+            new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("問")], DateTimeOffset.UtcNow),
+            new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant,
+                [new ProviderBlock("openai", "something", "{}"), new TextBlock("答")], DateTimeOffset.UtcNow),
+            new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("再問")], DateTimeOffset.UtcNow),
+        ]);
+
+        await CollectAsync(provider, request);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(handler.LastRequestBody!);
+        var messages = doc.RootElement.GetProperty("messages");
+        Assert.Equal(3, messages.GetArrayLength());
+        Assert.Equal(1, messages[1].GetProperty("content").GetArrayLength());
     }
 
     [Fact]

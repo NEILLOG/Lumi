@@ -2,20 +2,23 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Secrets;
-using Lumi.Providers.Anthropic;
+using Lumi.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>缺金鑰時的最小輸入對話框（M2 由設定頁取代，整個刪掉）。存完立刻清空欄位，不保留金鑰。</summary>
+/// <summary>缺金鑰時的最小輸入對話框（M2 的 2C 由設定頁取代，整個刪掉）。存完立刻清空欄位，不保留金鑰。</summary>
 public partial class ApiKeyDialogViewModel : ObservableObject
 {
-    private readonly ISecretStore _secrets;
+    private readonly IModelCatalog _catalog;
+    private readonly ConnectionSettings? _connection;
     private readonly ILogger _logger;
 
-    public ApiKeyDialogViewModel(ISecretStore secrets, ApiKeyPromptReason reason, ILogger logger)
+    /// <param name="connection">工作台目前模型的連線；金鑰存到這個連線。</param>
+    public ApiKeyDialogViewModel(IModelCatalog catalog, ConnectionSettings? connection, ApiKeyPromptReason reason, ILogger logger)
     {
-        _secrets = secrets;
+        _catalog = catalog;
+        _connection = connection;
         _logger = logger;
         Message = reason switch
         {
@@ -40,11 +43,18 @@ public partial class ApiKeyDialogViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
+        if (_connection is null)
+        {
+            Error = Strings.ApiKey_SaveFailed;
+            return;
+        }
+
         try
         {
-            await _secrets.SetAsync(AnthropicDevOptions.ApiKeySecret, new SecretValue(ApiKey.Trim()));
+            // 經過 IModelCatalog 存：金鑰進 ISecretStore，設定檔只記末 4 碼的提示
+            await _catalog.SaveConnectionAsync(_connection, new SecretValue(ApiKey.Trim()));
         }
-        catch (SecretStoreException ex)
+        catch (Exception ex) when (ex is SecretStoreException or IOException or InvalidOperationException)
         {
             _logger.LogWarning(ex, "儲存 Anthropic 金鑰失敗");
             Error = Strings.ApiKey_SaveFailed;

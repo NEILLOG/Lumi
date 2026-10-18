@@ -3,6 +3,7 @@ using global::Anthropic;
 using global::Anthropic.Exceptions;
 using BetaMessages = global::Anthropic.Models.Beta.Messages;
 using Lumi.Core.Chat;
+using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,13 +19,13 @@ public sealed class AnthropicChatProvider : IChatProvider
 {
     private readonly HttpClient _httpClient;
     private readonly ISecretStore _secrets;
-    private readonly IOptions<AnthropicDevOptions> _options;
+    private readonly IOptions<AnthropicProviderOptions> _options;
     private readonly ILogger<AnthropicChatProvider> _logger;
 
     public AnthropicChatProvider(
         HttpClient httpClient,
         ISecretStore secrets,
-        IOptions<AnthropicDevOptions> options,
+        IOptions<AnthropicProviderOptions> options,
         ILogger<AnthropicChatProvider> logger)
     {
         _httpClient = httpClient;
@@ -39,7 +40,7 @@ public sealed class AnthropicChatProvider : IChatProvider
         ChatFailure? secretFailure = null;
         try
         {
-            apiKey = await _secrets.GetAsync(AnthropicDevOptions.ApiKeySecret, ct).ConfigureAwait(false);
+            apiKey = await _secrets.GetAsync(ConnectionSecrets.ApiKey(request.Model.Connection.Id), ct).ConfigureAwait(false);
         }
         catch (SecretStoreException ex)
         {
@@ -55,15 +56,15 @@ public sealed class AnthropicChatProvider : IChatProvider
 
         if (apiKey is null)
         {
-            yield return new Failed(new ChatFailure(ChatFailureKind.MissingApiKey, "尚未設定 Anthropic API 金鑰。", Retryable: false));
+            yield return new Failed(new ChatFailure(ChatFailureKind.MissingApiKey, $"連線「{request.Model.Connection.Name}」尚未設定 API 金鑰。", Retryable: false));
             yield break;
         }
 
         var options = _options.Value;
-        var client = new AnthropicClient { ApiKey = apiKey.Reveal(), BaseUrl = options.BaseUrl, HttpClient = _httpClient };
+        var client = new AnthropicClient { ApiKey = apiKey.Reveal(), BaseUrl = request.Model.Connection.BaseUrl, HttpClient = _httpClient };
         var parameters = AnthropicRequestConverter.ToCreateParams(request, options);
 
-        var accumulator = new AnthropicStreamAccumulator(request.ModelId);
+        var accumulator = new AnthropicStreamAccumulator(request.Model.Model.ModelId);
 
         // enumerator 故意延後到迴圈第一輪、在 try 裡才建立：CreateStreaming(...).GetAsyncEnumerator(...)
         // 本身有沒有立刻送出 HTTP 請求（因而可能立刻丟出例外）是 SDK 的實作細節，不能假設一定是延遲求值。

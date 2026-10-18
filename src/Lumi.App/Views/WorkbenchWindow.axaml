@@ -61,6 +61,18 @@
 
     <ScrollViewer Grid.Row="1" x:Name="MessageScroller">
       <StackPanel Margin="24,20" Spacing="18">
+        <!-- 一次性提示：例如設定檔損毀已改用預設 -->
+        <Border IsVisible="{Binding HasNotice}" Padding="14,10" CornerRadius="10" BorderThickness="1"
+                Background="{DynamicResource LumiWarningBackgroundBrush}"
+                BorderBrush="{DynamicResource LumiWarningBorderBrush}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Foreground="{DynamicResource LumiWarningTextBrush}" />
+            <Button Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                    Content="{x:Static res:Strings.Workbench_DismissNotice}" Command="{Binding DismissNoticeCommand}" />
+          </Grid>
+        </Border>
+
         <ItemsControl ItemsSource="{Binding Messages}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>

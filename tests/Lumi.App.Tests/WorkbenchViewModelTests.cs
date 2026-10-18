@@ -8,15 +8,15 @@ namespace Lumi.App.Tests;
 
 public class WorkbenchViewModelTests
 {
-    private static readonly ChatDefaults Defaults = new("claude-opus-5-5", 1024, 1_000_000);
 
     private static (WorkbenchViewModel Vm, InMemoryConversationStore Store) Create(
-        IChatProvider provider, IApiKeyPrompt? prompt = null, InMemoryConversationStore? store = null)
+        IChatProvider provider, IApiKeyPrompt? prompt = null, InMemoryConversationStore? store = null, FakeModelCatalog? catalog = null)
     {
         store ??= new InMemoryConversationStore();
-        var service = new ConversationService(provider, store, Defaults);
-        var vm = new WorkbenchViewModel(service, store, Defaults, prompt ?? new FakeApiKeyPrompt(false),
-            NullLogger<WorkbenchViewModel>.Instance);
+        catalog ??= new FakeModelCatalog();
+        var service = new ConversationService(provider, store, catalog);
+        var vm = new WorkbenchViewModel(service, store, catalog, prompt ?? new FakeApiKeyPrompt(false),
+            new SyncUiDispatcher(), NullLogger<WorkbenchViewModel>.Instance);
         return (vm, store);
     }
 
@@ -86,7 +86,7 @@ public class WorkbenchViewModelTests
         Assert.False(vm.IsResponding);
         Assert.Equal(1, vm.Turns);
         Assert.Equal(1500, vm.ContextUsed);
-        Assert.Equal("1.5K / 1M", vm.ContextText);
+        Assert.Equal("1.5K / 200K", vm.ContextText);
         Assert.Equal("嗨", vm.Title);
         Assert.Equal("嗨", (await store.GetLatestAsync())!.Title);
         Assert.Equal(2, (await store.GetMessagesAsync((await store.GetLatestAsync())!.Id)).Count);
@@ -230,6 +230,49 @@ public class WorkbenchViewModelTests
         Assert.Equal(0, vm.Turns);
         Assert.Equal(0, vm.ContextUsed);
         Assert.Empty(await store.GetMessagesAsync((await store.GetLatestAsync())!.Id));
+    }
+
+    [Fact]
+    public void ModelName_AndContextWindow_ComeFromWorkbenchModel_AndFollowChanges()
+    {
+        var catalog = new FakeModelCatalog();
+        var (vm, _) = Create(new ScriptedChatProvider(), catalog: catalog);
+        var changed = new List<string?>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        Assert.Equal("測試模型", vm.ModelName);
+        Assert.Equal(200_000, vm.ContextWindow);
+
+        catalog.Current = catalog.Current with
+        {
+            Models = [FakeModelCatalog.Model with { DisplayName = "換過的模型", ContextWindow = 1_000_000 }],
+        };
+        catalog.Raise();
+
+        Assert.Equal("換過的模型", vm.ModelName);
+        Assert.Equal(1_000_000, vm.ContextWindow);
+        Assert.Contains(nameof(WorkbenchViewModel.ModelName), changed);
+    }
+
+    [Fact]
+    public void NoModel_ShowsPlaceholderName()
+    {
+        var (vm, _) = Create(new ScriptedChatProvider(), catalog: new FakeModelCatalog(withModel: false));
+
+        Assert.Equal(Strings.Workbench_NoModel, vm.ModelName);
+        Assert.Equal("0", vm.ContextText);
+    }
+
+    [Fact]
+    public void LoadProblem_IsShownOnce_AndCanBeDismissed()
+    {
+        var catalog = new FakeModelCatalog { LoadProblem = "設定檔損毀" };
+        var (vm, _) = Create(new ScriptedChatProvider(), catalog: catalog);
+
+        Assert.Equal("設定檔損毀", vm.Notice);
+        vm.DismissNoticeCommand.Execute(null);
+
+        Assert.False(vm.HasNotice);
     }
 
     [Theory]
