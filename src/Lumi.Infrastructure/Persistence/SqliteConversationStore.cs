@@ -194,6 +194,7 @@ public sealed class SqliteConversationStore : IConversationStore
     {
         ChatRole.User => "user",
         ChatRole.Assistant => "assistant",
+        ChatRole.Tool => "tool",
         _ => throw new ArgumentOutOfRangeException(nameof(role)),
     };
 
@@ -201,6 +202,7 @@ public sealed class SqliteConversationStore : IConversationStore
     {
         "user" => ChatRole.User,
         "assistant" => ChatRole.Assistant,
+        "tool" => ChatRole.Tool,
         _ => throw new InvalidDataException($"未知的角色：{text}"),
     };
 

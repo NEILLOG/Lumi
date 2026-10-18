@@ -20,6 +20,7 @@ public sealed record ConnectionSettings(
 /// <summary>掛在某個連線底下的模型設定。</summary>
 /// <param name="ModelId">送給供應商的模型 ID，例如 <c>claude-opus-5-5</c>。</param>
 /// <param name="ShowThinking">關掉時不要求思考內容（也適用於不支援 adaptive thinking 的舊模型）。</param>
+/// <param name="ToolsEnabled">關掉時送出的請求完全不帶工具定義（不支援工具的模型，例如某些小型本機模型）。預設開；舊設定檔沒有這個欄位時也是開。</param>
 public sealed record ModelSettings(
     string Id,
     string ConnectionId,
@@ -27,7 +28,8 @@ public sealed record ModelSettings(
     string DisplayName,
     int MaxOutputTokens,
     int ContextWindow,
-    bool ShowThinking)
+    bool ShowThinking,
+    bool ToolsEnabled = true)
 {
     public static string NewId() => Guid.NewGuid().ToString("N");
 }

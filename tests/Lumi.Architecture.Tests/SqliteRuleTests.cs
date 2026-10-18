@@ -22,6 +22,7 @@ public class SqliteRuleTests
     [InlineData("Lumi.Core")]
     [InlineData("Lumi.Providers")]
     [InlineData("Lumi.Platform")]
+    [InlineData("Lumi.Tools")]
     [InlineData("Lumi.App")]
     public void Other_assemblies_do_not_reference_sqlite(string name)
     {

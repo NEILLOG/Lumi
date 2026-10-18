@@ -21,6 +21,7 @@ public class ProviderSdkRuleTests
     [InlineData("Lumi.Core")]
     [InlineData("Lumi.Infrastructure")]
     [InlineData("Lumi.Platform")]
+    [InlineData("Lumi.Tools")]
     [InlineData("Lumi.App")]
     public void Other_assemblies_do_not_reference_the_anthropic_sdk(string name)
     {

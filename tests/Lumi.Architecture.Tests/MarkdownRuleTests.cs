@@ -19,6 +19,7 @@ public class MarkdownRuleTests
     [InlineData("Lumi.Providers")]
     [InlineData("Lumi.Infrastructure")]
     [InlineData("Lumi.Platform")]
+    [InlineData("Lumi.Tools")]
     public void Other_assemblies_do_not_reference_markdig(string name)
     {
         Assert.DoesNotContain("Markdig", ReferencedAssemblyNames(Assembly.Load(name)));

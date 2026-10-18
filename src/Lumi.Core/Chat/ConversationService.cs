@@ -2,32 +2,70 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Lumi.Core.Models;
+using Lumi.Core.Tools;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lumi.Core.Chat;
 
 /// <summary>
-/// 最小對話流程：存使用者訊息 → 組請求 → 呼叫 <see cref="IChatProvider"/> → 轉發事件 → 存助理訊息。
-/// 事件與 <see cref="IChatProvider"/> 的約定相同；取消時丟 <see cref="OperationCanceledException"/>。
+/// 對話流程：存使用者訊息 → 組請求 → 呼叫 <see cref="IChatProvider"/> → 轉發事件 → 存助理訊息；
+/// 助理要呼叫工具時進入工具迴圈：確認權限、執行、存結果、再次送出，直到不再呼叫工具或達到次數上限。
+/// 事件與 <see cref="IChatProvider"/> 的約定相同，另外一輪可以有多個 <see cref="Completed"/>（每次供應商呼叫一個）；
+/// 取消時丟 <see cref="OperationCanceledException"/>。
 /// </summary>
 public sealed class ConversationService
 {
     public const int TitleMaxLength = 30;
 
+    private const string NoModelMessage = "還沒有可用的模型，請先到設定加入連線與模型。";
+    private const string InterruptedMessage = "對話被中斷，沒有取得這個工具的結果。";
+    private const string StoppedMessage = "使用者已停止。";
+    private const string DeniedMessage = "使用者拒絕執行";
+
     private readonly IChatProvider _provider;
     private readonly IConversationStore _store;
     private readonly IModelCatalog _catalog;
+    private readonly IToolRegistry _registry;
+    private readonly IToolApprovalService _approvals;
+    private readonly ToolPermissionMemory _memory;
+    private readonly ToolLoopOptions _options;
+    private readonly TimeProvider _time;
+    private readonly ILogger<ConversationService> _logger;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
+    /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
     public ConversationService(IChatProvider provider, IConversationStore store, IModelCatalog catalog)
+        : this(provider, store, catalog, new ToolRegistry([]), new DenyAllToolApprovalService(), new ToolPermissionMemory(),
+            new ToolLoopOptions(), TimeProvider.System, NullLogger<ConversationService>.Instance)
+    {
+    }
+
+    public ConversationService(
+        IChatProvider provider,
+        IConversationStore store,
+        IModelCatalog catalog,
+        IToolRegistry registry,
+        IToolApprovalService approvals,
+        ToolPermissionMemory memory,
+        ToolLoopOptions options,
+        TimeProvider time,
+        ILogger<ConversationService> logger)
     {
         _provider = provider;
         _store = store;
         _catalog = catalog;
+        _registry = registry;
+        _approvals = approvals;
+        _memory = memory;
+        _options = options;
+        _time = time;
+        _logger = logger;
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
     public async IAsyncEnumerable<ChatEvent> SendAsync(
-        string conversationId, string userText, [EnumeratorCancellation] CancellationToken ct = default)
+        string conversationId, string userText, [EnumeratorCancellation] CancellationToken ct = default, ChatMode mode = ChatMode.Workbench)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userText);
         Begin(conversationId);
@@ -40,23 +78,7 @@ public sealed class ConversationService
             if (existing.Count == 0)
                 await _store.RenameAsync(conversationId, MakeTitle(userText), ct).ConfigureAwait(false);
 
-            await foreach (var chatEvent in StreamCoreAsync(conversationId, ct).ConfigureAwait(false))
-                yield return chatEvent;
-        }
-        finally
-        {
-            End(conversationId);
-        }
-    }
-
-    /// <summary>不新增使用者訊息，用目前的歷史再要一次回應（重試、存好金鑰後重送）。最後一則必須是使用者訊息。</summary>
-    public async IAsyncEnumerable<ChatEvent> RetryAsync(
-        string conversationId, [EnumeratorCancellation] CancellationToken ct = default)
-    {
-        Begin(conversationId);
-        try
-        {
-            await foreach (var chatEvent in StreamCoreAsync(conversationId, ct).ConfigureAwait(false))
+            await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct).ConfigureAwait(false))
                 yield return chatEvent;
         }
         finally
@@ -66,17 +88,37 @@ public sealed class ConversationService
     }
 
     /// <summary>
-    /// 重新產生：移除最後一則助理訊息（包含「已停止」的），用同一段歷史再要一次回應，新回應取代舊的。
-    /// 只有從尾端移除，前面的訊息沒有任何改變（agent.md 第 7 節）。最後一則不是助理訊息時丟 <see cref="InvalidOperationException"/>。
+    /// 不新增使用者訊息，用目前的歷史再要一次回應（重試、存好金鑰後重送、工具迴圈中途失敗後接著跑）。
+    /// 最後一則必須是使用者訊息或工具結果。
+    /// </summary>
+    public async IAsyncEnumerable<ChatEvent> RetryAsync(
+        string conversationId, [EnumeratorCancellation] CancellationToken ct = default, ChatMode mode = ChatMode.Workbench)
+    {
+        Begin(conversationId);
+        try
+        {
+            await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct).ConfigureAwait(false))
+                yield return chatEvent;
+        }
+        finally
+        {
+            End(conversationId);
+        }
+    }
+
+    /// <summary>
+    /// 重新產生：移除最後一輪的助理與工具訊息（從尾端一路移除到最後一則使用者訊息，包含「已停止」的），
+    /// 用同一段歷史再要一次回應，新回應取代舊的。只有從尾端移除，前面的訊息沒有任何改變（agent.md 第 7 節）。
+    /// 最後一則是使用者訊息時丟 <see cref="InvalidOperationException"/>。
     /// </summary>
     public async IAsyncEnumerable<ChatEvent> RegenerateAsync(
-        string conversationId, [EnumeratorCancellation] CancellationToken ct = default)
+        string conversationId, [EnumeratorCancellation] CancellationToken ct = default, ChatMode mode = ChatMode.Workbench)
     {
         Begin(conversationId);
         try
         {
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
-            if (history.Count == 0 || history[^1].Role != ChatRole.Assistant)
+            if (history.Count == 0 || history[^1].Role == ChatRole.User)
                 throw new InvalidOperationException("最後一則必須是助理訊息才能重新產生。");
 
             // 沒有可用的模型時，不要先把舊的回答刪掉
@@ -86,9 +128,11 @@ public sealed class ConversationService
                 yield break;
             }
 
-            await _store.RemoveLastMessageAsync(conversationId, CancellationToken.None).ConfigureAwait(false);
+            var toRemove = history.Reverse().TakeWhile(m => m.Role != ChatRole.User).Count();
+            for (var i = 0; i < toRemove; i++)
+                await _store.RemoveLastMessageAsync(conversationId, CancellationToken.None).ConfigureAwait(false);
 
-            await foreach (var chatEvent in StreamCoreAsync(conversationId, ct).ConfigureAwait(false))
+            await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct).ConfigureAwait(false))
                 yield return chatEvent;
         }
         finally
@@ -97,16 +141,9 @@ public sealed class ConversationService
         }
     }
 
-    private const string NoModelMessage = "還沒有可用的模型，請先到設定加入連線與模型。";
-
-    private async IAsyncEnumerable<ChatEvent> StreamCoreAsync(
-        string conversationId, [EnumeratorCancellation] CancellationToken ct)
+    private async IAsyncEnumerable<ChatEvent> RunTurnAsync(
+        string conversationId, ChatMode mode, [EnumeratorCancellation] CancellationToken ct)
     {
-        var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
-        var requestMessages = BuildRequestMessages(history);
-        if (requestMessages.Count == 0 || requestMessages[^1].Role != ChatRole.User)
-            throw new InvalidOperationException("最後一則訊息必須是使用者訊息才能要求回應。");
-
         // 工作台用的模型＝設定裡的工作台預設模型（M2 的 Q3）；M7 的小精靈改用 SpriteModelId
         var model = _catalog.Resolve(_catalog.Current.WorkbenchModelId);
         if (model is null)
@@ -115,7 +152,155 @@ public sealed class ConversationService
             yield break;
         }
 
-        var request = new ChatRequest(model, requestMessages);
+        // 模型設定的「使用工具」關掉時，請求完全不帶工具定義
+        var tools = model.Model.ToolsEnabled ? _registry.GetTools(mode) : [];
+        var context = new ToolContext(conversationId, mode, _time);
+
+        for (var iteration = 1; iteration <= _options.MaxIterations; iteration++)
+        {
+            var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+            var requestMessages = BuildRequestMessages(history);
+            if (requestMessages.Count == 0 || requestMessages[^1].Role is not (ChatRole.User or ChatRole.Tool))
+                throw new InvalidOperationException("最後一則訊息必須是使用者訊息或工具結果才能要求回應。");
+
+            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null);
+            Completed? completed = null;
+            var failed = false;
+
+            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model.Model.ModelId, ct).ConfigureAwait(false))
+            {
+                if (chatEvent is Completed c) completed = c;
+                if (chatEvent is Failed) failed = true;
+                yield return chatEvent;
+            }
+
+            var uses = completed?.Message.Content.OfType<ToolUseBlock>().ToList() ?? [];
+            if (failed || completed is null || uses.Count == 0 || completed.Reason != StopReason.ToolUse)
+                yield break;
+
+            // ---- 依序處理每個工具呼叫（Q4：不平行，每個各自走權限確認）----
+            var results = new List<ToolResultBlock>();
+            var stopped = false;
+            foreach (var use in uses)
+            {
+                var tool = tools.FirstOrDefault(t => t.Descriptor.Name == use.Name);
+                if (tool is null)
+                {
+                    var unknown = new ToolResultBlock(use.Id, $"沒有這個工具：{use.Name}", true, use.Name, null, "沒有這個工具", 0, ToolApproval.NotRequired);
+                    yield return new ToolCallStarted(use.Id, use.Name, use.Name, ToolPermission.ReadOnly, null, use.InputJson);
+                    yield return new ToolCallCompleted(use.Id, unknown);
+                    results.Add(unknown);
+                    continue;
+                }
+
+                var descriptor = tool.Descriptor;
+                var preview = tool.Preview(use.InputJson);
+
+                if (stopped)
+                {
+                    // 前一個呼叫被使用者停止：後面還沒開始的也補「已停止」，否則 tool_use 缺結果，下次送出會被 API 拒絕
+                    results.Add(StoppedResult(use, descriptor, preview, ToolApproval.NotRequired));
+                    continue;
+                }
+
+                yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
+
+                // ---- 權限 ----
+                var approval = ToolApproval.NotRequired;
+                var denied = false;
+                if (descriptor.Permission != ToolPermission.ReadOnly)
+                {
+                    if (_memory.IsAllowed(conversationId, descriptor.Permission))
+                    {
+                        approval = ToolApproval.AllowedForConversation;
+                    }
+                    else
+                    {
+                        var approvalRequest = new ToolApprovalRequest(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview, use.InputJson);
+                        yield return new ApprovalRequired(approvalRequest);
+
+                        ApprovalDecision? decision = null;
+                        try
+                        {
+                            decision = await _approvals.RequestAsync(approvalRequest, ct).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                        {
+                            stopped = true;
+                        }
+
+                        if (stopped)
+                        {
+                            var cancelledResult = StoppedResult(use, descriptor, preview, ToolApproval.NotRequired);
+                            results.Add(cancelledResult);
+                            yield return new ToolCallCompleted(use.Id, cancelledResult);
+                            continue;
+                        }
+
+                        switch (decision)
+                        {
+                            case ApprovalDecision.AllowForConversation:
+                                _memory.Allow(conversationId, descriptor.Permission);   // Destructive 不會被記住
+                                approval = descriptor.Permission == ToolPermission.Destructive ? ToolApproval.AllowedOnce : ToolApproval.AllowedForConversation;
+                                break;
+                            case ApprovalDecision.AllowOnce:
+                                approval = ToolApproval.AllowedOnce;
+                                break;
+                            default:
+                                approval = ToolApproval.Denied;
+                                denied = true;
+                                break;
+                        }
+                    }
+                }
+
+                // ---- 執行 ----
+                ToolResultBlock block;
+                if (denied)
+                {
+                    block = new ToolResultBlock(use.Id, DeniedMessage, true, descriptor.DisplayName, preview.Target, "你已拒絕", 0, ToolApproval.Denied);
+                }
+                else
+                {
+                    var started = _time.GetTimestamp();
+                    ToolResult toolResult;
+                    try
+                    {
+                        toolResult = await ToolExecutor.RunAsync(tool, use.InputJson, context, _options.MaxResultChars, _logger, ct).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        stopped = true;
+                        toolResult = ToolResult.Error(StoppedMessage, "已停止");
+                    }
+
+                    block = new ToolResultBlock(use.Id, toolResult.Content, toolResult.IsError, descriptor.DisplayName,
+                        preview.Target, toolResult.Summary, ToolExecutor.ElapsedMilliseconds(started, _time), approval);
+                }
+
+                results.Add(block);
+                yield return new ToolCallCompleted(use.Id, block);
+            }
+
+            // 先存結果再決定要不要往下：每個 tool_use 都必須有結果，存檔不受取消影響
+            await _store.AppendMessageAsync(conversationId,
+                new ChatMessage(ChatMessage.NewId(), ChatRole.Tool, results, _time.GetUtcNow()), CancellationToken.None).ConfigureAwait(false);
+
+            if (stopped)
+                throw new OperationCanceledException(ct);
+        }
+
+        yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
+            $"工具呼叫已達到 {_options.MaxIterations} 次上限，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+    }
+
+    private static ToolResultBlock StoppedResult(ToolUseBlock use, ToolDescriptor descriptor, ToolPreview preview, ToolApproval approval) =>
+        new(use.Id, StoppedMessage, true, descriptor.DisplayName, preview.Target, "已停止", 0, approval);
+
+    /// <summary>呼叫一次供應商：轉發事件、完成時存助理訊息、取消時把已收到的文字存成「已停止」。</summary>
+    private async IAsyncEnumerable<ChatEvent> StreamOnceAsync(
+        string conversationId, ChatRequest request, string modelId, [EnumeratorCancellation] CancellationToken ct)
+    {
         var receivedText = new StringBuilder();
 
         await using var enumerator = _provider.StreamAsync(request, ct).GetAsyncEnumerator(ct);
@@ -128,13 +313,13 @@ public sealed class ConversationService
             }
             catch (OperationCanceledException)
             {
-                // 已收到的文字存成「已停止」；未完成的思考內容沒有 signature，不保留。
+                // 已收到的文字存成「已停止」；未完成的思考內容沒有 signature、沒完成的工具呼叫不完整，都不保留。
                 // 存檔不受取消影響。
                 if (receivedText.Length > 0)
                 {
                     var stopped = new ChatMessage(
                         ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock(receivedText.ToString())],
-                        DateTimeOffset.UtcNow, MessageStatus.Stopped, model.Model.ModelId);
+                        DateTimeOffset.UtcNow, MessageStatus.Stopped, modelId);
                     await _store.AppendMessageAsync(conversationId, stopped, CancellationToken.None).ConfigureAwait(false);
                 }
                 throw;
@@ -162,27 +347,47 @@ public sealed class ConversationService
 
     /// <summary>
     /// 把存檔的歷史轉成要送出的訊息：只送 Complete／Stopped、略過沒有內容的訊息、
-    /// 連續同角色的訊息合併成一則（API 要求 user／assistant 交替）。只影響送出的請求，不改存檔。
+    /// 連續的使用者（或助理）訊息合併成一則（API 要求交替）。只影響送出的請求，不改存檔。
+    /// 工具歷史保持成對：每個 <see cref="ToolUseBlock"/> 後面緊接一則工具結果訊息，缺結果的（例如程式當掉）
+    /// 補一個錯誤結果，沒有對應呼叫的孤兒結果丟掉——否則兩家 API 都會回 400。
     /// </summary>
     public static IReadOnlyList<ChatMessage> BuildRequestMessages(IReadOnlyList<ChatMessage> history)
     {
+        var messages = history
+            .Where(m => m.Status is MessageStatus.Complete or MessageStatus.Stopped && HasContent(m))
+            .ToList();
         var result = new List<ChatMessage>();
-        foreach (var message in history)
+
+        for (var i = 0; i < messages.Count; i++)
         {
-            if (message.Status is not (MessageStatus.Complete or MessageStatus.Stopped))
-                continue;
-            if (!HasContent(message))
+            var message = messages[i];
+
+            // 工具結果只在「前面的助理訊息有 tool_use」時有意義，會跟著那則助理訊息一起處理；單獨出現的是孤兒
+            if (message.Role == ChatRole.Tool)
                 continue;
 
-            if (result.Count > 0 && result[^1].Role == message.Role)
+            AddMerged(result, message);
+
+            var uses = message.Role == ChatRole.Assistant ? message.Content.OfType<ToolUseBlock>().ToList() : [];
+            if (uses.Count == 0)
+                continue;
+
+            var found = new List<ToolResultBlock>();
+            var next = i + 1;
+            while (next < messages.Count && messages[next].Role == ChatRole.Tool)
             {
-                var previous = result[^1];
-                result[^1] = previous with { Content = [.. previous.Content, .. message.Content] };
+                found.AddRange(messages[next].Content.OfType<ToolResultBlock>());
+                next++;
             }
-            else
-            {
-                result.Add(message);
-            }
+
+            var ordered = uses
+                .Select(use => found.FirstOrDefault(r => r.ToolUseId == use.Id)
+                               ?? new ToolResultBlock(use.Id, InterruptedMessage, true, use.Name, null, "沒有結果", 0, ToolApproval.NotRequired))
+                .Cast<ContentBlock>()
+                .ToList();
+            var source = i + 1 < messages.Count && messages[i + 1].Role == ChatRole.Tool ? messages[i + 1] : null;
+            result.Add(new ChatMessage(source?.Id ?? ChatMessage.NewId(), ChatRole.Tool, ordered, source?.CreatedAt ?? message.CreatedAt));
+            i = next - 1;
         }
 
         // API 要求第一則是使用者訊息
@@ -190,6 +395,19 @@ public sealed class ConversationService
             result.RemoveAt(0);
 
         return result;
+    }
+
+    private static void AddMerged(List<ChatMessage> result, ChatMessage message)
+    {
+        if (result.Count > 0 && result[^1].Role == message.Role && message.Role != ChatRole.Tool)
+        {
+            var previous = result[^1];
+            result[^1] = previous with { Content = [.. previous.Content, .. message.Content] };
+        }
+        else
+        {
+            result.Add(message);
+        }
     }
 
     public static string MakeTitle(string userText)

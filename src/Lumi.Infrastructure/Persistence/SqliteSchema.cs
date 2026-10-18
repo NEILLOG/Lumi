@@ -36,6 +36,10 @@ internal static class SqliteSchema
           UNIQUE (conversation_id, seq)
         );
         """,
+
+        // 2：訊息多了 role = 'tool'、內容多了 tool_use／tool_result 區塊（M3）。結構沒有變，
+        // 只升版本號——讓 M3 之前的程式明確拒絕開啟，而不是讀到不認得的角色讀到一半壞掉。
+        "SELECT 1;",
     ];
 
     public static int LatestVersion => Migrations.Length;

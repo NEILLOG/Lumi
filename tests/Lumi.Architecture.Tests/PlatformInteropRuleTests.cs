@@ -26,6 +26,7 @@ public partial class PlatformInteropRuleTests
     [InlineData("Lumi.Core")]
     [InlineData("Lumi.Providers")]
     [InlineData("Lumi.Infrastructure")]
+    [InlineData("Lumi.Tools")]
     [InlineData("Lumi.App")]
     public void Other_assemblies_contain_no_pinvoke(string name)
     {

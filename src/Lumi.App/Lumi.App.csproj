@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Lumi.Providers\Lumi.Providers.csproj" />
     <ProjectReference Include="..\Lumi.Infrastructure\Lumi.Infrastructure.csproj" />
     <ProjectReference Include="..\Lumi.Platform\Lumi.Platform.csproj" />
+    <ProjectReference Include="..\Lumi.Tools\Lumi.Tools.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -152,6 +152,66 @@ public sealed class SqliteConversationStoreTests : IDisposable
     }
 
     [Fact]
+    public void SchemaVersion_IsAtLeast2_BecauseOfToolRole() =>
+        Assert.True(SqliteSchema.LatestVersion >= 2);
+
+    [Fact]
+    public async Task ToolMessages_RoundTrip_WithAllFields()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("工具");
+        var use = new ToolUseBlock("toolu_1", "calculate", """{"expression":"1+1"}""");
+        var result = new ToolResultBlock("toolu_1", "2", false, "計算", "1+1", "= 2", 12, ToolApproval.AllowedForConversation);
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("算")));
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.Assistant, new TextBlock("好"), use));
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.Tool, result));
+        SqliteConnection.ClearAllPools();
+
+        var messages = await NewStore().GetMessagesAsync(conversation.Id);
+
+        Assert.Equal([ChatRole.User, ChatRole.Assistant, ChatRole.Tool], messages.Select(m => m.Role));
+        Assert.Equal(use, messages[1].Content[1]);
+        Assert.Equal(result, Assert.Single(messages[2].Content));
+    }
+
+    [Fact]
+    public async Task RemoveLastMessage_CanRemoveToolMessage()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("工具");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("算")));
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.Tool,
+            new ToolResultBlock("x", "r", false, "計算", null, null, 0, ToolApproval.NotRequired)));
+
+        Assert.True(await store.RemoveLastMessageAsync(conversation.Id));
+
+        Assert.Equal(ChatRole.User, Assert.Single(await store.GetMessagesAsync(conversation.Id)).Role);
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion1_KeepsExistingMessages_AndBumpsVersion()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("舊資料");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("舊訊息")));
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var messages = await NewStore().GetMessagesAsync(conversation.Id);
+
+        Assert.Equal("舊訊息", Assert.IsType<TextBlock>(Assert.Single(messages).Content[0]).Text);
+        using var check = new SqliteConnection($"Data Source={DatabasePath}");
+        check.Open();
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
+    }
+
+    [Fact]
     public async Task Migration_IsIdempotentAcrossInstances()
     {
         var conversation = await NewStore().CreateAsync("第一次");

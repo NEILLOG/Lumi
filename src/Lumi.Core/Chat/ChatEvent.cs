@@ -1,3 +1,5 @@
+using Lumi.Core.Tools;
+
 namespace Lumi.Core.Chat;
 
 /// <summary>
@@ -6,8 +8,9 @@ namespace Lumi.Core.Chat;
 /// 不發 <see cref="Failed"/>（見 <see cref="IChatProvider"/> 的註解）。
 /// </summary>
 /// <remarks>
-/// M1 只會發出這五種。<c>ToolCallStarted</c>、<c>ToolCallCompleted</c>、<c>ApprovalRequired</c>
-/// 要等 M3 有工具規格時再加（見 plan/01-skeleton-chat.md Q10），避免先猜欄位。
+/// 一輪回應可以包含多次供應商呼叫（工具迴圈）：每次呼叫結束都有一個 <see cref="Completed"/>（該次的助理訊息），
+/// 工具呼叫的事件（<see cref="ToolCallStarted"/>、<see cref="ApprovalRequired"/>、<see cref="ToolCallCompleted"/>）
+/// 夾在兩個 <see cref="Completed"/> 之間。整輪以 <see cref="Failed"/>，或事件自然結束為終點。
 /// </remarks>
 public abstract record ChatEvent;
 
@@ -22,4 +25,13 @@ public sealed record Completed(ChatMessage Message, StopReason Reason) : ChatEve
 
 public sealed record Failed(ChatFailure Failure) : ChatEvent;
 
-public enum StopReason { EndTurn, MaxTokens, StopSequence, Other }
+/// <summary>開始執行一個工具呼叫（確認通過、真正執行之前也會先發，畫面據此顯示卡片）。</summary>
+public sealed record ToolCallStarted(
+    string CallId, string ToolName, string DisplayName, ToolPermission Permission, string? Target, string ArgumentsJson) : ChatEvent;
+
+/// <summary>需要使用者確認：在等待之前發出，畫面據此在卡片內顯示確認區。</summary>
+public sealed record ApprovalRequired(ToolApprovalRequest Request) : ChatEvent;
+
+public sealed record ToolCallCompleted(string CallId, ToolResultBlock Result) : ChatEvent;
+
+public enum StopReason { EndTurn, MaxTokens, StopSequence, ToolUse, Other }

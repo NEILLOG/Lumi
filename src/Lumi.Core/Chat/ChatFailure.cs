@@ -52,5 +52,8 @@ public enum ChatFailureKind
     /// <summary><c>stop_reason: refusal</c>（含開啟 fallback 後，所有候補模型也都拒絕）。</summary>
     Refused,
 
+    /// <summary>工具迴圈達到次數上限；已完成的步驟都保留，使用者可以「重試」接著跑。</summary>
+    ToolLoopLimit,
+
     Unknown,
 }

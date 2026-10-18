@@ -26,9 +26,9 @@ public partial class ModelsViewModel : ObservableObject
     private ModelListItem? _selectedItem;
     private CancellationTokenSource? _listCts;
 
-    private sealed record ModelSnapshot(string ConnectionId, string ModelId, string DisplayName, int MaxOutput, int Context, bool ShowThinking)
+    private sealed record ModelSnapshot(string ConnectionId, string ModelId, string DisplayName, int MaxOutput, int Context, bool ShowThinking, bool ToolsEnabled)
     {
-        public static readonly ModelSnapshot Empty = new("", "", "", 0, 0, false);
+        public static readonly ModelSnapshot Empty = new("", "", "", 0, 0, false, true);
     }
 
     public ModelsViewModel(IModelCatalog catalog, IConnectionTester tester, ConnectionStatusCache status,
@@ -132,6 +132,10 @@ public partial class ModelsViewModel : ObservableObject
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDirty))]
     private bool _showThinking;
 
+    /// <summary>送出請求時是否帶工具定義（畫面上的勾選框在 M3 的 3C 加入；先讓編輯器保留這個值，儲存時不會被重設）。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDirty))]
+    private bool _toolsEnabled = true;
+
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasSaveError))]
     private string? _saveError;
 
@@ -156,7 +160,7 @@ public partial class ModelsViewModel : ObservableObject
     public bool IsDirty => HasEditor && CurrentSnapshot() != _snapshot;
 
     private ModelSnapshot CurrentSnapshot() => new(SelectedConnection?.Id ?? "", ModelId, DisplayName,
-        (int)(MaxOutputTokens ?? 0), (int)(ContextWindow ?? 0), ShowThinking);
+        (int)(MaxOutputTokens ?? 0), (int)(ContextWindow ?? 0), ShowThinking, ToolsEnabled);
 
     private static bool IsPositiveInt(decimal? value) => value is > 0 and <= int.MaxValue && value == decimal.Truncate(value.Value);
 
@@ -319,7 +323,8 @@ public partial class ModelsViewModel : ObservableObject
 
         var model = _catalog.Current.Models.First(m => m.Id == item.Id);
         StartEditing(model.Id, isNew: false, model.ConnectionId, model.ModelId, model.DisplayName,
-            model.MaxOutputTokens, model.ContextWindow, model.ShowThinking, displayNameFollows: model.DisplayName == model.ModelId);
+            model.MaxOutputTokens, model.ContextWindow, model.ShowThinking, model.ToolsEnabled,
+            displayNameFollows: model.DisplayName == model.ModelId);
         await LoadAvailableModelsAsync(forceRefresh: false);
         return true;
     }
@@ -334,12 +339,12 @@ public partial class ModelsViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedItem));
         var connection = _catalog.Current.Connections[0];
         var (maxOutput, context, thinking) = DefaultsFor(connection.Format);
-        StartEditing(ModelSettings.NewId(), isNew: true, connection.Id, "", "", maxOutput, context, thinking, displayNameFollows: true);
+        StartEditing(ModelSettings.NewId(), isNew: true, connection.Id, "", "", maxOutput, context, thinking, toolsEnabled: true, displayNameFollows: true);
         await LoadAvailableModelsAsync(forceRefresh: false);
     }
 
     private void StartEditing(string id, bool isNew, string connectionId, string modelId, string displayName,
-        int maxOutput, int context, bool showThinking, bool displayNameFollows)
+        int maxOutput, int context, bool showThinking, bool toolsEnabled, bool displayNameFollows)
     {
         _loading = true;
         try
@@ -352,8 +357,9 @@ public partial class ModelsViewModel : ObservableObject
             MaxOutputTokens = maxOutput;
             ContextWindow = context;
             ShowThinking = showThinking;
+            ToolsEnabled = toolsEnabled;
             _displayNameFollowsModelId = displayNameFollows;
-            _snapshot = new ModelSnapshot(connectionId, modelId, displayName, maxOutput, context, showThinking);
+            _snapshot = new ModelSnapshot(connectionId, modelId, displayName, maxOutput, context, showThinking, toolsEnabled);
             SaveError = null;
         }
         finally
@@ -411,7 +417,7 @@ public partial class ModelsViewModel : ObservableObject
     {
         var id = _editingId!;
         var model = new ModelSettings(id, SelectedConnection!.Id, ModelId.Trim(), DisplayName.Trim(),
-            (int)MaxOutputTokens!.Value, (int)ContextWindow!.Value, ShowThinking);
+            (int)MaxOutputTokens!.Value, (int)ContextWindow!.Value, ShowThinking, ToolsEnabled);
 
         IsSaving = true;
         try
@@ -429,7 +435,7 @@ public partial class ModelsViewModel : ObservableObject
         _selectedItem = item;
         OnPropertyChanged(nameof(SelectedItem));
         StartEditing(id, isNew: false, model.ConnectionId, model.ModelId, model.DisplayName, model.MaxOutputTokens,
-            model.ContextWindow, model.ShowThinking, displayNameFollows: model.DisplayName == model.ModelId);
+            model.ContextWindow, model.ShowThinking, model.ToolsEnabled, displayNameFollows: model.DisplayName == model.ModelId);
     }
 
     [RelayCommand(CanExecute = nameof(HasEditor))]

@@ -148,6 +148,31 @@ public sealed class ModelsViewModelTests
     }
 
     [Fact]
+    public async Task EditExisting_ThenSave_PreservesToolsEnabled()
+    {
+        using var host = new SettingsHost();
+        var vm = host.Models;
+        var original = host.Catalog.Current.Models.Single();
+        await host.Catalog.SaveModelAsync(original with { ToolsEnabled = false });
+        await vm.SelectAsync(vm.Items.Single());
+        Assert.False(vm.ToolsEnabled);
+        vm.DisplayName = "改名字不該動到工具開關";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.False(Assert.Single(host.Catalog.Current.Models).ToolsEnabled);
+    }
+
+    [Fact]
+    public async Task NewModel_DefaultsToolsEnabled()
+    {
+        using var host = new SettingsHost();
+        await host.Models.NewModelCommand.ExecuteAsync(null);
+
+        Assert.True(host.Models.ToolsEnabled);
+    }
+
+    [Fact]
     public async Task EditExisting_ThenSave_UpdatesInPlace()
     {
         using var host = new SettingsHost();

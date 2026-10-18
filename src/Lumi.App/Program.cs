@@ -5,6 +5,7 @@ using Lumi.Core;
 using Lumi.Infrastructure;
 using Lumi.Platform;
 using Lumi.Providers;
+using Lumi.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -24,6 +25,13 @@ internal static class Program
         builder.Services.AddLumiPlatform();
         builder.Services.AddLumiProviders();
         builder.Services.AddLumiInfrastructure();
+        builder.Services.AddLumiTools(options =>
+        {
+            // appsettings／環境變數：Lumi:Tools:EnableDemoTools（M4 有真正的檔案工具後移除示範工具）
+            if (bool.TryParse(builder.Configuration["Lumi:Tools:EnableDemoTools"], out var enableDemoTools))
+                options.EnableDemoTools = enableDemoTools;
+            options.NotesDirectory = builder.Configuration["Lumi:Tools:NotesDirectory"];
+        });
         builder.Services.AddLumiApp();
 
         using var host = builder.Build();

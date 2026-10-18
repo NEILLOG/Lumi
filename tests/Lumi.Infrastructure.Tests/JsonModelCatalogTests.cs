@@ -264,4 +264,26 @@ public sealed class JsonModelCatalogTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() => catalog.SetThemeAsync(ThemePreference.Dark));
         Assert.Equal(content, File.ReadAllText(SettingsPath));
     }
+
+    [Fact]
+    public async Task ToolsEnabled_PersistsAcrossReload_AndMissingFieldDefaultsToTrue()
+    {
+        var catalog = NewCatalog();
+        var connection = OpenAiConnection();
+        await catalog.SaveConnectionAsync(connection, null);
+        var model = Model(connection.Id) with { ToolsEnabled = false };
+        await catalog.SaveModelAsync(model);
+
+        Assert.False(NewCatalog().Current.Models.Single(m => m.Id == model.Id).ToolsEnabled);
+
+        // 舊版（M3 之前）寫的設定檔沒有這個欄位：視為開啟
+        var json = File.ReadAllText(SettingsPath);
+        Assert.Contains("\"toolsEnabled\"", json);
+        File.WriteAllText(SettingsPath, System.Text.RegularExpressions.Regex.Replace(json, ",\\s*\"toolsEnabled\":\\s*(true|false)", ""));
+        Assert.DoesNotContain("toolsEnabled", File.ReadAllText(SettingsPath));
+
+        var reloaded = NewCatalog();
+        Assert.Null(reloaded.LoadProblem);
+        Assert.True(reloaded.Current.Models.Single(m => m.Id == model.Id).ToolsEnabled);
+    }
 }
