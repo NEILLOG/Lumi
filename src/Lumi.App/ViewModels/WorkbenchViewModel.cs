@@ -19,6 +19,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private readonly IConversationStore _store;
     private readonly IModelCatalog _catalog;
     private readonly IApiKeyPrompt _apiKeyPrompt;
+    private readonly ISettingsWindowService _settingsWindow;
     private readonly ILogger<WorkbenchViewModel> _logger;
 
     private string? _conversationId;
@@ -29,6 +30,7 @@ public partial class WorkbenchViewModel : ObservableObject
         IConversationStore store,
         IModelCatalog catalog,
         IApiKeyPrompt apiKeyPrompt,
+        ISettingsWindowService settingsWindow,
         IUiDispatcher dispatcher,
         ILogger<WorkbenchViewModel> logger)
     {
@@ -36,6 +38,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _store = store;
         _catalog = catalog;
         _apiKeyPrompt = apiKeyPrompt;
+        _settingsWindow = settingsWindow;
         _logger = logger;
         _notice = catalog.LoadProblem;
         catalog.Changed += (_, _) => dispatcher.Post(OnModelSettingsChanged);
@@ -59,6 +62,10 @@ public partial class WorkbenchViewModel : ObservableObject
 
     [RelayCommand]
     private void DismissNotice() => Notice = null;
+
+    /// <summary>開啟設定視窗（不等它關閉；視窗是獨立的，可以和工作台並排）。</summary>
+    [RelayCommand]
+    private void OpenSettings() => _ = _settingsWindow.ShowAsync(new SettingsNavigation(SettingsSection.Connections));
 
     private void OnModelSettingsChanged()
     {

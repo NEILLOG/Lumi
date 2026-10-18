@@ -10,13 +10,14 @@ public class WorkbenchViewModelTests
 {
 
     private static (WorkbenchViewModel Vm, InMemoryConversationStore Store) Create(
-        IChatProvider provider, IApiKeyPrompt? prompt = null, InMemoryConversationStore? store = null, FakeModelCatalog? catalog = null)
+        IChatProvider provider, IApiKeyPrompt? prompt = null, InMemoryConversationStore? store = null, FakeModelCatalog? catalog = null,
+        ISettingsWindowService? settingsWindow = null)
     {
         store ??= new InMemoryConversationStore();
         catalog ??= new FakeModelCatalog();
         var service = new ConversationService(provider, store, catalog);
         var vm = new WorkbenchViewModel(service, store, catalog, prompt ?? new FakeApiKeyPrompt(false),
-            new SyncUiDispatcher(), NullLogger<WorkbenchViewModel>.Instance);
+            settingsWindow ?? new FakeSettingsWindowService(), new SyncUiDispatcher(), NullLogger<WorkbenchViewModel>.Instance);
         return (vm, store);
     }
 
@@ -261,6 +262,18 @@ public class WorkbenchViewModelTests
 
         Assert.Equal(Strings.Workbench_NoModel, vm.ModelName);
         Assert.Equal("0", vm.ContextText);
+    }
+
+    [Fact]
+    public void OpenSettings_ShowsSettingsWindow_WithoutWaitingForItToClose()
+    {
+        var settings = new FakeSettingsWindowService { WhileOpen = () => new TaskCompletionSource().Task };
+        var (vm, _) = Create(new ScriptedChatProvider(), settingsWindow: settings);
+
+        vm.OpenSettingsCommand.Execute(null);
+
+        Assert.Equal(SettingsSection.Connections, Assert.Single(settings.Shown).Section);
+        Assert.True(vm.OpenSettingsCommand.CanExecute(null));
     }
 
     [Fact]

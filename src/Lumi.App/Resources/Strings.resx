@@ -39,15 +39,81 @@
   <data name="Workbench_Retry" xml:space="preserve"><value>重試</value></data>
   <data name="Workbench_UnexpectedError" xml:space="preserve"><value>發生未預期的錯誤，請再試一次。</value></data>
   <data name="Workbench_StatusFormat" xml:space="preserve"><value>輸入 {0} · 輸出 {1} · 回合 {2} · 上下文</value></data>
-  <data name="ApiKey_Title" xml:space="preserve"><value>Anthropic API 金鑰</value></data>
   <data name="ApiKey_Missing" xml:space="preserve"><value>尚未設定 Anthropic API 金鑰，請輸入後儲存。</value></data>
   <data name="ApiKey_Invalid" xml:space="preserve"><value>金鑰無效，請重新輸入。</value></data>
   <data name="ApiKey_Unreadable" xml:space="preserve"><value>金鑰無法讀取，請重新輸入。</value></data>
   <data name="ApiKey_Note" xml:space="preserve"><value>金鑰只存在這台電腦的系統安全儲存區（Windows DPAPI／macOS 鑰匙圈），不會寫進任何檔案。</value></data>
-  <data name="ApiKey_Placeholder" xml:space="preserve"><value>sk-ant-…</value></data>
-  <data name="ApiKey_Save" xml:space="preserve"><value>儲存</value></data>
-  <data name="ApiKey_Cancel" xml:space="preserve"><value>取消</value></data>
-  <data name="ApiKey_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
   <data name="Workbench_NoModel" xml:space="preserve"><value>未設定模型</value></data>
   <data name="Workbench_DismissNotice" xml:space="preserve"><value>知道了</value></data>
+  <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_CategoryConnections" xml:space="preserve"><value>連線與模型</value></data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve"><value>一般</value></data>
+  <data name="Settings_TabConnections" xml:space="preserve"><value>連線</value></data>
+  <data name="Settings_TabModels" xml:space="preserve"><value>模型設定</value></data>
+  <data name="Settings_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
+  <data name="Format_Anthropic" xml:space="preserve"><value>Anthropic 原生</value></data>
+  <data name="Format_OpenAI" xml:space="preserve"><value>OpenAI 相容</value></data>
+  <data name="Conn_New" xml:space="preserve"><value>新增連線</value></data>
+  <data name="Conn_NewName" xml:space="preserve"><value>新連線</value></data>
+  <data name="Conn_Name" xml:space="preserve"><value>名稱</value></data>
+  <data name="Conn_Format" xml:space="preserve"><value>供應商格式</value></data>
+  <data name="Conn_BaseUrl" xml:space="preserve"><value>Base URL</value></data>
+  <data name="Conn_ApiKey" xml:space="preserve"><value>API 金鑰</value></data>
+  <data name="Conn_KeySet" xml:space="preserve"><value>已設定</value></data>
+  <data name="Conn_KeySetHint" xml:space="preserve"><value>已設定 · 結尾 {0}</value></data>
+  <data name="Conn_KeyNotSet" xml:space="preserve"><value>尚未設定</value></data>
+  <data name="Conn_KeyOptionalHint" xml:space="preserve"><value>OpenAI 相容的服務（例如 Ollama）可以不填金鑰。</value></data>
+  <data name="Conn_KeyReplace" xml:space="preserve"><value>更換</value></data>
+  <data name="Conn_KeyClear" xml:space="preserve"><value>清除</value></data>
+  <data name="Conn_KeyCancel" xml:space="preserve"><value>取消更換</value></data>
+  <data name="Conn_KeyShow" xml:space="preserve"><value>顯示</value></data>
+  <data name="Conn_KeyPlaceholder" xml:space="preserve"><value>貼上金鑰</value></data>
+  <data name="Conn_Test" xml:space="preserve"><value>測試連線</value></data>
+  <data name="Conn_Testing" xml:space="preserve"><value>測試中…</value></data>
+  <data name="Conn_TestCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Conn_TestOk" xml:space="preserve"><value>成功 · 可用模型 {0} 個</value></data>
+  <data name="Conn_TestOkNoList" xml:space="preserve"><value>成功，但伺服器沒有回傳模型清單</value></data>
+  <data name="Conn_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Conn_Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="Conn_ModelCount" xml:space="preserve"><value>{0} 個模型</value></data>
+  <data name="Conn_Select" xml:space="preserve"><value>請從左側選擇連線，或新增一個。</value></data>
+  <data name="Conn_NameRequired" xml:space="preserve"><value>請輸入名稱。</value></data>
+  <data name="Conn_UrlInvalid" xml:space="preserve"><value>請輸入完整的網址（http:// 或 https:// 開頭）。</value></data>
+  <data name="Conn_UrlInsecure" xml:space="preserve"><value>這是 http 連線，金鑰會以明文在網路上傳送；只建議用在本機或內部網路。</value></data>
+  <data name="Confirm_DiscardChanges" xml:space="preserve"><value>有尚未儲存的變更，要放棄嗎？</value></data>
+  <data name="Confirm_Discard" xml:space="preserve"><value>放棄變更</value></data>
+  <data name="Confirm_DeleteConnection" xml:space="preserve"><value>要刪除連線「{0}」嗎？底下的 {1} 個模型設定與這個連線的金鑰也會一併刪除。</value></data>
+  <data name="Confirm_DeleteConnectionNoModels" xml:space="preserve"><value>要刪除連線「{0}」嗎？這個連線的金鑰也會一併刪除。</value></data>
+  <data name="Confirm_Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="Confirm_ClearKey" xml:space="preserve"><value>要清除連線「{0}」的金鑰嗎？</value></data>
+  <data name="Confirm_Clear" xml:space="preserve"><value>清除</value></data>
+  <data name="Confirm_DeleteModel" xml:space="preserve"><value>要刪除模型設定「{0}」嗎？</value></data>
+  <data name="Confirm_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Models_WorkbenchDefault" xml:space="preserve"><value>工作台預設模型</value></data>
+  <data name="Models_SpriteDefault" xml:space="preserve"><value>小精靈預設模型</value></data>
+  <data name="Models_New" xml:space="preserve"><value>新增模型設定</value></data>
+  <data name="Models_NeedConnection" xml:space="preserve"><value>請先到「連線」分頁新增一個連線。</value></data>
+  <data name="Models_Connection" xml:space="preserve"><value>使用的連線</value></data>
+  <data name="Models_ModelId" xml:space="preserve"><value>模型 ID</value></data>
+  <data name="Models_DisplayName" xml:space="preserve"><value>顯示名稱</value></data>
+  <data name="Models_MaxOutput" xml:space="preserve"><value>最大輸出 tokens</value></data>
+  <data name="Models_ContextWindow" xml:space="preserve"><value>上下文上限</value></data>
+  <data name="Models_ShowThinking" xml:space="preserve"><value>顯示思考過程</value></data>
+  <data name="Models_Refresh" xml:space="preserve"><value>重新整理</value></data>
+  <data name="Models_ListLoading" xml:space="preserve"><value>正在取得可用模型…</value></data>
+  <data name="Models_ListCount" xml:space="preserve"><value>可用模型 {0} 個，也可以直接輸入。</value></data>
+  <data name="Models_ListUnavailable" xml:space="preserve"><value>取不到模型清單，請直接輸入模型 ID。</value></data>
+  <data name="Models_BadgeWorkbench" xml:space="preserve"><value>工作台預設</value></data>
+  <data name="Models_BadgeSprite" xml:space="preserve"><value>小精靈預設</value></data>
+  <data name="Models_IdRequired" xml:space="preserve"><value>請輸入模型 ID。</value></data>
+  <data name="Models_NameRequired" xml:space="preserve"><value>請輸入顯示名稱。</value></data>
+  <data name="Models_NumberInvalid" xml:space="preserve"><value>請輸入大於 0 的整數。</value></data>
+  <data name="Models_DefaultChanged" xml:space="preserve"><value>預設模型已改為「{0}」。</value></data>
+  <data name="Models_NoDefault" xml:space="preserve"><value>（未設定）</value></data>
+  <data name="Models_Select" xml:space="preserve"><value>請從左側選擇模型設定，或新增一個。</value></data>
+  <data name="General_Theme" xml:space="preserve"><value>外觀主題</value></data>
+  <data name="Theme_System" xml:space="preserve"><value>跟隨系統</value></data>
+  <data name="Theme_Light" xml:space="preserve"><value>淺色</value></data>
+  <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
+  <data name="Workbench_Settings" xml:space="preserve"><value>設定</value></data>
 </root>

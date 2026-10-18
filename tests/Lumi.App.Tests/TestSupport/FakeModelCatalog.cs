@@ -39,6 +39,8 @@ internal sealed class FakeModelCatalog : IModelCatalog
         return Task.CompletedTask;
     }
 
+    public Task<bool> HasApiKeyAsync(string connectionId, CancellationToken ct = default) => Task.FromResult(false);
+
     public Task ClearApiKeyAsync(string connectionId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task DeleteConnectionAsync(string connectionId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SaveModelAsync(ModelSettings model, CancellationToken ct = default) => throw new NotSupportedException();

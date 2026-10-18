@@ -110,6 +110,24 @@ public sealed class JsonModelCatalogTests : IDisposable
         Assert.Null(catalog.Current.Connections.Single(c => c.Id == connection.Id).ApiKeyHint);
     }
 
+    [Fact]
+    public async Task HasApiKey_ReflectsSecretStore_WithoutReadingIt()
+    {
+        var catalog = NewCatalog();
+        var connection = OpenAiConnection();
+        await catalog.SaveConnectionAsync(connection, null);
+
+        Assert.False(await catalog.HasApiKeyAsync(connection.Id));
+
+        await catalog.SaveConnectionAsync(connection, new SecretValue(PlainKey));
+        Assert.True(await catalog.HasApiKeyAsync(connection.Id));
+
+        // M1 搬家的情況：金鑰在鑰匙圈，但設定檔沒有末 4 碼提示
+        _secrets.Items["connection/dev-anthropic/api-key"] = "old-m1-key";
+        Assert.True(await catalog.HasApiKeyAsync("dev-anthropic"));
+        Assert.Null(catalog.Current.Connections.Single(c => c.Id == "dev-anthropic").ApiKeyHint);
+    }
+
     [Theory]
     [InlineData("", "https://x.test")]
     [InlineData("名稱", "not a url")]

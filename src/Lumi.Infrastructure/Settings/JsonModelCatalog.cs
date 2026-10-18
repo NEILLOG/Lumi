@@ -69,6 +69,9 @@ public sealed class JsonModelCatalog : IModelCatalog
         await MutateAsync(s => s with { Connections = Upsert(s.Connections, saved, c => c.Id) }, ct).ConfigureAwait(false);
     }
 
+    public Task<bool> HasApiKeyAsync(string connectionId, CancellationToken ct = default) =>
+        _secrets.ExistsAsync(ConnectionSecrets.ApiKey(connectionId), ct);
+
     public async Task ClearApiKeyAsync(string connectionId, CancellationToken ct = default)
     {
         RequireConnection(connectionId);

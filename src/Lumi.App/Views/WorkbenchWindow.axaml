@@ -46,7 +46,7 @@
     <Border Grid.Row="0" Padding="12,8"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,Auto,*">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
         <Button Grid.Column="0" Classes="chrome"
                 Content="{x:Static res:Strings.Workbench_NewConversation}"
                 Command="{Binding NewConversationCommand}" />
@@ -56,6 +56,8 @@
         </StackPanel>
         <TextBlock Grid.Column="2" Text="{Binding ModelName}" Classes="muted"
                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Button Grid.Column="3" Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}"
+                Command="{Binding OpenSettingsCommand}" />
       </Grid>
     </Border>
 

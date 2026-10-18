@@ -18,6 +18,9 @@ public interface IModelCatalog
     /// <param name="newApiKey">null 表示金鑰不變。</param>
     Task SaveConnectionAsync(ConnectionSettings connection, SecretValue? newApiKey, CancellationToken ct = default);
 
+    /// <summary>連線有沒有金鑰。只查存不存在、不讀內容（Mac 不會跳鑰匙圈授權視窗）。</summary>
+    Task<bool> HasApiKeyAsync(string connectionId, CancellationToken ct = default);
+
     Task ClearApiKeyAsync(string connectionId, CancellationToken ct = default);
 
     /// <summary>連同底下的模型設定與金鑰一起刪除。</summary>
