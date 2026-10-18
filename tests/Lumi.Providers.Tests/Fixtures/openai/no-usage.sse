@@ -1,0 +1,10 @@
+: keep-alive
+
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"沒有 usage 的伺服器。"},"finish_reason":null}]}
+
+: keep-alive
+
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"unknown_field":true},"finish_reason":"stop"}]}
+
+data: [DONE]
+

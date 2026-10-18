@@ -1,0 +1,4 @@
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"只有 DONE，沒有 finish_reason。"},"finish_reason":null}]}
+
+data: [DONE]
+

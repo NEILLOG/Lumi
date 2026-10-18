@@ -37,6 +37,10 @@ internal sealed class FakeAnthropicHttpHandler : HttpMessageHandler
         },
     });
 
+    public static FakeAnthropicHttpHandler ForJson(byte[] jsonBytes) => ForError(HttpStatusCode.OK, jsonBytes);
+
+    public static FakeAnthropicHttpHandler ForException(Exception ex) => new(_ => throw ex);
+
     public static FakeAnthropicHttpHandler ForError(HttpStatusCode status, byte[] jsonBytes, TimeSpan? retryAfter = null) => new(_ =>
     {
         var response = new HttpResponseMessage(status)

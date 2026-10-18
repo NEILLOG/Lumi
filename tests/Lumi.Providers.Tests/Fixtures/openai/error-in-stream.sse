@@ -1,0 +1,4 @@
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"剛開始回答"},"finish_reason":null}]}
+
+data: {"error":{"message":"upstream failed","type":"server_error"}}
+

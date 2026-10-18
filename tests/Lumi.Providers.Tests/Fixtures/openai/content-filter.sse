@@ -1,0 +1,6 @@
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"好的，我來"},"finish_reason":null}]}
+
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{},"finish_reason":"content_filter"}]}
+
+data: [DONE]
+

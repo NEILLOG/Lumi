@@ -53,6 +53,7 @@ public sealed class CompositionRootTests : IDisposable
 
         var catalog = services.GetRequiredService<IModelCatalog>();
         Assert.IsType<RoutingChatProvider>(services.GetRequiredService<IChatProvider>());
+        Assert.IsType<RoutingConnectionTester>(services.GetRequiredService<IConnectionTester>());
         Assert.NotNull(services.GetRequiredService<ConversationService>());
         var vm = services.GetRequiredService<WorkbenchViewModel>();
 

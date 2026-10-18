@@ -1,0 +1,8 @@
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"role":"assistant","content":"中文與組合 emoji："},"finish_reason":null}]}
+
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"❤️‍🔥"},"finish_reason":null}]}
+
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":" 和國旗 🇹🇼 完整無缺。"},"finish_reason":"stop"}]}
+
+data: [DONE]
+

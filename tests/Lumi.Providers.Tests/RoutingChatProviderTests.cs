@@ -1,6 +1,7 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
 using Lumi.Providers.Anthropic;
+using Lumi.Providers.OpenAICompatible;
 using Lumi.Providers.Tests.TestSupport;
 using Microsoft.Extensions.Options;
 
@@ -11,7 +12,9 @@ public class RoutingChatProviderTests
     private static RoutingChatProvider Create(FakeAnthropicHttpHandler handler) => new(
         new AnthropicChatProvider(new HttpClient(handler), TestSupport.FakeSecretStore.WithKey("sk-test"),
             Options.Create(new AnthropicProviderOptions { UseServerFallbacks = false }),
-            new CapturingLogger<AnthropicChatProvider>()));
+            new CapturingLogger<AnthropicChatProvider>()),
+        new OpenAICompatibleChatProvider(new HttpClient(handler), TestSupport.FakeSecretStore.WithKey("sk-test"),
+            new CapturingLogger<OpenAICompatibleChatProvider>()));
 
     private static ChatRequest Request(ProviderFormat format)
     {
@@ -40,13 +43,49 @@ public class RoutingChatProviderTests
     }
 
     [Fact]
-    public async Task OpenAICompatible_IsNotSupportedYet_AndMakesNoHttpCall()
+    public async Task OpenAICompatibleConnection_GoesToOpenAIProvider()
     {
-        var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
+        var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.OpenAISse("basic-text"), 64);
 
         var events = await Collect(Create(handler).StreamAsync(Request(ProviderFormat.OpenAICompatible)));
 
-        Assert.IsType<Failed>(Assert.Single(events));
-        Assert.Equal(0, handler.CallCount);
+        Assert.IsType<Completed>(events[^1]);
+        Assert.EndsWith("/chat/completions", handler.LastRequest!.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SwitchingFormatsMidConversation_KeepsHistoryUsable_BothWays()
+    {
+        var claudeHandler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("thinking-with-signature"), 64);
+        var openAiHandler = FakeAnthropicHttpHandler.ForSse(Fixtures.OpenAISse("basic-text"), 64);
+        var router = new RoutingChatProvider(
+            new AnthropicChatProvider(new HttpClient(claudeHandler), TestSupport.FakeSecretStore.WithKey("sk-a"),
+                Options.Create(new AnthropicProviderOptions { UseServerFallbacks = false }), new CapturingLogger<AnthropicChatProvider>()),
+            new OpenAICompatibleChatProvider(new HttpClient(openAiHandler), TestSupport.FakeSecretStore.WithKey("sk-o"),
+                new CapturingLogger<OpenAICompatibleChatProvider>()));
+        var history = new List<ChatMessage>
+        {
+            new(ChatMessage.NewId(), ChatRole.User, [new TextBlock("第一題")], DateTimeOffset.UtcNow),
+        };
+
+        async Task Turn(ProviderFormat format, string next)
+        {
+            var events = await Collect(router.StreamAsync(new ChatRequest(Request(format).Model, [.. history])));
+            history.Add(Assert.IsType<Completed>(events[^1]).Message);
+            history.Add(new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock(next)], DateTimeOffset.UtcNow));
+        }
+
+        await Turn(ProviderFormat.Anthropic, "第二題");        // 產生 thinking + signature
+        await Turn(ProviderFormat.OpenAICompatible, "第三題");  // 只收到文字
+        await Turn(ProviderFormat.Anthropic, "第四題");        // 換回來：先前的 thinking 區塊與 signature 仍原樣送回
+
+        using var openAiBody = System.Text.Json.JsonDocument.Parse(openAiHandler.LastRequestBody!);
+        Assert.DoesNotContain("opaque-signature", openAiBody.RootElement.GetRawText());
+        Assert.Equal(3, openAiBody.RootElement.GetProperty("messages").GetArrayLength());
+
+        // 最後一次 Anthropic 請求：開頭的 Anthropic 回應（thinking + signature）還在
+        Assert.Contains("opaque-signature-abc123==", claudeHandler.LastRequestBody);
+        Assert.Equal(1, openAiHandler.CallCount);
+        Assert.Equal(2, claudeHandler.CallCount);
     }
 }

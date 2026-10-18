@@ -1,0 +1,6 @@
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"還沒說完就被"},"finish_reason":null}]}
+
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{},"finish_reason":"length"}]}
+
+data: [DONE]
+

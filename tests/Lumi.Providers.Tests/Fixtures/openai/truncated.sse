@@ -1,0 +1,2 @@
+data: {"model":"gpt-test","choices":[{"index":0,"delta":{"content":"連線在這裡斷掉"},"finish_reason":null}]}
+
