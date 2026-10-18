@@ -4,6 +4,7 @@
         xmlns:ctl="using:Lumi.App.Controls"
         xmlns:res="using:Lumi.App.Resources"
         xmlns:views="using:Lumi.App.Views"
+        xmlns:md="using:Lumi.App.Markdown"
         x:Name="Root"
         x:Class="Lumi.App.Views.WorkbenchWindow"
         x:DataType="vm:WorkbenchViewModel"
@@ -181,7 +182,8 @@
                                           Foreground="{DynamicResource LumiTextMutedBrush}"
                                           FontSize="{DynamicResource LumiFontSizeCard}" />
                     </Expander>
-                    <ctl:EmojiTextBlock IsVisible="{Binding HasText}" Text="{Binding Text}" TextWrapping="Wrap" />
+                    <!-- 助理的回答用 Markdown 渲染；使用者訊息與思考過程維持純文字 -->
+                    <md:MarkdownView IsVisible="{Binding HasText}" Markdown="{Binding Text}" IsStreaming="{Binding IsStreaming}" />
                     <TextBlock IsVisible="{Binding ShowTypingIndicator}" Text="…" Classes="muted" />
                     <TextBlock IsVisible="{Binding IsStopped}" Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" />
 

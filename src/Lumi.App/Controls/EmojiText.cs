@@ -21,6 +21,17 @@ public static class EmojiText
     public static void Apply(TextBlock target, string? text)
     {
         var inlines = new InlineCollection();
+        AddText(inlines, text);
+        target.Inlines = inlines;
+    }
+
+    /// <summary>
+    /// 把文字切成字形叢集加進 <paramref name="inlines"/>：一般文字一段、emoji 叢集一段（指定 emoji 字型），
+    /// 換行變 <see cref="LineBreak"/>。<paramref name="style"/> 會套用到每一段 <see cref="Run"/>
+    /// （例如粗體、等寬字型），emoji 段的字型仍由這裡指定，所以粗體裡、程式碼裡的 ❤️‍🔥 也不會被拆開。
+    /// </summary>
+    public static void AddText(InlineCollection inlines, string? text, Action<Run>? style = null)
+    {
         var buffer = new StringBuilder();
         bool bufferIsEmoji = false;
 
@@ -28,6 +39,7 @@ public static class EmojiText
         {
             if (buffer.Length == 0) return;
             var run = new Run(buffer.ToString());
+            style?.Invoke(run);
             if (bufferIsEmoji) run.FontFamily = EmojiFont;
             inlines.Add(run);
             buffer.Clear();
@@ -49,7 +61,6 @@ public static class EmojiText
             buffer.Append(g);
         }
         Flush();
-        target.Inlines = inlines;
     }
 
     /// <summary>判斷一個字形叢集是否應以彩色 emoji 呈現。</summary>

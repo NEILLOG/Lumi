@@ -7,14 +7,9 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="avares://Lumi.App/Themes/Tokens.axaml" />
+        <ResourceInclude Source="avares://Lumi.App/Themes/Typography.axaml" />
       </ResourceDictionary.MergedDictionaries>
 
-      <!-- 元件只引用這兩個資源，不直接寫字型名稱（agent.md 第 12 節） -->
-      <FontFamily x:Key="LumiUiFont">fonts:Lumi#IBM Plex Sans, fonts:Lumi#Noto Sans TC</FontFamily>
-      <FontFamily x:Key="LumiMonoFont">fonts:Lumi#JetBrains Mono, fonts:Lumi#Noto Sans TC</FontFamily>
-      <x:Double x:Key="LumiFontSizeBody">15</x:Double>
-      <x:Double x:Key="LumiFontSizeCard">14</x:Double>
-      <x:Double x:Key="LumiFontSizeCaption">13</x:Double>
     </ResourceDictionary>
   </Application.Resources>
 
@@ -39,6 +34,8 @@
     <Style Selector="TextBox">
       <Setter Property="FontFamily" Value="{DynamicResource LumiUiFont}" />
     </Style>
+    <StyleInclude Source="avares://Lumi.App/Themes/Markdown.axaml" />
+
     <Style Selector="TextBlock.mono">
       <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
     </Style>

@@ -16,6 +16,7 @@
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 

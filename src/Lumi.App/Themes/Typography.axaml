@@ -1,0 +1,9 @@
+<!-- 字型與字級資源：元件只引用這些，不直接寫字型名稱（agent.md 第 12 節）。App.axaml 與測試共用。 -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <FontFamily x:Key="LumiUiFont">fonts:Lumi#IBM Plex Sans, fonts:Lumi#Noto Sans TC</FontFamily>
+  <FontFamily x:Key="LumiMonoFont">fonts:Lumi#JetBrains Mono, fonts:Lumi#Noto Sans TC</FontFamily>
+  <x:Double x:Key="LumiFontSizeBody">15</x:Double>
+  <x:Double x:Key="LumiFontSizeCard">14</x:Double>
+  <x:Double x:Key="LumiFontSizeCaption">13</x:Double>
+</ResourceDictionary>

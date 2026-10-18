@@ -1,0 +1,86 @@
+<!--
+  Markdown 渲染用的樣式（2E）。顏色一律引用主題 token，不寫死色碼。
+  程式碼區塊在淺色與深色主題都維持深底（CodeBackground／CodeText 兩套相同）。
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- 標題 -->
+  <Style Selector="TextBlock.md-h1"><Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,10,0,2" /></Style>
+  <Style Selector="TextBlock.md-h2"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,8,0,2" /></Style>
+  <Style Selector="TextBlock.md-h3"><Setter Property="FontSize" Value="17.5" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
+  <Style Selector="TextBlock.md-h4"><Setter Property="FontSize" Value="16" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,4,0,0" /></Style>
+  <Style Selector="TextBlock.md-h5"><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="Bold" /></Style>
+  <Style Selector="TextBlock.md-h6">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+
+  <!-- 行內 -->
+  <Style Selector="Run.md-code">
+    <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+  </Style>
+  <Style Selector="Run.md-link">
+    <Setter Property="Foreground" Value="{DynamicResource LumiInfoBrush}" />
+    <Setter Property="TextDecorations" Value="Underline" />
+  </Style>
+
+  <!-- 程式碼區塊 -->
+  <Style Selector="Border.md-codeblock">
+    <Setter Property="Background" Value="{DynamicResource LumiCodeBackgroundBrush}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="TextBlock.md-codelang">
+    <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
+    <Setter Property="Opacity" Value="0.65" />
+    <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="TextBlock.md-codetext">
+    <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
+    <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
+    <Setter Property="FontSize" Value="13.5" />
+  </Style>
+  <Style Selector="Button.md-copy">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="8,2" />
+  </Style>
+
+  <!-- 引用、分隔線 -->
+  <Style Selector="Border.md-quote">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="Padding" Value="12,0,0,0" />
+  </Style>
+  <Style Selector="Border.md-quote TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="Border.md-rule">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="Margin" Value="0,4" />
+  </Style>
+
+  <!-- 表格 -->
+  <Style Selector="Border.md-table">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1,1,0,0" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Border.md-cell">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="10,5" />
+  </Style>
+  <Style Selector="Border.md-thead">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+  </Style>
+  <Style Selector="Border.md-thead TextBlock">
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+</Styles>
