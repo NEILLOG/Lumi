@@ -96,6 +96,65 @@ public class WorkbenchConversationsTests
         Assert.Equal(MessageStatus.Stopped, saved[^1].Status);   // 已收到的文字存成「已停止」
     }
 
+    // ---- 工具訊息（卡片做好之前的過渡顯示） ----
+
+    [Fact]
+    public async Task Reload_HidesToolMessages_AndAssistantMessagesWithOnlyToolCalls()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("工具");
+        ChatMessage Msg(ChatRole role, params ContentBlock[] blocks) => new(ChatMessage.NewId(), role, blocks, DateTimeOffset.UtcNow);
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.User, new TextBlock("現在幾點")));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new ThinkingBlock("想", "s"), new ToolUseBlock("t1", "get_current_time", "{}")));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Tool, new ToolResultBlock("t1", "14:32", false, "查詢目前時間", null, null, 3, ToolApproval.NotRequired)));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new TextBlock("現在是 14:32")));
+        var rig = CreateRig(new ScriptedChatProvider(), store: store);
+
+        await rig.Vm.InitializeAsync();
+
+        Assert.Equal([true, false], rig.Vm.Messages.Select(m => m.IsUser));
+        Assert.Equal("現在是 14:32", rig.Vm.Messages[1].Text);
+    }
+
+    [Fact]
+    public async Task ToolUseCompletion_DoesNotFinalizeTheStreamingBubble()
+    {
+        var toolTurn = new Completed(
+            new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("先查一下。"), new ToolUseBlock("t1", "calculate", "{}")], DateTimeOffset.UtcNow),
+            StopReason.ToolUse);
+        var provider = new ScriptedChatProvider(new TextDelta("先查一下。"), toolTurn, new TextDelta("結果是")) { HangAfter = 3 };
+        var rig = CreateRig(provider);
+        await rig.Vm.InitializeAsync();
+        rig.Vm.InputText = "算";
+
+        var sending = rig.Vm.SendCommand.ExecuteAsync(null);
+        await Wait(() => rig.Vm.Messages.Count == 2 && rig.Vm.Messages[1].Text.EndsWith("結果是"));
+
+        Assert.True(rig.Vm.Messages[1].IsStreaming);   // 工具呼叫的 Completed 不是這一輪的結尾
+        await rig.Vm.StopAndWaitAsync();
+        await sending;
+    }
+
+    [Fact]
+    public async Task Regenerate_RemovesEveryAssistantBubbleOfTheTurn()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("工具");
+        ChatMessage Msg(ChatRole role, params ContentBlock[] blocks) => new(ChatMessage.NewId(), role, blocks, DateTimeOffset.UtcNow);
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.User, new TextBlock("算")));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new TextBlock("我來算"), new ToolUseBlock("t1", "calculate", "{}")));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Tool, new ToolResultBlock("t1", "3", false, "計算", null, null, 1, ToolApproval.NotRequired)));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new TextBlock("答案是 3")));
+        var rig = CreateRig(new ScriptedChatProvider(Reply("新答案")), store: store);
+        await rig.Vm.InitializeAsync();
+        Assert.Equal(3, rig.Vm.Messages.Count);
+
+        await rig.Vm.RegenerateCommand.ExecuteAsync(null);
+
+        Assert.Equal(["算", "新答案"], rig.Vm.Messages.Select(m => m.Text));
+        Assert.Equal([ChatRole.User, ChatRole.Assistant], (await store.GetMessagesAsync(conversation.Id)).Select(m => m.Role));
+    }
+
     // ---- 歷史對話 ----
 
     [Fact]

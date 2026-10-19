@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Lumi.Core.Tools;
 
@@ -15,6 +16,8 @@ public static class ToolSchema
 {
     public static JsonSerializerOptions Options { get; } = new()
     {
+        // 明確指定：不指定的話，Schema 要在選項第一次被序列化使用「之後」才產生得出來（執行順序相依的錯誤）
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true,
         RespectNullableAnnotations = true,

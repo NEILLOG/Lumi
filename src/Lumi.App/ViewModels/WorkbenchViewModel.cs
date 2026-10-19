@@ -267,13 +267,24 @@ public partial class WorkbenchViewModel : ObservableObject
     {
         var messages = await _store.GetMessagesAsync(_conversationId!);
         Messages.Clear();
-        foreach (var message in messages)
+        foreach (var message in messages.Where(IsDisplayedBeforeToolCards))
             Messages.Add(MessageViewModel.From(message));
 
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
     }
+
+    /// <summary>
+    /// 工具卡片（M3 的 3C）做好之前的過渡：工具結果訊息，以及只有工具呼叫（沒有文字）的助理訊息，先不顯示。
+    /// </summary>
+    private static bool IsDisplayedBeforeToolCards(ChatMessage message) =>
+        message.Role switch
+        {
+            ChatRole.Tool => false,
+            ChatRole.Assistant => message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0) || !message.Content.OfType<ToolUseBlock>().Any(),
+            _ => true,
+        };
 
     /// <summary>回合數、「最後一則助理訊息」旗標（只有它有重新產生）。</summary>
     private void RefreshMessageState()
@@ -358,7 +369,8 @@ public partial class WorkbenchViewModel : ObservableObject
         ErrorMessage = null;
         IsResponding = true;
 
-        if (removeLastAssistantFirst && Messages.LastOrDefault() is { IsAssistant: true } old)
+        // 重新產生會移除整輪（一輪可能有好幾則助理訊息：工具呼叫前後各一則），畫面上也要一起移除
+        while (removeLastAssistantFirst && Messages.LastOrDefault() is { IsAssistant: true } old)
             Messages.Remove(old);
 
         var assistant = MessageViewModel.StreamingAssistant();
@@ -386,6 +398,10 @@ public partial class WorkbenchViewModel : ObservableObject
                             break;
                         case UsageEvent usage:
                             LastUsage = usage.Tokens;
+                            break;
+                        case Completed completed when completed.Reason == StopReason.ToolUse:
+                            // 模型要呼叫工具：這一輪還沒結束，氣泡繼續串流，等工具跑完後的下一個 Completed 再定稿
+                            LastUsage = completed.Message.Usage ?? LastUsage;
                             break;
                         case Completed completed:
                             assistant.Complete(completed.Message, _time.GetUtcNow());

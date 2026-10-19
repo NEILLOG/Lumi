@@ -23,6 +23,8 @@ internal sealed class FakeAnthropicHttpHandler : HttpMessageHandler
         LastRequest = request;
         if (request.Content is not null)
             LastRequestBody = await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (LastRequestBody is not null)
+            AllRequestBodies.Add(LastRequestBody);
 
         cancellationToken.ThrowIfCancellationRequested();
         await Task.Yield();
@@ -36,6 +38,25 @@ internal sealed class FakeAnthropicHttpHandler : HttpMessageHandler
             Headers = { ContentType = new MediaTypeHeaderValue("text/event-stream") },
         },
     });
+
+    /// <summary>第 N 次請求回第 N 份 SSE（工具迴圈會連續請求多次）；腳本用完後再請求會丟例外。</summary>
+    public static FakeAnthropicHttpHandler ForSseSequence(int chunkSize, params byte[][] responses)
+    {
+        var next = 0;
+        return new(_ =>
+        {
+            var bytes = responses[next++];
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StreamContent(new ChunkedMemoryStream(bytes, chunkSize))
+                {
+                    Headers = { ContentType = new MediaTypeHeaderValue("text/event-stream") },
+                },
+            };
+        });
+    }
+
+    public List<string> AllRequestBodies { get; } = [];
 
     public static FakeAnthropicHttpHandler ForJson(byte[] jsonBytes) => ForError(HttpStatusCode.OK, jsonBytes);
 

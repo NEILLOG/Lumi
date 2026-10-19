@@ -12,6 +12,7 @@ internal sealed class OpenAIStreamAccumulator
 {
     private readonly string _requestedModel;
     private readonly StringBuilder _text = new();
+    private readonly List<ToolCallBuilder> _toolCalls = [];
     private string? _responseModel;
     private string? _finishReason;
     private TokenUsage? _usage;
@@ -100,11 +101,24 @@ internal sealed class OpenAIStreamAccumulator
             return events;
         }
 
-        ContentBlock[] content = _text.Length > 0 ? [new TextBlock(_text.ToString())] : [];
+        var content = new List<ContentBlock>();
+        if (_text.Length > 0)
+            content.Add(new TextBlock(_text.ToString()));
+
+        // finish_reason: length 會把工具引數截斷：不完整的呼叫丟掉（執行不了，送回去也只會被伺服器拒絕）
+        var truncated = _finishReason == "length";
+        var toolUses = _toolCalls
+            .Where(c => c.HasName && (!truncated || ToolJson.IsJsonObject(c.Arguments)))
+            .OrderBy(c => c.Index)
+            .Select(c => c.Build())
+            .ToList();
+        content.AddRange(toolUses);
         var message = new ChatMessage(
             ChatMessage.NewId(), ChatRole.Assistant, content, DateTimeOffset.UtcNow,
             MessageStatus.Complete, _responseModel ?? _requestedModel, _usage);
-        events.Add(new Completed(message, MapFinishReason(_finishReason)));
+        // 有些伺服器（Ollama 等）有工具呼叫時 finish_reason 仍回 "stop"：以內容為準
+        var reason = toolUses.Count > 0 && !truncated ? StopReason.ToolUse : MapFinishReason(_finishReason);
+        events.Add(new Completed(message, reason));
         return events;
     }
 
@@ -119,6 +133,12 @@ internal sealed class OpenAIStreamAccumulator
                 events.Add(new TextDelta(text));
             }
 
+            if (delta.TryGetProperty("tool_calls", out var toolCalls) && toolCalls.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var call in toolCalls.EnumerateArray())
+                    ProcessToolCall(call);
+            }
+
             // Ollama 等伺服器的推理內容：只顯示，不存成 ThinkingBlock（沒有 signature，不能送回）
             if (delta.TryGetProperty("reasoning_content", out var reasoning) && reasoning.ValueKind == JsonValueKind.String
                 && reasoning.GetString() is { Length: > 0 } thinking)
@@ -129,6 +149,65 @@ internal sealed class OpenAIStreamAccumulator
 
         if (choice.TryGetProperty("finish_reason", out var finish) && finish.ValueKind == JsonValueKind.String)
             _finishReason = finish.GetString();
+    }
+
+    /// <summary>
+    /// 依 <c>index</c> 累積；寬容：index 缺漏時，有新的 id 就是新呼叫、沒有 id 就接在最後一個呼叫上；
+    /// 整個呼叫放在單一 chunk、arguments 是空字串或分很多段都可以。
+    /// </summary>
+    private void ProcessToolCall(JsonElement call)
+    {
+        if (call.ValueKind != JsonValueKind.Object)
+            return;
+
+        var id = call.TryGetProperty("id", out var idElement) && idElement.ValueKind == JsonValueKind.String ? idElement.GetString() : null;
+        int? index = call.TryGetProperty("index", out var indexElement) && indexElement.ValueKind == JsonValueKind.Number && indexElement.TryGetInt32(out var i)
+            ? i
+            : null;
+
+        ToolCallBuilder? builder = null;
+        if (index is { } wanted)
+            builder = _toolCalls.FirstOrDefault(c => c.Index == wanted);
+        else if (!string.IsNullOrEmpty(id))
+            builder = _toolCalls.FirstOrDefault(c => c.Id == id);
+        else if (_toolCalls.Count > 0)
+            builder = _toolCalls[^1];
+
+        if (builder is null)
+        {
+            builder = new ToolCallBuilder(index ?? _toolCalls.Count);
+            _toolCalls.Add(builder);
+        }
+
+        if (!string.IsNullOrEmpty(id))
+            builder.Id ??= id;
+
+        if (call.TryGetProperty("function", out var function) && function.ValueKind == JsonValueKind.Object)
+        {
+            if (function.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String && name.GetString() is { Length: > 0 } nameText)
+                builder.Name ??= nameText;
+            if (function.TryGetProperty("arguments", out var arguments) && arguments.ValueKind == JsonValueKind.String)
+                builder.AppendArguments(arguments.GetString() ?? "");
+        }
+    }
+
+    private sealed class ToolCallBuilder(int index)
+    {
+        private readonly StringBuilder _arguments = new();
+
+        public int Index { get; } = index;
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public bool HasName => !string.IsNullOrEmpty(Name);
+        public string Arguments => _arguments.ToString();
+
+        public void AppendArguments(string text) => _arguments.Append(text);
+
+        /// <summary>沒有引數（空字串）等於 <c>{}</c>；伺服器沒給 id 時自己產生一個（回填結果時要用同一個 id 對應）。</summary>
+        public ToolUseBlock Build() => new(
+            string.IsNullOrEmpty(Id) ? "call_" + Guid.NewGuid().ToString("N")[..24] : Id,
+            Name!,
+            _arguments.Length == 0 ? "{}" : _arguments.ToString());
     }
 
     private static TokenUsage ParseUsage(JsonElement usage)

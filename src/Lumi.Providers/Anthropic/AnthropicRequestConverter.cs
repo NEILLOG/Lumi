@@ -1,5 +1,6 @@
 using BetaMessages = global::Anthropic.Models.Beta.Messages;
 using Lumi.Core.Chat;
+using Lumi.Core.Tools;
 
 namespace Lumi.Providers.Anthropic;
 
@@ -11,7 +12,7 @@ internal static class AnthropicRequestConverter
         var settings = request.Model.Model;
         var model = settings.ModelId;
         var maxTokens = settings.MaxOutputTokens;
-        var messages = request.Messages.Select(ToMessageParam).Where(m => m is not null).Select(m => m!).ToList();
+        var messages = ToMessageParams(request.Messages);
         BetaMessages.BetaOutputConfig? outputConfig = options.Effort is { Length: > 0 } effort
             ? new BetaMessages.BetaOutputConfig { Effort = effort }
             : null;
@@ -22,7 +23,7 @@ internal static class AnthropicRequestConverter
         // 各種組合分開寫成物件初始設定式：這些屬性是 init-only，而且 null 分支經過 implicit operator 會觸發
         // 可為 Null 的警告（TreatWarningsAsErrors）。
         // 候補模型用陣列形式指名 Opus 4.8（M1 實作紀錄：SDK 沒有 "default" 純量形式的寫法）。
-        return (settings.ShowThinking, fallbacks) switch
+        var parameters = (settings.ShowThinking, fallbacks) switch
         {
             (true, true) => new BetaMessages.MessageCreateParams
             {
@@ -47,20 +48,63 @@ internal static class AnthropicRequestConverter
                 Model = model, MaxTokens = maxTokens, Messages = messages, OutputConfig = outputConfig,
             },
         };
+
+        // 沒有工具時完全不送 tools 欄位（空陣列在某些版本會被拒絕）
+        return request.Tools is { Count: > 0 } tools
+            ? parameters with { Tools = tools.Select(t => (BetaMessages.BetaToolUnion)ToTool(t)).ToList() }
+            : parameters;
     }
 
-    /// <summary>別家供應商的區塊略過；略過後沒有內容的訊息整則不送（回 null）。</summary>
-    private static BetaMessages.BetaMessageParam? ToMessageParam(ChatMessage message)
+    /// <summary>
+    /// 工具定義。Schema 的所有頂層欄位（type、properties、required、additionalProperties）原樣帶過去：
+    /// 用 SDK 的 rawData 建構式而不是只設 Properties／Required，才不會丟掉 additionalProperties。
+    /// </summary>
+    private static BetaMessages.BetaTool ToTool(ITool tool) => new()
     {
-        var content = message.Content.Where(IsSendable).Select(ToContentBlockParam).ToList();
-        if (content.Count == 0)
-            return null;
+        Name = tool.Descriptor.Name,
+        Description = tool.Descriptor.Description,
+        InputSchema = new BetaMessages.InputSchema(ToolJson.SchemaFields(tool.InputSchema)),
+    };
 
-        return new BetaMessages.BetaMessageParam
+    /// <summary>
+    /// 轉成 Anthropic 的訊息：<c>Tool</c> 訊息變成使用者訊息裡的 <c>tool_result</c>；
+    /// 相鄰的使用者訊息合併（工具結果之後緊接著使用者新訊息時，API 要求結果在同一則訊息裡且排在最前面）。
+    /// </summary>
+    private static List<BetaMessages.BetaMessageParam> ToMessageParams(IReadOnlyList<ChatMessage> messages)
+    {
+        var result = new List<BetaMessages.BetaMessageParam>();
+        var previousWasUser = false;
+        foreach (var message in messages)
         {
-            Role = message.Role == ChatRole.User ? BetaMessages.Role.User : BetaMessages.Role.Assistant,
-            Content = content,
-        };
+            var isUser = message.Role is ChatRole.User or ChatRole.Tool;
+            var content = message.Content.Where(IsSendable).Select(ToContentBlockParam).ToList();
+            if (content.Count == 0)
+                continue;
+
+            if (isUser && previousWasUser)
+            {
+                var merged = Merge(result[^1], content);
+                result[^1] = merged;
+                continue;
+            }
+
+            result.Add(new BetaMessages.BetaMessageParam
+            {
+                Role = isUser ? BetaMessages.Role.User : BetaMessages.Role.Assistant,
+                Content = content,
+            });
+            previousWasUser = isUser;
+        }
+        return result;
+    }
+
+    private static BetaMessages.BetaMessageParam Merge(BetaMessages.BetaMessageParam existing, List<BetaMessages.BetaContentBlockParam> added)
+    {
+        var current = existing.Content.TryPickBetaContentBlockParams(out var blocks) ? blocks.ToList() : [];
+        var all = current.Concat(added).ToList();
+        // tool_result 必須排在其他內容之前
+        var ordered = all.Where(b => b.TryPickToolResult(out _)).Concat(all.Where(b => !b.TryPickToolResult(out _))).ToList();
+        return new BetaMessages.BetaMessageParam { Role = BetaMessages.Role.User, Content = ordered };
     }
 
     private static bool IsSendable(ContentBlock block) =>
@@ -71,6 +115,8 @@ internal static class AnthropicRequestConverter
         TextBlock t => new BetaMessages.BetaTextBlockParam { Text = t.Text },
         ThinkingBlock t => new BetaMessages.BetaThinkingBlockParam { Thinking = t.Thinking, Signature = t.Signature },
         RedactedThinkingBlock r => new BetaMessages.BetaRedactedThinkingBlockParam { Data = r.Data },
+        ToolUseBlock u => new BetaMessages.BetaToolUseBlockParam { ID = u.Id, Name = u.Name, Input = ToolJson.ParseObject(u.InputJson) },
+        ToolResultBlock r => new BetaMessages.BetaToolResultBlockParam { ToolUseID = r.ToolUseId, Content = r.Content, IsError = r.IsError ? true : null },
         ProviderBlock p => AnthropicProviderBlocks.ToParam(p),   // 只剩 Anthropic 自己的（見 IsSendable）
         _ => throw new NotSupportedException($"未知的內容區塊類型：{block.GetType()}"),
     };

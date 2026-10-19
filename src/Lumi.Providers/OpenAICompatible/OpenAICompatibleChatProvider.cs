@@ -69,7 +69,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                         response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                         if (!response.IsSuccessStatusCode)
                         {
-                            failure = OpenAIHttpErrors.FromResponse(response);
+                            failure = OpenAIHttpErrors.FromResponse(response, request.Tools is { Count: > 0 });
                             _logger.LogWarning("OpenAI 相容連線 {ConnectionId} 回應 HTTP {Status}", connection.Id, (int)response.StatusCode);
                         }
                         else
@@ -135,25 +135,67 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     }
 
     /// <summary>
-    /// 只送文字：thinking 區塊與其他供應商的區塊都略過（沒有 signature 的推理內容不能送回），
-    /// 略過後沒有文字的訊息整則不送。
+    /// 歷史轉成 Chat Completions 格式：文字、<c>tool_calls</c>（助理）、<c>role: tool</c>（每個工具結果一則）都送；
+    /// thinking 與其他供應商的區塊略過（沒有 signature 的推理內容不能送回），略過後什麼都不剩的訊息整則不送。
+    /// OpenAI 沒有 <c>is_error</c>：錯誤結果就是內文為錯誤說明的一則 tool 訊息。
     /// </summary>
     internal static string BuildBody(ChatRequest request)
     {
-        var messages = request.Messages
-            .Select(m => (Role: m.Role == ChatRole.User ? "user" : "assistant", Text: string.Concat(m.Content.OfType<TextBlock>().Select(b => b.Text))))
-            .Where(m => m.Text.Length > 0)
-            .Select(m => new { role = m.Role, content = m.Text })
-            .ToList();
-
-        return JsonSerializer.Serialize(new
+        var messages = new List<object>();
+        foreach (var message in request.Messages)
         {
-            model = request.Model.Model.ModelId,
-            messages,
-            stream = true,
-            stream_options = new { include_usage = true },
-            max_tokens = request.Model.Model.MaxOutputTokens,
-        });
+            switch (message.Role)
+            {
+                case ChatRole.User:
+                {
+                    var text = string.Concat(message.Content.OfType<TextBlock>().Select(b => b.Text));
+                    if (text.Length > 0)
+                        messages.Add(new { role = "user", content = text });
+                    break;
+                }
+                case ChatRole.Assistant:
+                {
+                    var text = string.Concat(message.Content.OfType<TextBlock>().Select(b => b.Text));
+                    var calls = message.Content.OfType<ToolUseBlock>()
+                        .Select(u => new
+                        {
+                            id = u.Id,
+                            type = "function",
+                            function = new { name = u.Name, arguments = string.IsNullOrWhiteSpace(u.InputJson) ? "{}" : u.InputJson },
+                        })
+                        .ToList();
+                    if (calls.Count > 0)
+                        messages.Add(new { role = "assistant", content = text.Length > 0 ? text : null, tool_calls = calls });
+                    else if (text.Length > 0)
+                        messages.Add(new { role = "assistant", content = text });
+                    break;
+                }
+                case ChatRole.Tool:
+                    foreach (var result in message.Content.OfType<ToolResultBlock>())
+                        messages.Add(new { role = "tool", tool_call_id = result.ToolUseId, content = result.Content });
+                    break;
+            }
+        }
+
+        var body = new Dictionary<string, object?>
+        {
+            ["model"] = request.Model.Model.ModelId,
+            ["messages"] = messages,
+            ["stream"] = true,
+            ["stream_options"] = new { include_usage = true },
+            ["max_tokens"] = request.Model.Model.MaxOutputTokens,
+        };
+
+        if (request.Tools is { Count: > 0 } tools)
+        {
+            body["tools"] = tools.Select(t => new
+            {
+                type = "function",
+                function = new { name = t.Descriptor.Name, description = t.Descriptor.Description, parameters = t.InputSchema },
+            }).ToList();
+        }
+
+        return JsonSerializer.Serialize(body);
     }
 }
 
