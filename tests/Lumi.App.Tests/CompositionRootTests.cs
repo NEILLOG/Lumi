@@ -1,6 +1,7 @@
 using Lumi.App.ViewModels;
 using Lumi.Core;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Tools;
 using Lumi.Infrastructure;
@@ -61,8 +62,11 @@ public sealed class CompositionRootTests : IDisposable
         // 權限確認：App 的實作取代 Core 預設的「一律拒絕」，而且按鈕與對話迴圈用的是同一個執行個體
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
-        Assert.Equal(["calculate", "delete_note", "get_current_time", "save_note"],
+        // 示範用的筆記工具預設關；檔案工具（需要使用者加入範圍）預設開
+        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"],
             services.GetRequiredService<IToolRegistry>().GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
+        Assert.IsType<FileScopeFactory>(services.GetRequiredService<IFileScopeFactory>());
+        Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IConversationContextStore>());
         var vm = services.GetRequiredService<WorkbenchViewModel>();
 
         await vm.InitializeAsync();

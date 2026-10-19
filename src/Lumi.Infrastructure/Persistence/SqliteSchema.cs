@@ -40,6 +40,22 @@ internal static class SqliteSchema
         // 2：訊息多了 role = 'tool'、內容多了 tool_use／tool_result 區塊（M3）。結構沒有變，
         // 只升版本號——讓 M3 之前的程式明確拒絕開啟，而不是讀到不認得的角色讀到一半壞掉。
         "SELECT 1;",
+
+        // 3：對話的上下文項目（M4：使用者加入的檔案、資料夾、圖片）。同一對話裡相同種類與路徑只會有一列。
+        // 之後的內容區塊（ContextBlock、ImageBlock）也在這個版本：舊版程式不認得，所以要擋。
+        """
+        CREATE TABLE conversation_context (
+          id                     TEXT PRIMARY KEY,
+          conversation_id        TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          kind                   TEXT NOT NULL,
+          path                   TEXT NOT NULL,
+          display_name           TEXT NOT NULL,
+          added_at               TEXT NOT NULL,
+          embedded_in_message_id TEXT,
+          UNIQUE (conversation_id, kind, path)
+        );
+        CREATE INDEX ix_conversation_context_conversation ON conversation_context(conversation_id, added_at);
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

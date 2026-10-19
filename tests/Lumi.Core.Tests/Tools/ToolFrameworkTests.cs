@@ -9,7 +9,7 @@ namespace Lumi.Core.Tests.Tools;
 
 public class ToolFrameworkTests
 {
-    private static readonly ToolContext Context = new("conv", ChatMode.Workbench, TimeProvider.System);
+    private static readonly ToolContext Context = new("conv", ChatMode.Workbench, TimeProvider.System, EmptyFileScope.Instance);
 
     // ---- Schema ----
 

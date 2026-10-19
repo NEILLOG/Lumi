@@ -1,4 +1,5 @@
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -17,6 +18,10 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<ToolPermissionMemory>();
         services.AddSingleton(new ToolLoopOptions());
         services.TryAddSingleton<IToolApprovalService, DenyAllToolApprovalService>();
+
+        // 檔案範圍：Lumi.Tools 與 Lumi.Infrastructure 註冊真正的實作；沒有的時候是空的（沒有範圍就沒有檔案工具）
+        services.TryAddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
+        services.TryAddSingleton<IConversationContextStore, NullConversationContextStore>();
         return services;
     }
 }

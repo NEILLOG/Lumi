@@ -18,13 +18,15 @@ public enum ToolModes
 /// <param name="DisplayName">繁中動作名稱，例如「讀取檔案」，顯示在工具卡片標題。</param>
 /// <param name="Description">給模型看，要寫清楚何時該呼叫這個工具。</param>
 /// <param name="Timeout">每個工具都要有逾時。</param>
+/// <param name="RequiresScope">需要使用者加入的檔案或資料夾才有意義：範圍是空的時，請求不帶這個工具的定義。</param>
 public sealed record ToolDescriptor(
     string Name,
     string DisplayName,
     string Description,
     ToolPermission Permission,
     ToolModes Modes,
-    TimeSpan Timeout);
+    TimeSpan Timeout,
+    bool RequiresScope = false);
 
 /// <summary>顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。</summary>
 public sealed record ToolPreview(string? Target, string? Detail)
@@ -43,8 +45,8 @@ public sealed record ToolResult(bool IsError, string Content, string? Summary)
     public static ToolResult Error(string message, string? summary = null) => new(true, message, summary ?? message);
 }
 
-/// <summary>執行工具時的環境。M4 會再加檔案範圍（<c>Scope</c>）。</summary>
-public sealed record ToolContext(string ConversationId, ChatMode Mode, TimeProvider Time);
+/// <summary>執行工具時的環境。<see cref="Scope"/> 是這則對話的檔案範圍；檔案類工具只能經由它存取檔案系統。</summary>
+public sealed record ToolContext(string ConversationId, ChatMode Mode, TimeProvider Time, IFileScope Scope);
 
 public interface ITool
 {

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,8 @@ public sealed class ConversationService
     private readonly ToolLoopOptions _options;
     private readonly TimeProvider _time;
     private readonly ILogger<ConversationService> _logger;
+    private readonly IConversationContextStore _contextStore;
+    private readonly IFileScopeFactory _scopeFactory;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -50,7 +53,9 @@ public sealed class ConversationService
         ToolPermissionMemory memory,
         ToolLoopOptions options,
         TimeProvider time,
-        ILogger<ConversationService> logger)
+        ILogger<ConversationService> logger,
+        IConversationContextStore? contextStore = null,
+        IFileScopeFactory? scopeFactory = null)
     {
         _provider = provider;
         _store = store;
@@ -61,6 +66,8 @@ public sealed class ConversationService
         _options = options;
         _time = time;
         _logger = logger;
+        _contextStore = contextStore ?? new NullConversationContextStore();
+        _scopeFactory = scopeFactory ?? new EmptyFileScopeFactory();
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -153,11 +160,15 @@ public sealed class ConversationService
         }
 
         // 模型設定的「使用工具」關掉時，請求完全不帶工具定義
-        var tools = model.Model.ToolsEnabled ? _registry.GetTools(mode) : [];
-        var context = new ToolContext(conversationId, mode, _time);
+        var availableTools = model.Model.ToolsEnabled ? _registry.GetTools(mode) : [];
 
         for (var iteration = 1; iteration <= _options.MaxIterations; iteration++)
         {
+            // 每一輪重新取得對話目前的範圍（使用者加入的檔案與資料夾）；沒有範圍時不送需要範圍的工具（省 token，也避免模型亂試）
+            var scope = _scopeFactory.Create(await _contextStore.GetAsync(conversationId, ct).ConfigureAwait(false));
+            var tools = availableTools.Where(t => !t.Descriptor.RequiresScope || scope.HasRoots).ToList();
+            var context = new ToolContext(conversationId, mode, _time, scope);
+
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
             var requestMessages = BuildRequestMessages(history);
             if (requestMessages.Count == 0 || requestMessages[^1].Role is not (ChatRole.User or ChatRole.Tool))

@@ -48,8 +48,24 @@ internal sealed class SettingsHost : IDisposable
 
     public static async Task WaitUntil(Func<bool> condition)
     {
-        for (var i = 0; i < 300 && !condition(); i++)
+        for (var i = 0; i < 300 && !Check(condition); i++)
             await Task.Delay(10);
-        Assert.True(condition());
+        Assert.True(Check(condition));
+    }
+
+    /// <summary>
+    /// 回應的事件在背景執行緒上更新畫面的清單（正式程式有 UI 同步內容，測試沒有），輪詢條件時可能剛好撞上清單被修改：
+    /// 那一次就當作「還沒好」，下一輪再看。
+    /// </summary>
+    private static bool Check(Func<bool> condition)
+    {
+        try
+        {
+            return condition();
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 }

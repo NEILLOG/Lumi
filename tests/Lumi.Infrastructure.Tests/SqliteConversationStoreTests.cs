@@ -152,8 +152,31 @@ public sealed class SqliteConversationStoreTests : IDisposable
     }
 
     [Fact]
-    public void SchemaVersion_IsAtLeast2_BecauseOfToolRole() =>
-        Assert.True(SqliteSchema.LatestVersion >= 2);
+    public void SchemaVersion_IsAtLeast3_BecauseOfToolRoleAndContext() =>
+        Assert.True(SqliteSchema.LatestVersion >= 3);
+
+    [Fact]
+    public async Task UpgradeFromVersion2_AddsTheContextTable_AndKeepsMessages()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("M3 的資料");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("M3 的訊息")));
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "DROP TABLE conversation_context; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var reopened = NewStore();
+        var messages = await reopened.GetMessagesAsync(conversation.Id);
+        var added = await reopened.AddAsync(conversation.Id, Lumi.Core.Context.ContextKind.File, "/a.txt", "a.txt");
+
+        Assert.Equal("M3 的訊息", Assert.IsType<TextBlock>(Assert.Single(messages).Content[0]).Text);
+        Assert.Equal("/a.txt", added.Path);
+    }
 
     [Fact]
     public async Task ToolMessages_RoundTrip_WithAllFields()
@@ -198,7 +221,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫
+            command.CommandText = "DROP TABLE conversation_context; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

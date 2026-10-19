@@ -15,7 +15,7 @@ public sealed class ToolTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "lumi-tools-" + Guid.NewGuid().ToString("N"));
     private readonly ToolsOptions _options;
-    private readonly ToolContext _context = new("c1", ChatMode.Workbench, TimeProvider.System);
+    private readonly ToolContext _context = new("c1", ChatMode.Workbench, TimeProvider.System, EmptyFileScope.Instance);
 
     public ToolTests() => _options = new ToolsOptions { NotesDirectory = Path.Combine(_dir, "notes") };
 
@@ -220,36 +220,61 @@ public sealed class ToolTests : IDisposable
     // ---- 註冊 ----
 
     [Fact]
-    public void AddLumiTools_RegistersAllFour_AndPassesRegistryValidation()
+    public void AddLumiTools_RegistersAllTools_AndPassesRegistryValidation()
     {
         var services = new ServiceCollection();
-        services.AddLumiTools(o => o.NotesDirectory = _options.NotesDirectory);
+        services.AddLumiTools(o => { o.NotesDirectory = _options.NotesDirectory; o.EnableDemoTools = true; });
         using var provider = services.BuildServiceProvider();
 
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
-        Assert.Equal(["calculate", "delete_note", "get_current_time", "save_note"],
+        Assert.Equal(["calculate", "delete_note", "get_current_time", "list_dir", "read_file", "save_note", "search"],
             registry.GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
-        Assert.Equal(["calculate", "get_current_time"], registry.GetTools(ChatMode.Sprite).Select(t => t.Descriptor.Name));
+        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"],
+            registry.GetTools(ChatMode.Sprite).Select(t => t.Descriptor.Name));
     }
 
     [Fact]
-    public void AddLumiTools_DemoToolsCanBeDisabled()
+    public void DemoTools_AreOffByDefault()
     {
         var services = new ServiceCollection();
-        services.AddLumiTools(o => o.EnableDemoTools = false);
+        services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
         var names = provider.GetServices<ITool>().Select(t => t.Descriptor.Name).Order().ToList();
 
-        Assert.Equal(["calculate", "get_current_time"], names);
+        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"], names);
+    }
+
+    [Fact]
+    public void FileTools_RequireScope_AndAreReadOnly()
+    {
+        var services = new ServiceCollection();
+        services.AddLumiTools();
+        using var provider = services.BuildServiceProvider();
+
+        var fileTools = provider.GetServices<ITool>().Where(t => t.Descriptor.RequiresScope).ToList();
+
+        Assert.Equal(["list_dir", "read_file", "search"], fileTools.Select(t => t.Descriptor.Name).Order());
+        Assert.All(fileTools, t => Assert.Equal(ToolPermission.ReadOnly, t.Descriptor.Permission));
+    }
+
+    [Fact]
+    public void AddLumiTools_ReplacesTheEmptyScopeFactory()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
+        services.AddLumiTools();
+        using var provider = services.BuildServiceProvider();
+
+        Assert.IsType<FileScopeFactory>(provider.GetRequiredService<IFileScopeFactory>());
     }
 
     [Fact]
     public void EveryTool_HasSchemaWithDescriptions()
     {
         var services = new ServiceCollection();
-        services.AddLumiTools();
+        services.AddLumiTools(o => o.EnableDemoTools = true);
         using var provider = services.BuildServiceProvider();
 
         foreach (var tool in provider.GetServices<ITool>())
