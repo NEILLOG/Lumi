@@ -1,7 +1,9 @@
 using Lumi.App.Services;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
+using Lumi.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Lumi.App;
 
@@ -24,6 +26,11 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<ConnectionsViewModel>();
         services.AddTransient<ModelsViewModel>();
         services.AddTransient<GeneralViewModel>();
+
+        // 權限確認：取代 Core 預設的「一律拒絕」；對話迴圈等在 IToolApprovalService，卡片上的按鈕走 IToolApprovalResponder
+        services.AddSingleton<ToolApprovalService>();
+        services.Replace(ServiceDescriptor.Singleton<IToolApprovalService>(sp => sp.GetRequiredService<ToolApprovalService>()));
+        services.AddSingleton<IToolApprovalResponder>(sp => sp.GetRequiredService<ToolApprovalService>());
 
         services.AddSingleton<IApiKeyPrompt, SettingsApiKeyPrompt>();
         services.AddSingleton<WorkbenchViewModel>();

@@ -10,14 +10,15 @@ public partial class MessageViewModel : ObservableObject
 {
     private DateTimeOffset? _thinkingStartedAt;
 
-    private MessageViewModel(bool isUser)
+    private protected MessageViewModel(bool isUser)
     {
         IsUser = isUser;
     }
 
     public bool IsUser { get; }
 
-    public bool IsAssistant => !IsUser;
+    /// <summary>助理的文字氣泡（工具段落 <see cref="ToolRunViewModel"/> 不是）。</summary>
+    public virtual bool IsAssistant => !IsUser;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasText), nameof(ShowTypingIndicator), nameof(ShowActions))]
@@ -33,6 +34,11 @@ public partial class MessageViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowTypingIndicator), nameof(ShowActions))]
     private bool _isStreaming;
+
+    /// <summary>後面緊接著工具段落：這則只是「先說一聲再去用工具」，不是這一輪的結尾，不顯示動作列。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowActions))]
+    private bool _isFollowedByTools;
 
     /// <summary>這則的用量；串流中沒有，完成後才有（OpenAI 相容伺服器可能沒回）。</summary>
     [ObservableProperty]
@@ -67,7 +73,7 @@ public partial class MessageViewModel : ObservableObject
     public bool ShowTypingIndicator => IsStreaming && !HasText;
 
     /// <summary>動作列（複製、重新產生、token）：助理訊息、不在串流中、有文字才顯示。</summary>
-    public bool ShowActions => IsAssistant && !IsStreaming && HasText;
+    public bool ShowActions => IsAssistant && !IsStreaming && HasText && !IsFollowedByTools;
 
     public string ThinkingTitle => ThinkingSeconds is { } seconds
         ? string.Format(CultureInfo.CurrentCulture, Strings.Workbench_ThinkingWithSeconds, seconds)

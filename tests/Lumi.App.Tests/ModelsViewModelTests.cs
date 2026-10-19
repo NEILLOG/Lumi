@@ -164,6 +164,22 @@ public sealed class ModelsViewModelTests
     }
 
     [Fact]
+    public async Task TogglingToolsEnabled_MakesTheEditorDirty_AndSaves()
+    {
+        using var host = new SettingsHost();
+        var vm = host.Models;
+        await vm.SelectAsync(vm.Items.Single());
+        Assert.False(vm.IsDirty);
+
+        vm.ToolsEnabled = false;
+
+        Assert.True(vm.IsDirty);
+        await vm.SaveCommand.ExecuteAsync(null);
+        Assert.False(Assert.Single(host.Catalog.Current.Models).ToolsEnabled);
+        Assert.False(vm.IsDirty);
+    }
+
+    [Fact]
     public async Task NewModel_DefaultsToolsEnabled()
     {
         using var host = new SettingsHost();

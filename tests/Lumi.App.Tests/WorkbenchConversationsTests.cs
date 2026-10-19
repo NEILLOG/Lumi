@@ -96,28 +96,33 @@ public class WorkbenchConversationsTests
         Assert.Equal(MessageStatus.Stopped, saved[^1].Status);   // 已收到的文字存成「已停止」
     }
 
-    // ---- 工具訊息（卡片做好之前的過渡顯示） ----
+    // ---- 工具訊息在訊息列表裡的組成 ----
 
     [Fact]
-    public async Task Reload_HidesToolMessages_AndAssistantMessagesWithOnlyToolCalls()
+    public async Task Reload_ShowsToolCards_NotToolMessages_AndHidesToolOnlyAssistantSteps()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("工具");
         ChatMessage Msg(ChatRole role, params ContentBlock[] blocks) => new(ChatMessage.NewId(), role, blocks, DateTimeOffset.UtcNow);
         await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.User, new TextBlock("現在幾點")));
         await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new ThinkingBlock("想", "s"), new ToolUseBlock("t1", "get_current_time", "{}")));
-        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Tool, new ToolResultBlock("t1", "14:32", false, "查詢目前時間", null, null, 3, ToolApproval.NotRequired)));
+        await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Tool, new ToolResultBlock("t1", "14:32", false, "查詢目前時間", null, "14:32", 3, ToolApproval.NotRequired)));
         await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new TextBlock("現在是 14:32")));
         var rig = CreateRig(new ScriptedChatProvider(), store: store);
 
         await rig.Vm.InitializeAsync();
 
-        Assert.Equal([true, false], rig.Vm.Messages.Select(m => m.IsUser));
-        Assert.Equal("現在是 14:32", rig.Vm.Messages[1].Text);
+        Assert.Equal(3, rig.Vm.Messages.Count);   // 使用者、工具段落、最後的回答（只有思考與工具呼叫的中間步驟沒有氣泡）
+        var run = Assert.IsType<ToolRunViewModel>(rig.Vm.Messages[1]);
+        var card = Assert.Single(run.Cards);
+        Assert.Equal(ToolCardState.Succeeded, card.State);
+        Assert.Equal("查詢目前時間 · 14:32", card.Title);
+        Assert.Equal("現在是 14:32", rig.Vm.Messages[2].Text);
+        Assert.Equal(1, rig.Vm.Turns);
     }
 
     [Fact]
-    public async Task ToolUseCompletion_DoesNotFinalizeTheStreamingBubble()
+    public async Task ToolUseCompletion_FinalizesTheBubble_AndTheNextResponseGetsANewOne()
     {
         var toolTurn = new Completed(
             new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("先查一下。"), new ToolUseBlock("t1", "calculate", "{}")], DateTimeOffset.UtcNow),
@@ -128,15 +133,17 @@ public class WorkbenchConversationsTests
         rig.Vm.InputText = "算";
 
         var sending = rig.Vm.SendCommand.ExecuteAsync(null);
-        await Wait(() => rig.Vm.Messages.Count == 2 && rig.Vm.Messages[1].Text.EndsWith("結果是"));
+        await Wait(() => rig.Vm.Messages.Count == 3 && rig.Vm.Messages[2].Text == "結果是");
 
-        Assert.True(rig.Vm.Messages[1].IsStreaming);   // 工具呼叫的 Completed 不是這一輪的結尾
+        Assert.False(rig.Vm.Messages[1].IsStreaming);
+        Assert.Equal("先查一下。", rig.Vm.Messages[1].Text);
+        Assert.True(rig.Vm.Messages[2].IsStreaming);
         await rig.Vm.StopAndWaitAsync();
         await sending;
     }
 
     [Fact]
-    public async Task Regenerate_RemovesEveryAssistantBubbleOfTheTurn()
+    public async Task Regenerate_RemovesEveryItemOfTheTurn()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("工具");
@@ -147,7 +154,7 @@ public class WorkbenchConversationsTests
         await store.AppendMessageAsync(conversation.Id, Msg(ChatRole.Assistant, new TextBlock("答案是 3")));
         var rig = CreateRig(new ScriptedChatProvider(Reply("新答案")), store: store);
         await rig.Vm.InitializeAsync();
-        Assert.Equal(3, rig.Vm.Messages.Count);
+        Assert.Equal(4, rig.Vm.Messages.Count);   // 使用者、「我來算」、工具段落、答案
 
         await rig.Vm.RegenerateCommand.ExecuteAsync(null);
 

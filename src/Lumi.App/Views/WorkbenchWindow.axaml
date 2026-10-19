@@ -159,8 +159,12 @@
               <StackPanel Spacing="18" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:MessageViewModel">
+          <!-- 工具段落（ToolRunViewModel 繼承 MessageViewModel，所以放前面先比對） -->
+          <ItemsControl.DataTemplates>
+            <DataTemplate DataType="vm:ToolRunViewModel">
+              <views:ToolRunView />
+            </DataTemplate>
+            <DataTemplate DataType="vm:MessageViewModel" x:DataType="vm:MessageViewModel">
               <Panel>
                 <!-- 使用者：靠右、UserBubble 底色 -->
                 <Border IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="640"
@@ -199,7 +203,7 @@
                 </Grid>
               </Panel>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
+          </ItemsControl.DataTemplates>
         </ItemsControl>
 
         <!-- 錯誤列：原因 + 對話內容已保留 + 重試（ui-spec 第 3 節） -->

@@ -244,6 +244,8 @@
                     </Grid>
 
                     <CheckBox Margin="0,8,0,0" Content="{x:Static res:Strings.Models_ShowThinking}" IsChecked="{Binding ShowThinking}" />
+                    <CheckBox x:Name="ToolsEnabledCheckBox" Content="{x:Static res:Strings.Models_ToolsEnabled}" IsChecked="{Binding ToolsEnabled}"
+                              ToolTip.Tip="{x:Static res:Strings.Models_ToolsEnabledHint}" />
 
                     <TextBlock Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
 

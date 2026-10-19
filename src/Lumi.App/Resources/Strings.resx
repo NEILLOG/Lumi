@@ -135,4 +135,37 @@
   <data name="ModelPicker_Manage" xml:space="preserve"><value>管理連線與模型…</value></data>
   <data name="ModelPicker_NoMatch" xml:space="preserve"><value>沒有符合的模型</value></data>
   <data name="Workbench_Today" xml:space="preserve"><value>今天</value></data>
+  <data name="Tool_Running" xml:space="preserve"><value>執行中…</value></data>
+  <data name="Tool_Awaiting" xml:space="preserve"><value>等待你的允許</value></data>
+  <data name="Tool_Denied" xml:space="preserve"><value>你已拒絕</value></data>
+  <data name="Tool_NoResult" xml:space="preserve"><value>沒有結果</value></data>
+  <data name="Tool_Done" xml:space="preserve"><value>完成</value></data>
+  <data name="Tool_Failed" xml:space="preserve"><value>失敗</value></data>
+  <data name="Tool_AllowOnce" xml:space="preserve"><value>允許一次</value></data>
+  <data name="Tool_AllowConversation" xml:space="preserve"><value>本次對話都允許</value></data>
+  <data name="Tool_AllowExecute" xml:space="preserve"><value>允許執行</value></data>
+  <data name="Tool_Deny" xml:space="preserve"><value>拒絕</value></data>
+  <data name="Tool_Irreversible" xml:space="preserve"><value>這個操作無法復原</value></data>
+  <data name="Tool_NeedsWrite" xml:space="preserve"><value>這個工具要寫入或修改資料</value></data>
+  <data name="Tool_NeedsNetwork" xml:space="preserve"><value>這個工具要連線到網路</value></data>
+  <data name="Tool_NeedsDestructive" xml:space="preserve"><value>這個工具要執行刪除或其他不可逆的操作</value></data>
+  <data name="Tool_Arguments" xml:space="preserve"><value>參數</value></data>
+  <data name="Tool_Result" xml:space="preserve"><value>結果</value></data>
+  <data name="Tool_ShowFull" xml:space="preserve"><value>顯示完整輸出</value></data>
+  <data name="Tool_ShowLess" xml:space="preserve"><value>收合輸出</value></data>
+  <data name="Tool_Copy" xml:space="preserve"><value>複製</value></data>
+  <data name="Tool_Copied" xml:space="preserve"><value>已複製</value></data>
+  <data name="Tool_ApprovedOnce" xml:space="preserve"><value>已允許（這一次）</value></data>
+  <data name="Tool_ApprovedConversation" xml:space="preserve"><value>已允許（本次對話）</value></data>
+  <data name="Tool_DurationMs" xml:space="preserve"><value>{0} 毫秒</value></data>
+  <data name="Tool_DurationSeconds" xml:space="preserve"><value>{0} 秒</value></data>
+  <data name="Tool_GroupTitle" xml:space="preserve"><value>{0} 個工具呼叫 · {1}，{2}</value></data>
+  <data name="Tool_GroupCount" xml:space="preserve"><value>{0} {1} 次</value></data>
+  <data name="Tool_GroupAllOk" xml:space="preserve"><value>全部成功</value></data>
+  <data name="Tool_GroupFailed" xml:space="preserve"><value>{0} 個失敗（{1}）</value></data>
+  <data name="Tool_GroupDenied" xml:space="preserve"><value>{0} 個已拒絕</value></data>
+  <data name="Tool_GroupRunning" xml:space="preserve"><value>執行中</value></data>
+  <data name="Tool_GroupAwaiting" xml:space="preserve"><value>等待允許</value></data>
+  <data name="Models_ToolsEnabled" xml:space="preserve"><value>使用工具</value></data>
+  <data name="Models_ToolsEnabledHint" xml:space="preserve"><value>關掉時，送出的請求不帶工具定義。模型不支援工具（例如某些小型本機模型）時使用。</value></data>
 </root>

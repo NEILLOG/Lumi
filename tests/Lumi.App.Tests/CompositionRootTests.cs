@@ -2,11 +2,13 @@ using Lumi.App.ViewModels;
 using Lumi.Core;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Tools;
 using Lumi.Infrastructure;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
 using Lumi.Platform;
 using Lumi.Providers;
+using Lumi.Tools;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,6 +42,7 @@ public sealed class CompositionRootTests : IDisposable
         builder.Services.AddLumiProviders();
         builder.Services.AddLumiInfrastructure(o => o.DatabasePath = Path.Combine(_directory, "lumi.db"));
         builder.Services.Configure<ModelCatalogOptions>(o => o.SettingsPath = Path.Combine(_directory, "settings.json"));
+        builder.Services.AddLumiTools(o => o.NotesDirectory = Path.Combine(_directory, "notes"));
         builder.Services.AddLumiApp();
         return builder.Build();
     }
@@ -55,6 +58,11 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<RoutingChatProvider>(services.GetRequiredService<IChatProvider>());
         Assert.IsType<RoutingConnectionTester>(services.GetRequiredService<IConnectionTester>());
         Assert.NotNull(services.GetRequiredService<ConversationService>());
+        // 權限確認：App 的實作取代 Core 預設的「一律拒絕」，而且按鈕與對話迴圈用的是同一個執行個體
+        Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
+        Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
+        Assert.Equal(["calculate", "delete_note", "get_current_time", "save_note"],
+            services.GetRequiredService<IToolRegistry>().GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
         var vm = services.GetRequiredService<WorkbenchViewModel>();
 
         await vm.InitializeAsync();

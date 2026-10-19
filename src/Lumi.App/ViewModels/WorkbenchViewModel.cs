@@ -6,6 +6,7 @@ using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging;
 
 namespace Lumi.App.ViewModels;
@@ -25,6 +26,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private readonly IClipboardService _clipboard;
     private readonly TimeProvider _time;
     private readonly ILogger<WorkbenchViewModel> _logger;
+    private readonly IToolApprovalResponder _approvals;
 
     private string? _conversationId;
     private CancellationTokenSource? _responseCts;
@@ -40,7 +42,8 @@ public partial class WorkbenchViewModel : ObservableObject
         IClipboardService clipboard,
         IUiDispatcher dispatcher,
         TimeProvider time,
-        ILogger<WorkbenchViewModel> logger)
+        ILogger<WorkbenchViewModel> logger,
+        IToolApprovalResponder? approvals = null)
     {
         _conversations = conversations;
         _store = store;
@@ -51,6 +54,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _clipboard = clipboard;
         _time = time;
         _logger = logger;
+        _approvals = approvals ?? NullToolApprovalResponder.Instance;
         _notice = catalog.LoadProblem;
 
         History = new HistoryViewModel(store, OpenConversationAsync, time);
@@ -214,7 +218,7 @@ public partial class WorkbenchViewModel : ObservableObject
         return RunResponseAsync(ct => _conversations.RegenerateAsync(conversationId, ct), reloadOnFailure: true, removeLastAssistantFirst: true);
     }
 
-    private bool CanRegenerate() => !IsResponding && _conversationId is not null && Messages.LastOrDefault() is { IsAssistant: true };
+    private bool CanRegenerate() => !IsResponding && _conversationId is not null && Messages.LastOrDefault() is { IsUser: false };
 
     [RelayCommand(CanExecute = nameof(IsResponding))]
     private void Stop() => _responseCts?.Cancel();
@@ -267,32 +271,42 @@ public partial class WorkbenchViewModel : ObservableObject
     {
         var messages = await _store.GetMessagesAsync(_conversationId!);
         Messages.Clear();
-        foreach (var message in messages.Where(IsDisplayedBeforeToolCards))
-            Messages.Add(MessageViewModel.From(message));
+        foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson)))
+            Messages.Add(item);
 
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary>
-    /// 工具卡片（M3 的 3C）做好之前的過渡：工具結果訊息，以及只有工具呼叫（沒有文字）的助理訊息，先不顯示。
-    /// </summary>
-    private static bool IsDisplayedBeforeToolCards(ChatMessage message) =>
-        message.Role switch
-        {
-            ChatRole.Tool => false,
-            ChatRole.Assistant => message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0) || !message.Content.OfType<ToolUseBlock>().Any(),
-            _ => true,
-        };
+    private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson) =>
+        new(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time);
 
     /// <summary>回合數、「最後一則助理訊息」旗標（只有它有重新產生）。</summary>
     private void RefreshMessageState()
     {
-        Turns = Messages.Count(m => m.IsAssistant && !m.IsStreaming);
+        // 回合數＝有回應的使用者訊息數（一輪可能有好幾個氣泡與工具段落）
+        var turns = 0;
+        var answered = true;
+        foreach (var item in Messages)
+        {
+            if (item.IsUser)
+                answered = false;
+            else if (!answered && !item.IsStreaming)
+            {
+                turns++;
+                answered = true;
+            }
+        }
+        Turns = turns;
+
         var last = Messages.LastOrDefault();
-        foreach (var message in Messages)
+        for (var i = 0; i < Messages.Count; i++)
+        {
+            var message = Messages[i];
             message.IsLastAssistant = message.IsAssistant && ReferenceEquals(message, last);
+            message.IsFollowedByTools = i + 1 < Messages.Count && Messages[i + 1] is ToolRunViewModel;
+        }
         RegenerateCommand.NotifyCanExecuteChanged();
     }
 
@@ -369,19 +383,37 @@ public partial class WorkbenchViewModel : ObservableObject
         ErrorMessage = null;
         IsResponding = true;
 
-        // 重新產生會移除整輪（一輪可能有好幾則助理訊息：工具呼叫前後各一則），畫面上也要一起移除
-        while (removeLastAssistantFirst && Messages.LastOrDefault() is { IsAssistant: true } old)
+        // 重新產生會移除整輪（氣泡與工具段落都要一起移除，一路到最後一則使用者訊息）
+        while (removeLastAssistantFirst && Messages.LastOrDefault() is { IsUser: false } old)
             Messages.Remove(old);
 
-        var assistant = MessageViewModel.StreamingAssistant();
-        Messages.Add(assistant);
-        RefreshMessageState();
+        // 等待回應的氣泡（還沒有文字時顯示「…」）。一輪裡每次呼叫供應商各用一個氣泡；
+        // 呼叫工具之間沒有文字的話不留氣泡。
+        var bubble = StartBubble();
+        var cards = new Dictionary<string, ToolCardViewModel>(StringComparer.Ordinal);
+        var usedTools = false;
+
+        MessageViewModel StartBubble()
+        {
+            var created = MessageViewModel.StreamingAssistant();
+            Messages.Add(created);
+            RefreshMessageState();
+            return created;
+        }
+
+        void DropBubble()
+        {
+            if (bubble is not null)
+                Messages.Remove(bubble);
+            bubble = null;
+        }
 
         var connectionId = WorkbenchModel?.Connection.Id;
         using var cts = new CancellationTokenSource();
         _responseCts = cts;
         ChatFailure? failure = null;
         var unexpected = false;
+        var cancelled = false;
         try
         {
             try
@@ -391,23 +423,55 @@ public partial class WorkbenchViewModel : ObservableObject
                     switch (chatEvent)
                     {
                         case TextDelta delta:
-                            assistant.AppendText(delta.Text, _time.GetUtcNow());
+                            (bubble ??= StartBubble()).AppendText(delta.Text, _time.GetUtcNow());
                             break;
                         case ThinkingDelta delta:
-                            assistant.AppendThinking(delta.Text, _time.GetUtcNow());
+                            (bubble ??= StartBubble()).AppendThinking(delta.Text, _time.GetUtcNow());
                             break;
                         case UsageEvent usage:
                             LastUsage = usage.Tokens;
                             break;
                         case Completed completed when completed.Reason == StopReason.ToolUse:
-                            // 模型要呼叫工具：這一輪還沒結束，氣泡繼續串流，等工具跑完後的下一個 Completed 再定稿
+                            // 這一輪還沒結束：有文字就定稿成一個氣泡，只有思考或只有工具呼叫的中間步驟不顯示（Q5）
                             LastUsage = completed.Message.Usage ?? LastUsage;
+                            if (completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0))
+                                (bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
+                            else
+                                DropBubble();
+                            bubble = null;
                             break;
                         case Completed completed:
-                            assistant.Complete(completed.Message, _time.GetUtcNow());
+                            (bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
+                            bubble = null;
                             LastUsage = completed.Message.Usage ?? LastUsage;
                             if (connectionId is not null)
                                 _status.Mark(connectionId, ConnectionStatus.Ok);
+                            break;
+                        case ToolCallStarted started:
+                        {
+                            usedTools = true;
+                            if (bubble is { HasText: false, HasThinking: false })
+                                DropBubble();   // 等下一次回應用的空氣泡讓位給新的卡片
+
+                            if (Messages.LastOrDefault() is not ToolRunViewModel run)
+                            {
+                                run = new ToolRunViewModel();
+                                Messages.Add(run);
+                            }
+                            var card = NewCard(started.CallId, started.ToolName, started.DisplayName, started.Permission, started.Target, started.ArgumentsJson);
+                            cards[started.CallId] = card;
+                            run.Cards.Add(card);
+                            RefreshMessageState();
+                            break;
+                        }
+                        case ApprovalRequired approval:
+                            if (cards.TryGetValue(approval.Request.CallId, out var waiting))
+                                waiting.SetAwaiting(approval.Request);
+                            break;
+                        case ToolCallCompleted finished:
+                            if (cards.TryGetValue(finished.CallId, out var finishedCard))
+                                finishedCard.Complete(finished.Result);
+                            bubble ??= StartBubble();   // 工具跑完，等模型根據結果回應
                             break;
                         case Failed failed:
                             failure = failed.Failure;
@@ -419,11 +483,15 @@ public partial class WorkbenchViewModel : ObservableObject
             }
             catch (OperationCanceledException) when (cts.IsCancellationRequested)
             {
+                cancelled = true;
                 // 使用者按了停止：有文字就標示已停止（ConversationService 已存檔），沒有就移除
-                if (assistant.HasText)
-                    assistant.MarkStopped(_time.GetUtcNow());
-                else
-                    Messages.Remove(assistant);
+                if (bubble is { IsStreaming: true })
+                {
+                    if (bubble.HasText)
+                        bubble.MarkStopped(_time.GetUtcNow());
+                    else
+                        DropBubble();
+                }
             }
             catch (Exception ex)
             {
@@ -431,9 +499,9 @@ public partial class WorkbenchViewModel : ObservableObject
                 unexpected = true;
             }
 
-            // 失敗的回應不存檔（Q15），畫面上也移除，改顯示錯誤列
-            if (unexpected || failure is not null)
-                Messages.Remove(assistant);
+            // 失敗的回應不存檔（Q15），畫面上也移除，改顯示錯誤列。前面已經完成的氣泡與工具卡片都存了，保留。
+            if ((unexpected || failure is not null) && bubble is { IsStreaming: true })
+                DropBubble();
         }
         finally
         {
@@ -441,7 +509,16 @@ public partial class WorkbenchViewModel : ObservableObject
             _responseDone = null;
             IsResponding = false;
             RefreshMessageState();
-            done.TrySetResult();   // 收尾全部做完才通知：StopAndWaitAsync 之後可以放心換掉訊息列表
+            try
+            {
+                // 有用到工具的這一輪被停止：ConversationService 已經補好「已停止」結果並存檔，畫面從資料庫重讀才和存檔一致
+                if (cancelled && usedTools && _conversationId is not null)
+                    await ReloadMessagesAsync();
+            }
+            finally
+            {
+                done.TrySetResult();   // 收尾全部做完才通知：StopAndWaitAsync 之後可以放心換掉訊息列表
+            }
         }
 
         return new StreamOutcome(failure, unexpected);
