@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Microsoft.Extensions.Logging;
@@ -20,12 +21,15 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     private readonly HttpClient _httpClient;
     private readonly ISecretStore _secrets;
     private readonly ILogger<OpenAICompatibleChatProvider> _logger;
+    private readonly IAttachmentStore _attachments;
 
-    public OpenAICompatibleChatProvider(HttpClient httpClient, ISecretStore secrets, ILogger<OpenAICompatibleChatProvider> logger)
+    public OpenAICompatibleChatProvider(
+        HttpClient httpClient, ISecretStore secrets, ILogger<OpenAICompatibleChatProvider> logger, IAttachmentStore? attachments = null)
     {
         _httpClient = httpClient;
         _secrets = secrets;
         _logger = logger;
+        _attachments = attachments ?? new NullAttachmentStore();
     }
 
     public async IAsyncEnumerable<ChatEvent> StreamAsync(ChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
@@ -51,6 +55,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
             yield break;
         }
 
+        var images = await ImageAttachments.LoadAsync(_attachments, request.Messages, ct).ConfigureAwait(false);
         var accumulator = new OpenAIStreamAccumulator(request.Model.Model.ModelId);
         HttpResponseMessage? response = null;
         IAsyncEnumerator<SseItem<string>>? enumerator = null;
@@ -65,11 +70,11 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                 {
                     if (enumerator is null)
                     {
-                        using var httpRequest = BuildRequest(request, baseUri, apiKey);
+                        using var httpRequest = BuildRequest(request, baseUri, apiKey, images);
                         response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                         if (!response.IsSuccessStatusCode)
                         {
-                            failure = OpenAIHttpErrors.FromResponse(response, request.Tools is { Count: > 0 });
+                            failure = OpenAIHttpErrors.FromResponse(response, request.Tools is { Count: > 0 }, ImageAttachments.HasImages(request));
                             _logger.LogWarning("OpenAI 相容連線 {ConnectionId} 回應 HTTP {Status}", connection.Id, (int)response.StatusCode);
                         }
                         else
@@ -122,11 +127,11 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
         }
     }
 
-    private static HttpRequestMessage BuildRequest(ChatRequest request, Uri baseUri, string? apiKey)
+    private static HttpRequestMessage BuildRequest(ChatRequest request, Uri baseUri, string? apiKey, IReadOnlyDictionary<string, byte[]> images)
     {
         var message = new HttpRequestMessage(HttpMethod.Post, OpenAIUrls.Endpoint(baseUri, "chat/completions"))
         {
-            Content = new StringContent(BuildBody(request), Encoding.UTF8, "application/json"),
+            Content = new StringContent(BuildBody(request, images), Encoding.UTF8, "application/json"),
         };
         message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
         if (!string.IsNullOrEmpty(apiKey))
@@ -139,8 +144,9 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     /// thinking 與其他供應商的區塊略過（沒有 signature 的推理內容不能送回），略過後什麼都不剩的訊息整則不送。
     /// OpenAI 沒有 <c>is_error</c>：錯誤結果就是內文為錯誤說明的一則 tool 訊息。
     /// </summary>
-    internal static string BuildBody(ChatRequest request)
+    internal static string BuildBody(ChatRequest request, IReadOnlyDictionary<string, byte[]>? images = null)
     {
+        images ??= ImageAttachments.None;
         var messages = new List<object>();
         foreach (var message in request.Messages)
         {
@@ -148,9 +154,29 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
             {
                 case ChatRole.User:
                 {
-                    var text = string.Concat(message.Content.OfType<TextBlock>().Select(b => b.Text));
-                    if (text.Length > 0)
+                    // 使用者訊息：上下文區塊（檔案文字、檔案樹）與使用者打的字合成一段文字；圖片另外成為 image_url 部分
+                    var text = ContextBlockFormatter.ToPromptText(message.Content.Where(b => b is TextBlock or ContextBlock));
+                    var imageParts = new List<object>();
+                    foreach (var image in message.Content.OfType<ImageBlock>())
+                    {
+                        if (images.TryGetValue(image.FileName, out var bytes))
+                            imageParts.Add(new { type = "image_url", image_url = new { url = $"data:{image.MediaType};base64,{Convert.ToBase64String(bytes)}" } });
+                        else
+                            text = text.Length == 0 ? ImageAttachments.MissingText(image) : text + "\n\n" + ImageAttachments.MissingText(image);
+                    }
+
+                    if (imageParts.Count > 0)
+                    {
+                        List<object> parts = [];
+                        if (text.Length > 0)
+                            parts.Add(new { type = "text", text });
+                        parts.AddRange(imageParts);
+                        messages.Add(new { role = "user", content = parts });
+                    }
+                    else if (text.Length > 0)
+                    {
                         messages.Add(new { role = "user", content = text });
+                    }
                     break;
                 }
                 case ChatRole.Assistant:

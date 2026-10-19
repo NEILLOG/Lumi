@@ -42,6 +42,7 @@ public sealed class CompositionRootTests : IDisposable
         });
         builder.Services.AddLumiProviders();
         builder.Services.AddLumiInfrastructure(o => o.DatabasePath = Path.Combine(_directory, "lumi.db"));
+        builder.Services.Configure<Lumi.Infrastructure.Attachments.AttachmentOptions>(o => o.Directory = Path.Combine(_directory, "attachments"));
         builder.Services.Configure<ModelCatalogOptions>(o => o.SettingsPath = Path.Combine(_directory, "settings.json"));
         builder.Services.AddLumiTools(o => o.NotesDirectory = Path.Combine(_directory, "notes"));
         builder.Services.AddLumiApp();
@@ -67,6 +68,11 @@ public sealed class CompositionRootTests : IDisposable
             services.GetRequiredService<IToolRegistry>().GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
         Assert.IsType<FileScopeFactory>(services.GetRequiredService<IFileScopeFactory>());
         Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IConversationContextStore>());
+        // 4B：送出時的快照建構器、圖片附件存放與孤兒清理
+        Assert.IsType<ContextAttachmentBuilder>(services.GetRequiredService<IContextAttachmentBuilder>());
+        Assert.IsType<Lumi.Infrastructure.Attachments.FileAttachmentStore>(services.GetRequiredService<IAttachmentStore>());
+        Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IAttachmentReferences>());
+        Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), h => h is Lumi.App.Services.AttachmentCleanupService);
         var vm = services.GetRequiredService<WorkbenchViewModel>();
 
         await vm.InitializeAsync();

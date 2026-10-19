@@ -3,6 +3,7 @@ using global::Anthropic;
 using global::Anthropic.Exceptions;
 using BetaMessages = global::Anthropic.Models.Beta.Messages;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Microsoft.Extensions.Logging;
@@ -21,17 +22,20 @@ public sealed class AnthropicChatProvider : IChatProvider
     private readonly ISecretStore _secrets;
     private readonly IOptions<AnthropicProviderOptions> _options;
     private readonly ILogger<AnthropicChatProvider> _logger;
+    private readonly IAttachmentStore _attachments;
 
     public AnthropicChatProvider(
         HttpClient httpClient,
         ISecretStore secrets,
         IOptions<AnthropicProviderOptions> options,
-        ILogger<AnthropicChatProvider> logger)
+        ILogger<AnthropicChatProvider> logger,
+        IAttachmentStore? attachments = null)
     {
         _httpClient = httpClient;
         _secrets = secrets;
         _options = options;
         _logger = logger;
+        _attachments = attachments ?? new NullAttachmentStore();
     }
 
     public async IAsyncEnumerable<ChatEvent> StreamAsync(ChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
@@ -62,7 +66,8 @@ public sealed class AnthropicChatProvider : IChatProvider
 
         var options = _options.Value;
         var client = new AnthropicClient { ApiKey = apiKey.Reveal(), BaseUrl = request.Model.Connection.BaseUrl, HttpClient = _httpClient };
-        var parameters = AnthropicRequestConverter.ToCreateParams(request, options);
+        var images = await ImageAttachments.LoadAsync(_attachments, request.Messages, ct).ConfigureAwait(false);
+        var parameters = AnthropicRequestConverter.ToCreateParams(request, options, images);
 
         var accumulator = new AnthropicStreamAccumulator(request.Model.Model.ModelId);
 

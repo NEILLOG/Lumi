@@ -31,4 +31,17 @@ public sealed class FileToolOptions
 
     /// <summary>搜尋結果每一行最多顯示的字元數。</summary>
     public int SearchMaxLineChars { get; set; } = 200;
+
+    // ---- 送出時嵌進訊息的上下文（M4 的 4B） ----
+
+    /// <summary>單一文字檔超過這麼多位元組就不嵌進訊息（只放進範圍，模型用 <c>read_file</c> 讀）。</summary>
+    public long EmbedMaxFileBytes { get; set; } = 100 * 1024;
+
+    /// <summary>一則訊息嵌入的檔案文字合計上限；超過的後面幾個同樣只放進範圍。</summary>
+    public long EmbedMaxTotalBytes { get; set; } = 200 * 1024;
+
+    /// <summary>資料夾檔案樹的項目數與深度上限。</summary>
+    public int TreeMaxEntries { get; set; } = 300;
+
+    public int TreeMaxDepth { get; set; } = 4;
 }

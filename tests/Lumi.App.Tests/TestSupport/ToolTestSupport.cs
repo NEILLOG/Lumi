@@ -44,9 +44,12 @@ internal sealed class SequenceChatProvider : IChatProvider
 
     public int Calls { get; private set; }
 
+    public List<ChatRequest> Requests { get; } = [];
+
     public async IAsyncEnumerable<ChatEvent> StreamAsync(ChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
     {
         Calls++;
+        Requests.Add(request);
         foreach (var chatEvent in _turns.Dequeue())
         {
             await Task.Yield();

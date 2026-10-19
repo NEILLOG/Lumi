@@ -1,6 +1,7 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Models;
+using Lumi.Infrastructure.Attachments;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<SqliteConversationStore>();
         services.AddSingleton<IConversationStore>(sp => sp.GetRequiredService<SqliteConversationStore>());
         services.Replace(ServiceDescriptor.Singleton<IConversationContextStore>(sp => sp.GetRequiredService<SqliteConversationStore>()));
+        services.AddSingleton<IAttachmentReferences>(sp => sp.GetRequiredService<SqliteConversationStore>());
+
+        // 圖片附件：檔案存在使用者資料夾的 attachments/
+        services.AddOptions<AttachmentOptions>();
+        services.Replace(ServiceDescriptor.Singleton<IAttachmentStore, FileAttachmentStore>());
+        services.AddSingleton<AttachmentCleaner>();
 
         // 需要另外註冊 ISecretStore（Lumi.Platform）
         services.AddOptions<ModelCatalogOptions>();

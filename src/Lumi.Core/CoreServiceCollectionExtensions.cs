@@ -22,6 +22,9 @@ public static class CoreServiceCollectionExtensions
         // 檔案範圍：Lumi.Tools 與 Lumi.Infrastructure 註冊真正的實作；沒有的時候是空的（沒有範圍就沒有檔案工具）
         services.TryAddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
         services.TryAddSingleton<IConversationContextStore, NullConversationContextStore>();
+        services.TryAddSingleton<IContextAttachmentBuilder, NullContextAttachmentBuilder>();
+        services.TryAddSingleton<IAttachmentStore, NullAttachmentStore>();
+        services.TryAddSingleton<ITokenEstimator, HeuristicTokenEstimator>();
         return services;
     }
 }

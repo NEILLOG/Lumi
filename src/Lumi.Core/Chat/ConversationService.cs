@@ -35,6 +35,7 @@ public sealed class ConversationService
     private readonly ILogger<ConversationService> _logger;
     private readonly IConversationContextStore _contextStore;
     private readonly IFileScopeFactory _scopeFactory;
+    private readonly IContextAttachmentBuilder _attachmentBuilder;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -55,7 +56,8 @@ public sealed class ConversationService
         TimeProvider time,
         ILogger<ConversationService> logger,
         IConversationContextStore? contextStore = null,
-        IFileScopeFactory? scopeFactory = null)
+        IFileScopeFactory? scopeFactory = null,
+        IContextAttachmentBuilder? attachmentBuilder = null)
     {
         _provider = provider;
         _store = store;
@@ -68,6 +70,7 @@ public sealed class ConversationService
         _logger = logger;
         _contextStore = contextStore ?? new NullConversationContextStore();
         _scopeFactory = scopeFactory ?? new EmptyFileScopeFactory();
+        _attachmentBuilder = attachmentBuilder ?? new NullContextAttachmentBuilder();
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -79,9 +82,21 @@ public sealed class ConversationService
         try
         {
             var existing = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
-            var userMessage = new ChatMessage(
-                ChatMessage.NewId(), ChatRole.User, [new TextBlock(userText)], DateTimeOffset.UtcNow);
+
+            // 還沒送出的上下文項目：把「現在」的內容拍成快照，和使用者的文字一起存成同一則訊息，之後不再重複送（M4 的 Q1）
+            var pending = (await _contextStore.GetAsync(conversationId, ct).ConfigureAwait(false)).Where(i => i.IsPending).ToList();
+            var attachments = pending.Count == 0
+                ? ContextAttachments.None
+                : await _attachmentBuilder.BuildAsync(pending, ct).ConfigureAwait(false);
+
+            List<ContentBlock> content = [.. attachments.Blocks, new TextBlock(userText)];
+            var userMessage = new ChatMessage(ChatMessage.NewId(), ChatRole.User, content, DateTimeOffset.UtcNow);
             await _store.AppendMessageAsync(conversationId, userMessage, ct).ConfigureAwait(false);
+            if (attachments.ItemIds.Count > 0)
+            {
+                // 訊息已經存好：標記不受取消影響，否則下次會把同樣的內容再帶一次
+                await _contextStore.MarkEmbeddedAsync(conversationId, attachments.ItemIds, userMessage.Id, CancellationToken.None).ConfigureAwait(false);
+            }
             if (existing.Count == 0)
                 await _store.RenameAsync(conversationId, MakeTitle(userText), ct).ConfigureAwait(false);
 

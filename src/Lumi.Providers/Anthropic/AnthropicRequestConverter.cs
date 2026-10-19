@@ -1,5 +1,6 @@
 using BetaMessages = global::Anthropic.Models.Beta.Messages;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Tools;
 
 namespace Lumi.Providers.Anthropic;
@@ -7,12 +8,13 @@ namespace Lumi.Providers.Anthropic;
 /// <summary>把 Core 的 <see cref="ChatRequest"/> 轉成 Anthropic SDK 的 beta 請求參數。</summary>
 internal static class AnthropicRequestConverter
 {
-    public static BetaMessages.MessageCreateParams ToCreateParams(ChatRequest request, AnthropicProviderOptions options)
+    public static BetaMessages.MessageCreateParams ToCreateParams(
+        ChatRequest request, AnthropicProviderOptions options, IReadOnlyDictionary<string, byte[]>? images = null)
     {
         var settings = request.Model.Model;
         var model = settings.ModelId;
         var maxTokens = settings.MaxOutputTokens;
-        var messages = ToMessageParams(request.Messages);
+        var messages = ToMessageParams(request.Messages, images ?? ImageAttachments.None);
         BetaMessages.BetaOutputConfig? outputConfig = options.Effort is { Length: > 0 } effort
             ? new BetaMessages.BetaOutputConfig { Effort = effort }
             : null;
@@ -70,14 +72,14 @@ internal static class AnthropicRequestConverter
     /// 轉成 Anthropic 的訊息：<c>Tool</c> 訊息變成使用者訊息裡的 <c>tool_result</c>；
     /// 相鄰的使用者訊息合併（工具結果之後緊接著使用者新訊息時，API 要求結果在同一則訊息裡且排在最前面）。
     /// </summary>
-    private static List<BetaMessages.BetaMessageParam> ToMessageParams(IReadOnlyList<ChatMessage> messages)
+    private static List<BetaMessages.BetaMessageParam> ToMessageParams(IReadOnlyList<ChatMessage> messages, IReadOnlyDictionary<string, byte[]> images)
     {
         var result = new List<BetaMessages.BetaMessageParam>();
         var previousWasUser = false;
         foreach (var message in messages)
         {
             var isUser = message.Role is ChatRole.User or ChatRole.Tool;
-            var content = message.Content.Where(IsSendable).Select(ToContentBlockParam).ToList();
+            var content = message.Content.Where(IsSendable).Select(b => ToContentBlockParam(b, images)).ToList();
             if (content.Count == 0)
                 continue;
 
@@ -110,8 +112,10 @@ internal static class AnthropicRequestConverter
     private static bool IsSendable(ContentBlock block) =>
         block is not ProviderBlock provider || provider.Provider == AnthropicProviderBlocks.ProviderName;
 
-    private static BetaMessages.BetaContentBlockParam ToContentBlockParam(ContentBlock block) => block switch
+    private static BetaMessages.BetaContentBlockParam ToContentBlockParam(ContentBlock block, IReadOnlyDictionary<string, byte[]> images) => block switch
     {
+        ContextBlock c => new BetaMessages.BetaTextBlockParam { Text = ContextBlockFormatter.ToPromptText(c) },
+        ImageBlock i => ToImage(i, images),
         TextBlock t => new BetaMessages.BetaTextBlockParam { Text = t.Text },
         ThinkingBlock t => new BetaMessages.BetaThinkingBlockParam { Thinking = t.Thinking, Signature = t.Signature },
         RedactedThinkingBlock r => new BetaMessages.BetaRedactedThinkingBlockParam { Data = r.Data },
@@ -119,5 +123,26 @@ internal static class AnthropicRequestConverter
         ToolResultBlock r => new BetaMessages.BetaToolResultBlockParam { ToolUseID = r.ToolUseId, Content = r.Content, IsError = r.IsError ? true : null },
         ProviderBlock p => AnthropicProviderBlocks.ToParam(p),   // 只剩 Anthropic 自己的（見 IsSendable）
         _ => throw new NotSupportedException($"未知的內容區塊類型：{block.GetType()}"),
+    };
+
+    private static BetaMessages.BetaContentBlockParam ToImage(ImageBlock block, IReadOnlyDictionary<string, byte[]> images)
+    {
+        // 圖片檔讀不到時改送一段說明文字，不讓整個請求失敗
+        if (!images.TryGetValue(block.FileName, out var bytes) || ToMediaType(block.MediaType) is not { } mediaType)
+            return new BetaMessages.BetaTextBlockParam { Text = ImageAttachments.MissingText(block) };
+
+        return new BetaMessages.BetaImageBlockParam
+        {
+            Source = new BetaMessages.BetaBase64ImageSource { Data = Convert.ToBase64String(bytes), MediaType = mediaType },
+        };
+    }
+
+    private static BetaMessages.MediaType? ToMediaType(string mediaType) => mediaType switch
+    {
+        "image/png" => BetaMessages.MediaType.ImagePng,
+        "image/jpeg" => BetaMessages.MediaType.ImageJpeg,
+        "image/gif" => BetaMessages.MediaType.ImageGif,
+        "image/webp" => BetaMessages.MediaType.ImageWebP,
+        _ => null,
     };
 }

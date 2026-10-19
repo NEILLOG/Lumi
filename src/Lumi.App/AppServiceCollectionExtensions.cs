@@ -32,6 +32,8 @@ public static class AppServiceCollectionExtensions
         services.Replace(ServiceDescriptor.Singleton<IToolApprovalService>(sp => sp.GetRequiredService<ToolApprovalService>()));
         services.AddSingleton<IToolApprovalResponder>(sp => sp.GetRequiredService<ToolApprovalService>());
 
+        services.AddHostedService<AttachmentCleanupService>();
+
         services.AddSingleton<IApiKeyPrompt, SettingsApiKeyPrompt>();
         services.AddSingleton<WorkbenchViewModel>();
         services.AddTransient<WorkbenchWindow>();

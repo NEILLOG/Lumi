@@ -11,7 +11,7 @@ namespace Lumi.Infrastructure.Persistence;
 /// <see cref="IConversationStore"/> 的 SQLite 實作。每次操作開一條連線（有連線池，很便宜）；
 /// 第一次使用時建立資料夾並把 schema 補到最新版。訊息的順序以 <c>seq</c> 為準，不靠 id。
 /// </summary>
-public sealed class SqliteConversationStore : IConversationStore, IConversationContextStore
+public sealed class SqliteConversationStore : IConversationStore, IConversationContextStore, IAttachmentReferences
 {
     private readonly string _connectionString;
     private readonly Lazy<Task> _initialization;
@@ -174,6 +174,25 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         command.Parameters.AddWithValue("$title", title);
         command.Parameters.AddWithValue("$id", conversationId);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    // ---- 附件引用（IAttachmentReferences） ----
+
+    public async Task<IReadOnlySet<string>> GetReferencedFileNamesAsync(CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        // 只有含圖片區塊的訊息才需要解析（序列化格式固定是 "type":"image"）
+        command.CommandText = "SELECT content_json FROM messages WHERE content_json LIKE '%\"type\":\"image\"%';";
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var blocks = JsonSerializer.Deserialize<List<ContentBlock>>(reader.GetString(0)) ?? [];
+            foreach (var image in blocks.OfType<ImageBlock>())
+                names.Add(image.FileName);
+        }
+        return names;
     }
 
     // ---- 上下文項目（IConversationContextStore） ----

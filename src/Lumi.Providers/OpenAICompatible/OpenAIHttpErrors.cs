@@ -9,7 +9,7 @@ internal static class OpenAIHttpErrors
     /// 依 HTTP 狀態碼分類。不把伺服器回的錯誤內文放進訊息（可能含敏感資訊）；
     /// 公司 Gateway 或 Ollama 的細節看 log 裡的狀態碼與 request id 即可。
     /// </summary>
-    public static ChatFailure FromResponse(HttpResponseMessage response, bool requestHadTools = false)
+    public static ChatFailure FromResponse(HttpResponseMessage response, bool requestHadTools = false, bool requestHadImages = false)
     {
         var status = (int)response.StatusCode;
         return status switch
@@ -17,9 +17,8 @@ internal static class OpenAIHttpErrors
             401 => new(ChatFailureKind.InvalidApiKey, "金鑰無效或已失效，請重新輸入。", false),
             403 => new(ChatFailureKind.PermissionDenied, "這個帳號沒有權限使用此模型。", false),
             404 => new(ChatFailureKind.ModelNotFound, "找不到指定的模型，或 Base URL 不正確（通常需要包含 /v1）。", false),
-            // 請求帶了工具定義時，400 最常見的原因是這個模型／伺服器不支援工具（例如小型本機模型）
-            400 or 422 when requestHadTools => new(ChatFailureKind.BadRequest,
-                "請求內容不被伺服器接受。這個模型可能不支援工具，可以在模型設定關掉「使用工具」再試一次。", false),
+            // 請求帶了工具定義或圖片時，400 最常見的原因是這個模型／伺服器不支援（例如小型本機模型）
+            400 or 422 when requestHadTools || requestHadImages => new(ChatFailureKind.BadRequest, UnsupportedHint(requestHadTools, requestHadImages), false),
             400 or 413 or 422 => new(ChatFailureKind.BadRequest, "請求內容不被伺服器接受。", false),
             429 => new(ChatFailureKind.RateLimited, "已達到速率限制，請稍後再試。", true, RetryAfter(response)),
             529 => new(ChatFailureKind.Overloaded, "服務暫時過載，請稍後再試。", true),
@@ -27,6 +26,14 @@ internal static class OpenAIHttpErrors
             _ => new(ChatFailureKind.Unknown, $"伺服器回應了未預期的狀態碼 {status}。", false),
         };
     }
+
+    private static string UnsupportedHint(bool tools, bool images) =>
+        (tools, images) switch
+        {
+            (true, true) => "請求內容不被伺服器接受。這個模型可能不支援工具或圖片：可以在模型設定關掉「使用工具」，或移除圖片再試一次。",
+            (false, true) => "請求內容不被伺服器接受。這個模型可能不支援圖片，可以移除圖片再試一次。",
+            _ => "請求內容不被伺服器接受。這個模型可能不支援工具，可以在模型設定關掉「使用工具」再試一次。",
+        };
 
     public static ChatFailure FromException(Exception ex, Uri baseUri) => ex switch
     {

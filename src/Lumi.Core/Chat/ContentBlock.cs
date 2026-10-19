@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Lumi.Core.Context;
 
 namespace Lumi.Core.Chat;
 
@@ -14,6 +15,8 @@ namespace Lumi.Core.Chat;
 [JsonDerivedType(typeof(ProviderBlock), "provider")]
 [JsonDerivedType(typeof(ToolUseBlock), "tool_use")]
 [JsonDerivedType(typeof(ToolResultBlock), "tool_result")]
+[JsonDerivedType(typeof(ContextBlock), "context")]
+[JsonDerivedType(typeof(ImageBlock), "image")]
 public abstract record ContentBlock;
 
 public sealed record TextBlock(string Text) : ContentBlock;
@@ -54,3 +57,24 @@ public sealed record ToolResultBlock(
 
 [JsonConverter(typeof(JsonStringEnumConverter<ToolApproval>))]
 public enum ToolApproval { NotRequired, AllowedOnce, AllowedForConversation, Denied }
+
+/// <summary>
+/// 使用者加入的檔案或資料夾在「送出那一刻」的快照（M4 的 Q1）：UI 在使用者氣泡上方畫成 chip，送給模型時轉成文字
+/// （見 <see cref="ContextBlockFormatter"/>）。<paramref name="Content"/> 是檔案文字或資料夾的檔案樹；
+/// <paramref name="Embedded"/> 是 false 時沒有放內容，<paramref name="Note"/> 說明原因（太大、找不到、不是文字檔…），
+/// 檔案仍在範圍內，模型可以用 <c>read_file</c> 讀。
+/// </summary>
+public sealed record ContextBlock(
+    ContextKind Kind,
+    string DisplayName,
+    string Path,
+    string? Content,
+    bool Embedded,
+    string? Note = null,
+    int? ItemCount = null) : ContentBlock;
+
+/// <summary>
+/// 使用者加入的圖片。位元組存在附件資料夾（<see cref="IAttachmentStore"/>），這裡只記檔名（內容雜湊）、媒體類型與原始名稱；
+/// 送給供應商時才讀出來轉 base64。
+/// </summary>
+public sealed record ImageBlock(string FileName, string MediaType, string DisplayName) : ContentBlock;
