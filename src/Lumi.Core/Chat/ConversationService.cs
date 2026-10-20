@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Lumi.Core.Context;
 using Lumi.Core.Models;
+using Lumi.Core.Prompts;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -23,6 +24,7 @@ public sealed class ConversationService
     private const string InterruptedMessage = "對話被中斷，沒有取得這個工具的結果。";
     private const string StoppedMessage = "使用者已停止。";
     private const string DeniedMessage = "使用者拒絕執行";
+    private const string WrongModeMessage = "這個工具在目前模式不能使用。";
 
     private readonly IChatProvider _provider;
     private readonly IConversationStore _store;
@@ -36,6 +38,8 @@ public sealed class ConversationService
     private readonly IConversationContextStore _contextStore;
     private readonly IFileScopeFactory _scopeFactory;
     private readonly IContextAttachmentBuilder _attachmentBuilder;
+    private readonly IPromptComposer _composer;
+    private readonly PromptOptions _promptOptions;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -57,7 +61,9 @@ public sealed class ConversationService
         ILogger<ConversationService> logger,
         IConversationContextStore? contextStore = null,
         IFileScopeFactory? scopeFactory = null,
-        IContextAttachmentBuilder? attachmentBuilder = null)
+        IContextAttachmentBuilder? attachmentBuilder = null,
+        IPromptComposer? composer = null,
+        PromptOptions? promptOptions = null)
     {
         _provider = provider;
         _store = store;
@@ -71,6 +77,8 @@ public sealed class ConversationService
         _contextStore = contextStore ?? new NullConversationContextStore();
         _scopeFactory = scopeFactory ?? new EmptyFileScopeFactory();
         _attachmentBuilder = attachmentBuilder ?? new NullContextAttachmentBuilder();
+        _composer = composer ?? new NullPromptComposer();
+        _promptOptions = promptOptions ?? new PromptOptions();
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -144,7 +152,7 @@ public sealed class ConversationService
                 throw new InvalidOperationException("最後一則必須是助理訊息才能重新產生。");
 
             // 沒有可用的模型時，不要先把舊的回答刪掉
-            if (_catalog.Resolve(_catalog.Current.WorkbenchModelId) is null)
+            if (ResolveModel(mode) is null)
             {
                 yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
                 yield break;
@@ -166,16 +174,19 @@ public sealed class ConversationService
     private async IAsyncEnumerable<ChatEvent> RunTurnAsync(
         string conversationId, ChatMode mode, [EnumeratorCancellation] CancellationToken ct)
     {
-        // 工作台用的模型＝設定裡的工作台預設模型（M2 的 Q3）；M7 的小精靈改用 SpriteModelId
-        var model = _catalog.Resolve(_catalog.Current.WorkbenchModelId);
+        var model = ResolveModel(mode);
         if (model is null)
         {
             yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
             yield break;
         }
 
-        // 模型設定的「使用工具」關掉時，請求完全不帶工具定義
-        var availableTools = model.Model.ToolsEnabled ? _registry.GetTools(mode) : [];
+        // 模型設定的「使用工具」關掉時，請求完全不帶工具定義。
+        // 其他情況一律帶全部工具，不依模式過濾：切換模式改變工具清單會讓整個快取失效（M5 的 Q1），模式在執行時檢查
+        var availableTools = model.Model.ToolsEnabled ? _registry.GetAll() : [];
+
+        // 小精靈的輸出上限較低；thinking 參數不因模式改變（改了訊息快取會失效，M5 的 Q4）
+        int? maxOutputTokens = mode == ChatMode.Sprite ? Math.Min(model.Model.MaxOutputTokens, _promptOptions.SpriteMaxOutputTokens) : null;
 
         for (var iteration = 1; iteration <= _options.MaxIterations; iteration++)
         {
@@ -189,7 +200,9 @@ public sealed class ConversationService
             if (requestMessages.Count == 0 || requestMessages[^1].Role is not (ChatRole.User or ChatRole.Tool))
                 throw new InvalidOperationException("最後一則訊息必須是使用者訊息或工具結果才能要求回應。");
 
-            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null);
+            // 每次呼叫供應商前重組：兩次請求之間設定可能被改了
+            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona));
+            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null, prompt.System, prompt.TurnSuffix, maxOutputTokens);
             Completed? completed = null;
             var failed = false;
 
@@ -221,6 +234,16 @@ public sealed class ConversationService
 
                 var descriptor = tool.Descriptor;
                 var preview = tool.Preview(use.InputJson);
+
+                if (!stopped && !descriptor.Modes.Allows(mode))
+                {
+                    // 定義有送（為了快取），但這個模式不能執行：不詢問權限、不執行
+                    var wrongMode = new ToolResultBlock(use.Id, WrongModeMessage, true, descriptor.DisplayName, preview.Target, "目前模式不能用", 0, ToolApproval.NotRequired);
+                    yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
+                    yield return new ToolCallCompleted(use.Id, wrongMode);
+                    results.Add(wrongMode);
+                    continue;
+                }
 
                 if (stopped)
                 {
@@ -318,6 +341,15 @@ public sealed class ConversationService
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
             $"工具呼叫已達到 {_options.MaxIterations} 次上限，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+    }
+
+    /// <summary>工作台用工作台預設模型（M2 的 Q3）；小精靈用小精靈預設模型，沒有設定或找不到時退回工作台的（M5 的 Q4）。</summary>
+    private ResolvedModel? ResolveModel(ChatMode mode)
+    {
+        var settings = _catalog.Current;
+        return mode == ChatMode.Sprite
+            ? _catalog.Resolve(settings.SpriteModelId) ?? _catalog.Resolve(settings.WorkbenchModelId)
+            : _catalog.Resolve(settings.WorkbenchModelId);
     }
 
     private static ToolResultBlock StoppedResult(ToolUseBlock use, ToolDescriptor descriptor, ToolPreview preview, ToolApproval approval) =>

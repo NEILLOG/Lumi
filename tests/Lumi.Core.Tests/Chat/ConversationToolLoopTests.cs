@@ -88,14 +88,35 @@ public class ConversationToolLoopTests
     }
 
     [Fact]
-    public async Task ModeFiltersTools()
+    public async Task ToolDefinitions_AreTheSameInBothModes()
     {
-        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"));
-        var rig = await Rig.CreateAsync(provider, [new FakeTool("only_sprite", modes: ToolModes.Sprite)]);
+        // 工具清單不隨模式改變，切換模式才不會讓 prompt 快取失效（M5 的 Q1）
+        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"), SequenceChatProvider.Answer("好"));
+        var rig = await Rig.CreateAsync(provider, [new FakeTool("only_sprite", modes: ToolModes.Sprite), new FakeTool("only_bench", modes: ToolModes.Workbench)]);
 
-        await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨"));
+        await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨", mode: ChatMode.Workbench));
+        await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨", mode: ChatMode.Sprite));
 
-        Assert.Null(provider.Requests[0].Tools);
+        Assert.Equal(["only_bench", "only_sprite"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["only_bench", "only_sprite"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
+    }
+
+    [Fact]
+    public async Task ToolCalledInWrongMode_ReturnsError_WithoutRunningOrAsking()
+    {
+        var provider = new SequenceChatProvider(SequenceChatProvider.ToolCalls(Use("t1", "only_sprite")), SequenceChatProvider.Answer("好"));
+        var tool = new FakeTool("only_sprite", ToolPermission.Write, ToolModes.Sprite);
+        var approvals = new ScriptedApprovalService();
+        var rig = await Rig.CreateAsync(provider, [tool], approvals);
+
+        var events = await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨", mode: ChatMode.Workbench));
+
+        Assert.Empty(events.OfType<ApprovalRequired>());
+        Assert.Empty(tool.Calls);
+        var done = Assert.Single(events.OfType<ToolCallCompleted>());
+        Assert.True(done.Result.IsError);
+        Assert.Contains("目前模式", done.Result.Content);
+        Assert.Equal(2, provider.Requests.Count);   // 錯誤結果送回給模型，讓它改用其他方式回答
     }
 
     [Fact]

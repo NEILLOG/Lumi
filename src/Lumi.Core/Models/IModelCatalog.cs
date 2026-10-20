@@ -3,7 +3,7 @@ using Lumi.Core.Secrets;
 namespace Lumi.Core.Models;
 
 /// <summary>
-/// 連線與模型設定（兩層、各自多筆）、預設模型、主題。<see cref="Current"/> 是不可變快照，
+/// 連線與模型設定（兩層、各自多筆）、預設模型、主題、人設。<see cref="Current"/> 是不可變快照，
 /// 每次儲存換一份新的，讀的人不需要上鎖。金鑰只經過這裡寫進 <see cref="ISecretStore"/>，不會存進設定檔。
 /// </summary>
 public interface IModelCatalog
@@ -35,6 +35,9 @@ public interface IModelCatalog
     Task SetSpriteModelAsync(string modelSettingsId, CancellationToken ct = default);
 
     Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default);
+
+    /// <summary>自訂人設超過 <see cref="PersonaSettings.CustomPersonaMaxLength"/> 字時丟 <see cref="ArgumentException"/>。</summary>
+    Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default);
 
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);

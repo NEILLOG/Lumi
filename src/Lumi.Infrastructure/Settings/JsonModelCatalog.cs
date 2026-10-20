@@ -126,6 +126,14 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) =>
         MutateAsync(s => s with { Theme = theme }, ct);
 
+    public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default)
+    {
+        var normalized = persona.Normalize();
+        if (normalized.CustomPersona is { Length: > PersonaSettings.CustomPersonaMaxLength })
+            throw new ArgumentException($"自訂人設最多 {PersonaSettings.CustomPersonaMaxLength} 字。", nameof(persona));
+        return MutateAsync(s => s with { Persona = normalized }, ct);
+    }
+
     public ResolvedModel? Resolve(string? modelSettingsId)
     {
         var settings = _current;
@@ -215,7 +223,11 @@ public sealed class JsonModelCatalog : IModelCatalog
                 $"設定檔是較新版本的 Lumi 建立的（版本 {file.Version}），這次先用預設設定，而且不會儲存任何設定變更。");
         }
 
-        var settings = Normalize(new AppSettings(file.Connections, file.Models, file.WorkbenchModelId, file.SpriteModelId, file.Theme));
+        // Persona 是 M5 加的欄位：舊檔沒有時用預設值（版本號不變，舊版程式讀到會直接忽略這個欄位）
+        var settings = Normalize(new AppSettings(file.Connections, file.Models, file.WorkbenchModelId, file.SpriteModelId, file.Theme)
+        {
+            Persona = file.Persona?.Normalize() ?? PersonaSettings.Default,
+        });
         return (settings, false, null);
     }
 
@@ -232,7 +244,8 @@ public sealed class JsonModelCatalog : IModelCatalog
         AtomicFile.WriteAllBytesAsync(_path, Serialize(settings)).GetAwaiter().GetResult();
 
     private static byte[] Serialize(AppSettings settings) => JsonSerializer.SerializeToUtf8Bytes(
-        new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme),
+        new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme,
+            settings.Persona),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -280,5 +293,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         IReadOnlyList<ModelSettings>? Models,
         string? WorkbenchModelId,
         string? SpriteModelId,
-        ThemePreference Theme);
+        ThemePreference Theme,
+        PersonaSettings? Persona = null);
 }

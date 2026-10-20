@@ -229,9 +229,9 @@ public sealed class ToolTests : IDisposable
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
         Assert.Equal(["calculate", "delete_note", "get_current_time", "list_dir", "read_file", "save_note", "search"],
-            registry.GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
+            registry.GetAll().Select(t => t.Descriptor.Name));
         Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"],
-            registry.GetTools(ChatMode.Sprite).Select(t => t.Descriptor.Name));
+            registry.GetAll().Where(t => t.Descriptor.Modes.Allows(ChatMode.Sprite)).Select(t => t.Descriptor.Name));
     }
 
     [Fact]

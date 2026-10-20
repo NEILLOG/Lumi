@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Lumi.Core.Chat;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lumi.Core.Tools;
@@ -34,11 +33,8 @@ public sealed partial class ToolRegistry : IToolRegistry
         }
     }
 
-    public IReadOnlyList<ITool> GetTools(ChatMode mode)
-    {
-        var flag = mode == ChatMode.Workbench ? ToolModes.Workbench : ToolModes.Sprite;
-        return _byName.Values.Where(t => t.Descriptor.Modes.HasFlag(flag)).OrderBy(t => t.Descriptor.Name, StringComparer.Ordinal).ToList();
-    }
+    public IReadOnlyList<ITool> GetAll() =>
+        _byName.Values.OrderBy(t => t.Descriptor.Name, StringComparer.Ordinal).ToList();
 
     public ITool? Find(string name) => _byName.GetValueOrDefault(name);
 }

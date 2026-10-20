@@ -28,7 +28,7 @@ public class CoreServiceCollectionTests
 
         using var provider = services.BuildServiceProvider(validateScopes: true);
 
-        Assert.Equal("fake_di", Assert.Single(provider.GetRequiredService<IToolRegistry>().GetTools(ChatMode.Workbench)).Descriptor.Name);
+        Assert.Equal("fake_di", Assert.Single(provider.GetRequiredService<IToolRegistry>().GetAll()).Descriptor.Name);
         Assert.IsType<DenyAllToolApprovalService>(provider.GetRequiredService<IToolApprovalService>());
         Assert.Same(provider.GetRequiredService<ToolPermissionMemory>(), provider.GetRequiredService<ToolPermissionMemory>());
         Assert.Equal(10, provider.GetRequiredService<ToolLoopOptions>().MaxIterations);

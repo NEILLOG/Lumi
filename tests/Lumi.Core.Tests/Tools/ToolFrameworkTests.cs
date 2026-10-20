@@ -143,7 +143,7 @@ public class ToolFrameworkTests
     // ---- 登錄 ----
 
     [Fact]
-    public void Registry_FindsByName_AndFiltersByMode_InNameOrder()
+    public void Registry_ListsAllTools_InNameOrder_RegardlessOfMode()
     {
         var registry = new ToolRegistry([
             new FakeTool("zeta", modes: ToolModes.Both),
@@ -151,8 +151,11 @@ public class ToolFrameworkTests
             new FakeTool("sprite_only", modes: ToolModes.Sprite),
         ]);
 
-        Assert.Equal(["alpha", "zeta"], registry.GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
-        Assert.Equal(["sprite_only", "zeta"], registry.GetTools(ChatMode.Sprite).Select(t => t.Descriptor.Name));
+        // 不依模式過濾（M5 的 Q1）：模式在執行時檢查
+        Assert.Equal(["alpha", "sprite_only", "zeta"], registry.GetAll().Select(t => t.Descriptor.Name));
+        Assert.True(ToolModes.Workbench.Allows(ChatMode.Workbench));
+        Assert.False(ToolModes.Workbench.Allows(ChatMode.Sprite));
+        Assert.True(ToolModes.Both.Allows(ChatMode.Sprite));
         Assert.NotNull(registry.Find("alpha"));
         Assert.Null(registry.Find("missing"));
         Assert.NotNull(registry.Find("sprite_only"));   // Find 不分模式

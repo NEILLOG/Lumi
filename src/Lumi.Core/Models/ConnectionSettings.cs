@@ -48,6 +48,9 @@ public sealed record AppSettings(
     ThemePreference Theme)
 {
     public static readonly AppSettings Empty = new([], [], null, null, ThemePreference.System);
+
+    /// <summary>回答風格（M5）。不放在建構式參數裡：舊設定檔、既有呼叫端都不需要改，沒有時就是預設值。</summary>
+    public PersonaSettings Persona { get; init; } = PersonaSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

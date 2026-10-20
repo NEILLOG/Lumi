@@ -14,9 +14,17 @@ public enum ToolModes
     Both = Workbench | Sprite,
 }
 
+public static class ToolModesExtensions
+{
+    /// <summary>這個工具能不能在 <paramref name="mode"/> 執行。</summary>
+    public static bool Allows(this ToolModes modes, ChatMode mode) =>
+        modes.HasFlag(mode == ChatMode.Workbench ? ToolModes.Workbench : ToolModes.Sprite);
+}
+
 /// <param name="Name">只允許英數、底線與連字號，最長 64（兩家 API 的共同限制）。</param>
 /// <param name="DisplayName">繁中動作名稱，例如「讀取檔案」，顯示在工具卡片標題。</param>
 /// <param name="Description">給模型看，要寫清楚何時該呼叫這個工具。</param>
+/// <param name="Modes">能在哪些模式執行。定義一律送出，模式不符時在執行時回錯誤（M5 的 Q1）。</param>
 /// <param name="Timeout">每個工具都要有逾時。</param>
 /// <param name="RequiresScope">需要使用者加入的檔案或資料夾才有意義：範圍是空的時，請求不帶這個工具的定義。</param>
 public sealed record ToolDescriptor(
@@ -63,8 +71,11 @@ public interface ITool
 
 public interface IToolRegistry
 {
-    /// <summary>宣告了這個模式的工具。</summary>
-    IReadOnlyList<ITool> GetTools(ChatMode mode);
+    /// <summary>
+    /// 所有工具（依名稱排序）。請求一律帶全部工具的定義，不依模式過濾：tools 在快取前綴的最前面，
+    /// 切換模式時改變工具清單會讓整個 prompt 快取失效（M5 的 Q1）。模式限制在執行時用 <see cref="ToolModesExtensions.Allows"/> 檢查。
+    /// </summary>
+    IReadOnlyList<ITool> GetAll();
 
     /// <summary>依名稱找工具（不分模式）；找不到回 null。</summary>
     ITool? Find(string name);

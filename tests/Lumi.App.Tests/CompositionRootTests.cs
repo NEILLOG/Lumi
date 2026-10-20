@@ -65,7 +65,10 @@ public sealed class CompositionRootTests : IDisposable
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 示範用的筆記工具預設關；檔案工具（需要使用者加入範圍）預設開
         Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"],
-            services.GetRequiredService<IToolRegistry>().GetTools(ChatMode.Workbench).Select(t => t.Descriptor.Name));
+            services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
+        // M5：四個 prompt 層都組進去了
+        Assert.Equal([1, 2, 3, 4], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
+        Assert.IsType<Lumi.Core.Prompts.PromptComposer>(services.GetRequiredService<Lumi.Core.Prompts.IPromptComposer>());
         Assert.IsType<FileScopeFactory>(services.GetRequiredService<IFileScopeFactory>());
         Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IConversationContextStore>());
         // 4B：送出時的快照建構器、圖片附件存放與孤兒清理

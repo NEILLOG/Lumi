@@ -1,5 +1,6 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.Prompts;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -26,6 +27,19 @@ public static class CoreServiceCollectionExtensions
         services.TryAddSingleton<IAttachmentStore, NullAttachmentStore>();
         services.TryAddSingleton<IContextInspector, NullContextInspector>();
         services.TryAddSingleton<ITokenEstimator, HeuristicTokenEstimator>();
+
+        // Prompt 分層（agent.md 第 9 節）：四個內建層；角色語氣到 M7 才有角色提供
+        services.AddSingleton<IPromptComposer, PromptComposer>();
+        services.AddSingleton(new PromptOptions());
+        services.TryAddSingleton<ISpriteVoiceProvider, NoSpriteVoiceProvider>();
+        services.AddLumiPromptLayer<BasePromptLayer>();
+        services.AddLumiPromptLayer<PersonaPromptLayer>();
+        services.AddLumiPromptLayer<ModeFormatPromptLayer>();
+        services.AddLumiPromptLayer<SpriteVoicePromptLayer>();
         return services;
     }
+
+    /// <summary>註冊一層 prompt：<c>services.AddLumiPromptLayer&lt;MyLayer&gt;()</c>。</summary>
+    public static IServiceCollection AddLumiPromptLayer<TLayer>(this IServiceCollection services) where TLayer : class, IPromptLayer =>
+        services.AddSingleton<IPromptLayer, TLayer>();
 }

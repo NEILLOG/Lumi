@@ -286,4 +286,60 @@ public sealed class JsonModelCatalogTests : IDisposable
         Assert.Null(reloaded.LoadProblem);
         Assert.True(reloaded.Current.Models.Single(m => m.Id == model.Id).ToolsEnabled);
     }
+
+    [Fact]
+    public async Task Persona_PersistsAcrossReload_Normalized()
+    {
+        var catalog = NewCatalog();
+        Assert.Equal(PersonaSettings.Default, catalog.Current.Persona);
+
+        await catalog.SetPersonaAsync(new PersonaSettings(PersonaStyle.Playful, Proactivity.Proactive, "  叫我 Neil  "));
+
+        var reloaded = NewCatalog().Current.Persona;
+        Assert.Equal(new PersonaSettings(PersonaStyle.Playful, Proactivity.Proactive, "叫我 Neil"), reloaded);
+
+        await catalog.SetPersonaAsync(new PersonaSettings(PersonaStyle.Calm, Proactivity.Reserved, "   "));
+        Assert.Null(NewCatalog().Current.Persona.CustomPersona);   // 空白視為沒有
+    }
+
+    [Fact]
+    public async Task Persona_TooLong_Throws_AndKeepsPrevious()
+    {
+        var catalog = NewCatalog();
+        var tooLong = new string('字', PersonaSettings.CustomPersonaMaxLength + 1);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => catalog.SetPersonaAsync(PersonaSettings.Default with { CustomPersona = tooLong }));
+        Assert.Equal(PersonaSettings.Default, catalog.Current.Persona);
+
+        await catalog.SetPersonaAsync(PersonaSettings.Default with { CustomPersona = new string('字', PersonaSettings.CustomPersonaMaxLength) });
+    }
+
+    [Fact]
+    public async Task Persona_MissingInOldFile_UsesDefault()
+    {
+        var catalog = NewCatalog();
+        await catalog.SetPersonaAsync(new PersonaSettings(PersonaStyle.Professional, Proactivity.Proactive, "x"));
+
+        // M5 之前寫的設定檔沒有 persona 欄位
+        var root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        Assert.True(root.Remove("persona"));
+        File.WriteAllText(SettingsPath, root.ToJsonString());
+
+        var reloaded = NewCatalog();
+        Assert.Null(reloaded.LoadProblem);
+        Assert.Equal(PersonaSettings.Default, reloaded.Current.Persona);
+    }
+
+    [Fact]
+    public async Task OtherChanges_KeepPersona()
+    {
+        var catalog = NewCatalog();
+        var persona = new PersonaSettings(PersonaStyle.Calm, Proactivity.Reserved, null);
+        await catalog.SetPersonaAsync(persona);
+
+        await catalog.SetThemeAsync(ThemePreference.Dark);
+
+        Assert.Equal(persona, catalog.Current.Persona);
+        Assert.Equal(persona, NewCatalog().Current.Persona);
+    }
 }
