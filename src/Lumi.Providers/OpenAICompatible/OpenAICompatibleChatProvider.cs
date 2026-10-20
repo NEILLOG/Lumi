@@ -143,11 +143,22 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     /// 歷史轉成 Chat Completions 格式：文字、<c>tool_calls</c>（助理）、<c>role: tool</c>（每個工具結果一則）都送；
     /// thinking 與其他供應商的區塊略過（沒有 signature 的推理內容不能送回），略過後什麼都不剩的訊息整則不送。
     /// OpenAI 沒有 <c>is_error</c>：錯誤結果就是內文為錯誤說明的一則 tool 訊息。
+    /// <para>
+    /// system prompt 是第一則 <c>system</c> 訊息；模式指示（<see cref="ChatRequest.TurnSuffix"/>）放在最尾端：
+    /// 最後一則是使用者訊息時接在它的文字後面，否則（最後是 tool 訊息）另外加一則只有模式指示的 <c>user</c> 訊息。
+    /// OpenAI 的前綴快取是自動的，只要這段前綴逐位元組相同就會命中，不需要標記（M5 的 Q2）。
+    /// </para>
     /// </summary>
     internal static string BuildBody(ChatRequest request, IReadOnlyDictionary<string, byte[]>? images = null)
     {
         images ??= ImageAttachments.None;
         var messages = new List<object>();
+        if (request.System is { Length: > 0 } system)
+            messages.Add(new { role = "system", content = system });
+
+        var suffix = request.TurnSuffix is { Length: > 0 } turnSuffix ? turnSuffix : null;
+        var lastMessage = request.Messages.Count > 0 ? request.Messages[^1] : null;
+        var suffixPlaced = false;
         foreach (var message in request.Messages)
         {
             switch (message.Role)
@@ -163,6 +174,12 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                             imageParts.Add(new { type = "image_url", image_url = new { url = $"data:{image.MediaType};base64,{Convert.ToBase64String(bytes)}" } });
                         else
                             text = text.Length == 0 ? ImageAttachments.MissingText(image) : text + "\n\n" + ImageAttachments.MissingText(image);
+                    }
+
+                    if (suffix is not null && !suffixPlaced && ReferenceEquals(message, lastMessage))
+                    {
+                        text = text.Length == 0 ? suffix : text + "\n\n" + suffix;
+                        suffixPlaced = true;
                     }
 
                     if (imageParts.Count > 0)
@@ -203,13 +220,16 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
             }
         }
 
+        if (suffix is not null && !suffixPlaced)
+            messages.Add(new { role = "user", content = suffix });
+
         var body = new Dictionary<string, object?>
         {
             ["model"] = request.Model.Model.ModelId,
             ["messages"] = messages,
             ["stream"] = true,
             ["stream_options"] = new { include_usage = true },
-            ["max_tokens"] = request.Model.Model.MaxOutputTokens,
+            ["max_tokens"] = request.EffectiveMaxOutputTokens,   // 小精靈模式有較低的上限（M5）
         };
 
         if (request.Tools is { Count: > 0 } tools)

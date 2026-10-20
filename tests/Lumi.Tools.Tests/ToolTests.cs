@@ -228,9 +228,9 @@ public sealed class ToolTests : IDisposable
 
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
-        Assert.Equal(["calculate", "delete_note", "get_current_time", "list_dir", "read_file", "save_note", "search"],
+        Assert.Equal(["calculate", "delete_note", "get_current_time", "list_dir", "read_file", "save_note", "search", "show_details"],
             registry.GetAll().Select(t => t.Descriptor.Name));
-        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"],
+        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search", "show_details"],
             registry.GetAll().Where(t => t.Descriptor.Modes.Allows(ChatMode.Sprite)).Select(t => t.Descriptor.Name));
     }
 
@@ -243,7 +243,65 @@ public sealed class ToolTests : IDisposable
 
         var names = provider.GetServices<ITool>().Select(t => t.Descriptor.Name).Order().ToList();
 
-        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"], names);
+        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search", "show_details"], names);
+    }
+
+    // ---- show_details ----
+
+    private readonly ToolContext _spriteContext = new("c1", ChatMode.Sprite, TimeProvider.System, EmptyFileScope.Instance);
+
+    [Fact]
+    public void ShowDetails_IsSpriteOnly_ReadOnly_NoScopeNeeded()
+    {
+        var d = new ShowDetailsTool().Descriptor;
+
+        Assert.Equal(ToolModes.Sprite, d.Modes);
+        Assert.True(d.Modes.Allows(ChatMode.Sprite));
+        Assert.False(d.Modes.Allows(ChatMode.Workbench));   // 工作台執行時，對話迴圈會直接回錯誤
+        Assert.Equal(ToolPermission.ReadOnly, d.Permission);
+        Assert.False(d.RequiresScope);
+    }
+
+    [Fact]
+    public async Task ShowDetails_AcknowledgesAndTellsModelToSummarize()
+    {
+        var tool = new ShowDetailsTool();
+        const string markdown = "## 範例\n```csharp\nFile.ReadAllText(path);\n```";
+        var json = Json(new { title = "  C# 讀檔範例 ", markdown });
+
+        var result = await tool.ExecuteAsync(json, _spriteContext, default);
+
+        Assert.False(result.IsError);
+        Assert.Contains("工作台", result.Content);
+        Assert.Contains("一句話", result.Content);
+        Assert.Equal($"{markdown.Length} 字", result.Summary);   // 字數，不是複述內容
+        Assert.Equal("C# 讀檔範例", tool.Preview(json).Target);   // 卡片標題：整理完整內容 · C# 讀檔範例
+    }
+
+    [Theory]
+    [InlineData("""{"title":"","markdown":"內容"}""")]
+    [InlineData("""{"title":"標題","markdown":"   "}""")]
+    [InlineData("""{"title":"標題"}""")]
+    public async Task ShowDetails_MissingTitleOrContent_IsError(string json)
+    {
+        var result = await new ShowDetailsTool().ExecuteAsync(json, _spriteContext, default);
+
+        Assert.True(result.IsError);
+    }
+
+    [Fact]
+    public async Task ShowDetails_LengthLimits()
+    {
+        var tool = new ShowDetailsTool();
+
+        var atLimit = await tool.ExecuteAsync(Json(new { title = new string('題', ShowDetailsTool.MaxTitleLength), markdown = new string('字', ShowDetailsTool.MaxMarkdownLength) }), _spriteContext, default);
+        var longTitle = await tool.ExecuteAsync(Json(new { title = new string('題', ShowDetailsTool.MaxTitleLength + 1), markdown = "x" }), _spriteContext, default);
+        var longBody = await tool.ExecuteAsync(Json(new { title = "t", markdown = new string('字', ShowDetailsTool.MaxMarkdownLength + 1) }), _spriteContext, default);
+
+        Assert.False(atLimit.IsError);
+        Assert.True(longTitle.IsError);
+        Assert.True(longBody.IsError);
+        Assert.Contains("精簡", longBody.Content);   // 請模型自己縮短再試
     }
 
     [Fact]

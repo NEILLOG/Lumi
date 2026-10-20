@@ -26,6 +26,7 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<ListDirTool>();
         services.AddLumiTool<ReadFileTool>();
         services.AddLumiTool<SearchTool>();
+        services.AddLumiTool<ShowDetailsTool>();
         if (options.EnableDemoTools)
         {
             services.AddLumiTool<SaveNoteTool>();

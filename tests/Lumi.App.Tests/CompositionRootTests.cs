@@ -64,7 +64,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 示範用的筆記工具預設關；檔案工具（需要使用者加入範圍）預設開
-        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search"],
+        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search", "show_details"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
         // M5：四個 prompt 層都組進去了
         Assert.Equal([1, 2, 3, 4], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());

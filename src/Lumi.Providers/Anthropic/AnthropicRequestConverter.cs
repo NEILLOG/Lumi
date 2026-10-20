@@ -13,8 +13,9 @@ internal static class AnthropicRequestConverter
     {
         var settings = request.Model.Model;
         var model = settings.ModelId;
-        var maxTokens = settings.MaxOutputTokens;
+        var maxTokens = request.EffectiveMaxOutputTokens;   // 小精靈模式有較低的上限（M5）
         var messages = ToMessageParams(request.Messages, images ?? ImageAttachments.None);
+        messages = WithCacheBreakpointAndSuffix(messages, request.TurnSuffix);
         BetaMessages.BetaOutputConfig? outputConfig = options.Effort is { Length: > 0 } effort
             ? new BetaMessages.BetaOutputConfig { Effort = effort }
             : null;
@@ -51,10 +52,59 @@ internal static class AnthropicRequestConverter
             },
         };
 
+        // system 是第一個快取斷點：前綴順序是 tools → system → messages，斷點涵蓋它前面的全部（含 tools）。
+        // 沒有 system 時完全不送這個欄位。
+        if (request.System is { Length: > 0 } system)
+        {
+            parameters = parameters with
+            {
+                System = new List<BetaMessages.BetaTextBlockParam>
+                {
+                    new() { Text = system, CacheControl = new BetaMessages.BetaCacheControlEphemeral() },
+                },
+            };
+        }
+
         // 沒有工具時完全不送 tools 欄位（空陣列在某些版本會被拒絕）
         return request.Tools is { Count: > 0 } tools
             ? parameters with { Tools = tools.Select(t => (BetaMessages.BetaToolUnion)ToTool(t)).ToList() }
             : parameters;
+    }
+
+    /// <summary>
+    /// 第二個快取斷點放在歷史的最後一個區塊（下一次請求的前綴就是這一次的歷史往後加）；
+    /// 模式指示接在斷點<b>之後</b>，所以它不在快取內容裡，切換模式不會讓前綴改變（M5 的 Q2）。
+    /// 斷點只能掛在文字、圖片、tool_result 上；歷史的最後一則一定是使用者訊息或工具結果，不會是 thinking。
+    /// </summary>
+    private static List<BetaMessages.BetaMessageParam> WithCacheBreakpointAndSuffix(List<BetaMessages.BetaMessageParam> messages, string? suffix)
+    {
+        if (messages.Count == 0 || messages[^1].Role != BetaMessages.Role.User)
+            return messages;
+
+        var last = messages[^1];
+        var blocks = last.Content.TryPickBetaContentBlockParams(out var existing) ? existing.ToList() : [];
+        if (blocks.Count == 0)
+            return messages;
+
+        blocks[^1] = WithCacheControl(blocks[^1]);
+        if (suffix is { Length: > 0 })
+            blocks.Add(new BetaMessages.BetaTextBlockParam { Text = suffix });
+
+        var result = messages.ToList();
+        result[^1] = new BetaMessages.BetaMessageParam { Role = BetaMessages.Role.User, Content = blocks };
+        return result;
+    }
+
+    private static BetaMessages.BetaContentBlockParam WithCacheControl(BetaMessages.BetaContentBlockParam block)
+    {
+        var cache = new BetaMessages.BetaCacheControlEphemeral();
+        if (block.TryPickText(out var text))
+            return text with { CacheControl = cache };
+        if (block.TryPickImage(out var image))
+            return image with { CacheControl = cache };
+        if (block.TryPickToolResult(out var result))
+            return result with { CacheControl = cache };
+        return block;   // 其他類型（不應該出現在最後）就不掛，寧可少一個斷點
     }
 
     /// <summary>
