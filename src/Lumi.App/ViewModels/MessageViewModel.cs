@@ -87,10 +87,16 @@ public partial class MessageViewModel : ObservableObject
         ? string.Format(CultureInfo.CurrentCulture, Strings.Workbench_ThinkingWithSeconds, seconds)
         : Strings.Workbench_Thinking;
 
-    /// <summary><c>↑ 輸入 1.2K · ↓ 輸出 350 tokens</c>；輸入含快取。</summary>
+    /// <summary>
+    /// <c>↑ 輸入 1.2K（快取 1.0K） · ↓ 輸出 350 tokens</c>；輸入含快取，括號是其中命中 prompt 快取的部分
+    /// （沒有命中就不顯示）。M5 驗收「切換模式不會讓快取失效」要靠它。
+    /// </summary>
     public string UsageText => Usage is { } u
         ? string.Format(CultureInfo.CurrentCulture, Strings.Workbench_UsageFormat,
-            WorkbenchViewModel.FormatTokens(u.InputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens),
+            WorkbenchViewModel.FormatTokens(u.InputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens)
+                + (u.CacheReadInputTokens > 0
+                    ? string.Format(CultureInfo.CurrentCulture, Strings.Workbench_UsageCacheFormat, WorkbenchViewModel.FormatTokens(u.CacheReadInputTokens))
+                    : ""),
             WorkbenchViewModel.FormatTokens(u.OutputTokens))
         : "";
 

@@ -30,7 +30,8 @@ public partial class ToolRunViewModel : MessageViewModel
     [NotifyPropertyChangedFor(nameof(GroupIsOpen), nameof(CanToggleGroup))]
     private bool _groupExpanded;
 
-    public bool IsGroup => Cards.Count >= GroupThreshold;
+    /// <summary>內容卡（<c>show_details</c>）不算在連續呼叫的數量裡：它是給使用者看的內容，不是過程。</summary>
+    public bool IsGroup => Cards.Count(c => !c.IsDetails) >= GroupThreshold;
 
     public bool ShowSingleCards => !IsGroup;
 

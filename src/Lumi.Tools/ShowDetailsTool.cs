@@ -14,11 +14,14 @@ public sealed record ShowDetailsArgs(
 /// </summary>
 public sealed class ShowDetailsTool : ToolBase<ShowDetailsArgs>
 {
+    /// <summary>工具名稱。工作台靠它認出這種卡片，要畫成展開的內容卡而不是收合的工具卡。</summary>
+    public const string Name = "show_details";
+
     public const int MaxTitleLength = 100;
     public const int MaxMarkdownLength = 20_000;
 
     public override ToolDescriptor Descriptor { get; } = new(
-        "show_details", "整理完整內容",
+        Name, "整理完整內容",
         "把放不進一兩句話的完整內容（程式碼、步驟、清單、表格、長篇的說明或翻譯）放到工作台，讓使用者之後點開查看。"
         + "只在小精靈模式使用；呼叫之後，回答只用一句話說重點，不要重複內容。",
         ToolPermission.ReadOnly, ToolModes.Sprite, TimeSpan.FromSeconds(5));

@@ -33,6 +33,11 @@ internal static class Program
             options.NotesDirectory = builder.Configuration["Lumi:Tools:NotesDirectory"];
         });
         builder.Services.AddLumiApp();
+        // 開發用開關：Lumi:Developer:ShowSpriteModeToggle（M7 之前驗收小精靈 prompt 用）
+        builder.Services.AddSingleton(new DeveloperOptions
+        {
+            ShowSpriteModeToggle = bool.TryParse(builder.Configuration["Lumi:Developer:ShowSpriteModeToggle"], out var showSprite) && showSprite,
+        });
 
         using var host = builder.Build();
         host.Start();

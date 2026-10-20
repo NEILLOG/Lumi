@@ -50,6 +50,7 @@
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
       <ListBox SelectedIndex="{Binding CategoryIndex}" Background="Transparent" Margin="8">
         <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryConnections}" Padding="12,9" />
+        <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryPersona}" Padding="12,9" />
         <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryGeneral}" Padding="12,9" />
       </ListBox>
     </Border>
@@ -260,6 +261,40 @@
           </Grid>
         </TabItem>
       </TabControl>
+
+      <!-- ===== 人格與主動性 ===== -->
+      <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowPersona}">
+        <StackPanel Margin="24" Spacing="8" DataContext="{Binding Persona}" x:DataType="vm:PersonaViewModel" MaxWidth="520" HorizontalAlignment="Left">
+          <TextBlock Classes="label" Text="{x:Static res:Strings.Persona_Style}" />
+          <ComboBox x:Name="PersonaStyleBox" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PersonaStyleOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="muted" Text="{Binding SelectedStyleHint}" TextWrapping="Wrap" />
+
+          <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.Persona_Proactivity}" />
+          <ComboBox x:Name="PersonaProactivityBox" ItemsSource="{Binding Proactivities}" SelectedItem="{Binding SelectedProactivity}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ProactivityOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="muted" Text="{Binding SelectedProactivityHint}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.Persona_ProactivityNote}" TextWrapping="Wrap" />
+
+          <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.Persona_Custom}" />
+          <TextBox x:Name="PersonaCustomBox" Text="{Binding CustomPersona}" AcceptsReturn="True" TextWrapping="Wrap"
+                   MinHeight="110" MaxHeight="260" Watermark="{x:Static res:Strings.Persona_CustomPlaceholder}"
+                   ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Classes="muted" Text="{x:Static res:Strings.Persona_CustomNote}" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="1" Classes="muted" Text="{Binding CustomCounter}" Margin="12,0,0,0" />
+          </Grid>
+          <TextBlock Classes="error" Text="{Binding CustomError}" IsVisible="{Binding HasCustomError}" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+            <Button x:Name="PersonaSaveButton" Classes="primary" Content="{x:Static res:Strings.Persona_Save}" Command="{Binding SaveCommand}" />
+            <Button x:Name="PersonaResetButton" Content="{x:Static res:Strings.Persona_Reset}" Command="{Binding ResetCommand}" />
+          </StackPanel>
+          <TextBlock Classes="muted" IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
+        </StackPanel>
+      </ScrollViewer>
 
       <!-- ===== 一般 ===== -->
       <Panel Grid.Row="1" IsVisible="{Binding ShowGeneral}">

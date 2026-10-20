@@ -44,7 +44,8 @@ public partial class WorkbenchViewModel : ObservableObject
         TimeProvider time,
         ILogger<WorkbenchViewModel> logger,
         IToolApprovalResponder? approvals = null,
-        ContextBarViewModel? contextBar = null)
+        ContextBarViewModel? contextBar = null,
+        DeveloperOptions? developer = null)
     {
         _conversations = conversations;
         _store = store;
@@ -58,6 +59,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
+        ShowSpriteModeToggle = developer?.ShowSpriteModeToggle ?? false;
 
         History = new HistoryViewModel(store, OpenConversationAsync, time);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
@@ -142,9 +144,35 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(CanChangeMode))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand))]
     private bool _isResponding;
+
+    // ---- 開發用：以小精靈模式送出（M7 之前沒有小精靈畫面可以驗收 M5） ----
+
+    public bool ShowSpriteModeToggle { get; }
+
+    private bool _isSpriteMode;
+
+    /// <summary>用小精靈模式送出（短回答、<c>show_details</c>，並使用小精靈的預設模型）。回應中不能切換（ui-spec 2.2）。</summary>
+    public bool IsSpriteMode
+    {
+        get => _isSpriteMode;
+        set
+        {
+            if (IsResponding || value == _isSpriteMode)
+            {
+                OnPropertyChanged();   // 被拒絕時讓切換鈕回到原本的狀態
+                return;
+            }
+            _isSpriteMode = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool CanChangeMode => !IsResponding;
+
+    private ChatMode CurrentMode => _isSpriteMode ? ChatMode.Sprite : ChatMode.Workbench;
 
     partial void OnIsRespondingChanged(bool value) => Context.IsLocked = value;
 
@@ -203,7 +231,7 @@ public partial class WorkbenchViewModel : ObservableObject
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
         // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
         Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips())));
-        await RunResponseAsync(ct => _conversations.SendAsync(conversationId, text, ct), reloadOnFailure: false);
+        await RunResponseAsync(ct => _conversations.SendAsync(conversationId, text, ct, CurrentMode), reloadOnFailure: false);
         if (conversationId == _conversationId)
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
     }
@@ -214,7 +242,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private Task RetryAsync()
     {
         var conversationId = _conversationId!;
-        return RunResponseAsync(ct => _conversations.RetryAsync(conversationId, ct), reloadOnFailure: false);
+        return RunResponseAsync(ct => _conversations.RetryAsync(conversationId, ct, CurrentMode), reloadOnFailure: false);
     }
 
     private bool CanRetry() => !IsResponding && HasError;
@@ -228,7 +256,7 @@ public partial class WorkbenchViewModel : ObservableObject
     {
         var conversationId = _conversationId!;
         ErrorMessage = null;
-        return RunResponseAsync(ct => _conversations.RegenerateAsync(conversationId, ct), reloadOnFailure: true, removeLastAssistantFirst: true);
+        return RunResponseAsync(ct => _conversations.RegenerateAsync(conversationId, ct, CurrentMode), reloadOnFailure: true, removeLastAssistantFirst: true);
     }
 
     private bool CanRegenerate() => !IsResponding && _conversationId is not null && Messages.LastOrDefault() is { IsUser: false };

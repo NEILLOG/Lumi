@@ -367,7 +367,7 @@ public class WorkbenchConversationsTests
 
         var message = withUsage.Vm.Messages[^1];
         Assert.True(message.HasUsage);
-        Assert.Equal("↑ 輸入 1.2K · ↓ 輸出 350 tokens", message.UsageText);
+        Assert.Equal("↑ 輸入 1.2K（快取 100） · ↓ 輸出 350 tokens", message.UsageText);   // 括號：命中 prompt 快取的部分
         Assert.True(message.ShowActions);
 
         var noUsage = new Completed(new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("答")], DateTimeOffset.UtcNow), StopReason.EndTurn);
@@ -376,6 +376,15 @@ public class WorkbenchConversationsTests
         without.Vm.InputText = "問";
         await without.Vm.SendCommand.ExecuteAsync(null);
         Assert.False(without.Vm.Messages[^1].HasUsage);
+    }
+
+    [Fact]
+    public void UsageText_OmitsTheCacheNote_WhenNothingWasReadFromCache()
+    {
+        var message = MessageViewModel.From(new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("答")], DateTimeOffset.UtcNow,
+            Usage: new TokenUsage(1000, 350, 200, 0)));
+
+        Assert.Equal("↑ 輸入 1.2K · ↓ 輸出 350 tokens", message.UsageText);   // 只有「寫入快取」不算命中
     }
 
     [Fact]

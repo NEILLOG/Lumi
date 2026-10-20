@@ -4,16 +4,17 @@ using Lumi.Core.Models;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>設定視窗：左側分類（連線與模型、一般），「連線與模型」內分連線、模型設定兩個分頁。</summary>
+/// <summary>設定視窗：左側分類（連線與模型、人格與主動性、一般），「連線與模型」內分連線、模型設定兩個分頁。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
 
-    public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, GeneralViewModel general,
+    public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, GeneralViewModel general,
         IModelCatalog catalog, IConfirmService confirm)
     {
         Connections = connections;
         Models = models;
+        Persona = persona;
         General = general;
         _confirm = confirm;
         LoadProblem = catalog.LoadProblem;
@@ -23,6 +24,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public ModelsViewModel Models { get; }
 
+    public PersonaViewModel Persona { get; }
+
     public GeneralViewModel General { get; }
 
     /// <summary>設定檔損毀或版本太新時的說明（版本太新時所有儲存都會失敗）。</summary>
@@ -30,8 +33,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool HasLoadProblem => LoadProblem is not null;
 
-    /// <summary>左側分類：0 = 連線與模型、1 = 一般。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowGeneral))]
+    /// <summary>左側分類：0 = 連線與模型、1 = 人格與主動性、2 = 一般。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowGeneral))]
     private int _categoryIndex;
 
     /// <summary>「連線與模型」內的分頁：0 = 連線、1 = 模型設定。</summary>
@@ -40,16 +43,21 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool ShowConnectionsAndModels => CategoryIndex == 0;
 
-    public bool ShowGeneral => CategoryIndex == 1;
+    public bool ShowPersona => CategoryIndex == 1;
 
-    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty;
+    public bool ShowGeneral => CategoryIndex == 2;
+
+    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty;
 
     public async Task NavigateAsync(SettingsNavigation navigation)
     {
         switch (navigation.Section)
         {
-            case SettingsSection.General:
+            case SettingsSection.Persona:
                 CategoryIndex = 1;
+                break;
+            case SettingsSection.General:
+                CategoryIndex = 2;
                 break;
             case SettingsSection.Models:
                 CategoryIndex = 0;

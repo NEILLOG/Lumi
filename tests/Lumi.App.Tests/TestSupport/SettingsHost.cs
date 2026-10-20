@@ -25,8 +25,9 @@ internal sealed class SettingsHost : IDisposable
         var dispatcher = new SyncUiDispatcher();
         Connections = new ConnectionsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
+        Persona = new PersonaViewModel(Catalog, dispatcher);
         General = new GeneralViewModel(Catalog, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, General, Catalog, Confirm);
+        Settings = new SettingsViewModel(Connections, Models, Persona, General, Catalog, Confirm);
     }
 
     public string SettingsPath { get; }
@@ -37,6 +38,7 @@ internal sealed class SettingsHost : IDisposable
     public JsonModelCatalog Catalog { get; }
     public ConnectionsViewModel Connections { get; }
     public ModelsViewModel Models { get; }
+    public PersonaViewModel Persona { get; }
     public GeneralViewModel General { get; }
     public SettingsViewModel Settings { get; }
 

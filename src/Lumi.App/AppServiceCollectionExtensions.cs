@@ -25,6 +25,7 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<ConnectionsViewModel>();
         services.AddTransient<ModelsViewModel>();
+        services.AddTransient<PersonaViewModel>();
         services.AddTransient<GeneralViewModel>();
 
         // 權限確認：取代 Core 預設的「一律拒絕」；對話迴圈等在 IToolApprovalService，卡片上的按鈕走 IToolApprovalResponder

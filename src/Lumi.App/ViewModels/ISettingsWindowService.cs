@@ -1,6 +1,6 @@
 namespace Lumi.App.ViewModels;
 
-public enum SettingsSection { Connections, Models, General }
+public enum SettingsSection { Connections, Models, Persona, General }
 
 /// <param name="ConnectionId">要選取的連線；null 表示不指定。</param>
 /// <param name="FocusApiKey">直接聚焦金鑰輸入框（缺金鑰流程）。</param>

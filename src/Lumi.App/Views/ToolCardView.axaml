@@ -3,6 +3,7 @@
              xmlns:vm="using:Lumi.App.ViewModels"
              xmlns:ctl="using:Lumi.App.Controls"
              xmlns:res="using:Lumi.App.Resources"
+             xmlns:md="using:Lumi.App.Markdown"
              x:Class="Lumi.App.Views.ToolCardView"
              x:DataType="vm:ToolCardViewModel">
   <!--
@@ -50,7 +51,23 @@
     </Style>
   </UserControl.Styles>
 
-  <Border x:Name="Card" Classes="toolcard"
+  <Panel>
+  <!-- show_details 成功：展開的內容卡（標題＋Markdown＋複製），不走收合的工具卡 -->
+  <Border x:Name="DetailsCard" Classes="toolcard" IsVisible="{Binding ShowDetailsCard}">
+    <StackPanel Spacing="8" Margin="14,10,14,12">
+      <Grid ColumnDefinitions="22,*,Auto">
+        <TextBlock Grid.Column="0" Text="✓" FontWeight="Bold" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Center" />
+        <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding DetailsHeader}" TextTrimming="CharacterEllipsis" MaxLines="1" FontWeight="SemiBold"
+                            VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
+        <TextBlock Grid.Column="2" Text="{Binding DetailsCharacters}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
+      </Grid>
+      <md:MarkdownView x:Name="DetailsMarkdown" Markdown="{Binding DetailsMarkdown}" IsStreaming="False" />
+      <Button x:Name="DetailsCopyButton" Classes="chrome small" HorizontalAlignment="Left" Content="{Binding CopyLabel}"
+              Command="{Binding CopyResultCommand}" />
+    </StackPanel>
+  </Border>
+
+  <Border x:Name="Card" Classes="toolcard" IsVisible="{Binding ShowRegularCard}"
           Classes.awaiting="{Binding IsAwaiting}" Classes.failed="{Binding IsFailed}" Classes.denied="{Binding IsDenied}">
     <StackPanel>
       <Button Classes="cardheader" Command="{Binding ToggleCommand}">
@@ -116,4 +133,5 @@
       </StackPanel>
     </StackPanel>
   </Border>
+  </Panel>
 </UserControl>

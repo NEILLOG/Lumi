@@ -14,6 +14,11 @@ public sealed class SettingsViewModelTests
         await vm.NavigateAsync(new SettingsNavigation(SettingsSection.General));
         Assert.True(vm.ShowGeneral);
         Assert.False(vm.ShowConnectionsAndModels);
+        Assert.False(vm.ShowPersona);
+
+        await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Persona));
+        Assert.True(vm.ShowPersona);
+        Assert.False(vm.ShowGeneral);
 
         await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Models));
         Assert.True(vm.ShowConnectionsAndModels);

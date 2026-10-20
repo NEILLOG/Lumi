@@ -189,4 +189,33 @@
   <data name="Context_LockedHint" xml:space="preserve"><value>回應中不能更改上下文</value></data>
   <data name="Context_DropHint" xml:space="preserve"><value>放開以加入到這則對話的上下文</value></data>
   <data name="Context_NotEmbedded" xml:space="preserve"><value>沒有放入內容</value></data>
+  <data name="Settings_CategoryPersona" xml:space="preserve"><value>人格與主動性</value></data>
+  <data name="Persona_Style" xml:space="preserve"><value>個性</value></data>
+  <data name="Persona_Style_Warm" xml:space="preserve"><value>溫和友善</value></data>
+  <data name="Persona_StyleHint_Warm" xml:space="preserve"><value>親切自然，像一位好相處的朋友</value></data>
+  <data name="Persona_Style_Professional" xml:space="preserve"><value>專業精簡</value></data>
+  <data name="Persona_StyleHint_Professional" xml:space="preserve"><value>客觀有條理，直接給結論，省略寒暄</value></data>
+  <data name="Persona_Style_Playful" xml:space="preserve"><value>活潑俏皮</value></data>
+  <data name="Persona_StyleHint_Playful" xml:space="preserve"><value>輕快帶點幽默，偶爾用 emoji；嚴肅的話題會收起玩笑</value></data>
+  <data name="Persona_Style_Calm" xml:space="preserve"><value>冷靜理性</value></data>
+  <data name="Persona_StyleHint_Calm" xml:space="preserve"><value>語氣平穩，著重事實與推理，不確定時明說</value></data>
+  <data name="Persona_Proactivity" xml:space="preserve"><value>積極度</value></data>
+  <data name="Persona_Proactivity_Reserved" xml:space="preserve"><value>保守</value></data>
+  <data name="Persona_ProactivityHint_Reserved" xml:space="preserve"><value>只回答被問的事，不主動延伸</value></data>
+  <data name="Persona_Proactivity_Balanced" xml:space="preserve"><value>適中</value></data>
+  <data name="Persona_ProactivityHint_Balanced" xml:space="preserve"><value>必要時補充一項建議或提醒</value></data>
+  <data name="Persona_Proactivity_Proactive" xml:space="preserve"><value>積極</value></data>
+  <data name="Persona_ProactivityHint_Proactive" xml:space="preserve"><value>主動指出問題、提出下一步；需求不清楚時先問</value></data>
+  <data name="Persona_ProactivityNote" xml:space="preserve"><value>積極度只影響回答的主動程度，不會改變工具的權限確認。</value></data>
+  <data name="Persona_Custom" xml:space="preserve"><value>自訂人設</value></data>
+  <data name="Persona_CustomPlaceholder" xml:space="preserve"><value>例如：叫我 Neil；回答時多用台灣用語</value></data>
+  <data name="Persona_CustomNote" xml:space="preserve"><value>補充的內容不能推翻基本規則（例如安全規則）。</value></data>
+  <data name="Persona_CustomCounter" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="Persona_TooLong" xml:space="preserve"><value>自訂人設最多 {0} 字。</value></data>
+  <data name="Persona_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Persona_Reset" xml:space="preserve"><value>還原預設</value></data>
+  <data name="Persona_Saved" xml:space="preserve"><value>已儲存，下一則訊息起生效。</value></data>
+  <data name="Details_Characters" xml:space="preserve"><value>{0} 字</value></data>
+  <data name="Workbench_SpriteModeToggle" xml:space="preserve"><value>小精靈模式（開發用）</value></data>
+  <data name="Workbench_UsageCacheFormat" xml:space="preserve"><value>（快取 {0}）</value></data>
 </root>

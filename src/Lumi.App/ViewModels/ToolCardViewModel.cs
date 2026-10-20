@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
 using Lumi.Core.Tools;
+using Lumi.Tools;
 
 namespace Lumi.App.ViewModels;
 
@@ -33,6 +34,8 @@ public partial class ToolCardViewModel : ObservableObject
         Permission = permission;
         _target = target;
         ArgumentsText = PrettyJson(argumentsJson);
+        if (toolName == ShowDetailsTool.Name)
+            (DetailsTitle, DetailsMarkdown) = ParseDetails(argumentsJson);
         _responder = responder;
         _clipboard = clipboard;
         _time = time;
@@ -44,7 +47,7 @@ public partial class ToolCardViewModel : ObservableObject
 
     /// <summary>動作名稱。從歷史重建時先用工具名稱，套用結果區塊（存了顯示名稱）時更新。</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Title))]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(DetailsHeader))]
     private string _displayName;
 
     /// <summary>從歷史重建時不知道（沒存）；只有等待確認時需要。</summary>
@@ -52,13 +55,49 @@ public partial class ToolCardViewModel : ObservableObject
 
     public string ArgumentsText { get; }
 
+    // ---- show_details（小精靈的完整內容）：畫成展開的內容卡，不是收合的工具卡 ----
+
+    /// <summary>這張卡片是 <c>show_details</c>：內容在工具呼叫的輸入裡，重開程式也還在。</summary>
+    public bool IsDetails => ToolName == ShowDetailsTool.Name;
+
+    public string DetailsTitle { get; } = "";
+
+    public string DetailsMarkdown { get; } = "";
+
+    /// <summary>成功時才畫成內容卡；執行中、失敗（例如內容太長）、被拒絕仍用一般卡片，看得到參數與錯誤。</summary>
+    public bool ShowDetailsCard => IsDetails && IsSucceeded && DetailsMarkdown.Length > 0;
+
+    public bool ShowRegularCard => !ShowDetailsCard;
+
+    /// <summary>內容卡的標題：「整理完整內容 · 標題」（字數另外顯示在右側）。</summary>
+    public string DetailsHeader => HasTarget ? $"{DisplayName} · {Target}" : DisplayName;
+
+    public string DetailsCharacters => string.Format(CultureInfo.CurrentCulture, Strings.Details_Characters, DetailsMarkdown.Length);
+
+    private static (string Title, string Markdown) ParseDetails(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+            string Read(string name) => doc.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()!.Trim()
+                : "";
+            return (Read("title"), Read("markdown"));
+        }
+        catch (JsonException)
+        {
+            return ("", "");
+        }
+    }
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Title), nameof(HasTarget))]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(HasTarget), nameof(DetailsHeader))]
     private string? _target;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRunning), nameof(IsAwaiting), nameof(IsSucceeded), nameof(IsFailed), nameof(IsDenied),
-        nameof(IsForcedOpen), nameof(IsOpen), nameof(CanToggle), nameof(StatusText), nameof(Title))]
+        nameof(IsForcedOpen), nameof(IsOpen), nameof(CanToggle), nameof(StatusText), nameof(Title),
+        nameof(ShowDetailsCard), nameof(ShowRegularCard))]
     private ToolCardState _state = ToolCardState.Running;
 
     [ObservableProperty]
@@ -244,9 +283,11 @@ public partial class ToolCardViewModel : ObservableObject
     [RelayCommand]
     private async Task CopyResultAsync()
     {
-        if (!HasResult)
+        // 內容卡複製的是整份 Markdown，不是工具回給模型的那句確認
+        var text = ShowDetailsCard ? DetailsMarkdown : ResultText;
+        if (text.Length == 0)
             return;
-        await _clipboard.SetTextAsync(ResultText);
+        await _clipboard.SetTextAsync(text);
         IsCopied = true;
         try
         {
