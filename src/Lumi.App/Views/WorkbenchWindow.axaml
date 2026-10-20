@@ -57,6 +57,26 @@
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
     </Style>
+    <!-- 上下文 chip（輸入框上方）與使用者氣泡上的 chip -->
+    <Style Selector="Border.chip">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="9,3,4,3" />
+    </Style>
+    <Style Selector="Border.chip.folder">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <Style Selector="Border.chip.problem">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+    </Style>
+    <Style Selector="Border.dropping">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
     <Style Selector="TextBlock.muted">
       <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
@@ -166,13 +186,33 @@
             </DataTemplate>
             <DataTemplate DataType="vm:MessageViewModel" x:DataType="vm:MessageViewModel">
               <Panel>
-                <!-- 使用者：靠右、UserBubble 底色 -->
-                <Border IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="640"
-                        Padding="14,10" CornerRadius="14"
-                        Background="{DynamicResource LumiUserBubbleBrush}">
-                  <ctl:EmojiTextBlock Text="{Binding Text}" TextWrapping="Wrap"
-                                      Foreground="{DynamicResource LumiUserBubbleTextBrush}" />
-                </Border>
+                <!-- 使用者：靠右、UserBubble 底色；上方是送出當時帶的檔案、資料夾、圖片 chip -->
+                <StackPanel IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="640" Spacing="6">
+                  <ItemsControl IsVisible="{Binding HasAttachments}" ItemsSource="{Binding Attachments}" HorizontalAlignment="Right">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:MessageChipViewModel">
+                        <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}"
+                                Padding="9,3" ToolTip.Tip="{Binding Tooltip}">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ctl:EmojiTextBlock Text="{Binding DisplayName}" MaxWidth="240" TextTrimming="CharacterEllipsis" MaxLines="1"
+                                                FontSize="{DynamicResource LumiFontSizeCaption}" />
+                            <TextBlock IsVisible="{Binding HasDetail}" Text="{Binding Detail}" Classes="muted" />
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Border HorizontalAlignment="Right" Padding="14,10" CornerRadius="14"
+                          Background="{DynamicResource LumiUserBubbleBrush}">
+                    <ctl:EmojiTextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                                        Foreground="{DynamicResource LumiUserBubbleTextBrush}" />
+                  </Border>
+                </StackPanel>
 
                 <!-- 助理：靠左、不加底、左側小光球 -->
                 <Grid IsVisible="{Binding IsAssistant}" ColumnDefinitions="Auto,*" HorizontalAlignment="Left" MaxWidth="780">
@@ -230,26 +270,79 @@
       </StackPanel>
     </ScrollViewer>
 
-    <Border Grid.Row="1" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
+    <Border x:Name="InputArea" Grid.Row="1" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
+            DragDrop.AllowDrop="True"
             Background="{DynamicResource LumiSurfaceBrush}"
             BorderBrush="{DynamicResource LumiBorderStrongBrush}">
-      <Grid ColumnDefinitions="*,Auto">
-        <!-- Enter 送出、Shift+Enter 換行（code-behind）；約 8 行後改捲動 -->
-        <TextBox x:Name="InputBox" Grid.Column="0"
-                 Text="{Binding InputText}"
-                 Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
-                 AcceptsReturn="True" TextWrapping="Wrap"
-                 MinHeight="40" MaxHeight="190"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="10,0,0,0" VerticalAlignment="Bottom">
-          <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Workbench_WaitingHint}"
-                     Classes="muted" VerticalAlignment="Center" />
-          <Button IsVisible="{Binding !IsResponding}" Classes="round send" Content="↑"
-                  ToolTip.Tip="{x:Static res:Strings.Workbench_Send}" Command="{Binding SendCommand}" />
-          <Button IsVisible="{Binding IsResponding}" Classes="round stop" Content="■"
-                  ToolTip.Tip="{x:Static res:Strings.Workbench_Stop}" Command="{Binding StopCommand}" />
+      <StackPanel Spacing="6">
+        <!-- 此對話的上下文（ui-spec 6.1）：有項目時才出現 -->
+        <StackPanel x:Name="ContextBar" DataContext="{Binding Context}" IsVisible="{Binding HasItems}" Spacing="6">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{x:Static res:Strings.Context_Title}" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                        ToolTip.Tip="{x:Static res:Strings.Context_TokensHint}">
+              <TextBlock Text="{Binding TokensText}" Classes="muted" />
+              <TextBlock IsVisible="{Binding IsOverLimit}" Text="⚠" Foreground="{DynamicResource LumiWarningIconBrush}"
+                         ToolTip.Tip="{Binding OverLimitText}" />
+            </StackPanel>
+          </Grid>
+          <ItemsControl x:Name="ContextChips" ItemsSource="{Binding Items}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ContextChipViewModel">
+                <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}" ToolTip.Tip="{Binding Tooltip}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <!-- 圖片縮圖（解碼失敗就沒有） -->
+                    <Image IsVisible="{Binding $self.Source, Converter={x:Static ObjectConverters.IsNotNull}}" Width="20" Height="20" Stretch="UniformToFill"
+                           Source="{Binding Path, Converter={x:Static views:PathToBitmapConverter.Instance}}" />
+                    <ctl:EmojiTextBlock Text="{Binding DisplayName}" MaxWidth="220" TextTrimming="CharacterEllipsis" MaxLines="1"
+                                        VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCaption}" />
+                    <TextBlock IsVisible="{Binding HasDetail}" Text="{Binding Detail}" Classes="muted" VerticalAlignment="Center" />
+                    <TextBlock IsVisible="{Binding IsSent}" Text="{Binding SentLabel}" Classes="muted" VerticalAlignment="Center" />
+                    <Button Classes="chrome small" Padding="5,0" Content="×" VerticalAlignment="Center"
+                            ToolTip.Tip="{x:Static res:Strings.Context_Remove}"
+                            Command="{Binding #Root.((vm:WorkbenchViewModel)DataContext).Context.RemoveCommand}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock IsVisible="{Binding HasNotice}" Text="{Binding Notice}" Classes="muted" TextWrapping="Wrap" />
+          <TextBlock IsVisible="{Binding HasError}" Text="{Binding Error}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource LumiWarningTextBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
         </StackPanel>
-      </Grid>
+
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+          <!-- Enter 送出、Shift+Enter 換行（code-behind）；約 8 行後改捲動 -->
+          <TextBox x:Name="InputBox" Grid.Row="0" Grid.Column="0"
+                   Text="{Binding InputText}"
+                   Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
+                   AcceptsReturn="True" TextWrapping="Wrap"
+                   MinHeight="40" MaxHeight="190"
+                   ScrollViewer.VerticalScrollBarVisibility="Auto" />
+          <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="10,0,0,0" VerticalAlignment="Bottom">
+            <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Workbench_WaitingHint}"
+                       Classes="muted" VerticalAlignment="Center" />
+            <Button IsVisible="{Binding !IsResponding}" Classes="round send" Content="↑"
+                    ToolTip.Tip="{x:Static res:Strings.Workbench_Send}" Command="{Binding SendCommand}" />
+            <Button IsVisible="{Binding IsResponding}" Classes="round stop" Content="■"
+                    ToolTip.Tip="{x:Static res:Strings.Workbench_Stop}" Command="{Binding StopCommand}" />
+          </StackPanel>
+          <!-- 左下：加入檔案、加入資料夾（回應中停用） -->
+          <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="2" Margin="0,4,0,0">
+            <Button x:Name="AddFileButton" Classes="chrome small" Content="{x:Static res:Strings.Context_AddFile}"
+                    Command="{Binding Context.AddFileCommand}" />
+            <Button x:Name="AddFolderButton" Classes="chrome small" Content="{x:Static res:Strings.Context_AddFolder}"
+                    Command="{Binding Context.AddFolderCommand}" />
+            <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Context_LockedHint}" Classes="muted"
+                       VerticalAlignment="Center" Margin="6,0,0,0" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
     </Border>
 
     <!-- 輸入 N · 輸出 N · 回合 N · 上下文 [進度條] 14K / 1M（ui-spec 2.3） -->

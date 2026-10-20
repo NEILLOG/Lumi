@@ -18,6 +18,8 @@ public static class ToolsServiceCollectionExtensions
         services.Replace(ServiceDescriptor.Singleton<IFileScopeFactory, FileScopeFactory>());
         // 送出時把待送出的項目拍成快照（檔案文字、資料夾檔案樹、圖片）
         services.Replace(ServiceDescriptor.Singleton<IContextAttachmentBuilder, ContextAttachmentBuilder>());
+        // 給 chip 顯示狀態用：是檔案、資料夾還是圖片，有沒有問題
+        services.Replace(ServiceDescriptor.Singleton<IContextInspector, ContextInspector>());
 
         services.AddLumiTool<GetCurrentTimeTool>();
         services.AddLumiTool<CalculateTool>();

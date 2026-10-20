@@ -57,6 +57,9 @@ public sealed partial class FileAttachmentStore(IOptions<AttachmentOptions> opti
         }
     }
 
+    public string? GetPath(string fileName) =>
+        ValidName().IsMatch(fileName) ? Path.Combine(_directory, fileName) : null;
+
     public Task<int> DeleteUnreferencedAsync(IReadOnlySet<string> referencedFileNames, CancellationToken ct = default)
     {
         if (!Directory.Exists(_directory))

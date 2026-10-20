@@ -168,4 +168,25 @@
   <data name="Tool_GroupAwaiting" xml:space="preserve"><value>等待允許</value></data>
   <data name="Models_ToolsEnabled" xml:space="preserve"><value>使用工具</value></data>
   <data name="Models_ToolsEnabledHint" xml:space="preserve"><value>關掉時，送出的請求不帶工具定義。模型不支援工具（例如某些小型本機模型）時使用。</value></data>
+  <data name="Context_Title" xml:space="preserve"><value>此對話的上下文</value></data>
+  <data name="Context_AddFile" xml:space="preserve"><value>加入檔案</value></data>
+  <data name="Context_AddFolder" xml:space="preserve"><value>加入資料夾</value></data>
+  <data name="Context_Remove" xml:space="preserve"><value>移除</value></data>
+  <data name="Context_Tokens" xml:space="preserve"><value>≈ {0} tokens</value></data>
+  <data name="Context_TokensHint" xml:space="preserve"><value>估算值：包含對話歷史、待送出的內容與輸入框的文字；實際用量以下方狀態列（供應商回傳的值）為準</value></data>
+  <data name="Context_TokensOver" xml:space="preserve"><value>預估超過這個模型的上下文上限（{0}）</value></data>
+  <data name="Context_Sent" xml:space="preserve"><value>已帶入</value></data>
+  <data name="Context_Missing" xml:space="preserve"><value>找不到</value></data>
+  <data name="Context_NotText" xml:space="preserve"><value>不是文字檔</value></data>
+  <data name="Context_TooLarge" xml:space="preserve"><value>太大，由模型按需讀取</value></data>
+  <data name="Context_ImageUnsupported" xml:space="preserve"><value>不支援的圖片格式</value></data>
+  <data name="Context_ImageTooLarge" xml:space="preserve"><value>圖片太大</value></data>
+  <data name="Context_FolderEntries" xml:space="preserve"><value>{0} 個項目</value></data>
+  <data name="Context_FolderEntriesCapped" xml:space="preserve"><value>{0}+ 個項目</value></data>
+  <data name="Context_RemovedSentNote" xml:space="preserve"><value>已從範圍移除；模型之前看過的內容仍在這則對話裡</value></data>
+  <data name="Context_NotFoundFormat" xml:space="preserve"><value>找不到：{0}</value></data>
+  <data name="Context_PastedImageName" xml:space="preserve"><value>貼上的截圖 {0}</value></data>
+  <data name="Context_LockedHint" xml:space="preserve"><value>回應中不能更改上下文</value></data>
+  <data name="Context_DropHint" xml:space="preserve"><value>放開以加入到這則對話的上下文</value></data>
+  <data name="Context_NotEmbedded" xml:space="preserve"><value>沒有放入內容</value></data>
 </root>

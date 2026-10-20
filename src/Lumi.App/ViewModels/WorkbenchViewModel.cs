@@ -43,7 +43,8 @@ public partial class WorkbenchViewModel : ObservableObject
         IUiDispatcher dispatcher,
         TimeProvider time,
         ILogger<WorkbenchViewModel> logger,
-        IToolApprovalResponder? approvals = null)
+        IToolApprovalResponder? approvals = null,
+        ContextBarViewModel? contextBar = null)
     {
         _conversations = conversations;
         _store = store;
@@ -55,6 +56,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _time = time;
         _logger = logger;
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
+        Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
         History = new HistoryViewModel(store, OpenConversationAsync, time);
@@ -69,6 +71,9 @@ public partial class WorkbenchViewModel : ObservableObject
     public ObservableCollection<MessageViewModel> Messages { get; } = [];
 
     public HistoryViewModel History { get; }
+
+    /// <summary>輸入框上方的上下文列：這則對話的檔案、資料夾、圖片。</summary>
+    public ContextBarViewModel Context { get; }
 
     public ModelSwitcherViewModel ModelSwitcher { get; }
 
@@ -96,6 +101,7 @@ public partial class WorkbenchViewModel : ObservableObject
 
     private void OnModelSettingsChanged()
     {
+        Context.ContextWindow = ContextWindow;
         OnPropertyChanged(nameof(ModelName));
         OnPropertyChanged(nameof(ContextWindow));
         OnPropertyChanged(nameof(ContextText));
@@ -139,6 +145,10 @@ public partial class WorkbenchViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand))]
     private bool _isResponding;
+
+    partial void OnIsRespondingChanged(bool value) => Context.IsLocked = value;
+
+    partial void OnInputTextChanged(string value) => Context.UpdateDraft(value);
 
     /// <summary>回應中，膠囊與小精靈按鈕停用並顯示「回應中，暫時無法切換」（ui-spec 2.2）。</summary>
     public bool ShowSwitchBlockedHint => IsResponding;
@@ -191,8 +201,11 @@ public partial class WorkbenchViewModel : ObservableObject
         InputText = "";
         if (Messages.Count == 0)
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
-        Messages.Add(MessageViewModel.User(text));
+        // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
+        Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips())));
         await RunResponseAsync(ct => _conversations.SendAsync(conversationId, text, ct), reloadOnFailure: false);
+        if (conversationId == _conversationId)
+            await Context.RefreshAsync();   // 項目已經變成「已帶入」
     }
 
     private bool CanSend() => !IsResponding && _conversationId is not null && !string.IsNullOrWhiteSpace(InputText);
@@ -277,6 +290,8 @@ public partial class WorkbenchViewModel : ObservableObject
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
+        Context.ContextWindow = ContextWindow;
+        await Context.LoadAsync(_conversationId);
     }
 
     private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson) =>

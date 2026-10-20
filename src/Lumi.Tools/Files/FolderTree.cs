@@ -8,6 +8,39 @@ internal static class FolderTree
     /// <summary>超過這個數量就不再往下數「還有幾個項目」（上萬個和上百萬個對模型沒有差別）。</summary>
     private const int CountCap = 50_000;
 
+    /// <summary>資料夾裡有幾個項目（略過名單內的名稱、不展開符號連結與機密資料夾），數到 <paramref name="cap"/> 就停。</summary>
+    public static (int Count, bool Capped) Count(string root, int cap, CancellationToken ct = default)
+    {
+        var count = 0;
+        var pending = new Stack<DirectoryInfo>();
+        pending.Push(new DirectoryInfo(root));
+        while (pending.Count > 0)
+        {
+            var directory = pending.Pop();
+            IEnumerable<FileSystemInfo> children;
+            try
+            {
+                children = directory.EnumerateFileSystemInfos().ToList();
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+
+            foreach (var child in children)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (ScopeRules.IsIgnored(child.Name))
+                    continue;
+                if (++count >= cap)
+                    return (count, true);
+                if (child is DirectoryInfo dir && child.LinkTarget is null && !ScopeRules.IsSecretDirectory(child.Name))
+                    pending.Push(dir);
+            }
+        }
+        return (count, false);
+    }
+
     public sealed record Result(string Text, int Entries, int Remaining, bool RemainingCapped);
 
     public static Result Build(string root, int maxEntries, int maxDepth, CancellationToken ct = default)

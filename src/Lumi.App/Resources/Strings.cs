@@ -154,4 +154,25 @@ public static class Strings
     public static string Tool_GroupAwaiting => Get(nameof(Tool_GroupAwaiting));
     public static string Models_ToolsEnabled => Get(nameof(Models_ToolsEnabled));
     public static string Models_ToolsEnabledHint => Get(nameof(Models_ToolsEnabledHint));
+    public static string Context_Title => Get(nameof(Context_Title));
+    public static string Context_AddFile => Get(nameof(Context_AddFile));
+    public static string Context_AddFolder => Get(nameof(Context_AddFolder));
+    public static string Context_Remove => Get(nameof(Context_Remove));
+    public static string Context_Tokens => Get(nameof(Context_Tokens));
+    public static string Context_TokensHint => Get(nameof(Context_TokensHint));
+    public static string Context_TokensOver => Get(nameof(Context_TokensOver));
+    public static string Context_Sent => Get(nameof(Context_Sent));
+    public static string Context_Missing => Get(nameof(Context_Missing));
+    public static string Context_NotText => Get(nameof(Context_NotText));
+    public static string Context_TooLarge => Get(nameof(Context_TooLarge));
+    public static string Context_ImageUnsupported => Get(nameof(Context_ImageUnsupported));
+    public static string Context_ImageTooLarge => Get(nameof(Context_ImageTooLarge));
+    public static string Context_FolderEntries => Get(nameof(Context_FolderEntries));
+    public static string Context_FolderEntriesCapped => Get(nameof(Context_FolderEntriesCapped));
+    public static string Context_RemovedSentNote => Get(nameof(Context_RemovedSentNote));
+    public static string Context_NotFoundFormat => Get(nameof(Context_NotFoundFormat));
+    public static string Context_PastedImageName => Get(nameof(Context_PastedImageName));
+    public static string Context_LockedHint => Get(nameof(Context_LockedHint));
+    public static string Context_DropHint => Get(nameof(Context_DropHint));
+    public static string Context_NotEmbedded => Get(nameof(Context_NotEmbedded));
 }

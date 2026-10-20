@@ -133,6 +133,20 @@ public sealed class AttachmentStoreTests : IDisposable
     public async Task Read_WhenTheFolderDoesNotExistYet_ReturnsNull() =>
         Assert.Null(await NewStore().ReadAsync(new string('b', 64) + ".png"));
 
+    [Fact]
+    public async Task GetPath_ReturnsTheFullPathOfAStoredFile_AndNullForInvalidNames()
+    {
+        var store = NewStore();
+        var name = await store.SaveAsync(Png, "image/png");
+
+        var path = store.GetPath(name);
+
+        Assert.Equal(Path.Combine(AttachmentsDir, name), path);
+        Assert.Equal(Png, await File.ReadAllBytesAsync(path!));
+        Assert.Null(store.GetPath("../lumi.db"));
+        Assert.Null(store.GetPath("short.png"));
+    }
+
     // ---- 清理 ----
 
     [Fact]

@@ -14,6 +14,9 @@ public interface IAttachmentStore
 
     /// <summary>刪除沒有被任何訊息引用的檔案，回傳刪了幾個。</summary>
     Task<int> DeleteUnreferencedAsync(IReadOnlySet<string> referencedFileNames, CancellationToken ct = default);
+
+    /// <summary>附件檔案的完整路徑（貼上的截圖要當成圖片項目加入時用）；檔名不合法或實作沒有實體檔案回 null。</summary>
+    string? GetPath(string fileName) => null;
 }
 
 /// <summary>找出所有訊息引用到的附件檔名（清理孤兒用）。</summary>

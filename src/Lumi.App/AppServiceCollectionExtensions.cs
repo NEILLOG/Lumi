@@ -34,6 +34,11 @@ public static class AppServiceCollectionExtensions
 
         services.AddHostedService<AttachmentCleanupService>();
 
+        // 輸入框上方的上下文列：選擇器與剪貼簿圖片由畫面層實作
+        services.AddSingleton<IFilePickerService, FilePickerService>();
+        services.AddSingleton<IClipboardImageService, ClipboardImageService>();
+        services.AddSingleton<ContextBarViewModel>();
+
         services.AddSingleton<IApiKeyPrompt, SettingsApiKeyPrompt>();
         services.AddSingleton<WorkbenchViewModel>();
         services.AddTransient<WorkbenchWindow>();

@@ -24,6 +24,7 @@ public static class CoreServiceCollectionExtensions
         services.TryAddSingleton<IConversationContextStore, NullConversationContextStore>();
         services.TryAddSingleton<IContextAttachmentBuilder, NullContextAttachmentBuilder>();
         services.TryAddSingleton<IAttachmentStore, NullAttachmentStore>();
+        services.TryAddSingleton<IContextInspector, NullContextInspector>();
         services.TryAddSingleton<ITokenEstimator, HeuristicTokenEstimator>();
         return services;
     }

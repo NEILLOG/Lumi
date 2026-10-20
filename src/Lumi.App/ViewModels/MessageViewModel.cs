@@ -2,12 +2,15 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 
 namespace Lumi.App.ViewModels;
 
 /// <summary>訊息列表裡的一則訊息。串流中的助理訊息會持續更新 <see cref="Text"/>、<see cref="Thinking"/>。</summary>
 public partial class MessageViewModel : ObservableObject
 {
+    private static readonly IReadOnlyList<MessageChipViewModel> NoChips = [];
+
     private DateTimeOffset? _thinkingStartedAt;
 
     private protected MessageViewModel(bool isUser)
@@ -63,6 +66,11 @@ public partial class MessageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ThinkingTitle))]
     private int? _thinkingSeconds;
 
+    /// <summary>使用者訊息上方的 chip：送出當時帶的檔案、資料夾、圖片（來自訊息的 <c>ContextBlock</c>／<c>ImageBlock</c>）。</summary>
+    public IReadOnlyList<MessageChipViewModel> Attachments { get; private set; } = NoChips;
+
+    public bool HasAttachments => Attachments.Count > 0;
+
     public bool HasText => Text.Length > 0;
 
     public bool HasThinking => Thinking.Length > 0;
@@ -86,7 +94,8 @@ public partial class MessageViewModel : ObservableObject
             WorkbenchViewModel.FormatTokens(u.OutputTokens))
         : "";
 
-    public static MessageViewModel User(string text) => new(isUser: true) { Text = text };
+    public static MessageViewModel User(string text, IReadOnlyList<MessageChipViewModel>? attachments = null) =>
+        new(isUser: true) { Text = text, Attachments = attachments ?? NoChips };
 
     public static MessageViewModel StreamingAssistant() => new(isUser: false) { IsStreaming = true };
 
@@ -95,6 +104,8 @@ public partial class MessageViewModel : ObservableObject
         var vm = new MessageViewModel(message.Role == ChatRole.User);
         vm.ApplyContent(message);
         vm.IsStopped = message.Status == MessageStatus.Stopped;
+        if (message.Role == ChatRole.User)
+            vm.Attachments = MessageChipViewModel.FromBlocks(message.Content);
         return vm;
     }
 
@@ -139,4 +150,43 @@ public partial class MessageViewModel : ObservableObject
         Thinking = string.Join("\n\n", message.Content.OfType<ThinkingBlock>().Select(b => b.Thinking).Where(t => t.Length > 0));
         Usage = message.Usage;
     }
+}
+
+/// <summary>使用者氣泡上方的一個 chip（唯讀；加入與移除在輸入框上方的上下文列）。</summary>
+public sealed record MessageChipViewModel(ContextKind Kind, string DisplayName, string? Detail, bool HasProblem, string Tooltip)
+{
+    public bool IsFolder => Kind == ContextKind.Folder;
+
+    public bool IsImage => Kind == ContextKind.Image;
+
+    public bool HasDetail => Detail is not null;
+
+    /// <summary>從訊息的內容區塊重建（重開程式後也看得到當時帶了什麼）。</summary>
+    public static IReadOnlyList<MessageChipViewModel> FromBlocks(IEnumerable<ContentBlock> blocks)
+    {
+        var chips = new List<MessageChipViewModel>();
+        foreach (var block in blocks)
+        {
+            switch (block)
+            {
+                case ContextBlock c:
+                    chips.Add(new MessageChipViewModel(
+                        c.Kind, c.DisplayName,
+                        c is { Embedded: true, Kind: ContextKind.Folder, ItemCount: { } count }
+                            ? string.Format(CultureInfo.CurrentCulture, Strings.Context_FolderEntries, count.ToString("N0", CultureInfo.CurrentCulture))
+                            : c.Embedded ? null : Strings.Context_NotEmbedded,
+                        !c.Embedded,
+                        c.Note is null ? c.Path : $"{c.Path}\n{c.Note}"));
+                    break;
+                case ImageBlock i:
+                    chips.Add(new MessageChipViewModel(ContextKind.Image, i.DisplayName, null, false, i.DisplayName));
+                    break;
+            }
+        }
+        return chips;
+    }
+
+    /// <summary>送出的瞬間，用待送出的 chip 先在氣泡上顯示（訊息存好之後重讀會得到同樣的結果）。</summary>
+    public static IReadOnlyList<MessageChipViewModel> FromChips(IEnumerable<ContextChipViewModel> chips) =>
+        chips.Select(c => new MessageChipViewModel(c.Kind, c.DisplayName, c.Detail, c.HasProblem, c.Tooltip)).ToList();
 }
