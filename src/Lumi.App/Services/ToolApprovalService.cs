@@ -31,7 +31,13 @@ public sealed class ToolApprovalService : IToolApprovalService, IToolApprovalRes
         }
     }
 
-    public void Resolve(string callId, ApprovalDecision decision) => Get(callId).TrySetResult(decision);
+    public event EventHandler<ApprovalResolved>? Resolved;
+
+    public void Resolve(string callId, ApprovalDecision decision)
+    {
+        Get(callId).TrySetResult(decision);
+        Resolved?.Invoke(this, new ApprovalResolved(callId, decision));
+    }
 
     private TaskCompletionSource<ApprovalDecision> Get(string callId) =>
         _pending.GetOrAdd(callId, _ => new TaskCompletionSource<ApprovalDecision>(TaskCreationOptions.RunContinuationsAsynchronously));

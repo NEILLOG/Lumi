@@ -258,26 +258,38 @@ public partial class ToolCardViewModel : ObservableObject
     private void AllowForConversation() => Decide(ApprovalDecision.AllowForConversation);
 
     [RelayCommand]
-    private void Deny()
-    {
-        if (!IsAwaiting)
-            return;
-        Approval = ToolApproval.Denied;
-        Request = null;
-        State = ToolCardState.Denied;
-        _responder.Resolve(CallId, ApprovalDecision.Deny);
-    }
+    private void Deny() => Decide(ApprovalDecision.Deny);
 
     private void Decide(ApprovalDecision decision)
     {
         if (!IsAwaiting)
             return;
+        ApplyDecision(decision);
+        _responder.Resolve(CallId, decision);
+    }
+
+    /// <summary>別處（例如小精靈的氣泡）回答了這張卡片的確認：只更新畫面，不再通知對話迴圈。</summary>
+    public void ApplyResolved(ApprovalDecision decision)
+    {
+        if (IsAwaiting)
+            ApplyDecision(decision);
+    }
+
+    private void ApplyDecision(ApprovalDecision decision)
+    {
+        if (decision == ApprovalDecision.Deny)
+        {
+            Approval = ToolApproval.Denied;
+            Request = null;
+            State = ToolCardState.Denied;
+            return;
+        }
+
         Approval = decision == ApprovalDecision.AllowForConversation && Request?.Permission != ToolPermission.Destructive
             ? ToolApproval.AllowedForConversation
             : ToolApproval.AllowedOnce;
         Request = null;
         State = ToolCardState.Running;
-        _responder.Resolve(CallId, decision);
     }
 
     [RelayCommand]

@@ -13,6 +13,7 @@ public static class CoreServiceCollectionExtensions
     public static IServiceCollection AddLumiCore(this IServiceCollection services)
     {
         services.AddSingleton<ConversationService>();
+        services.AddSingleton<IChatSession, ChatSession>();   // 工作台與小精靈共用的目前對話與回應流程
 
         // 工具：登錄、權限記憶（只在記憶體）、迴圈設定。沒有畫面可以詢問時預設一律拒絕（TryAdd：App 註冊自己的會取代它）
         services.AddSingleton<IToolRegistry, ToolRegistry>();

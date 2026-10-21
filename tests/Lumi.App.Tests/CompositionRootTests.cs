@@ -76,9 +76,14 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.Infrastructure.Attachments.FileAttachmentStore>(services.GetRequiredService<IAttachmentStore>());
         Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IAttachmentReferences>());
         Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), h => h is Lumi.App.Services.AttachmentCleanupService);
+        // M7 7A：目前的對話與回應流程是單例，工作台（以及之後的小精靈）共用同一個
+        var session = services.GetRequiredService<IChatSession>();
+        Assert.Same(session, services.GetRequiredService<IChatSession>());
         var vm = services.GetRequiredService<WorkbenchViewModel>();
 
         await vm.InitializeAsync();
+
+        Assert.NotNull(session.ConversationId);   // 工作台初始化走的是共用的會話，不是自己建一個
 
         Assert.True(File.Exists(Path.Combine(_directory, "settings.json")));
         Assert.Equal(JsonModelCatalog.MigratedConnectionId, catalog.Resolve(catalog.Current.WorkbenchModelId)!.Connection.Id);

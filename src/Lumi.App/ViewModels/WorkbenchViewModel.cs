@@ -8,16 +8,17 @@ using Lumi.Core.Chat;
 using Lumi.Core.Models;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lumi.App.ViewModels;
 
 /// <summary>
-/// 工作台主視窗。命令都在 UI 執行緒上執行；<c>await foreach</c> 會回到 UI 的同步內容，
-/// 所以串流事件直接在 UI 執行緒更新畫面，不需要另外轉送（agent.md 第 12 節）。
+/// 工作台主視窗。對話與回應流程在 <see cref="IChatSession"/>（和小精靈共用），這裡是它的觀察者：
+/// 收到事件就更新訊息列表。命令都在 UI 執行緒上執行，會話的事件也在呼叫者的同步內容上發出，
+/// 所以直接更新畫面，不需要另外轉送（agent.md 第 12 節）。
 /// </summary>
 public partial class WorkbenchViewModel : ObservableObject
 {
-    private readonly ConversationService _conversations;
     private readonly IConversationStore _store;
     private readonly IModelCatalog _catalog;
     private readonly IApiKeyPrompt _apiKeyPrompt;
@@ -28,9 +29,21 @@ public partial class WorkbenchViewModel : ObservableObject
     private readonly ILogger<WorkbenchViewModel> _logger;
     private readonly IToolApprovalResponder _approvals;
 
-    private string? _conversationId;
-    private CancellationTokenSource? _responseCts;
-    private TaskCompletionSource? _responseDone;
+    private readonly IChatSession _session;
+
+    // 目前這一輪回應的畫面狀態（RunStarted 建立、RunFinished 清掉）
+    private MessageViewModel? _bubble;
+    private readonly Dictionary<string, ToolCardViewModel> _cards = new(StringComparer.Ordinal);
+    private bool _usedTools;
+    private string? _runConnectionId;
+
+    /// <summary>這一輪是工作台自己送出的（失敗後的金鑰提示、重送由它處理）；小精靈送出的只更新畫面。</summary>
+    private bool _ownRun;
+
+    /// <summary>工作台自己切換對話時，會話發出的 <see cref="IChatSession.ConversationChanged"/> 不用再處理一次。</summary>
+    private bool _navigating;
+
+    private string? CurrentConversationId => _session.ConversationId;
 
     public WorkbenchViewModel(
         ConversationService conversations,
@@ -45,9 +58,9 @@ public partial class WorkbenchViewModel : ObservableObject
         ILogger<WorkbenchViewModel> logger,
         IToolApprovalResponder? approvals = null,
         ContextBarViewModel? contextBar = null,
-        DeveloperOptions? developer = null)
+        DeveloperOptions? developer = null,
+        IChatSession? session = null)
     {
-        _conversations = conversations;
         _store = store;
         _catalog = catalog;
         _apiKeyPrompt = apiKeyPrompt;
@@ -57,6 +70,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _time = time;
         _logger = logger;
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
+        _session = session ?? new ChatSession(conversations, store, NullLogger<ChatSession>.Instance);
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
         ShowSpriteModeToggle = developer?.ShowSpriteModeToggle ?? false;
@@ -65,6 +79,13 @@ public partial class WorkbenchViewModel : ObservableObject
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
         // 錯誤列的「換模型重試」：選完模型接著重送
         RetrySwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, RetryAfterModelSwitchAsync);
+
+        _session.ConversationChanged += OnConversationChanged;
+        _session.RunStarted += OnRunStarted;
+        _session.EventReceived += OnEventReceived;
+        _session.RunFinished += OnRunFinished;
+        _session.ModeChanged += (_, _) => OnPropertyChanged(nameof(IsSpriteMode));
+        _approvals.Resolved += OnApprovalResolved;
 
         catalog.Changed += (_, _) => dispatcher.Post(OnModelSettingsChanged);
         status.Changed += (_, _) => dispatcher.Post(OnConnectionStatusChanged);
@@ -152,27 +173,18 @@ public partial class WorkbenchViewModel : ObservableObject
 
     public bool ShowSpriteModeToggle { get; }
 
-    private bool _isSpriteMode;
-
     /// <summary>用小精靈模式送出（短回答、<c>show_details</c>，並使用小精靈的預設模型）。回應中不能切換（ui-spec 2.2）。</summary>
     public bool IsSpriteMode
     {
-        get => _isSpriteMode;
+        get => _session.ActiveMode == ChatMode.Sprite;
         set
         {
-            if (IsResponding || value == _isSpriteMode)
-            {
+            if (!_session.TrySetMode(value ? ChatMode.Sprite : ChatMode.Workbench))
                 OnPropertyChanged();   // 被拒絕時讓切換鈕回到原本的狀態
-                return;
-            }
-            _isSpriteMode = value;
-            OnPropertyChanged();
         }
     }
 
     public bool CanChangeMode => !IsResponding;
-
-    private ChatMode CurrentMode => _isSpriteMode ? ChatMode.Sprite : ChatMode.Workbench;
 
     partial void OnIsRespondingChanged(bool value) => Context.IsLocked = value;
 
@@ -214,8 +226,7 @@ public partial class WorkbenchViewModel : ObservableObject
     /// <summary>啟動時載入最近一則對話；沒有就建一則空的。</summary>
     public async Task InitializeAsync()
     {
-        var conversation = await _store.GetLatestAsync()
-                           ?? await _store.CreateAsync(Strings.Workbench_NewConversationTitle);
+        var conversation = await NavigateAsync(() => _session.InitializeAsync(Strings.Workbench_NewConversationTitle));
         await LoadAsync(conversation);
     }
 
@@ -225,25 +236,21 @@ public partial class WorkbenchViewModel : ObservableObject
     private async Task SendAsync()
     {
         var text = InputText.Trim();
-        var conversationId = _conversationId!;
+        var conversationId = CurrentConversationId!;
         InputText = "";
         if (Messages.Count == 0)
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
         // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
         Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips())));
-        await RunResponseAsync(ct => _conversations.SendAsync(conversationId, text, ct, CurrentMode), reloadOnFailure: false);
-        if (conversationId == _conversationId)
+        await RunResponseAsync(() => _session.SendAsync(text), reloadOnFailure: false);
+        if (conversationId == CurrentConversationId)
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
     }
 
-    private bool CanSend() => !IsResponding && _conversationId is not null && !string.IsNullOrWhiteSpace(InputText);
+    private bool CanSend() => !IsResponding && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
 
     [RelayCommand(CanExecute = nameof(CanRetry))]
-    private Task RetryAsync()
-    {
-        var conversationId = _conversationId!;
-        return RunResponseAsync(ct => _conversations.RetryAsync(conversationId, ct, CurrentMode), reloadOnFailure: false);
-    }
+    private Task RetryAsync() => RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
 
     private bool CanRetry() => !IsResponding && HasError;
 
@@ -254,24 +261,17 @@ public partial class WorkbenchViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanRegenerate))]
     private Task RegenerateAsync()
     {
-        var conversationId = _conversationId!;
         ErrorMessage = null;
-        return RunResponseAsync(ct => _conversations.RegenerateAsync(conversationId, ct, CurrentMode), reloadOnFailure: true, removeLastAssistantFirst: true);
+        return RunResponseAsync(() => _session.RegenerateAsync(), reloadOnFailure: true);
     }
 
-    private bool CanRegenerate() => !IsResponding && _conversationId is not null && Messages.LastOrDefault() is { IsUser: false };
+    private bool CanRegenerate() => !IsResponding && CurrentConversationId is not null && Messages.LastOrDefault() is { IsUser: false };
 
     [RelayCommand(CanExecute = nameof(IsResponding))]
-    private void Stop() => _responseCts?.Cancel();
+    private void Stop() => _session.Stop();
 
     /// <summary>取消目前的回應，並等它的收尾全部做完（存「已停止」、移除空泡泡）才回來。沒有回應進行中就直接回來。</summary>
-    public async Task StopAndWaitAsync()
-    {
-        if (_responseDone is not { } done)
-            return;
-        _responseCts?.Cancel();
-        await done.Task;
-    }
+    public Task StopAndWaitAsync() => _session.StopAndWaitAsync();
 
     // ---- 對話：新增、切換 ----
 
@@ -279,29 +279,60 @@ public partial class WorkbenchViewModel : ObservableObject
     private async Task NewConversationAsync()
     {
         // 目前這則還沒有任何訊息：已經是空白的了，不重複建立
-        if (Messages.Count == 0 && _conversationId is not null)
+        if (Messages.Count == 0 && CurrentConversationId is not null)
             return;
 
-        await StopAndWaitAsync();
-        var conversation = await _store.CreateAsync(Strings.Workbench_NewConversationTitle);
+        var conversation = await NavigateAsync(() => _session.NewConversationAsync(Strings.Workbench_NewConversationTitle));
         await LoadAsync(conversation);
-        await History.RefreshAsync(_conversationId);
+        await History.RefreshAsync(CurrentConversationId);
     }
 
     /// <summary>從歷史抽屜切換對話。回應中會先停止（ui-spec 2.2）。</summary>
     public async Task OpenConversationAsync(Conversation conversation)
     {
-        if (conversation.Id == _conversationId)
+        if (conversation.Id == CurrentConversationId)
             return;
 
-        await StopAndWaitAsync();
+        await NavigateAsync(() => _session.OpenConversationAsync(conversation));
         await LoadAsync(conversation);
-        await History.RefreshAsync(_conversationId);
+        await History.RefreshAsync(CurrentConversationId);
+    }
+
+    private async Task<Conversation> NavigateAsync(Func<Task<Conversation>> navigate)
+    {
+        _navigating = true;
+        try
+        {
+            return await navigate();
+        }
+        finally
+        {
+            _navigating = false;
+        }
+    }
+
+    /// <summary>別處（例如小精靈的右鍵選單）切換了對話：工作台跟著顯示。</summary>
+    private void OnConversationChanged(object? sender, ConversationChangedArgs args)
+    {
+        if (!_navigating)
+            _ = ShowConversationAsync(args.Conversation);
+    }
+
+    private async Task ShowConversationAsync(Conversation conversation)
+    {
+        try
+        {
+            await LoadAsync(conversation);
+            await History.RefreshAsync(CurrentConversationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "切換到對話 {ConversationId} 時失敗", conversation.Id);
+        }
     }
 
     private async Task LoadAsync(Conversation conversation)
     {
-        _conversationId = conversation.Id;
         Title = conversation.Title;
         ErrorMessage = null;
         await ReloadMessagesAsync();
@@ -310,7 +341,7 @@ public partial class WorkbenchViewModel : ObservableObject
     /// <summary>從資料庫重讀目前對話的訊息（讓畫面和資料庫一致）。</summary>
     private async Task ReloadMessagesAsync()
     {
-        var messages = await _store.GetMessagesAsync(_conversationId!);
+        var messages = await _store.GetMessagesAsync(CurrentConversationId!);
         Messages.Clear();
         foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson)))
             Messages.Add(item);
@@ -319,7 +350,7 @@ public partial class WorkbenchViewModel : ObservableObject
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
         Context.ContextWindow = ContextWindow;
-        await Context.LoadAsync(_conversationId);
+        await Context.LoadAsync(CurrentConversationId);
     }
 
     private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson) =>
@@ -378,193 +409,204 @@ public partial class WorkbenchViewModel : ObservableObject
         }
     }
 
-    // ---- 回應流程 ----
+    // ---- 回應流程：會話發事件，這裡更新畫面 ----
 
-    private sealed record StreamOutcome(ChatFailure? Failure, bool Unexpected);
-
-    private async Task RunResponseAsync(
-        Func<CancellationToken, IAsyncEnumerable<ChatEvent>> start, bool reloadOnFailure, bool removeLastAssistantFirst = false)
+    /// <summary>工作台自己發起的一輪：會話跑完（含畫面收尾）才回來，接著處理失敗。</summary>
+    private async Task RunResponseAsync(Func<Task<ChatRunResult>> run, bool reloadOnFailure)
     {
-        var conversationId = _conversationId!;
-        var outcome = await StreamPhaseAsync(start, removeLastAssistantFirst);
+        var conversationId = CurrentConversationId!;
+        ChatRunResult outcome;
+        _ownRun = true;
+        try
+        {
+            outcome = await run();
+        }
+        finally
+        {
+            _ownRun = false;
+        }
 
         // 這之後 IsResponding 已經是 false、StopAndWaitAsync 也不會再等：金鑰視窗可能開很久，
         // 期間使用者可以自由切換對話，所以下面每一步都要確認「還是當初那則對話」。
         if (outcome.Unexpected)
         {
-            if (conversationId == _conversationId)
+            if (conversationId == CurrentConversationId)
                 ErrorMessage = Strings.Workbench_UnexpectedError;
-            await History.RefreshAsync(_conversationId);
+            await History.RefreshAsync(CurrentConversationId);
             return;
         }
 
         if (outcome.Failure is not { } failure)
         {
-            await History.RefreshAsync(_conversationId);
+            await History.RefreshAsync(CurrentConversationId);
             return;
         }
 
-        if (reloadOnFailure && conversationId == _conversationId)
+        if (reloadOnFailure && conversationId == CurrentConversationId)
             await ReloadMessagesAsync();   // 重新產生失敗時，資料庫裡舊答案可能已經被移除了：畫面跟著重讀
 
         if (ToPromptReason(failure.Kind) is { } reason && await _apiKeyPrompt.PromptAsync(reason))
         {
-            if (conversationId == _conversationId && !IsResponding)
+            if (conversationId == CurrentConversationId && !IsResponding)
                 await RetryAsync();
             return;
         }
 
-        if (conversationId == _conversationId)
+        if (conversationId == CurrentConversationId)
             ErrorMessage = failure.Message;
-        await History.RefreshAsync(_conversationId);
+        await History.RefreshAsync(CurrentConversationId);
     }
 
-    private async Task<StreamOutcome> StreamPhaseAsync(Func<CancellationToken, IAsyncEnumerable<ChatEvent>> start, bool removeLastAssistantFirst)
+    private void OnRunStarted(object? sender, RunStartedArgs args)
     {
-        var done = new TaskCompletionSource();
-        _responseDone = done;
         ErrorMessage = null;
         IsResponding = true;
 
-        // 重新產生會移除整輪（氣泡與工具段落都要一起移除，一路到最後一則使用者訊息）
-        while (removeLastAssistantFirst && Messages.LastOrDefault() is { IsUser: false } old)
-            Messages.Remove(old);
+        if (args.Kind == ChatRunKind.Regenerate)
+        {
+            // 重新產生會移除整輪（氣泡與工具段落都要一起移除，一路到最後一則使用者訊息）
+            while (Messages.LastOrDefault() is { IsUser: false } old)
+                Messages.Remove(old);
+        }
+        else if (!_ownRun && args.Kind == ChatRunKind.Send && args.UserText is { } text)
+        {
+            // 別處（小精靈）送出的：同一則對話，使用者的訊息也要出現在這裡
+            if (Messages.Count == 0)
+                Title = ConversationService.MakeTitle(text);
+            Messages.Add(MessageViewModel.User(text));
+        }
+
+        _cards.Clear();
+        _usedTools = false;
+        _runConnectionId = WorkbenchModel?.Connection.Id;
 
         // 等待回應的氣泡（還沒有文字時顯示「…」）。一輪裡每次呼叫供應商各用一個氣泡；
         // 呼叫工具之間沒有文字的話不留氣泡。
-        var bubble = StartBubble();
-        var cards = new Dictionary<string, ToolCardViewModel>(StringComparer.Ordinal);
-        var usedTools = false;
+        _bubble = StartBubble();
+    }
 
-        MessageViewModel StartBubble()
-        {
-            var created = MessageViewModel.StreamingAssistant();
-            Messages.Add(created);
-            RefreshMessageState();
-            return created;
-        }
+    private MessageViewModel StartBubble()
+    {
+        var created = MessageViewModel.StreamingAssistant();
+        Messages.Add(created);
+        RefreshMessageState();
+        return created;
+    }
 
-        void DropBubble()
-        {
-            if (bubble is not null)
-                Messages.Remove(bubble);
-            bubble = null;
-        }
+    private void DropBubble()
+    {
+        if (_bubble is not null)
+            Messages.Remove(_bubble);
+        _bubble = null;
+    }
 
-        var connectionId = WorkbenchModel?.Connection.Id;
-        using var cts = new CancellationTokenSource();
-        _responseCts = cts;
-        ChatFailure? failure = null;
-        var unexpected = false;
-        var cancelled = false;
-        try
+    private void OnEventReceived(object? sender, ChatEvent chatEvent)
+    {
+        switch (chatEvent)
         {
-            try
+            case TextDelta delta:
+                (_bubble ??= StartBubble()).AppendText(delta.Text, _time.GetUtcNow());
+                break;
+            case ThinkingDelta delta:
+                (_bubble ??= StartBubble()).AppendThinking(delta.Text, _time.GetUtcNow());
+                break;
+            case UsageEvent usage:
+                LastUsage = usage.Tokens;
+                break;
+            case Completed completed when completed.Reason == StopReason.ToolUse:
+                // 這一輪還沒結束：有文字就定稿成一個氣泡，只有思考或只有工具呼叫的中間步驟不顯示（Q5）
+                LastUsage = completed.Message.Usage ?? LastUsage;
+                if (completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0))
+                    (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
+                else
+                    DropBubble();
+                _bubble = null;
+                break;
+            case Completed completed:
+                (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
+                _bubble = null;
+                LastUsage = completed.Message.Usage ?? LastUsage;
+                if (_runConnectionId is not null)
+                    _status.Mark(_runConnectionId, ConnectionStatus.Ok);
+                break;
+            case ToolCallStarted started:
             {
-                await foreach (var chatEvent in start(cts.Token))
+                _usedTools = true;
+                if (_bubble is { HasText: false, HasThinking: false })
+                    DropBubble();   // 等下一次回應用的空氣泡讓位給新的卡片
+
+                if (Messages.LastOrDefault() is not ToolRunViewModel run)
                 {
-                    switch (chatEvent)
-                    {
-                        case TextDelta delta:
-                            (bubble ??= StartBubble()).AppendText(delta.Text, _time.GetUtcNow());
-                            break;
-                        case ThinkingDelta delta:
-                            (bubble ??= StartBubble()).AppendThinking(delta.Text, _time.GetUtcNow());
-                            break;
-                        case UsageEvent usage:
-                            LastUsage = usage.Tokens;
-                            break;
-                        case Completed completed when completed.Reason == StopReason.ToolUse:
-                            // 這一輪還沒結束：有文字就定稿成一個氣泡，只有思考或只有工具呼叫的中間步驟不顯示（Q5）
-                            LastUsage = completed.Message.Usage ?? LastUsage;
-                            if (completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0))
-                                (bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
-                            else
-                                DropBubble();
-                            bubble = null;
-                            break;
-                        case Completed completed:
-                            (bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
-                            bubble = null;
-                            LastUsage = completed.Message.Usage ?? LastUsage;
-                            if (connectionId is not null)
-                                _status.Mark(connectionId, ConnectionStatus.Ok);
-                            break;
-                        case ToolCallStarted started:
-                        {
-                            usedTools = true;
-                            if (bubble is { HasText: false, HasThinking: false })
-                                DropBubble();   // 等下一次回應用的空氣泡讓位給新的卡片
-
-                            if (Messages.LastOrDefault() is not ToolRunViewModel run)
-                            {
-                                run = new ToolRunViewModel();
-                                Messages.Add(run);
-                            }
-                            var card = NewCard(started.CallId, started.ToolName, started.DisplayName, started.Permission, started.Target, started.ArgumentsJson);
-                            cards[started.CallId] = card;
-                            run.Cards.Add(card);
-                            RefreshMessageState();
-                            break;
-                        }
-                        case ApprovalRequired approval:
-                            if (cards.TryGetValue(approval.Request.CallId, out var waiting))
-                                waiting.SetAwaiting(approval.Request);
-                            break;
-                        case ToolCallCompleted finished:
-                            if (cards.TryGetValue(finished.CallId, out var finishedCard))
-                                finishedCard.Complete(finished.Result);
-                            bubble ??= StartBubble();   // 工具跑完，等模型根據結果回應
-                            break;
-                        case Failed failed:
-                            failure = failed.Failure;
-                            if (connectionId is not null && ConnectionStatusCache.StatusAfterFailure(failed.Failure.Kind) is { } status)
-                                _status.Mark(connectionId, status);
-                            break;
-                    }
+                    run = new ToolRunViewModel();
+                    Messages.Add(run);
                 }
+                var card = NewCard(started.CallId, started.ToolName, started.DisplayName, started.Permission, started.Target, started.ArgumentsJson);
+                _cards[started.CallId] = card;
+                run.Cards.Add(card);
+                RefreshMessageState();
+                break;
             }
-            catch (OperationCanceledException) when (cts.IsCancellationRequested)
-            {
-                cancelled = true;
-                // 使用者按了停止：有文字就標示已停止（ConversationService 已存檔），沒有就移除
-                if (bubble is { IsStreaming: true })
-                {
-                    if (bubble.HasText)
-                        bubble.MarkStopped(_time.GetUtcNow());
-                    else
-                        DropBubble();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "對話回應發生未預期的錯誤");
-                unexpected = true;
-            }
-
-            // 失敗的回應不存檔（Q15），畫面上也移除，改顯示錯誤列。前面已經完成的氣泡與工具卡片都存了，保留。
-            if ((unexpected || failure is not null) && bubble is { IsStreaming: true })
-                DropBubble();
+            case ApprovalRequired approval:
+                if (_cards.TryGetValue(approval.Request.CallId, out var waiting))
+                    waiting.SetAwaiting(approval.Request);
+                break;
+            case ToolCallCompleted finished:
+                if (_cards.TryGetValue(finished.CallId, out var finishedCard))
+                    finishedCard.Complete(finished.Result);
+                _bubble ??= StartBubble();   // 工具跑完，等模型根據結果回應
+                break;
+            case Failed failed:
+                if (_runConnectionId is not null && ConnectionStatusCache.StatusAfterFailure(failed.Failure.Kind) is { } status)
+                    _status.Mark(_runConnectionId, status);
+                break;
         }
-        finally
+    }
+
+    private void OnRunFinished(object? sender, RunFinishedArgs args)
+    {
+        var result = args.Result;
+        if (result.Cancelled)
         {
-            _responseCts = null;
-            _responseDone = null;
-            IsResponding = false;
-            RefreshMessageState();
-            try
+            // 使用者按了停止：有文字就標示已停止（ConversationService 已存檔），沒有就移除
+            if (_bubble is { IsStreaming: true })
             {
-                // 有用到工具的這一輪被停止：ConversationService 已經補好「已停止」結果並存檔，畫面從資料庫重讀才和存檔一致
-                if (cancelled && usedTools && _conversationId is not null)
-                    await ReloadMessagesAsync();
-            }
-            finally
-            {
-                done.TrySetResult();   // 收尾全部做完才通知：StopAndWaitAsync 之後可以放心換掉訊息列表
+                if (_bubble.HasText)
+                    _bubble.MarkStopped(_time.GetUtcNow());
+                else
+                    DropBubble();
             }
         }
 
-        return new StreamOutcome(failure, unexpected);
+        // 失敗的回應不存檔（Q15），畫面上也移除，改顯示錯誤列。前面已經完成的氣泡與工具卡片都存了，保留。
+        if ((result.Unexpected || result.Failure is not null) && _bubble is { IsStreaming: true })
+            DropBubble();
+
+        IsResponding = false;
+        RefreshMessageState();
+
+        // 有用到工具的這一輪被停止：ConversationService 已經補好「已停止」結果並存檔，畫面從資料庫重讀才和存檔一致
+        if (result.Cancelled && _usedTools && CurrentConversationId is not null)
+            args.Defer(ReloadMessagesAsync());
+
+        if (!_ownRun)
+        {
+            // 小精靈發起的：失敗只顯示在錯誤列（金鑰提示與重送由發起的那一邊處理）
+            if (result.Unexpected)
+                ErrorMessage = Strings.Workbench_UnexpectedError;
+            else if (result.Failure is { } failure)
+                ErrorMessage = failure.Message;
+            args.Defer(History.RefreshAsync(CurrentConversationId));
+        }
+
+        _bubble = null;
+        _cards.Clear();
+    }
+
+    /// <summary>別處（小精靈的氣泡）回答了權限確認：這裡的卡片同步更新（ui-spec 2.2）。</summary>
+    private void OnApprovalResolved(object? sender, ApprovalResolved resolved)
+    {
+        if (_cards.TryGetValue(resolved.CallId, out var card))
+            card.ApplyResolved(resolved.Decision);
     }
 
     private static ApiKeyPromptReason? ToPromptReason(ChatFailureKind kind) => kind switch
