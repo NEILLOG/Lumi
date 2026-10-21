@@ -210,7 +210,7 @@ public class WorkbenchSpriteModeTests
         window.Show();
         await rig.Vm.InitializeAsync();
         var banner = window.FindControl<Border>("ViewOnlyBanner")!;
-        var input = window.FindControl<TextBox>("InputBox")!;
+        var input = window.FindByName<TextBox>("InputBox");
         Assert.False(banner.IsVisible);
         Assert.True(input.IsEnabled);
 

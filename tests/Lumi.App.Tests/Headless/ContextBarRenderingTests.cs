@@ -77,10 +77,10 @@ public class ContextBarRenderingTests
         var rig = new Rig();
         var window = await ShowAsync(rig);
 
-        Assert.False(window.FindControl<StackPanel>("ContextBar")!.IsEffectivelyVisible);
-        Assert.True(window.FindControl<Button>("AddFileButton")!.IsEffectivelyVisible);
-        Assert.True(window.FindControl<Button>("AddFolderButton")!.IsEffectivelyVisible);
-        Assert.True(window.FindControl<Border>("InputArea")!.GetValue(DragDrop.AllowDropProperty));
+        Assert.False(window.FindByName<StackPanel>("ContextBar").IsEffectivelyVisible);
+        Assert.True(window.FindByName<Button>("AddFileButton").IsEffectivelyVisible);
+        Assert.True(window.FindByName<Button>("AddFolderButton").IsEffectivelyVisible);
+        Assert.True(window.FindByName<Border>("InputArea").GetValue(DragDrop.AllowDropProperty));
     }
 
     [AvaloniaFact]
@@ -94,7 +94,7 @@ public class ContextBarRenderingTests
         await rig.Bar.AddPathsAsync(["/proj", "/a.txt"]);
         window.UpdateLayout();
 
-        var bar = window.FindControl<StackPanel>("ContextBar")!;
+        var bar = window.FindByName<StackPanel>("ContextBar");
         Assert.True(bar.IsEffectivelyVisible);
         var texts = VisibleTexts(bar).ToList();
         Assert.Contains("此對話的上下文", texts);
@@ -104,7 +104,7 @@ public class ContextBarRenderingTests
         Assert.Contains("太大，由模型按需讀取", texts);
         Assert.Contains(texts, t => t.StartsWith("≈ ") && t.EndsWith("tokens"));
         // 資料夾 chip 是琥珀淡底、有問題的 chip 是警告色
-        var chips = All<Border>(window.FindControl<ItemsControl>("ContextChips")!).Where(b => b.Classes.Contains("chip")).ToList();
+        var chips = All<Border>(window.FindByName<ItemsControl>("ContextChips")).Where(b => b.Classes.Contains("chip")).ToList();
         Assert.Equal(2, chips.Count);
         Assert.Contains("folder", chips[0].Classes);
         Assert.Contains("problem", chips[1].Classes);
@@ -118,13 +118,13 @@ public class ContextBarRenderingTests
         var window = await ShowAsync(rig);
         await rig.Bar.AddPathsAsync(["/a.txt"]);
         window.UpdateLayout();
-        var remove = All<Button>(window.FindControl<ItemsControl>("ContextChips")!).Single(b => b.Content as string == "×");
+        var remove = All<Button>(window.FindByName<ItemsControl>("ContextChips")).Single(b => b.Content as string == "×");
 
         Click(window, remove);
         await SettingsHost.WaitUntil(() => !rig.Bar.HasItems);
         window.UpdateLayout();
 
-        Assert.False(window.FindControl<StackPanel>("ContextBar")!.IsEffectivelyVisible);
+        Assert.False(window.FindByName<StackPanel>("ContextBar").IsEffectivelyVisible);
     }
 
     [AvaloniaFact]
@@ -136,9 +136,9 @@ public class ContextBarRenderingTests
         rig.Picker.Folder = "/proj";
         var window = await ShowAsync(rig);
 
-        Click(window, window.FindControl<Button>("AddFileButton")!);
+        Click(window, window.FindByName<Button>("AddFileButton"));
         await SettingsHost.WaitUntil(() => rig.Picker.FilePicks == 1 && rig.Bar.Items.Count == 1);
-        Click(window, window.FindControl<Button>("AddFolderButton")!);
+        Click(window, window.FindByName<Button>("AddFolderButton"));
         await SettingsHost.WaitUntil(() => rig.Picker.FolderPicks == 1 && rig.Bar.Items.Count == 2);
 
         Assert.Equal(["a.txt", "proj"], rig.Bar.Items.Select(c => c.DisplayName));
@@ -154,8 +154,8 @@ public class ContextBarRenderingTests
         rig.Vm.IsResponding = true;
         window.UpdateLayout();
 
-        Assert.False(window.FindControl<Button>("AddFileButton")!.IsEffectivelyEnabled);
-        Assert.False(window.FindControl<Button>("AddFolderButton")!.IsEffectivelyEnabled);
+        Assert.False(window.FindByName<Button>("AddFileButton").IsEffectivelyEnabled);
+        Assert.False(window.FindByName<Button>("AddFolderButton").IsEffectivelyEnabled);
         Assert.Contains("回應中不能更改上下文", VisibleTexts(window));
     }
 
@@ -168,7 +168,7 @@ public class ContextBarRenderingTests
         await rig.Bar.AddPathsAsync(["/a.txt", "/gone.md"]);
         window.UpdateLayout();
 
-        Assert.Contains("找不到：gone.md", VisibleTexts(window.FindControl<StackPanel>("ContextBar")!));
+        Assert.Contains("找不到：gone.md", VisibleTexts(window.FindByName<StackPanel>("ContextBar")));
     }
 
     [AvaloniaFact]
@@ -181,7 +181,7 @@ public class ContextBarRenderingTests
         rig.Bar.ContextWindow = 10;
         window.UpdateLayout();
 
-        Assert.Contains("⚠", VisibleTexts(window.FindControl<StackPanel>("ContextBar")!));
+        Assert.Contains("⚠", VisibleTexts(window.FindByName<StackPanel>("ContextBar")));
     }
 
     [AvaloniaFact]

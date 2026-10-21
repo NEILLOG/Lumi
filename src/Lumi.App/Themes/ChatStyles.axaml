@@ -1,0 +1,38 @@
+<!--
+  對話視窗的元件共用樣式（ChatToolbar、ConversationView、ChatComposer 都會用到）：chrome／small 按鈕、muted 文字、chip。
+  各 UserControl 用 StyleInclude 載入；只引用 token。工具列、輸入區專用的樣式（capsule、round、dropping）留在各自的元件裡。
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Button.chrome">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Button.small">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+  </Style>
+  <!-- 上下文 chip（輸入框上方）與使用者氣泡上的 chip -->
+  <Style Selector="Border.chip">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="9,3,4,3" />
+  </Style>
+  <Style Selector="Border.chip.folder">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+  </Style>
+  <Style Selector="Border.chip.problem">
+    <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+  </Style>
+</Styles>

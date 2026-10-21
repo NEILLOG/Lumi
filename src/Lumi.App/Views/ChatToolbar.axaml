@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.ChatToolbar"
+             x:DataType="vm:WorkbenchViewModel">
+
+  <UserControl.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <Style Selector="Button.capsule">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="14,5" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- 工具列：歷史、新對話、模型膠囊、設定。下一個任務（UB）才會重做內容 -->
+  <Border Padding="12,8"
+          Background="{DynamicResource LumiChromeBrush}"
+          BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
+    <Grid ColumnDefinitions="Auto,*,Auto">
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
+        <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_History}" Command="{Binding History.ToggleCommand}" />
+        <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_NewConversation}" Command="{Binding NewConversationCommand}" />
+      </StackPanel>
+
+      <!-- 模型切換膠囊：狀態點、模型名稱、連線名稱、下拉箭頭。回應中停用並說明原因 -->
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Button x:Name="CapsuleButton" Classes="capsule" IsEnabled="{Binding CanSwitchModel}">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedLeft">
+              <views:ModelPicker DataContext="{Binding ModelSwitcher}" />
+            </Flyout>
+          </Button.Flyout>
+          <StackPanel Orientation="Horizontal" Spacing="8" DataContext="{Binding ModelSwitcher}" x:DataType="vm:ModelSwitcherViewModel">
+            <Panel Width="10" VerticalAlignment="Center">
+              <Ellipse Width="9" Height="9" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessBrush}" />
+              <Ellipse Width="9" Height="9" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerBrush}" />
+              <Ellipse Width="9" Height="9" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiBorderStrongBrush}" />
+            </Panel>
+            <TextBlock Text="{Binding CapsuleText}" FontWeight="Medium" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding CurrentConnectionName}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Text="▾" Classes="muted" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <TextBlock IsVisible="{Binding ShowSwitchBlockedHint}" Text="{x:Static res:Strings.Workbench_SwitchBlocked}"
+                   Classes="muted" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+        <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}" Command="{Binding OpenSettingsCommand}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>
