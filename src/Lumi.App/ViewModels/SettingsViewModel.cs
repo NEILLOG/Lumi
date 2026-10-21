@@ -1,16 +1,18 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Models;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>設定視窗：左側分類（連線與模型、人格與主動性、一般、小精靈），「連線與模型」內分連線、模型設定兩個分頁。</summary>
+/// <summary>設定視窗：左側分類（AI 連線、人格與主動性、外觀與操作、小精靈），「AI 連線」內分連線、模型設定兩個分頁。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
+    private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, GeneralViewModel general,
-        SpriteSettingsViewModel sprite, IModelCatalog catalog, IConfirmService confirm)
+        SpriteSettingsViewModel sprite, IModelCatalog catalog, IConfirmService confirm, ISettingsWindowService? windows = null)
     {
         Connections = connections;
         Models = models;
@@ -18,6 +20,7 @@ public partial class SettingsViewModel : ObservableObject
         General = general;
         Sprite = sprite;
         _confirm = confirm;
+        _windows = windows;
         LoadProblem = catalog.LoadProblem;
     }
 
@@ -36,11 +39,11 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool HasLoadProblem => LoadProblem is not null;
 
-    /// <summary>左側分類：0 = 連線與模型、1 = 人格與主動性、2 = 一般、3 = 小精靈。</summary>
+    /// <summary>左側分類：0 = AI 連線、1 = 人格與主動性、2 = 外觀與操作、3 = 小精靈。</summary>
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowGeneral), nameof(ShowSprite))]
     private int _categoryIndex;
 
-    /// <summary>「連線與模型」內的分頁：0 = 連線、1 = 模型設定。</summary>
+    /// <summary>「AI 連線」內的分頁：0 = 連線、1 = 模型設定。</summary>
     [ObservableProperty]
     private int _tabIndex;
 
@@ -51,6 +54,18 @@ public partial class SettingsViewModel : ObservableObject
     public bool ShowGeneral => CategoryIndex == 2;
 
     public bool ShowSprite => CategoryIndex == 3;
+
+    /// <summary>Menu 底部的版本說明（例如「Lumi 1.0.0」）。</summary>
+    public string VersionText { get; } =
+        string.Format(Strings.Settings_MenuVersion, typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
+
+    /// <summary>Menu 的「回到對話」：關閉設定視窗並顯示工作台（有未儲存的變更先詢問，取消就留在設定）。</summary>
+    [RelayCommand]
+    private async Task ReturnToChatAsync()
+    {
+        if (_windows is not null)
+            await _windows.ReturnToWorkbench();
+    }
 
     public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty;
 

@@ -40,10 +40,11 @@ internal sealed class SettingsHost : IDisposable
         General = new GeneralViewModel(Catalog, dispatcher);
         SpriteCatalog = spriteCatalog;
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
-        Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Catalog, Confirm);
+        Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
+    public FakeSettingsWindowService WindowService { get; } = new();
     public InMemorySecretStore Secrets { get; } = new();
     public FakeConnectionTester Tester { get; } = new();
     public FakeConfirmService Confirm { get; } = new();

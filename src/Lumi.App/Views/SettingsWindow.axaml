@@ -2,12 +2,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Lumi.App.ViewModels"
         xmlns:res="using:Lumi.App.Resources"
+        xmlns:ctl="using:Lumi.App.Controls"
         xmlns:views="using:Lumi.App.Views"
         x:Class="Lumi.App.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="{x:Static res:Strings.Settings_Title}"
         Width="900" Height="640" MinWidth="720" MinHeight="480"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="PreferSystemChrome"
+        ExtendClientAreaTitleBarHeightHint="40">
 
   <Window.Styles>
     <Style Selector="TextBlock.muted">
@@ -45,31 +49,176 @@
     <Style Selector="ListBoxItem:selected TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
+
+    <!-- Menu（ui-guide.html 第 3 節）：項目圓角 10；選取＝Soft 底＋OnSoft 文字；停用＝淡色，說明另外寫在 Caption -->
+    <Style Selector="ListBox.menu">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.menu ListBoxItem">
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="ListBox.menu ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="ListBox.menu ListBoxItem:selected /template/ ContentPresenter, ListBox.menu ListBoxItem:selected:pointerover /template/ ContentPresenter, ListBox.menu ListBoxItem:selected:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="ListBox.menu ListBoxItem:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <Style Selector="ListBox.menu ListBoxItem TextBlock.menu-main">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox.menu ListBoxItem TextBlock.menu-caption">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
   </Window.Styles>
 
-  <Grid ColumnDefinitions="190,*">
+  <Grid RowDefinitions="Auto,*">
 
-    <!-- 左側分類 -->
-    <Border Grid.Column="0" Background="{DynamicResource LumiChromeBrush}"
+    <!-- 自訂標題列：只要 L 標誌與品牌，沒有小精靈按鈕（不需要工作台的 DataContext） -->
+    <views:CustomTitleBar x:Name="TitleBar" Grid.Row="0" ShowSpriteButton="False" DataContext="{x:Null}" />
+
+    <Grid Grid.Row="1" ColumnDefinitions="240,*">
+
+    <!-- 左側 Menu（寬 240）：標題區、回到對話、分類、即將推出、底部說明 -->
+    <Border x:Name="Menu" Grid.Column="0" Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
-      <ListBox SelectedIndex="{Binding CategoryIndex}" Background="Transparent" Margin="8">
-        <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryConnections}" Padding="12,9" />
-        <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryPersona}" Padding="12,9" />
-        <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryGeneral}" Padding="12,9" />
-        <ListBoxItem Content="{x:Static res:Strings.Settings_CategorySprite}" Padding="12,9" />
-      </ListBox>
+      <DockPanel Margin="16">
+
+        <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="8,16,8,0">
+          <TextBlock x:Name="MenuVersion" Text="{Binding VersionText}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                     Foreground="{DynamicResource LumiTextMutedBrush}" />
+          <TextBlock x:Name="MenuKeysNote" Text="{x:Static res:Strings.Settings_MenuKeysNote}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                     Foreground="{DynamicResource LumiTextMutedBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- 標題區 -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="8,0,8,0">
+          <Border Grid.Column="0" Width="32" Height="32" CornerRadius="{StaticResource LumiRadiusInput}" Margin="0,0,12,0"
+                  Background="{DynamicResource LumiAccentSoftBrush}">
+            <TextBlock Text="{x:Static res:Strings.TitleBar_LogoMark}" FontWeight="Bold" FontSize="{DynamicResource LumiFontSizeBody}"
+                       Foreground="{DynamicResource LumiAccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock x:Name="MenuTitle" Text="{x:Static res:Strings.Settings_MenuTitle}" FontSize="{DynamicResource LumiFontSizeBody}" FontWeight="Bold"
+                       Foreground="{DynamicResource LumiTextBrush}" />
+            <TextBlock Text="{x:Static res:Strings.Settings_MenuSubtitle}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                       Foreground="{DynamicResource LumiTextMutedBrush}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+
+        <!-- 回到對話（tertiary）：關閉設定、顯示工作台；有未儲存的變更先詢問 -->
+        <Button x:Name="BackToChatButton" DockPanel.Dock="Top" Classes="tertiary" Margin="0,16,0,0"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,8"
+                Command="{Binding ReturnToChatCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Settings_BackToChatTip}"
+                AutomationProperties.Name="{x:Static res:Strings.Settings_BackToChat}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconArrowLeft}" Size="16" />
+            <TextBlock Text="{x:Static res:Strings.Settings_BackToChat}" FontSize="{DynamicResource LumiFontSizeBody}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <Border DockPanel.Dock="Top" Classes="divider" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 外觀與操作、3 小精靈） -->
+            <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}">
+              <ListBoxItem x:Name="CategoryConnections" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconDiamond}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryConnections}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryConnectionsSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategoryPersona" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPersona}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconUser}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryPersona}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryPersonaSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategoryGeneral" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryGeneral}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSun}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryGeneral}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryGeneralSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategorySprite" AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySprite}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSparkle}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategorySprite}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategorySpriteSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+            </ListBox>
+
+            <Border Classes="divider" />
+
+            <!-- 還沒有後端的項目：停用，可見的 Caption 與 Tooltip 都寫「即將推出」 -->
+            <ListBox x:Name="ComingSoonList" Classes="menu" Focusable="False" SelectionMode="Single">
+              <ListBoxItem x:Name="CategoryHome" IsEnabled="False" ToolTip.Tip="{x:Static res:Strings.Settings_ComingSoon}" ToolTip.ShowOnDisabled="True"
+                           AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryHome}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconHome}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryHome}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_ComingSoon}" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategoryPrivacy" IsEnabled="False" ToolTip.Tip="{x:Static res:Strings.Settings_ComingSoon}" ToolTip.ShowOnDisabled="True"
+                           AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPrivacy}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconShield}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryPrivacy}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_ComingSoon}" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+            </ListBox>
+          </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
     </Border>
 
     <Grid Grid.Column="1" RowDefinitions="Auto,*">
 
       <!-- 設定檔損毀或版本太新 -->
-      <Border Grid.Row="0" IsVisible="{Binding HasLoadProblem}" Margin="16,16,16,0" Padding="14,10" CornerRadius="10" BorderThickness="1"
+      <Border Grid.Row="0" IsVisible="{Binding HasLoadProblem}" Margin="32,16,32,0" Padding="12,8" CornerRadius="10" BorderThickness="1"
               Background="{DynamicResource LumiWarningBackgroundBrush}" BorderBrush="{DynamicResource LumiWarningBorderBrush}">
         <TextBlock Text="{Binding LoadProblem}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
       </Border>
 
       <!-- ===== 連線與模型 ===== -->
-      <TabControl Grid.Row="1" IsVisible="{Binding ShowConnectionsAndModels}" SelectedIndex="{Binding TabIndex}" Margin="8,8,8,12">
+      <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowConnectionsAndModels}" Margin="32">
+      <views:SettingsPageHeader x:Name="ConnectionsHeader" Grid.Row="0"
+                                Eyebrow="{x:Static res:Strings.Settings_CategoryConnections}"
+                                Title="{x:Static res:Strings.Settings_HeaderConnectionsTitle}"
+                                Description="{x:Static res:Strings.Settings_HeaderConnectionsDescription}" />
+      <TabControl Grid.Row="1" SelectedIndex="{Binding TabIndex}">
 
         <!-- 連線 -->
         <TabItem Header="{x:Static res:Strings.Settings_TabConnections}">
@@ -266,10 +415,16 @@
           </Grid>
         </TabItem>
       </TabControl>
+      </Grid>
 
       <!-- ===== 人格與主動性 ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowPersona}">
-        <StackPanel Margin="24" Spacing="8" DataContext="{Binding Persona}" x:DataType="vm:PersonaViewModel" MaxWidth="520" HorizontalAlignment="Left">
+       <StackPanel Margin="32">
+        <views:SettingsPageHeader x:Name="PersonaHeader"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategoryPersona}"
+                                  Title="{x:Static res:Strings.Settings_HeaderPersonaTitle}"
+                                  Description="{x:Static res:Strings.Settings_HeaderPersonaDescription}" />
+        <StackPanel Spacing="8" DataContext="{Binding Persona}" x:DataType="vm:PersonaViewModel" MaxWidth="520" HorizontalAlignment="Left">
           <TextBlock Classes="label" Text="{x:Static res:Strings.Persona_Style}" />
           <ComboBox x:Name="PersonaStyleBox" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch">
             <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PersonaStyleOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
@@ -299,11 +454,17 @@
           </StackPanel>
           <TextBlock Classes="muted" IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
         </StackPanel>
+       </StackPanel>
       </ScrollViewer>
 
       <!-- ===== 一般 ===== -->
-      <Panel Grid.Row="1" IsVisible="{Binding ShowGeneral}">
-      <StackPanel Margin="24" Spacing="8" DataContext="{Binding General}" x:DataType="vm:GeneralViewModel" MaxWidth="420" HorizontalAlignment="Left">
+      <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowGeneral}">
+       <StackPanel Margin="32">
+        <views:SettingsPageHeader x:Name="GeneralHeader"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategoryGeneral}"
+                                  Title="{x:Static res:Strings.Settings_HeaderGeneralTitle}"
+                                  Description="{x:Static res:Strings.Settings_HeaderGeneralDescription}" />
+      <StackPanel Spacing="8" DataContext="{Binding General}" x:DataType="vm:GeneralViewModel" MaxWidth="420" HorizontalAlignment="Left">
         <TextBlock Classes="label" Text="{x:Static res:Strings.General_Theme}" />
         <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" HorizontalAlignment="Stretch">
           <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ThemeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
@@ -314,11 +475,17 @@
         </ComboBox>
         <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
-      </Panel>
+       </StackPanel>
+      </ScrollViewer>
 
       <!-- ===== 小精靈：角色、尺寸、語氣、狀態預覽（選了立即生效） ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSprite}">
-        <Grid x:Name="SpritePanel" Margin="24" ColumnDefinitions="240,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
+       <StackPanel Margin="32">
+        <views:SettingsPageHeader x:Name="SpriteHeader"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategorySprite}"
+                                  Title="{x:Static res:Strings.Settings_HeaderSpriteTitle}"
+                                  Description="{x:Static res:Strings.Settings_HeaderSpriteDescription}" />
+        <Grid x:Name="SpritePanel" ColumnDefinitions="240,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
           <!-- 預覽區：用同一個角色即時播放所選的狀態 -->
           <Border Grid.Column="0" VerticalAlignment="Top" Height="240" CornerRadius="14" BorderThickness="1" Margin="0,0,24,0"
                   Background="{DynamicResource LumiSurfaceAltBrush}" BorderBrush="{DynamicResource LumiBorderBrush}">
@@ -401,7 +568,9 @@
             <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
           </StackPanel>
         </Grid>
+       </StackPanel>
       </ScrollViewer>
+    </Grid>
     </Grid>
   </Grid>
 </Window>

@@ -65,18 +65,19 @@ public partial class SettingsWindow : Window
         if (!_closeConfirmed && ViewModel.HasUnsavedChanges)
         {
             e.Cancel = true;
-            _ = ConfirmAndCloseAsync();
+            _ = TryCloseAsync();
             return;
         }
         base.OnClosing(e);
     }
 
-    private async Task ConfirmAndCloseAsync()
+    /// <summary>有未儲存的變更就先詢問；確認（或沒有變更）就關閉視窗。使用者取消回 false，視窗留著。</summary>
+    internal async Task<bool> TryCloseAsync()
     {
-        if (await ViewModel.ConfirmCloseAsync())
-        {
-            _closeConfirmed = true;
-            Close();
-        }
+        if (!await ViewModel.ConfirmCloseAsync())
+            return false;
+        _closeConfirmed = true;
+        Close();
+        return true;
     }
 }

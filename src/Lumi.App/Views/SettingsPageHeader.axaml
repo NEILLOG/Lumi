@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.SettingsPageHeader"
+             x:Name="HeaderRoot">
+
+  <!-- 設定頁頁首（ui-guide.html 第 2、6 節）：eyebrow（Caption／Accent 文字色）、頁面標題 28／700、說明（Body／muted），
+       右側放該頁唯一的主要動作（內容屬性 Actions）。下方留 24 與頁面內容分開 -->
+  <Grid x:Name="HeaderGrid" ColumnDefinitions="*,Auto" Margin="0,0,0,24">
+    <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+      <TextBlock x:Name="EyebrowText" Text="{Binding #HeaderRoot.Eyebrow}"
+                 IsVisible="{Binding #HeaderRoot.Eyebrow, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" FontWeight="Bold"
+                 Foreground="{DynamicResource LumiAccentTextBrush}" />
+      <TextBlock x:Name="TitleText" Text="{Binding #HeaderRoot.Title}"
+                 FontSize="{DynamicResource LumiFontSizeDisplay}" FontWeight="Bold"
+                 Foreground="{DynamicResource LumiTextBrush}" TextWrapping="Wrap" />
+      <TextBlock x:Name="DescriptionText" Text="{Binding #HeaderRoot.Description}"
+                 IsVisible="{Binding #HeaderRoot.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                 FontSize="{DynamicResource LumiFontSizeBody}"
+                 Foreground="{DynamicResource LumiTextMutedBrush}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <!-- 該頁唯一的主要動作；沒有內容時不佔位置 -->
+    <ContentPresenter x:Name="ActionsHost" Grid.Column="1" Content="{Binding #HeaderRoot.Actions}"
+                      IsVisible="{Binding #HeaderRoot.Actions, Converter={x:Static ObjectConverters.IsNotNull}}"
+                      Margin="24,0,0,0" VerticalAlignment="Center" />
+  </Grid>
+</UserControl>

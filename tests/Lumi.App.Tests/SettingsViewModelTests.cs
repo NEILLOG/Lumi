@@ -68,4 +68,16 @@ public sealed class SettingsViewModelTests
         Assert.True(host.Settings.HasLoadProblem);
         Assert.Contains("較新版本", host.Settings.LoadProblem);
     }
+
+    [Fact]
+    public async Task ReturnToChat_AsksTheWindowServiceToReturnToTheWorkbench()
+    {
+        using var host = new SettingsHost();
+        Assert.Equal(0, host.WindowService.ReturnToWorkbenchCalls);
+
+        await host.Settings.ReturnToChatCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, host.WindowService.ReturnToWorkbenchCalls);
+        Assert.StartsWith("Lumi ", host.Settings.VersionText);
+    }
 }

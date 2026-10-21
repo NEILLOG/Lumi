@@ -86,6 +86,9 @@ public sealed class CompositionRootTests : IDisposable
         var modes = services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>();
         Assert.Same(modes, services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>());
         Assert.IsType<Lumi.App.Views.WindowHost>(services.GetRequiredService<Lumi.App.Services.IWindowHost>());
+        // UD-1：設定視窗的「回到對話」要用協調者開工作台；設定視窗服務與設定 ViewModel 能解析（沒有循環相依）
+        Assert.IsType<Lumi.App.Views.SettingsWindowService>(services.GetRequiredService<Lumi.App.ViewModels.ISettingsWindowService>());
+        Assert.NotNull(services.GetRequiredService<Lumi.App.ViewModels.SettingsViewModel>());
         Assert.IsType<Lumi.App.Sprites.SpriteVoiceProvider>(services.GetRequiredService<Lumi.Core.Prompts.ISpriteVoiceProvider>());
         Assert.Equal([Lumi.Sprites.Orb.OrbSpriteFactory.SpriteId], services.GetRequiredService<Lumi.Sprites.Abstractions.ISpriteCatalog>().All.Select(f => f.Manifest.Id));
         // M8：角色目錄可以重新載入（素材型角色），而且和殼、設定頁共用同一份

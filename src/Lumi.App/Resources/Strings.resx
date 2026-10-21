@@ -45,8 +45,8 @@
   <data name="Workbench_NoModel" xml:space="preserve"><value>未設定模型</value></data>
   <data name="Workbench_DismissNotice" xml:space="preserve"><value>知道了</value></data>
   <data name="Settings_Title" xml:space="preserve"><value>設定</value></data>
-  <data name="Settings_CategoryConnections" xml:space="preserve"><value>連線與模型</value></data>
-  <data name="Settings_CategoryGeneral" xml:space="preserve"><value>一般</value></data>
+  <data name="Settings_CategoryConnections" xml:space="preserve"><value>AI 連線</value></data>
+  <data name="Settings_CategoryGeneral" xml:space="preserve"><value>外觀與操作</value></data>
   <data name="Settings_TabConnections" xml:space="preserve"><value>連線</value></data>
   <data name="Settings_TabModels" xml:space="preserve"><value>模型設定</value></data>
   <data name="Settings_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
@@ -313,4 +313,25 @@
   <data name="Workbench_ConnectionStatusFormat" xml:space="preserve"><value>連線狀態：{0}</value></data>
   <data name="Workbench_CostNote" xml:space="preserve"><value>實際費用由供應商依模型與 token 用量計算，費用由你的帳號支付。</value></data>
   <data name="Workbench_More" xml:space="preserve"><value>更多</value></data>
+  <data name="Settings_MenuTitle" xml:space="preserve"><value>Lumi 設定</value></data>
+  <data name="Settings_MenuSubtitle" xml:space="preserve"><value>個人偏好與 AI 連線</value></data>
+  <data name="Settings_BackToChat" xml:space="preserve"><value>回到對話</value></data>
+  <data name="Settings_BackToChatTip" xml:space="preserve"><value>關閉設定，回到對話</value></data>
+  <data name="Settings_CategoryConnectionsSub" xml:space="preserve"><value>供應商、金鑰與模型</value></data>
+  <data name="Settings_CategoryPersonaSub" xml:space="preserve"><value>回答風格與主動程度</value></data>
+  <data name="Settings_CategoryGeneralSub" xml:space="preserve"><value>主題、色票與明暗</value></data>
+  <data name="Settings_CategorySpriteSub" xml:space="preserve"><value>角色、尺寸與語氣</value></data>
+  <data name="Settings_CategoryHome" xml:space="preserve"><value>設定首頁</value></data>
+  <data name="Settings_CategoryPrivacy" xml:space="preserve"><value>資料與隱私</value></data>
+  <data name="Settings_ComingSoon" xml:space="preserve"><value>即將推出</value></data>
+  <data name="Settings_MenuVersion" xml:space="preserve"><value>Lumi {0}</value></data>
+  <data name="Settings_MenuKeysNote" xml:space="preserve"><value>金鑰只儲存在這台裝置</value></data>
+  <data name="Settings_HeaderConnectionsTitle" xml:space="preserve"><value>供應商與模型</value></data>
+  <data name="Settings_HeaderConnectionsDescription" xml:space="preserve"><value>新增自己的 API 金鑰，並選擇每次對話預設使用的模型。</value></data>
+  <data name="Settings_HeaderPersonaTitle" xml:space="preserve"><value>回答風格</value></data>
+  <data name="Settings_HeaderPersonaDescription" xml:space="preserve"><value>選擇 Lumi 的說話個性與主動程度，也可以補充自己的偏好。</value></data>
+  <data name="Settings_HeaderGeneralTitle" xml:space="preserve"><value>外觀與操作</value></data>
+  <data name="Settings_HeaderGeneralDescription" xml:space="preserve"><value>選擇主題色票與明暗。</value></data>
+  <data name="Settings_HeaderSpriteTitle" xml:space="preserve"><value>小精靈</value></data>
+  <data name="Settings_HeaderSpriteDescription" xml:space="preserve"><value>選擇桌面小精靈的角色、大小與語氣，並預覽各個狀態。</value></data>
 </root>

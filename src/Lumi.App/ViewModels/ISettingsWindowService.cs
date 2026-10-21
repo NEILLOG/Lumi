@@ -13,4 +13,10 @@ public interface ISettingsWindowService
 {
     /// <returns>視窗關閉時完成。</returns>
     Task ShowAsync(SettingsNavigation navigation);
+
+    /// <summary>
+    /// 設定視窗的「回到對話」：關閉設定視窗並顯示／啟用工作台。有未儲存的變更時先詢問，使用者取消就不關閉。
+    /// </summary>
+    /// <returns>true = 已回到工作台；false = 使用者取消。</returns>
+    Task<bool> ReturnToWorkbench();
 }

@@ -299,4 +299,25 @@ public static class Strings
     public static string Workbench_ConnectionStatusFormat => Get(nameof(Workbench_ConnectionStatusFormat));
     public static string Workbench_CostNote => Get(nameof(Workbench_CostNote));
     public static string Workbench_More => Get(nameof(Workbench_More));
+    public static string Settings_MenuTitle => Get(nameof(Settings_MenuTitle));
+    public static string Settings_MenuSubtitle => Get(nameof(Settings_MenuSubtitle));
+    public static string Settings_BackToChat => Get(nameof(Settings_BackToChat));
+    public static string Settings_BackToChatTip => Get(nameof(Settings_BackToChatTip));
+    public static string Settings_CategoryConnectionsSub => Get(nameof(Settings_CategoryConnectionsSub));
+    public static string Settings_CategoryPersonaSub => Get(nameof(Settings_CategoryPersonaSub));
+    public static string Settings_CategoryGeneralSub => Get(nameof(Settings_CategoryGeneralSub));
+    public static string Settings_CategorySpriteSub => Get(nameof(Settings_CategorySpriteSub));
+    public static string Settings_CategoryHome => Get(nameof(Settings_CategoryHome));
+    public static string Settings_CategoryPrivacy => Get(nameof(Settings_CategoryPrivacy));
+    public static string Settings_ComingSoon => Get(nameof(Settings_ComingSoon));
+    public static string Settings_MenuVersion => Get(nameof(Settings_MenuVersion));
+    public static string Settings_MenuKeysNote => Get(nameof(Settings_MenuKeysNote));
+    public static string Settings_HeaderConnectionsTitle => Get(nameof(Settings_HeaderConnectionsTitle));
+    public static string Settings_HeaderConnectionsDescription => Get(nameof(Settings_HeaderConnectionsDescription));
+    public static string Settings_HeaderPersonaTitle => Get(nameof(Settings_HeaderPersonaTitle));
+    public static string Settings_HeaderPersonaDescription => Get(nameof(Settings_HeaderPersonaDescription));
+    public static string Settings_HeaderGeneralTitle => Get(nameof(Settings_HeaderGeneralTitle));
+    public static string Settings_HeaderGeneralDescription => Get(nameof(Settings_HeaderGeneralDescription));
+    public static string Settings_HeaderSpriteTitle => Get(nameof(Settings_HeaderSpriteTitle));
+    public static string Settings_HeaderSpriteDescription => Get(nameof(Settings_HeaderSpriteDescription));
 }

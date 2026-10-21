@@ -1,3 +1,4 @@
+using Lumi.App.Services;
 using Lumi.App.ViewModels;
 
 namespace Lumi.App.Views;
@@ -6,12 +7,24 @@ namespace Lumi.App.Views;
 public sealed class SettingsWindowService : ISettingsWindowService
 {
     private readonly Func<SettingsWindow> _factory;
+    private readonly IAppModeCoordinator _modes;
     private SettingsWindow? _window;
     private TaskCompletionSource? _closed;
 
-    public SettingsWindowService(Func<SettingsWindow> factory)
+    public SettingsWindowService(Func<SettingsWindow> factory, IAppModeCoordinator modes)
     {
         _factory = factory;
+        _modes = modes;
+    }
+
+    public async Task<bool> ReturnToWorkbench()
+    {
+        // 先處理未儲存變更的詢問（和按右上角關閉同一條流程），取消就留在設定視窗
+        if (_window is { } window && !await window.TryCloseAsync())
+            return false;
+
+        _modes.OpenWorkbench();
+        return true;
     }
 
     public async Task ShowAsync(SettingsNavigation navigation)

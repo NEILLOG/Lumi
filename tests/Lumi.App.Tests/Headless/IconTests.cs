@@ -16,6 +16,7 @@ public class IconTests
         "LumiIconArrowUp", "LumiIconSquare", "LumiIconPaperclip", "LumiIconFolder", "LumiIconMic", "LumiIconCopy",
         "LumiIconRefresh", "LumiIconThumbsUp", "LumiIconThumbsDown", "LumiIconX", "LumiIconCheck", "LumiIconSettings",
         "LumiIconArrowLeft", "LumiIconHome", "LumiIconDiamond", "LumiIconSun", "LumiIconShield", "LumiIconAlertTriangle",
+        "LumiIconUser",
     ];
 
     private static Geometry Icon(string key)
