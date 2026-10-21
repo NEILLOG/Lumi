@@ -47,7 +47,7 @@ public class ChatComposerTests
             Vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
                 new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), time, NullLogger<WorkbenchViewModel>.Instance,
                 contextBar: Bar);
-            Window = new WorkbenchWindow(Vm);
+            Window = new WorkbenchWindow(Vm) { Width = 1200 };   // 這裡驗證 Wide 的數值（預設 960 是 Compact）
             Window.Show();
             Window.UpdateLayout();
             Composer = Window.FindByName<ChatComposer>("Composer");

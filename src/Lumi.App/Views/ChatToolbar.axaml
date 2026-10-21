@@ -28,6 +28,29 @@
       <Setter Property="MaxWidth" Value="360" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
+
+    <!--
+      RWD（根節點 class；放在最後才蓋得過上面的預設）。
+      Compact：新對話、歷史對話只剩圖示（Tooltip 與 AutomationProperties.Name 照舊）。
+      Narrow：模型膠囊改成「供應商字首方塊 + model ID」。
+    -->
+    <Style Selector="Window.compact TextBlock.collapsible-label, Window.narrow TextBlock.collapsible-label">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Window.compact Button.collapsible, Window.narrow Button.collapsible">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Panel.narrow-only, TextBlock.capsule-model">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Window.narrow Panel.narrow-only, Window.narrow TextBlock.capsule-model">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Window.narrow TextBlock.capsule-full">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
   </UserControl.Styles>
 
   <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 「…」選單（設定、管理連線與模型） -->
@@ -36,20 +59,20 @@
           BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
       <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-        <Button x:Name="NewConversationButton" Classes="secondary toolbar" Command="{Binding NewConversationCommand}"
+        <Button x:Name="NewConversationButton" Classes="secondary toolbar collapsible" Command="{Binding NewConversationCommand}"
                 ToolTip.Tip="{x:Static res:Strings.Workbench_NewConversation}"
                 AutomationProperties.Name="{x:Static res:Strings.Workbench_NewConversation}">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
-            <TextBlock Text="{x:Static res:Strings.Workbench_NewConversation}" VerticalAlignment="Center" />
+            <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Workbench_NewConversation}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <Button x:Name="HistoryButton" Classes="secondary toolbar" Command="{Binding History.ToggleCommand}"
+        <Button x:Name="HistoryButton" Classes="secondary toolbar collapsible" Command="{Binding History.ToggleCommand}"
                 ToolTip.Tip="{x:Static res:Strings.Workbench_History}"
                 AutomationProperties.Name="{x:Static res:Strings.Workbench_History}">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <ctl:LumiIcon Data="{StaticResource LumiIconClock}" Size="16" />
-            <TextBlock Text="{x:Static res:Strings.Workbench_History}" VerticalAlignment="Center" />
+            <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Workbench_History}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
       </StackPanel>
@@ -65,12 +88,26 @@
           </Flyout>
         </Button.Flyout>
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" DataContext="{Binding ModelSwitcher}" x:DataType="vm:ModelSwitcherViewModel">
-          <Panel Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center">
-            <Ellipse Width="8" Height="8" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessDotBrush}" />
-            <Ellipse Width="8" Height="8" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
-            <Ellipse Width="8" Height="8" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiWarningDotBrush}" />
-          </Panel>
-          <TextBlock Grid.Column="1" Text="{Binding CapsuleText}" FontWeight="Medium" VerticalAlignment="Center"
+          <!-- 狀態點；Narrow 時後面多一個供應商字首方塊（完整供應商名稱在 Tooltip） -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Panel Width="8" Height="8" VerticalAlignment="Center">
+              <Ellipse Width="8" Height="8" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessDotBrush}" />
+              <Ellipse Width="8" Height="8" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
+              <Ellipse Width="8" Height="8" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiWarningDotBrush}" />
+            </Panel>
+            <Panel x:Name="ProviderInitialHost" Classes="narrow-only">
+              <Border x:Name="ProviderInitialBadge" Width="20" Height="20" CornerRadius="6" VerticalAlignment="Center"
+                      IsVisible="{Binding HasCurrent}" Background="{DynamicResource LumiAccentSoftBrush}">
+                <TextBlock Text="{Binding ProviderInitial}" FontWeight="Bold" FontSize="{DynamicResource LumiFontSizeCaption}"
+                           Foreground="{DynamicResource LumiTextOnSoftBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+            </Panel>
+          </StackPanel>
+          <!-- Wide／Compact：「供應商 · model ID」；Narrow：只有確切的 model ID。兩者過長都省略 -->
+          <TextBlock x:Name="CapsuleFullText" Grid.Column="1" Classes="capsule-full" Text="{Binding CapsuleText}" FontWeight="Medium" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+          <TextBlock x:Name="CapsuleModelIdText" Grid.Column="1" Classes="capsule-model" Text="{Binding CapsuleModelText}" FontWeight="Medium" VerticalAlignment="Center"
                      TextTrimming="CharacterEllipsis" />
           <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronDown}" Size="16"
                         Foreground="{DynamicResource LumiTextMutedBrush}" />

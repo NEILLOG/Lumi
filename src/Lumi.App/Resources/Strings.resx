@@ -138,6 +138,7 @@
   <data name="Workbench_History" xml:space="preserve"><value>歷史對話</value></data>
   <data name="Workbench_HistoryEmpty" xml:space="preserve"><value>還沒有對話紀錄</value></data>
   <data name="Workbench_SpriteMode" xml:space="preserve"><value>小精靈模式</value></data>
+  <data name="Workbench_SpriteModeShort" xml:space="preserve"><value>小精靈</value></data>
   <data name="TitleBar_Brand" xml:space="preserve"><value>Lumi</value></data>
   <data name="TitleBar_LogoMark" xml:space="preserve"><value>L</value></data>
   <data name="Workbench_SwitchBlocked" xml:space="preserve"><value>回應中，暫時無法切換</value></data>

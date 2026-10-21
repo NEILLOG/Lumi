@@ -64,6 +64,29 @@
       <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
     </Style>
+
+    <!--
+      RWD（根節點 class；放在最後才蓋得過上面的預設）。
+      Compact：Composer 外框左右 Margin 24；檔案、資料夾、麥克風只剩圖示；隱藏 SendHint、MicCaption（RespondingHint 保留，過長省略）。
+      Narrow：Margin 16。
+    -->
+    <Style Selector="Window.compact Border.composer-area">
+      <Setter Property="Margin" Value="24,8,24,16" />
+    </Style>
+    <Style Selector="Window.narrow Border.composer-area">
+      <Setter Property="Margin" Value="16,8,16,16" />
+    </Style>
+    <Style Selector="Window.compact TextBlock.collapsible-label, Window.narrow TextBlock.collapsible-label">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Window.compact Button.collapsible, Window.narrow Button.collapsible">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Window.compact Border.compact-hidden, Window.compact TextBlock.compact-hidden, Window.narrow Border.compact-hidden, Window.narrow TextBlock.compact-hidden">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
   </UserControl.Styles>
 
   <!--
@@ -130,38 +153,41 @@
       <Grid x:Name="ComposerToolbar" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
           <!-- 回應中停用，Tooltip 說明原因（取代原本佔版面的提示文字） -->
-          <Button x:Name="AddFileButton" Classes="tertiary composer-tool" Command="{Binding Context.AddFileCommand}"
+          <Button x:Name="AddFileButton" Classes="tertiary composer-tool collapsible" Command="{Binding Context.AddFileCommand}"
                   ToolTip.Tip="{Binding AddFileTip}" ToolTip.ShowOnDisabled="True"
                   AutomationProperties.Name="{x:Static res:Strings.Context_AddFile}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <ctl:LumiIcon Data="{StaticResource LumiIconPaperclip}" Size="16" />
-              <TextBlock Text="{x:Static res:Strings.Context_AddFile}" VerticalAlignment="Center" />
+              <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Context_AddFile}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <Button x:Name="AddFolderButton" Classes="tertiary composer-tool" Command="{Binding Context.AddFolderCommand}"
+          <Button x:Name="AddFolderButton" Classes="tertiary composer-tool collapsible" Command="{Binding Context.AddFolderCommand}"
                   ToolTip.Tip="{Binding AddFolderTip}" ToolTip.ShowOnDisabled="True"
                   AutomationProperties.Name="{x:Static res:Strings.Context_AddFolder}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <ctl:LumiIcon Data="{StaticResource LumiIconFolder}" Size="16" />
-              <TextBlock Text="{x:Static res:Strings.Context_AddFolder}" VerticalAlignment="Center" />
+              <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Context_AddFolder}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
           <!-- 語音輸入：沒有後端（M6），停用佔位；旁邊用 Caption 寫出原因（UC：Compact 起隱藏 MicCaption） -->
-          <Button x:Name="MicButton" Classes="tertiary composer-tool" IsEnabled="False"
+          <Button x:Name="MicButton" Classes="tertiary composer-tool collapsible" IsEnabled="False"
                   ToolTip.Tip="{x:Static res:Strings.Composer_MicSoon}" ToolTip.ShowOnDisabled="True"
                   AutomationProperties.Name="{x:Static res:Strings.Composer_Mic}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <ctl:LumiIcon Data="{StaticResource LumiIconMic}" Size="16" />
-              <TextBlock Text="{x:Static res:Strings.Composer_Mic}" VerticalAlignment="Center" />
+              <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Composer_Mic}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <TextBlock x:Name="MicCaption" Classes="muted" Text="{x:Static res:Strings.Composer_MicSoon}" VerticalAlignment="Center" Margin="4,0,0,0" />
+          <TextBlock x:Name="MicCaption" Classes="muted compact-hidden" Text="{x:Static res:Strings.Composer_MicSoon}" VerticalAlignment="Center" Margin="4,0,0,0" />
         </StackPanel>
 
         <!-- 提示文字區：平時是操作提示（SendHint）；回應中改顯示原因（RespondingHint），不另外佔一行 -->
         <Panel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-          <TextBlock x:Name="SendHint" IsVisible="{Binding !IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_SendHint}"
-                     TextTrimming="CharacterEllipsis" />
+          <!-- 外面包一層：Compact 起整個隱藏（SendHint 自己的 IsVisible 是回應中互斥的綁定） -->
+          <Border x:Name="SendHintHost" Classes="compact-hidden">
+            <TextBlock x:Name="SendHint" IsVisible="{Binding !IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_SendHint}"
+                       TextTrimming="CharacterEllipsis" />
+          </Border>
           <TextBlock x:Name="RespondingHint" IsVisible="{Binding IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_RespondingHint}"
                      TextTrimming="CharacterEllipsis" />
         </Panel>

@@ -28,7 +28,7 @@ public class ConversationViewTests
         var vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
             new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
             NullLogger<WorkbenchViewModel>.Instance);
-        var window = new WorkbenchWindow(vm);
+        var window = new WorkbenchWindow(vm) { Width = 1200 };   // 這裡驗證 Wide 的數值（預設 960 是 Compact）
         window.Show();
         window.UpdateLayout();
         return (window, vm, window.FindByName<ConversationView>("Conversation"));
@@ -131,7 +131,8 @@ public class ConversationViewTests
         var expected = (ISolidColorBrush)app.FindResource(app.ActualThemeVariant, "LumiAssistantBubbleBrush")!;
         Assert.Equal(expected.Color, ((ISolidColorBrush)bubble.Background!).Color);
         Assert.Contains(bubble.GetVisualDescendants(), v => v is Lumi.App.Markdown.MarkdownView);
-        Assert.Equal(820, ((Grid)avatar.GetVisualParent()!).MaxWidth);
+        var limiter = Assert.IsType<FractionWidthLimiter>(avatar.GetVisualParent()!.GetVisualParent());
+        Assert.Equal(820, limiter.MaxPixels);   // Wide：助理 ≤ 820（且 ≤ 內容區）
         window.Close();
     }
 

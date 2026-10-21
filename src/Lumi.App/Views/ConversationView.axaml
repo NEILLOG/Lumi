@@ -38,6 +38,52 @@
     <Style Selector="Button.message-action">
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
+
+    <!--
+      訊息寬度（RWD原則 3.3、計畫「工作台結構」）：FractionWidthLimiter 取「對話區內容寬度 × Fraction」與 MaxPixels 較小者。
+      Wide：助理 ≤ 820 且 ≤ 內容區，使用者 ≤ 72%；Compact／Narrow：助理 92%、使用者 80%（沒有像素上限）。
+    -->
+    <Style Selector="ctl|FractionWidthLimiter.assistant">
+      <Setter Property="Fraction" Value="1" />
+      <Setter Property="MaxPixels" Value="820" />
+    </Style>
+    <Style Selector="ctl|FractionWidthLimiter.user">
+      <Setter Property="Fraction" Value="0.72" />
+    </Style>
+    <Style Selector="Window.compact ctl|FractionWidthLimiter.assistant, Window.narrow ctl|FractionWidthLimiter.assistant">
+      <Setter Property="Fraction" Value="0.92" />
+      <Setter Property="MaxPixels" Value="{x:Static x:Double.PositiveInfinity}" />
+    </Style>
+    <Style Selector="Window.compact ctl|FractionWidthLimiter.user, Window.narrow ctl|FractionWidthLimiter.user">
+      <Setter Property="Fraction" Value="0.8" />
+    </Style>
+
+    <!-- Compact：對話區左右 Padding 24、動作列只剩圖示 -->
+    <Style Selector="Window.compact Border#ConversationPage.conversation-page">
+      <Setter Property="Padding" Value="24,24" />
+    </Style>
+    <Style Selector="Window.compact TextBlock.action-label, Window.narrow TextBlock.action-label">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <!-- Narrow：Padding 16、隱藏歡迎區副標、隱藏時間與使用者名稱「你」（保留助理名稱）、助理頭像 24 -->
+    <Style Selector="Window.narrow Border#ConversationPage.conversation-page">
+      <Setter Property="Padding" Value="16,24" />
+    </Style>
+    <Style Selector="Window.narrow TextBlock#WelcomeSubtitle">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Window.narrow TextBlock.message-time, Window.narrow StackPanel.user-header">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Window.narrow Border.avatar">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+    <Style Selector="Window.narrow Border.avatar > TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
   </UserControl.Styles>
 
   <!-- 訊息流：歡迎區、一次性提示、訊息（使用者／助理／工具段落）、錯誤列。ScrollViewer 名稱 MessageScroller 保留給測試與自動捲動 -->
@@ -82,10 +128,11 @@
             <DataTemplate DataType="vm:MessageViewModel" x:DataType="vm:MessageViewModel">
               <Panel>
                 <!-- 使用者：靠右；上方是「你」與時間，再來是送出當時帶的檔案、資料夾、圖片 chip，最後是 UserBubble 底色的氣泡 -->
-                <StackPanel IsVisible="{Binding IsUser}" HorizontalAlignment="Right" MaxWidth="640" Spacing="8">
-                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <ctl:FractionWidthLimiter Classes="user" IsVisible="{Binding IsUser}">
+                <StackPanel HorizontalAlignment="Right" Spacing="8">
+                  <StackPanel Classes="user-header" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                     <TextBlock Classes="sender" Text="{x:Static res:Strings.Workbench_You}" />
-                    <TextBlock Classes="muted" Text="{Binding TimeText}" VerticalAlignment="Center" />
+                    <TextBlock Classes="muted message-time" Text="{Binding TimeText}" VerticalAlignment="Center" />
                   </StackPanel>
                   <ItemsControl IsVisible="{Binding HasAttachments}" ItemsSource="{Binding Attachments}" HorizontalAlignment="Right">
                     <ItemsControl.ItemsPanel>
@@ -112,9 +159,11 @@
                                         Foreground="{DynamicResource LumiUserBubbleTextBrush}" />
                   </Border>
                 </StackPanel>
+                </ctl:FractionWidthLimiter>
 
                 <!-- 助理：靠左；左側 32 圓形頭像，右側是「Lumi」與時間、淡底氣泡、動作列 -->
-                <Grid IsVisible="{Binding IsAssistant}" ColumnDefinitions="Auto,*" ColumnSpacing="12" HorizontalAlignment="Left" MaxWidth="820">
+                <ctl:FractionWidthLimiter Classes="assistant" IsVisible="{Binding IsAssistant}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" HorizontalAlignment="Left">
                   <Border Grid.Column="0" Classes="avatar" VerticalAlignment="Top">
                     <TextBlock Text="{x:Static res:Strings.TitleBar_LogoMark}" FontWeight="Bold"
                                Foreground="{DynamicResource LumiAccentTextBrush}"
@@ -123,7 +172,7 @@
                   <StackPanel Grid.Column="1" Spacing="8">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                       <TextBlock Classes="sender" Text="{x:Static res:Strings.Workbench_AssistantName}" />
-                      <TextBlock Classes="muted" Text="{Binding TimeText}" VerticalAlignment="Center" />
+                      <TextBlock Classes="muted message-time" Text="{Binding TimeText}" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <!-- 淡底氣泡（對話內容，不算卡片）：思考過程、Markdown、等待與停止提示 -->
@@ -152,7 +201,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="4">
                           <ctl:LumiIcon IsVisible="{Binding !IsCopied}" Data="{StaticResource LumiIconCopy}" Size="14" />
                           <ctl:LumiIcon IsVisible="{Binding IsCopied}" Data="{StaticResource LumiIconCheck}" Size="14" />
-                          <TextBlock Text="{Binding CopyLabel}" VerticalAlignment="Center" />
+                          <TextBlock Classes="action-label" Text="{Binding CopyLabel}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
                       <Button Classes="tertiary small message-action" IsVisible="{Binding IsLastAssistant}"
@@ -160,7 +209,7 @@
                               ToolTip.Tip="{x:Static res:Strings.Workbench_RegenerateTip}" AutomationProperties.Name="{x:Static res:Strings.Workbench_Regenerate}">
                         <StackPanel Orientation="Horizontal" Spacing="4">
                           <ctl:LumiIcon Data="{StaticResource LumiIconRefresh}" Size="14" />
-                          <TextBlock Text="{x:Static res:Strings.Workbench_Regenerate}" VerticalAlignment="Center" />
+                          <TextBlock Classes="action-label" Text="{x:Static res:Strings.Workbench_Regenerate}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
                       <Button x:Name="LikeButton" Classes="tertiary small message-action" IsEnabled="False"
@@ -179,6 +228,7 @@
                     </StackPanel>
                   </StackPanel>
                 </Grid>
+                </ctl:FractionWidthLimiter>
               </Panel>
             </DataTemplate>
           </ItemsControl.DataTemplates>

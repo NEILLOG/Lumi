@@ -10,7 +10,7 @@
         x:DataType="vm:WorkbenchViewModel"
         Title="{Binding Title}"
         Width="960" Height="760"
-        MinWidth="560" MinHeight="420"
+        MinWidth="500" MinHeight="420"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="PreferSystemChrome"
@@ -26,6 +26,13 @@
     <Style Selector="ListBoxItem:selected TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
+    <!-- 歷史抽屜：Wide／Compact 內嵌（把訊息區往右推），Narrow 蓋在訊息區上方（RWD原則 / 計畫「工作台結構」） -->
+    <Style Selector="SplitView">
+      <Setter Property="DisplayMode" Value="Inline" />
+    </Style>
+    <Style Selector="Window.narrow SplitView">
+      <Setter Property="DisplayMode" Value="Overlay" />
+    </Style>
   </Window.Styles>
 
   <!-- 由上而下：標題列、工具列、訊息流＋輸入區（ui-spec 第 2 節；用量與連線狀態在模型選單頂部）。只用 token 上色。 -->
@@ -38,7 +45,7 @@
     <views:ChatToolbar x:Name="Toolbar" Grid.Row="1" />
 
     <!-- 歷史對話抽屜（內嵌，開啟時把訊息區往右推） -->
-    <SplitView Grid.Row="2" IsPaneOpen="{Binding History.IsOpen}" DisplayMode="Inline" PanePlacement="Left" OpenPaneLength="260"
+    <SplitView Grid.Row="2" IsPaneOpen="{Binding History.IsOpen}" PanePlacement="Left" OpenPaneLength="260"
                PaneBackground="{DynamicResource LumiChromeBrush}">
       <SplitView.Pane>
         <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel">

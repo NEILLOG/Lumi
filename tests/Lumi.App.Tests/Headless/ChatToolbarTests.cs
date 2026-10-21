@@ -81,7 +81,8 @@ public class ChatToolbarTests
         var capsule = rig.Toolbar.CapsuleButton;
         var texts = capsule.GetVisualDescendants().OfType<TextBlock>().ToList();
 
-        var main = Assert.Single(texts);
+        // Wide／Compact 顯示完整「供應商 · model ID」的那一個（Narrow 專用的 model ID 文字與字首方塊在 Wide 隱藏）
+        var main = Assert.Single(texts, t => t.IsEffectivelyVisible && t.Text == rig.Vm.ModelSwitcher.CapsuleText);
         Assert.Equal(rig.Vm.ModelSwitcher.CapsuleText, main.Text);
         Assert.Contains(rig.Vm.ModelSwitcher.ModelId, main.Text);
         Assert.DoesNotContain(rig.Vm.ModelSwitcher.CurrentName, main.Text!);   // 顯示名稱不是真實模型名稱

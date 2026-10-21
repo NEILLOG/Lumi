@@ -64,11 +64,11 @@ public partial class ModelSwitcherViewModel : ObservableObject
     private ConnectionStatus _currentStatus = ConnectionStatus.Unknown;
 
     /// <summary>供應商顯示名：用連線名稱（例如「Anthropic」「Ollama」）；連線沒有名稱時退回格式名稱。沒有模型時是空字串。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CapsuleText), nameof(CapsuleTooltip))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CapsuleText), nameof(CapsuleTooltip), nameof(ProviderInitial))]
     private string _providerName = "";
 
     /// <summary>確切的 model ID（<see cref="ModelSettings.ModelId"/>，例如 <c>gpt-5-mini</c>），不是自訂的顯示名稱。沒有模型時是空字串。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CapsuleText), nameof(CapsuleTooltip))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CapsuleText), nameof(CapsuleTooltip), nameof(CapsuleModelText))]
     private string _modelId = "";
 
     public bool HasCurrent => _catalog.Resolve(_catalog.Current.WorkbenchModelId) is not null;
@@ -77,6 +77,19 @@ public partial class ModelSwitcherViewModel : ObservableObject
     public string CapsuleText => HasCurrent
         ? string.Format(Strings.Workbench_CapsuleFormat, ProviderName, ModelId)
         : Strings.Workbench_NoModelClickToSetup;
+
+    /// <summary>供應商字首（供應商名稱的第一個字元，英文轉大寫）：Narrow 寬度的膠囊用它代替完整供應商名稱。沒有模型時是空字串。</summary>
+    public string ProviderInitial
+    {
+        get
+        {
+            var name = ProviderName.Trim();
+            return name.Length == 0 ? "" : System.Globalization.StringInfo.GetNextTextElement(name).ToUpperInvariant();
+        }
+    }
+
+    /// <summary>Narrow 寬度的膠囊文字：只有確切的 model ID（供應商改由字首圖示與 Tooltip 表達）；還沒有模型時是設定提示。</summary>
+    public string CapsuleModelText => HasCurrent ? ModelId : Strings.Workbench_NoModelClickToSetup;
 
     /// <summary>連線狀態的文字（已連線／連線失敗／尚未確認）；連線狀態不能只靠圓點。</summary>
     public string StatusText => CurrentStatus switch
@@ -143,6 +156,7 @@ public partial class ModelSwitcherViewModel : ObservableObject
         CurrentStatus = current is null ? ConnectionStatus.Unknown : _status.Get(current.Connection.Id).Status;
         OnPropertyChanged(nameof(HasCurrent));
         OnPropertyChanged(nameof(CapsuleText));
+        OnPropertyChanged(nameof(CapsuleModelText));
         OnPropertyChanged(nameof(CapsuleTooltip));
 
         var query = SearchText.Trim();
