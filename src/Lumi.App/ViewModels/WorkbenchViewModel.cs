@@ -30,6 +30,8 @@ public partial class WorkbenchViewModel : ObservableObject
     private readonly IToolApprovalResponder _approvals;
 
     private readonly IChatSession _session;
+    private readonly IAppModeCoordinator? _modes;
+    private bool _initialized;
 
     // 目前這一輪回應的畫面狀態（RunStarted 建立、RunFinished 清掉）
     private MessageViewModel? _bubble;
@@ -59,7 +61,8 @@ public partial class WorkbenchViewModel : ObservableObject
         IToolApprovalResponder? approvals = null,
         ContextBarViewModel? contextBar = null,
         DeveloperOptions? developer = null,
-        IChatSession? session = null)
+        IChatSession? session = null,
+        IAppModeCoordinator? modes = null)
     {
         _store = store;
         _catalog = catalog;
@@ -71,6 +74,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _logger = logger;
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
         _session = session ?? new ChatSession(conversations, store, NullLogger<ChatSession>.Instance);
+        _modes = modes;
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
         ShowSpriteModeToggle = developer?.ShowSpriteModeToggle ?? false;
@@ -84,7 +88,12 @@ public partial class WorkbenchViewModel : ObservableObject
         _session.RunStarted += OnRunStarted;
         _session.EventReceived += OnEventReceived;
         _session.RunFinished += OnRunFinished;
-        _session.ModeChanged += (_, _) => OnPropertyChanged(nameof(IsSpriteMode));
+        _session.ModeChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsSpriteMode));
+            OnPropertyChanged(nameof(IsViewOnly));
+            EnterSpriteModeCommand.NotifyCanExecuteChanged();
+        };
         _approvals.Resolved += OnApprovalResolved;
 
         catalog.Changed += (_, _) => dispatcher.Post(OnModelSettingsChanged);
@@ -165,9 +174,24 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(CanChangeMode))]
-    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(CanChangeMode), nameof(IsViewOnly))]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand))]
     private bool _isResponding;
+
+    /// <summary>
+    /// 「查看中」（ui-spec 2.2）：小精靈正在回應時開啟的工作台，輸入、模型切換、模式切換都停用，頂端顯示說明；
+    /// 可以捲動、展開卡片、複製內容，權限確認在任一邊回答都會同步。回應結束自動解除。
+    /// 它不是獨立的狀態，就是「回應中，而且作用中的模式是小精靈」。
+    /// </summary>
+    public bool IsViewOnly => IsResponding && _session.ActiveMode == ChatMode.Sprite && _modes is not null;
+
+    /// <summary>「小精靈模式」按鈕：隱藏工作台、顯示小精靈。回應中不能切換。</summary>
+    [RelayCommand(CanExecute = nameof(CanEnterSpriteMode))]
+    private void EnterSpriteMode() => _modes?.EnterSpriteMode();
+
+    private bool CanEnterSpriteMode() => _modes is not null && !IsResponding;
+
+    public bool HasModeCoordinator => _modes is not null;
 
     // ---- 開發用：以小精靈模式送出（M7 之前沒有小精靈畫面可以驗收 M5） ----
 
@@ -226,6 +250,9 @@ public partial class WorkbenchViewModel : ObservableObject
     /// <summary>啟動時載入最近一則對話；沒有就建一則空的。</summary>
     public async Task InitializeAsync()
     {
+        if (_initialized)
+            return;   // 啟動時就載入（小精靈模式下工作台視窗還沒開），視窗第一次開啟時不要再載入一次
+        _initialized = true;
         var conversation = await NavigateAsync(() => _session.InitializeAsync(Strings.Workbench_NewConversationTitle));
         await LoadAsync(conversation);
     }
@@ -237,6 +264,7 @@ public partial class WorkbenchViewModel : ObservableObject
     {
         var text = InputText.Trim();
         var conversationId = CurrentConversationId!;
+        _modes?.WorkbenchWillSend();   // 在工作台送出＝切換到工作台模式（小精靈隱藏）
         InputText = "";
         if (Messages.Count == 0)
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
@@ -250,7 +278,11 @@ public partial class WorkbenchViewModel : ObservableObject
     private bool CanSend() => !IsResponding && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
 
     [RelayCommand(CanExecute = nameof(CanRetry))]
-    private Task RetryAsync() => RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
+    private Task RetryAsync()
+    {
+        _modes?.WorkbenchWillSend();
+        return RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
+    }
 
     private bool CanRetry() => !IsResponding && HasError;
 
@@ -261,6 +293,7 @@ public partial class WorkbenchViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanRegenerate))]
     private Task RegenerateAsync()
     {
+        _modes?.WorkbenchWillSend();
         ErrorMessage = null;
         return RunResponseAsync(() => _session.RegenerateAsync(), reloadOnFailure: true);
     }

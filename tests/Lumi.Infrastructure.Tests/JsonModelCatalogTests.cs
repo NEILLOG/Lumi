@@ -342,4 +342,76 @@ public sealed class JsonModelCatalogTests : IDisposable
         Assert.Equal(persona, catalog.Current.Persona);
         Assert.Equal(persona, NewCatalog().Current.Persona);
     }
+
+    // ---- 小精靈設定（M7） ----
+
+    [Fact]
+    public async Task Sprite_PersistsAcrossReload()
+    {
+        var catalog = NewCatalog();
+        Assert.Equal(SpriteSettings.Default, catalog.Current.Sprite);
+
+        var sprite = new SpriteSettings("lumi.orb", SpriteSize.Large, false, new SpritePlacement(-1200, 840), Lumi.Core.Chat.ChatMode.Sprite);
+        await catalog.SetSpriteAsync(sprite);
+
+        Assert.Equal(sprite, NewCatalog().Current.Sprite);
+        Assert.Contains("\"size\": \"large\"", File.ReadAllText(SettingsPath));   // 列舉存成字串，手動改檔看得懂
+    }
+
+    [Fact]
+    public async Task Sprite_MissingInOldFile_UsesDefault()
+    {
+        var catalog = NewCatalog();
+        await catalog.SetSpriteAsync(SpriteSettings.Default with { Size = SpriteSize.Small });
+
+        var root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        Assert.True(root.Remove("sprite"));
+        File.WriteAllText(SettingsPath, root.ToJsonString());
+
+        var reloaded = NewCatalog();
+        Assert.Null(reloaded.LoadProblem);
+        Assert.Equal(SpriteSettings.Default, reloaded.Current.Sprite);
+    }
+
+    [Fact]
+    public async Task Sprite_InvalidValuesFromAHandEditedFile_AreNormalized()
+    {
+        var catalog = NewCatalog();
+        await catalog.SetSpriteAsync(SpriteSettings.Default);
+        var root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        root["sprite"]!["spriteId"] = "  ";
+        root["sprite"]!["lastMode"] = 99;
+        File.WriteAllText(SettingsPath, root.ToJsonString());
+
+        var sprite = NewCatalog().Current.Sprite;
+
+        Assert.Equal(SpriteSettings.DefaultSpriteId, sprite.SpriteId);
+        Assert.Equal(Lumi.Core.Chat.ChatMode.Workbench, sprite.LastMode);
+    }
+
+    [Fact]
+    public async Task OtherChanges_KeepSprite()
+    {
+        var catalog = NewCatalog();
+        var sprite = SpriteSettings.Default with { Size = SpriteSize.Small, Placement = new SpritePlacement(100, 200) };
+        await catalog.SetSpriteAsync(sprite);
+
+        await catalog.SetThemeAsync(ThemePreference.Dark);
+        await catalog.SetPersonaAsync(PersonaSettings.Default with { Style = PersonaStyle.Calm });
+
+        Assert.Equal(sprite, catalog.Current.Sprite);
+        Assert.Equal(sprite, NewCatalog().Current.Sprite);
+    }
+
+    [Fact]
+    public async Task SettingTheSprite_RaisesChanged()
+    {
+        var catalog = NewCatalog();
+        AppSettings? seen = null;
+        catalog.Changed += (_, s) => seen = s;
+
+        await catalog.SetSpriteAsync(SpriteSettings.Default with { Size = SpriteSize.Large });
+
+        Assert.Equal(SpriteSize.Large, seen?.Sprite.Size);
+    }
 }

@@ -39,6 +39,9 @@ public interface IModelCatalog
     /// <summary>自訂人設超過 <see cref="PersonaSettings.CustomPersonaMaxLength"/> 字時丟 <see cref="ArgumentException"/>。</summary>
     Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default);
 
+    /// <summary>小精靈的角色、尺寸、位置等（M7）。</summary>
+    Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default);
+
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);
 }

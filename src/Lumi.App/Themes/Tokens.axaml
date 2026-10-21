@@ -8,6 +8,9 @@
   <!-- 不分淺深色的固定色：Fluent 強調色覆寫（App.axaml）用，無法從 ThemeDictionaries 取值 -->
   <Color x:Key="LumiAccentFixedColor">#F2B544</Color>
 
+  <!-- 小精靈的氣泡與輸入列浮在任意桌面背景上，用陰影與細框線確保看得清楚（ui-spec 8.1） -->
+  <BoxShadows x:Key="LumiSpriteShadow">0 8 24 0 #59000000</BoxShadows>
+
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
       <Color x:Key="LumiBackgroundColor">#EEF0F3</Color>

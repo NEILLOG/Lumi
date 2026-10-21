@@ -218,4 +218,35 @@
   <data name="Details_Characters" xml:space="preserve"><value>{0} 字</value></data>
   <data name="Workbench_SpriteModeToggle" xml:space="preserve"><value>小精靈模式（開發用）</value></data>
   <data name="Workbench_UsageCacheFormat" xml:space="preserve"><value>（快取 {0}）</value></data>
+  <data name="Sprite_InputPlaceholder" xml:space="preserve"><value>問小精靈…</value></data>
+  <data name="Sprite_Send" xml:space="preserve"><value>送出</value></data>
+  <data name="Sprite_Stop" xml:space="preserve"><value>停止</value></data>
+  <data name="Sprite_TrayShowSprite" xml:space="preserve"><value>顯示小精靈</value></data>
+  <data name="Sprite_TrayOpenWorkbench" xml:space="preserve"><value>開啟工作台</value></data>
+  <data name="Sprite_TrayExit" xml:space="preserve"><value>結束 Lumi</value></data>
+  <data name="Sprite_TrayTooltip" xml:space="preserve"><value>Lumi</value></data>
+  <data name="Sprite_StatusThinking" xml:space="preserve"><value>思考中…</value></data>
+  <data name="Sprite_Allow" xml:space="preserve"><value>允許</value></data>
+  <data name="Sprite_Deny" xml:space="preserve"><value>拒絕</value></data>
+  <data name="Sprite_MoreOptions" xml:space="preserve"><value>更多選項</value></data>
+  <data name="Sprite_AllowOnce" xml:space="preserve"><value>允許一次</value></data>
+  <data name="Sprite_AllowConversation" xml:space="preserve"><value>這則對話都允許</value></data>
+  <data name="Sprite_ViewInWorkbench" xml:space="preserve"><value>在工作台檢視</value></data>
+  <data name="Sprite_AllowDestructive" xml:space="preserve"><value>允許刪除</value></data>
+  <data name="Sprite_Irreversible" xml:space="preserve"><value>無法復原</value></data>
+  <data name="Sprite_ApprovalQuestion" xml:space="preserve"><value>要執行「{0}」嗎？</value></data>
+  <data name="Sprite_DestructiveQuestion" xml:space="preserve"><value>「{0}」會刪除或覆蓋內容，而且無法復原。要執行嗎？</value></data>
+  <data name="Sprite_StatusAllowed" xml:space="preserve"><value>已允許 · {0}中…</value></data>
+  <data name="Sprite_StatusDenied" xml:space="preserve"><value>已拒絕 · {0}</value></data>
+  <data name="Sprite_OpenDetails" xml:space="preserve"><value>在工作台開啟完整內容 →</value></data>
+  <data name="Sprite_Retry" xml:space="preserve"><value>重試</value></data>
+  <data name="Sprite_ViewErrorInWorkbench" xml:space="preserve"><value>在工作台查看</value></data>
+  <data name="Sprite_OpenSettings" xml:space="preserve"><value>開啟設定</value></data>
+  <data name="Sprite_Ellipsis" xml:space="preserve"><value>…</value></data>
+  <data name="Sprite_MenuOpenWorkbench" xml:space="preserve"><value>開啟工作台</value></data>
+  <data name="Sprite_MenuNewConversation" xml:space="preserve"><value>新對話</value></data>
+  <data name="Sprite_MenuSettings" xml:space="preserve"><value>設定…</value></data>
+  <data name="Sprite_MenuHide" xml:space="preserve"><value>暫時隱藏 30 分鐘</value></data>
+  <data name="Sprite_MenuExit" xml:space="preserve"><value>結束 Lumi</value></data>
+  <data name="Workbench_ViewOnlyBanner" xml:space="preserve"><value>小精靈回應中，結束後可在這裡繼續</value></data>
 </root>

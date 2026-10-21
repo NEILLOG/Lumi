@@ -1,7 +1,10 @@
 using Lumi.App.Services;
+using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
 using Lumi.Core.Tools;
+using Lumi.Sprites.Abstractions;
+using Lumi.Sprites.Orb;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -41,6 +44,20 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<ContextBarViewModel>();
 
         services.AddSingleton<IApiKeyPrompt, SettingsApiKeyPrompt>();
+        // 小精靈的殼（M7）與內建的光球角色；殼的數字都在 SpriteShellOptions
+        services.AddSingleton(new SpriteShellOptions());
+        services.AddSprite<OrbSpriteFactory>();
+        services.AddSingleton<SpriteStateMapper>();
+        services.AddSingleton<SpriteBubbleViewModel>();
+        services.AddSingleton<SpriteWindow>();
+        services.AddSingleton<SpriteConversationController>();
+        services.AddSingleton<TrayService>();
+        // 模式與視窗：兩種模式互斥，規則集中在協調者；真的視窗由 WindowHost 延遲取得
+        services.AddSingleton<IWindowHost, WindowHost>();
+        services.AddSingleton<IAppModeCoordinator, AppModeCoordinator>();
+        // 角色語氣（prompt 第 4 層）：取代 Core 預設的「沒有語氣」
+        services.Replace(ServiceDescriptor.Singleton<Lumi.Core.Prompts.ISpriteVoiceProvider, SpriteVoiceProvider>());
+
         services.AddSingleton<WorkbenchViewModel>();
         services.AddTransient<WorkbenchWindow>();
         return services;

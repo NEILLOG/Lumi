@@ -49,6 +49,13 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task SetSpriteModelAsync(string modelSettingsId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) => throw new NotSupportedException();
 
+    public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
+    {
+        Current = Current with { Sprite = sprite.Normalize() };
+        Raise();
+        return Task.CompletedTask;
+    }
+
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default)
     {
         Current = Current with { Persona = persona };

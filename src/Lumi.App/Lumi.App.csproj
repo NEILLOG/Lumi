@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.App.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
@@ -26,6 +30,8 @@
     <ProjectReference Include="..\Lumi.Infrastructure\Lumi.Infrastructure.csproj" />
     <ProjectReference Include="..\Lumi.Platform\Lumi.Platform.csproj" />
     <ProjectReference Include="..\Lumi.Tools\Lumi.Tools.csproj" />
+    <ProjectReference Include="..\Lumi.Sprites.Abstractions\Lumi.Sprites.Abstractions.csproj" />
+    <ProjectReference Include="..\Lumi.Sprites.Orb\Lumi.Sprites.Orb.csproj" />
   </ItemGroup>
 
   <ItemGroup>

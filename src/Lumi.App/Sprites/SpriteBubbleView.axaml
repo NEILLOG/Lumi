@@ -1,0 +1,117 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sp="using:Lumi.App.Sprites"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Sprites.SpriteBubbleView"
+             x:DataType="sp:SpriteBubbleViewModel">
+  <!--
+    小精靈的氣泡（ui-spec 8.1、8.3）：狀態一行、串流中的回答、完成、等待確認（精簡／展開／Destructive）、錯誤。
+    同一時間只顯示最新一則。等待確認與錯誤的氣泡有警示色外框。只用 token 上色。
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.bubble">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="MaxWidth" Value="280" />
+      <Setter Property="BoxShadow" Value="{StaticResource LumiSpriteShadow}" />
+    </Style>
+    <Style Selector="Border.bubble.approval">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.bubble.error">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.link">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiInfoBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiInfoBrush}" />
+    </Style>
+    <Style Selector="Button.small">
+      <Setter Property="Padding" Value="12,5" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel x:Name="Root">
+    <Border x:Name="BubbleBorder" Classes="bubble" Classes.approval="{Binding IsApproval}" Classes.error="{Binding IsError}">
+      <Panel>
+        <!-- 思考或呼叫工具：只有一行狀態 -->
+        <TextBlock x:Name="StatusLine" IsVisible="{Binding IsStatus}" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" MaxLines="1"
+                   Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCard}" />
+
+        <!-- 回答（串流中與完成）：最多兩句，不用 Markdown -->
+        <StackPanel x:Name="AnswerArea" IsVisible="{Binding IsAnswer}" Spacing="6">
+          <ctl:EmojiTextBlock x:Name="AnswerText" Text="{Binding Text}" TextWrapping="Wrap" LineHeight="22"
+                              FontSize="{DynamicResource LumiFontSizeCard}" />
+          <Button x:Name="DetailsLink" Classes="link" IsVisible="{Binding ShowDetailsLink}" Command="{Binding OpenDetailsCommand}"
+                  Content="{x:Static res:Strings.Sprite_OpenDetails}" />
+        </StackPanel>
+
+        <!-- 權限確認（在氣泡內完成，不需要切回工作台） -->
+        <StackPanel x:Name="ApprovalArea" IsVisible="{Binding IsApproval}" Spacing="8">
+          <StackPanel Spacing="8" DataContext="{Binding Approval}" x:DataType="sp:SpriteApprovalViewModel">
+            <ctl:EmojiTextBlock Text="{Binding Question}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" />
+            <TextBlock IsVisible="{Binding HasTarget}" Text="{Binding Target}" Classes="mono" TextWrapping="Wrap"
+                       FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiWarningTextBrush}" />
+            <TextBlock IsVisible="{Binding IsDestructive}" Text="{x:Static res:Strings.Sprite_Irreversible}" FontWeight="SemiBold"
+                       Foreground="{DynamicResource LumiDangerBrush}" />
+            <ScrollViewer IsVisible="{Binding ShowDetail}" MaxHeight="80" VerticalScrollBarVisibility="Auto">
+              <ctl:EmojiTextBlock Text="{Binding Detail}" Classes="mono" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCaption}" />
+            </ScrollViewer>
+          </StackPanel>
+
+          <!-- 精簡版：允許（＝允許一次）、拒絕、更多選項。Destructive 只有「允許刪除」「拒絕」 -->
+          <StackPanel x:Name="CompactButtons" Orientation="Horizontal" Spacing="8" IsVisible="{Binding !Approval.ShowOptions}">
+            <Button x:Name="AllowButton" Classes="small" Content="{Binding Approval.AllowLabel}" Command="{Binding AllowOnceCommand}"
+                    Background="{DynamicResource LumiPrimaryButtonBrush}" Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
+            <Button x:Name="DenyButton" Classes="small" Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
+          </StackPanel>
+          <Button x:Name="MoreLink" Classes="link" IsVisible="{Binding Approval.ShowMoreLink}" Command="{Binding ToggleMoreOptionsCommand}"
+                  Content="{x:Static res:Strings.Sprite_MoreOptions}" HorizontalAlignment="Left" />
+
+          <!-- 展開：允許一次／這則對話都允許／拒絕／在工作台檢視 -->
+          <StackPanel x:Name="Options" IsVisible="{Binding Approval.ShowOptions}" Spacing="6">
+            <WrapPanel>
+              <Button x:Name="OptionAllowOnce" Classes="small" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowOnce}"
+                      Command="{Binding AllowOnceCommand}" Background="{DynamicResource LumiPrimaryButtonBrush}"
+                      Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
+              <Button x:Name="OptionAllowConversation" Classes="small" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowConversation}"
+                      Command="{Binding AllowForConversationCommand}" />
+              <Button x:Name="OptionDeny" Classes="small" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
+            </WrapPanel>
+            <Button x:Name="ViewLink" Classes="link" Command="{Binding ViewInWorkbenchCommand}" HorizontalAlignment="Left"
+                    Content="{x:Static res:Strings.Sprite_ViewInWorkbench}" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- 錯誤：一句說明，加上重試與在工作台查看（金鑰問題帶「開啟設定」） -->
+        <StackPanel x:Name="ErrorArea" IsVisible="{Binding IsError}" Spacing="8">
+          <ctl:EmojiTextBlock x:Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
+                              FontSize="{DynamicResource LumiFontSizeCard}" />
+          <WrapPanel>
+            <Button x:Name="RetryButton" Classes="small" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{x:Static res:Strings.Sprite_Retry}"
+                    Command="{Binding RetryCommand}" Background="{DynamicResource LumiPrimaryButtonBrush}"
+                    Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
+            <Button x:Name="SettingsButton" Classes="small" Margin="0,0,6,6" IsVisible="{Binding CanOpenSettings}"
+                    Content="{x:Static res:Strings.Sprite_OpenSettings}" Command="{Binding OpenSettingsCommand}" />
+          </WrapPanel>
+          <Button x:Name="ErrorViewLink" Classes="link" Command="{Binding ViewInWorkbenchCommand}" HorizontalAlignment="Left"
+                  Content="{x:Static res:Strings.Sprite_ViewErrorInWorkbench}" />
+        </StackPanel>
+      </Panel>
+    </Border>
+    <Path Data="M0,0 L14,0 L7,8 Z" Fill="{DynamicResource LumiSurfaceBrush}" HorizontalAlignment="Center" />
+  </StackPanel>
+</UserControl>

@@ -1,4 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Lumi.App.Services;
 using Avalonia.Platform.Storage;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -14,7 +17,7 @@ public partial class WorkbenchWindow : Window
     private readonly WorkbenchViewModel _viewModel;
     private bool _stickToBottom = true;
 
-    public WorkbenchWindow(WorkbenchViewModel viewModel)
+    public WorkbenchWindow(WorkbenchViewModel viewModel, IAppModeCoordinator? modes = null)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -31,7 +34,27 @@ public partial class WorkbenchWindow : Window
         viewModel.ModelSwitcher.Selected += () => CapsuleButton.Flyout?.Hide();
         viewModel.RetrySwitcher.Selected += () => RetryOtherModelButton.Flyout?.Hide();
         Opened += OnOpened;
+
+        // 工作台模式下關閉視窗＝結束程式；小精靈模式下只是關掉工作台（改成隱藏，之後還能從小精靈或托盤再開）
+        Closing += (_, e) =>
+        {
+            if (modes is null || e.CloseReason is WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown)
+                return;
+            if (!modes.WorkbenchMayClose())
+            {
+                e.Cancel = true;
+                Hide();
+            }
+        };
     }
+
+    /// <summary>捲到某一張工具卡片（小精靈的「在工作台檢視」、「開啟完整內容」）。視窗剛開啟時要等排版完成。</summary>
+    public void ScrollToCall(string callId) => Dispatcher.UIThread.Post(() =>
+    {
+        var card = this.GetVisualDescendants().OfType<ToolCardView>()
+            .FirstOrDefault(view => view.DataContext is ToolCardViewModel model && model.CallId == callId);
+        card?.BringIntoView();
+    }, DispatcherPriority.Loaded);
 
     private async void OnOpened(object? sender, EventArgs e)
     {

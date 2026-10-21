@@ -51,6 +51,9 @@ public sealed record AppSettings(
 
     /// <summary>回答風格（M5）。不放在建構式參數裡：舊設定檔、既有呼叫端都不需要改，沒有時就是預設值。</summary>
     public PersonaSettings Persona { get; init; } = PersonaSettings.Default;
+
+    /// <summary>小精靈的角色、尺寸、位置與上次的模式（M7）。同樣是後來加的欄位，舊檔沒有時用預設值。</summary>
+    public SpriteSettings Sprite { get; init; } = SpriteSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

@@ -79,7 +79,14 @@ public sealed class CompositionRootTests : IDisposable
         // M7 7A：目前的對話與回應流程是單例，工作台（以及之後的小精靈）共用同一個
         var session = services.GetRequiredService<IChatSession>();
         Assert.Same(session, services.GetRequiredService<IChatSession>());
+        // M7 7D：兩種模式互斥的規則集中在協調者，工作台與協調者共用同一個；角色語氣讀目前角色
+        var modes = services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>();
+        Assert.Same(modes, services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>());
+        Assert.IsType<Lumi.App.Views.WindowHost>(services.GetRequiredService<Lumi.App.Services.IWindowHost>());
+        Assert.IsType<Lumi.App.Sprites.SpriteVoiceProvider>(services.GetRequiredService<Lumi.Core.Prompts.ISpriteVoiceProvider>());
+        Assert.Equal([Lumi.Sprites.Orb.OrbSpriteFactory.SpriteId], services.GetRequiredService<Lumi.Sprites.Abstractions.ISpriteCatalog>().All.Select(f => f.Manifest.Id));
         var vm = services.GetRequiredService<WorkbenchViewModel>();
+        Assert.True(vm.HasModeCoordinator);
 
         await vm.InitializeAsync();
 

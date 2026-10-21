@@ -134,6 +134,9 @@ public sealed class JsonModelCatalog : IModelCatalog
         return MutateAsync(s => s with { Persona = normalized }, ct);
     }
 
+    public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Sprite = sprite.Normalize() }, ct);
+
     public ResolvedModel? Resolve(string? modelSettingsId)
     {
         var settings = _current;
@@ -227,6 +230,7 @@ public sealed class JsonModelCatalog : IModelCatalog
         var settings = Normalize(new AppSettings(file.Connections, file.Models, file.WorkbenchModelId, file.SpriteModelId, file.Theme)
         {
             Persona = file.Persona?.Normalize() ?? PersonaSettings.Default,
+            Sprite = file.Sprite?.Normalize() ?? SpriteSettings.Default,   // M7 加的欄位，同樣舊檔沒有時用預設
         });
         return (settings, false, null);
     }
@@ -245,7 +249,7 @@ public sealed class JsonModelCatalog : IModelCatalog
 
     private static byte[] Serialize(AppSettings settings) => JsonSerializer.SerializeToUtf8Bytes(
         new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme,
-            settings.Persona),
+            settings.Persona, settings.Sprite),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -294,5 +298,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         string? WorkbenchModelId,
         string? SpriteModelId,
         ThemePreference Theme,
-        PersonaSettings? Persona = null);
+        PersonaSettings? Persona = null,
+        SpriteSettings? Sprite = null);
 }

@@ -123,9 +123,9 @@
         </StackPanel>
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-          <!-- 小精靈模式：M7 之前停用 -->
-          <Button Classes="chrome sprite" IsEnabled="False" Content="{x:Static res:Strings.Workbench_SpriteMode}"
-                  ToolTip.Tip="{x:Static res:Strings.Workbench_SpriteModeSoon}" />
+          <!-- 小精靈模式：隱藏工作台、顯示小精靈。回應中停用，旁邊的膠囊提示「回應中，暫時無法切換」 -->
+          <Button x:Name="SpriteModeButton" Classes="chrome sprite" Content="{x:Static res:Strings.Workbench_SpriteMode}"
+                  Command="{Binding EnterSpriteModeCommand}" />
           <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}" Command="{Binding OpenSettingsCommand}" />
         </StackPanel>
       </Grid>
@@ -158,8 +158,13 @@
         </DockPanel>
       </SplitView.Pane>
 
-    <Grid RowDefinitions="*,Auto,Auto">
-    <ScrollViewer Grid.Row="0" x:Name="MessageScroller">
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+    <!-- 查看中：小精靈回應中開啟的工作台，輸入與切換都停用，結束後自動解除（ui-spec 2.2） -->
+    <Border x:Name="ViewOnlyBanner" Grid.Row="0" IsVisible="{Binding IsViewOnly}" Padding="16,8"
+            Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}" BorderThickness="0,0,0,1">
+      <TextBlock Text="{x:Static res:Strings.Workbench_ViewOnlyBanner}" Foreground="{DynamicResource LumiAccentTextBrush}" />
+    </Border>
+    <ScrollViewer Grid.Row="1" x:Name="MessageScroller">
       <StackPanel Margin="24,20" Spacing="18">
         <!-- 一次性提示：例如設定檔損毀已改用預設 -->
         <Border IsVisible="{Binding HasNotice}" Padding="14,10" CornerRadius="10" BorderThickness="1"
@@ -270,7 +275,7 @@
       </StackPanel>
     </ScrollViewer>
 
-    <Border x:Name="InputArea" Grid.Row="1" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
+    <Border x:Name="InputArea" Grid.Row="2" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
             DragDrop.AllowDrop="True"
             Background="{DynamicResource LumiSurfaceBrush}"
             BorderBrush="{DynamicResource LumiBorderStrongBrush}">
@@ -321,7 +326,7 @@
           <TextBox x:Name="InputBox" Grid.Row="0" Grid.Column="0"
                    Text="{Binding InputText}"
                    Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
-                   AcceptsReturn="True" TextWrapping="Wrap"
+                   AcceptsReturn="True" TextWrapping="Wrap" IsEnabled="{Binding !IsViewOnly}"
                    MinHeight="40" MaxHeight="190"
                    ScrollViewer.VerticalScrollBarVisibility="Auto" />
           <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="10,0,0,0" VerticalAlignment="Bottom">
@@ -350,7 +355,7 @@
     </Border>
 
     <!-- 輸入 N · 輸出 N · 回合 N · 上下文 [進度條] 14K / 1M（ui-spec 2.3） -->
-    <Border Grid.Row="2" Padding="16,6"
+    <Border Grid.Row="3" Padding="16,6"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
       <Grid ColumnDefinitions="*,Auto">

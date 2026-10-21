@@ -35,8 +35,10 @@ public sealed class ToolApprovalService : IToolApprovalService, IToolApprovalRes
 
     public void Resolve(string callId, ApprovalDecision decision)
     {
-        Get(callId).TrySetResult(decision);
+        // 先通知另一邊更新畫面，再放行對話迴圈：迴圈接著執行工具、發出完成事件時，卡片已經是「已允許」，
+        // 不會被晚到的通知蓋掉完成的狀態
         Resolved?.Invoke(this, new ApprovalResolved(callId, decision));
+        Get(callId).TrySetResult(decision);
     }
 
     private TaskCompletionSource<ApprovalDecision> Get(string callId) =>

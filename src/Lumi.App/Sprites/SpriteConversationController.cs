@@ -1,0 +1,156 @@
+using Lumi.App.Services;
+using Lumi.App.ViewModels;
+using Lumi.Core.Chat;
+using Microsoft.Extensions.Logging;
+
+namespace Lumi.App.Sprites;
+
+/// <summary>
+/// 把共用的對話（<see cref="IChatSession"/>）接到小精靈：事件餵給 <see cref="SpriteStateMapper"/> 與
+/// <see cref="SpriteBubbleViewModel"/>、輸入列的送出與停止、氣泡上的重試與「開啟設定」（缺金鑰時存好後自動重試）。
+/// <b>角色不知道對話</b>：它只會收到殼從 <see cref="SpriteStateMapper"/> 轉過去的狀態。
+/// 只處理小精靈模式的回應；工作台模式發起的回應（小精靈是隱藏的）不會碰氣泡。
+/// </summary>
+public sealed class SpriteConversationController
+{
+    private readonly IChatSession _session;
+    private readonly SpriteStateMapper _mapper;
+    private readonly SpriteBubbleViewModel _bubble;
+    private readonly IToolApprovalResponder _approvals;
+    private readonly SpriteWindow _window;
+    private readonly IAppModeCoordinator _modes;
+    private readonly IApiKeyPrompt _keyPrompt;
+    private readonly ISettingsWindowService _settings;
+    private readonly ILogger<SpriteConversationController> _logger;
+
+    private bool _spriteRun;
+    private ChatFailure? _lastFailure;
+
+    public SpriteConversationController(
+        IChatSession session, SpriteStateMapper mapper, SpriteBubbleViewModel bubble, IToolApprovalResponder approvals, SpriteWindow window,
+        IAppModeCoordinator modes, IApiKeyPrompt keyPrompt, ISettingsWindowService settings, ILogger<SpriteConversationController> logger)
+    {
+        _session = session;
+        _mapper = mapper;
+        _bubble = bubble;
+        _approvals = approvals;
+        _window = window;
+        _modes = modes;
+        _keyPrompt = keyPrompt;
+        _settings = settings;
+        _logger = logger;
+    }
+
+    public void Attach()
+    {
+        _session.RunStarted += OnRunStarted;
+        _session.EventReceived += OnEvent;
+        _session.RunFinished += OnRunFinished;
+        _approvals.Resolved += OnApprovalResolved;
+
+        _window.InputSubmitted += text => _ = SendAsync(text);
+        _window.StopRequested += () => _session.Stop();
+        _bubble.RetryRequested += () => _ = RetryAsync();
+        _bubble.OpenSettingsRequested += () => _ = OpenSettingsAsync();
+        _bubble.OpenWorkbenchRequested += callId => _modes.OpenWorkbench(callId);
+    }
+
+    // ---- 會話 → 氣泡與角色 ----
+
+    private void OnRunStarted(object? sender, RunStartedArgs args)
+    {
+        _spriteRun = args.Mode == ChatMode.Sprite;
+        if (!_spriteRun)
+            return;
+        _lastFailure = null;
+        _window.SetResponding(true);
+        _mapper.OnRunStarted();
+        _bubble.OnRunStarted();
+    }
+
+    private void OnEvent(object? sender, ChatEvent chatEvent)
+    {
+        if (!_spriteRun)
+            return;
+        if (chatEvent is Failed failed)
+            _lastFailure = failed.Failure;
+        _mapper.OnEvent(chatEvent);
+        _bubble.OnEvent(chatEvent);
+    }
+
+    private void OnRunFinished(object? sender, RunFinishedArgs args)
+    {
+        if (!_spriteRun)
+            return;
+        _spriteRun = false;
+        _window.SetResponding(false);
+        _mapper.OnRunFinished(args.Result);
+        _bubble.OnRunFinished(args.Result);
+    }
+
+    /// <summary>權限確認在任一邊被回答（氣泡或工作台的卡片）：氣泡與角色狀態都跟著更新。</summary>
+    private void OnApprovalResolved(object? sender, ApprovalResolved resolved)
+    {
+        _mapper.OnApprovalResolved(resolved.CallId);
+        _bubble.OnApprovalResolved(resolved.CallId, resolved.Decision);
+    }
+
+    // ---- 使用者操作 ----
+
+    private async Task SendAsync(string text)
+    {
+        if (_session.IsResponding)
+            return;   // 回應中只能打草稿
+        if (_session.ActiveMode != ChatMode.Sprite && !_session.TrySetMode(ChatMode.Sprite))
+            return;
+        await RunAsync(() => _session.SendAsync(text));
+    }
+
+    private async Task RetryAsync()
+    {
+        if (_session.IsResponding)
+            return;
+        await RunAsync(() => _session.RetryAsync());
+    }
+
+    /// <summary>缺少、無效或讀不出來的金鑰：開啟設定，存好後自動重試（和工作台相同）；其他問題只開設定。</summary>
+    private async Task OpenSettingsAsync()
+    {
+        try
+        {
+            if (ToPromptReason(_lastFailure?.Kind) is { } reason)
+            {
+                if (await _keyPrompt.PromptAsync(reason))
+                    await RetryAsync();
+            }
+            else
+            {
+                await _settings.ShowAsync(new SettingsNavigation(SettingsSection.Connections));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "從小精靈開啟設定失敗");
+        }
+    }
+
+    private async Task RunAsync(Func<Task<ChatRunResult>> run)
+    {
+        try
+        {
+            await run();   // 結果已經由 RunFinished 事件交給氣泡與角色
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "小精靈無法送出訊息");   // 沒有對話或剛好開始回應：忽略
+        }
+    }
+
+    private static ApiKeyPromptReason? ToPromptReason(ChatFailureKind? kind) => kind switch
+    {
+        ChatFailureKind.MissingApiKey => ApiKeyPromptReason.Missing,
+        ChatFailureKind.InvalidApiKey => ApiKeyPromptReason.Invalid,
+        ChatFailureKind.SecretUnreadable => ApiKeyPromptReason.Unreadable,
+        _ => null,
+    };
+}

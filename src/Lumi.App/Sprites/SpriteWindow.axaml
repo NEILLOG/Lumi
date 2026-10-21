@@ -1,0 +1,86 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        xmlns:sp="using:Lumi.App.Sprites"
+        x:Class="Lumi.App.Sprites.SpriteWindow"
+        Title="Lumi"
+        Width="340" Height="300"
+        CanResize="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        WindowStartupLocation="Manual">
+
+  <Window.Styles>
+    <!-- 輸入列自己畫外框，TextBox 的框線與底色拿掉 -->
+    <Style Selector="TextBox#Input /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox#Input:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox#Input:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </Window.Styles>
+
+  <Panel>
+    <!-- 氣泡：固定預留的區域，內容貼著底部（尖端對準角色的氣泡錨點）。沒有按鈕的氣泡點擊會穿透 -->
+    <Grid x:Name="BubbleArea" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsHitTestVisible="False">
+      <sp:SpriteBubbleView x:Name="Bubble" VerticalAlignment="Bottom" HorizontalAlignment="Center" Opacity="0"
+                           RenderTransform="translateY(8px)">
+        <sp:SpriteBubbleView.Transitions>
+          <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" />
+          </Transitions>
+        </sp:SpriteBubbleView.Transitions>
+      </sp:SpriteBubbleView>
+    </Grid>
+
+    <!-- 角色：視窗大小固定，角色放在它的位置上 -->
+    <Border x:Name="SpriteHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Cursor="Hand" />
+
+    <!-- 精簡輸入列：靠近才浮現 -->
+    <Border x:Name="InputBar" HorizontalAlignment="Left" VerticalAlignment="Top" Width="300" Height="48"
+            CornerRadius="24" Padding="16,0,6,0" Opacity="0" IsHitTestVisible="False" RenderTransform="translateY(12px)"
+            Background="{DynamicResource LumiSurfaceBrush}" BorderBrush="{DynamicResource LumiBorderStrongBrush}"
+            BorderThickness="1" BoxShadow="{StaticResource LumiSpriteShadow}">
+      <Border.Transitions>
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" />
+        </Transitions>
+      </Border.Transitions>
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox x:Name="Input" Watermark="{x:Static res:Strings.Sprite_InputPlaceholder}" VerticalAlignment="Center"
+                 Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
+                 AcceptsReturn="False" />
+        <Button x:Name="SendButton" Grid.Column="1" Width="36" Height="36" CornerRadius="18" Padding="0"
+                Background="{DynamicResource LumiPrimaryButtonBrush}" Foreground="{DynamicResource LumiPrimaryButtonTextBrush}"
+                ToolTip.Tip="{x:Static res:Strings.Sprite_Send}"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+          <Panel>
+            <Path x:Name="SendIcon" Width="14" Height="14" Stretch="Uniform" Stroke="{DynamicResource LumiPrimaryButtonTextBrush}"
+                  StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Data="M12,19 L12,5 M5,12 L12,5 L19,12" />
+            <Path x:Name="StopIcon" IsVisible="False" Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource LumiPrimaryButtonTextBrush}"
+                  Data="M4,4 L20,4 L20,20 L4,20 Z" />
+          </Panel>
+        </Button>
+      </Grid>
+    </Border>
+
+    <!-- 診斷 HUD（開發用，F1 切換） -->
+    <Border x:Name="Hud" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top"
+            Margin="4" Padding="8,6" CornerRadius="8" Background="{DynamicResource LumiCodeBackgroundBrush}" MaxWidth="320">
+      <TextBlock x:Name="HudText" Classes="mono" FontSize="10" Foreground="{DynamicResource LumiCodeTextBrush}"
+                 TextWrapping="Wrap" LineHeight="15" />
+    </Border>
+  </Panel>
+</Window>
