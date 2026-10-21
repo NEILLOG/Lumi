@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
@@ -18,6 +19,8 @@ public partial class SettingsWindow : Window
         ViewModel = viewModel;
         DataContext = viewModel;
         ResponsiveClasses.Track(this, trackStacked: true);
+        // 色票卡片排在可換行的 WrapPanel：左右鍵由 ListBox 處理，上下鍵要自己找「上一列／下一列」的卡片
+        PaletteBox.AddHandler(KeyDownEvent, OnPaletteKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         viewModel.Connections.FocusApiKeyRequested += () =>
             Dispatcher.UIThread.Post(() => ConnectionsPanel.FocusKeyBox(), DispatcherPriority.Loaded);
 
@@ -57,6 +60,28 @@ public partial class SettingsWindow : Window
     }
 
     internal SpritePreviewHost? Preview => _preview;
+
+    private void OnPaletteKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.None || e.Key is not (Key.Up or Key.Down))
+            return;
+        var items = Enumerable.Range(0, PaletteBox.ItemCount).Select(PaletteBox.ContainerFromIndex).OfType<ListBoxItem>().ToList();
+        var current = items.FirstOrDefault(i => i.IsFocused) ?? items.FirstOrDefault(i => i.IsSelected);
+        if (current is null)
+            return;
+        var down = e.Key == Key.Down;
+        var otherRows = items.Where(i => down ? i.Bounds.Top > current.Bounds.Top + 1 : i.Bounds.Top < current.Bounds.Top - 1).ToList();
+        if (otherRows.Count == 0)
+            return;
+        var rowTop = down ? otherRows.Min(i => i.Bounds.Top) : otherRows.Max(i => i.Bounds.Top);
+        var target = otherRows.Where(i => Math.Abs(i.Bounds.Top - rowTop) <= 1)
+            .MinBy(i => Math.Abs(i.Bounds.Center.X - current.Bounds.Center.X));
+        if (target is null)
+            return;
+        PaletteBox.SelectedIndex = items.IndexOf(target);
+        target.Focus();
+        e.Handled = true;
+    }
 
     public SettingsViewModel ViewModel { get; }
 

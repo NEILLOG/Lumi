@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lumi.App.Resources;
 using Lumi.Core.Models;
@@ -28,6 +29,22 @@ public sealed record PaletteOption(string Id)
         "terracotta" => Strings.Theme_Palette_terracotta,
         _ => Strings.Theme_Palette_sage,
     };
+
+    /// <summary>卡片上的一行說明（ui-guide.html 第 1 節的副標）。</summary>
+    public string Description => Id switch
+    {
+        "teal" => Strings.Theme_PaletteDesc_teal,
+        "mist-blue" => Strings.Theme_PaletteDesc_mist_blue,
+        "indigo" => Strings.Theme_PaletteDesc_indigo,
+        "terracotta" => Strings.Theme_PaletteDesc_terracotta,
+        _ => Strings.Theme_PaletteDesc_sage,
+    };
+
+    /// <summary>螢幕閱讀器念的名稱：色票名稱＋說明（不是使用中時）。</summary>
+    public string AutomationName => string.Format(CultureInfo.CurrentCulture, Strings.General_PaletteAutomationFormat, Text, Description);
+
+    /// <summary>選取（使用中）時的名稱：多一個「使用中」。</summary>
+    public string AutomationNameActive => string.Format(CultureInfo.CurrentCulture, Strings.General_PaletteAutomationActiveFormat, Text, Description);
 
     public static IReadOnlyList<PaletteOption> All { get; } = ThemePalettes.All.Select(id => new PaletteOption(id)).ToList();
 }

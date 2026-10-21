@@ -30,7 +30,8 @@ public sealed record SpriteOption(ISpriteFactory Factory)
 /// <summary>「載入失敗與警告」清單的一項。</summary>
 public sealed record SpriteIssueItem(string Text, bool IsFatal)
 {
-    public string Icon => IsFatal ? "✕" : "⚠";
+    /// <summary>種類的文字標籤（失敗或警告）：不能只靠顏色區分。</summary>
+    public string KindText => IsFatal ? Strings.SpriteSettings_Issue_Fatal : Strings.SpriteSettings_Issue_Warning;
 }
 
 public sealed record SpriteSizeOption(SpriteSize Size)

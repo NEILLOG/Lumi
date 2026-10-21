@@ -381,7 +381,7 @@ public class SettingsWindowShellTests
 
         await host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.General));
         window.UpdateLayout();
-        Assert.True(window.FindByName<ComboBox>("PaletteBox").IsEffectivelyVisible);
+        Assert.True(window.FindByName<ListBox>("PaletteBox").IsEffectivelyVisible);
 
         await host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Sprite));
         window.UpdateLayout();

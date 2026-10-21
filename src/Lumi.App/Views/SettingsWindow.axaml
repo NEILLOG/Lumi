@@ -28,16 +28,74 @@
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
-    <Style Selector="TextBlock.label">
-      <Setter Property="FontWeight" Value="Medium" />
-      <Setter Property="Margin" Value="0,6,0,0" />
+    <!-- 區段標題 20／700（ui-guide.html 第 2 節） -->
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeTitle}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="Button.primary">
       <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
     </Style>
     <Style Selector="ListBox.rows ListBoxItem">
-      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <!-- 色票卡片：色塊（那套色票自己的 Accent／Hover／Soft／Text）、「使用中」徽章只在選取的卡片顯示（文字，不只靠顏色） -->
+    <Style Selector="ListBox.palette ListBoxItem">
+      <Setter Property="Margin" Value="0,0,8,8" />
+    </Style>
+    <Style Selector="Border.swatch">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    </Style>
+    <Style Selector="ListBox.cards Border.active-badge">
+      <Setter Property="IsVisible" Value="False" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <Style Selector="ListBox.cards ListBoxItem:selected Border.active-badge">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <!-- 小標籤（程式型／素材型）：中性底，不和狀態徽章混淆 -->
+    <Style Selector="Border.tag">
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="Border.tag TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <!-- 載入失敗（Danger 淡底）與警告（Warning 淡底）：每項一行，圖示＋種類文字＋說明 -->
+    <Style Selector="Border.issue">
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.issue.fatal">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+    </Style>
+    <Style Selector="Border.issue.fatal TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
+    <Style Selector="Border.issue.fatal ctl|LumiIcon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
+    <Style Selector="Border.issue.warn">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+    </Style>
+    <Style Selector="Border.issue.warn TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+    </Style>
+    <Style Selector="Border.issue.warn ctl|LumiIcon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningIconBrush}" />
     </Style>
     <!-- 選取列用 Soft 底＋OnSoft 文字（ui-guide.html 第 3 節），文字對比 ≥ 4.5:1 -->
     <Style Selector="ListBoxItem:selected">
@@ -256,156 +314,285 @@
         </Panel>
       </Grid>
 
-      <!-- ===== 人格與主動性 ===== -->
+      <!-- ===== 人格與主動性：區段標題＋分隔線的表單（欄位不包卡片）；底部 重設（secondary）／儲存（primary） ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowPersona}">
        <StackPanel Margin="32">
         <views:SettingsPageHeader x:Name="PersonaHeader"
                                   Eyebrow="{x:Static res:Strings.Settings_CategoryPersona}"
                                   Title="{x:Static res:Strings.Settings_HeaderPersonaTitle}"
                                   Description="{x:Static res:Strings.Settings_HeaderPersonaDescription}" />
-        <StackPanel Spacing="8" DataContext="{Binding Persona}" x:DataType="vm:PersonaViewModel" MaxWidth="520" HorizontalAlignment="Left">
-          <TextBlock Classes="label" Text="{x:Static res:Strings.Persona_Style}" />
-          <ComboBox x:Name="PersonaStyleBox" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch">
-            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PersonaStyleOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-          </ComboBox>
-          <TextBlock Classes="muted" Text="{Binding SelectedStyleHint}" TextWrapping="Wrap" />
+        <ctl:FractionWidthLimiter MaxPixels="560" HorizontalAlignment="Stretch">
+          <StackPanel x:Name="PersonaForm" DataContext="{Binding Persona}" x:DataType="vm:PersonaViewModel">
 
-          <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.Persona_Proactivity}" />
-          <ComboBox x:Name="PersonaProactivityBox" ItemsSource="{Binding Proactivities}" SelectedItem="{Binding SelectedProactivity}" HorizontalAlignment="Stretch">
-            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ProactivityOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-          </ComboBox>
-          <TextBlock Classes="muted" Text="{Binding SelectedProactivityHint}" TextWrapping="Wrap" />
-          <TextBlock Classes="muted" Text="{x:Static res:Strings.Persona_ProactivityNote}" TextWrapping="Wrap" />
+            <StackPanel x:Name="PersonaStyleSection" Spacing="16">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.Persona_SectionStyle}" />
+              <ctl:FormField Label="{x:Static res:Strings.Persona_Style}" Hint="{Binding SelectedStyleHint}">
+                <ComboBox x:Name="PersonaStyleBox" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="{x:Static res:Strings.Persona_Style}">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PersonaStyleOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+              </ctl:FormField>
+            </StackPanel>
 
-          <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.Persona_Custom}" />
-          <TextBox x:Name="PersonaCustomBox" Text="{Binding CustomPersona}" AcceptsReturn="True" TextWrapping="Wrap"
-                   MinHeight="110" MaxHeight="260" Watermark="{x:Static res:Strings.Persona_CustomPlaceholder}"
-                   ScrollViewer.VerticalScrollBarVisibility="Auto" />
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Grid.Column="0" Classes="muted" Text="{x:Static res:Strings.Persona_CustomNote}" TextWrapping="Wrap" />
-            <TextBlock Grid.Column="1" Classes="muted" Text="{Binding CustomCounter}" Margin="12,0,0,0" />
-          </Grid>
-          <TextBlock Classes="error" Text="{Binding CustomError}" IsVisible="{Binding HasCustomError}" />
+            <Border Classes="divider" />
 
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-            <Button x:Name="PersonaSaveButton" Classes="primary" Content="{x:Static res:Strings.Persona_Save}" Command="{Binding SaveCommand}" />
-            <Button x:Name="PersonaResetButton" Content="{x:Static res:Strings.Persona_Reset}" Command="{Binding ResetCommand}" />
+            <StackPanel x:Name="PersonaProactivitySection" Spacing="16">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.Persona_SectionProactivity}" />
+              <ctl:FormField Label="{x:Static res:Strings.Persona_Proactivity}" Hint="{Binding SelectedProactivityHint}">
+                <ComboBox x:Name="PersonaProactivityBox" ItemsSource="{Binding Proactivities}" SelectedItem="{Binding SelectedProactivity}" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="{x:Static res:Strings.Persona_Proactivity}">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ProactivityOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+              </ctl:FormField>
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Persona_ProactivityNote}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="divider" />
+
+            <StackPanel x:Name="PersonaCustomSection" Spacing="16">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.Persona_Custom}" />
+              <ctl:FormField Label="{x:Static res:Strings.Persona_CustomLabel}" Requirement="Optional"
+                             Hint="{x:Static res:Strings.Persona_CustomNote}" Error="{Binding CustomError}">
+                <StackPanel Spacing="4">
+                  <TextBox x:Name="PersonaCustomBox" Text="{Binding CustomPersona}" Classes.error="{Binding HasCustomError}"
+                           AcceptsReturn="True" TextWrapping="Wrap" MinHeight="112" MaxHeight="256"
+                           Watermark="{x:Static res:Strings.Persona_CustomPlaceholder}"
+                           AutomationProperties.Name="{x:Static res:Strings.Persona_Custom}"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                  <TextBlock x:Name="PersonaCounter" Classes="muted" Text="{Binding CustomCounter}" HorizontalAlignment="Right" />
+                </StackPanel>
+              </ctl:FormField>
+            </StackPanel>
+
+            <Border Classes="divider" />
+
+            <!-- 動作列：訊息在左，重設（secondary）與儲存（primary，這一區唯一的 Primary）在右 -->
+            <Grid x:Name="PersonaActions" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <TextBlock x:Name="PersonaMessage" Grid.Column="0" Classes="muted" Classes.error="{Binding MessageIsError}"
+                         IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="PersonaResetButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Persona_Reset}" Command="{Binding ResetCommand}" />
+                <Button x:Name="PersonaSaveButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Persona_Save}" Command="{Binding SaveCommand}" />
+              </StackPanel>
+            </Grid>
           </StackPanel>
-          <TextBlock Classes="muted" IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
-        </StackPanel>
+        </ctl:FractionWidthLimiter>
        </StackPanel>
       </ScrollViewer>
 
-      <!-- ===== 一般 ===== -->
+      <!-- ===== 外觀與操作：主題色票（五張可選取的小卡片）→ 分隔線 → 明暗 ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowGeneral}">
        <StackPanel Margin="32">
         <views:SettingsPageHeader x:Name="GeneralHeader"
                                   Eyebrow="{x:Static res:Strings.Settings_CategoryGeneral}"
                                   Title="{x:Static res:Strings.Settings_HeaderGeneralTitle}"
                                   Description="{x:Static res:Strings.Settings_HeaderGeneralDescription}" />
-      <StackPanel Spacing="8" DataContext="{Binding General}" x:DataType="vm:GeneralViewModel" MaxWidth="420" HorizontalAlignment="Left">
-        <TextBlock Classes="label" Text="{x:Static res:Strings.General_Theme}" />
-        <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" HorizontalAlignment="Stretch">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ThemeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.General_Palette}" />
-        <ComboBox x:Name="PaletteBox" ItemsSource="{Binding Palettes}" SelectedItem="{Binding SelectedPalette}" HorizontalAlignment="Stretch">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PaletteOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      </StackPanel>
+        <ctl:FractionWidthLimiter MaxPixels="720" HorizontalAlignment="Stretch">
+          <StackPanel DataContext="{Binding General}" x:DataType="vm:GeneralViewModel">
+
+            <StackPanel x:Name="PaletteSection" Spacing="8">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.General_Palette}" />
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.General_PaletteNote}" TextWrapping="Wrap" />
+
+              <!-- 一個色票一張卡片（巢狀一層）；選取＝Soft 底＋Accent 邊框＋「使用中」文字徽章；點選立即套用。
+                   色塊是該色票自己的顏色（PalettePreview 讀 Palettes/{id}.axaml），不是目前主題的 token -->
+              <ListBox x:Name="PaletteBox" Classes="cards palette" ItemsSource="{Binding Palettes}" SelectedItem="{Binding SelectedPalette}"
+                       Margin="0,8,0,0"
+                       AutomationProperties.Name="{x:Static res:Strings.General_Palette}"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem" x:DataType="vm:PaletteOption">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+                  </Style>
+                  <Style Selector="ListBoxItem:selected" x:DataType="vm:PaletteOption">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding AutomationNameActive}" />
+                  </Style>
+                </ListBox.Styles>
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PaletteOption">
+                    <Border Classes="card" Width="200">
+                      <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding Text}" FontSize="{DynamicResource LumiFontSizeCard}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                        <Grid ColumnDefinitions="*,Auto">
+                          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <Border Classes="swatch" Background="{Binding Id, Converter={x:Static views:PaletteSwatchConverter.Instance}, ConverterParameter=Accent}" />
+                            <Border Classes="swatch" Background="{Binding Id, Converter={x:Static views:PaletteSwatchConverter.Instance}, ConverterParameter=Hover}" />
+                            <Border Classes="swatch" Background="{Binding Id, Converter={x:Static views:PaletteSwatchConverter.Instance}, ConverterParameter=Soft}" />
+                            <Border Classes="swatch" Background="{Binding Id, Converter={x:Static views:PaletteSwatchConverter.Instance}, ConverterParameter=Text}" />
+                          </StackPanel>
+                          <Border Grid.Column="1" Classes="badge active-badge">
+                            <TextBlock Text="{x:Static res:Strings.Common_Active}" />
+                          </Border>
+                        </Grid>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </StackPanel>
+
+            <Border Classes="divider" />
+
+            <StackPanel x:Name="ThemeSection" Spacing="16" MaxWidth="420" HorizontalAlignment="Left">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.General_Theme}" />
+              <ctl:FormField Label="{x:Static res:Strings.General_ThemeMode}" Hint="{x:Static res:Strings.General_ThemeHint}">
+                <ComboBox x:Name="ThemeBox" ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="{x:Static res:Strings.General_ThemeMode}">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ThemeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+              </ctl:FormField>
+            </StackPanel>
+
+            <TextBlock x:Name="GeneralError" Classes="error" Margin="0,16,0,0" Text="{Binding Error}"
+                       IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+        </ctl:FractionWidthLimiter>
        </StackPanel>
       </ScrollViewer>
 
-      <!-- ===== 小精靈：角色、尺寸、語氣、狀態預覽（選了立即生效） ===== -->
+      <!-- ===== 小精靈：預覽（左 240，< 900 改放上方）＋ 角色卡片清單、尺寸、語氣、狀態預覽（選了立即生效，沒有 Primary） ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSprite}">
        <StackPanel Margin="32">
         <views:SettingsPageHeader x:Name="SpriteHeader"
                                   Eyebrow="{x:Static res:Strings.Settings_CategorySprite}"
                                   Title="{x:Static res:Strings.Settings_HeaderSpriteTitle}"
                                   Description="{x:Static res:Strings.Settings_HeaderSpriteDescription}" />
-        <Grid x:Name="SpritePanel" ColumnDefinitions="240,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
-          <!-- 預覽區：用同一個角色即時播放所選的狀態 -->
-          <Border Grid.Column="0" VerticalAlignment="Top" Height="240" CornerRadius="14" BorderThickness="1" Margin="0,0,24,0"
-                  Background="{DynamicResource LumiSurfaceAltBrush}" BorderBrush="{DynamicResource LumiBorderBrush}">
-            <Border x:Name="SpritePreviewHost" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Border>
+        <Grid x:Name="SpritePanel" ColumnDefinitions="Auto,*" RowDefinitions="Auto,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
 
-          <StackPanel Grid.Column="1" Spacing="8" MaxWidth="460" HorizontalAlignment="Left">
-            <TextBlock Classes="label" Text="{x:Static res:Strings.SpriteSettings_Character}" />
-            <ListBox x:Name="SpriteList" Classes="rows" ItemsSource="{Binding Sprites}" SelectedItem="{Binding SelectedSprite}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:SpriteOption">
-                  <Grid ColumnDefinitions="Auto,*,Auto">
-                    <!-- 縮圖：素材型角色的 preview.png（沒有就空著）；像素圖用最近鄰，不要糊掉 -->
-                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" Margin="0,0,10,0" ClipToBounds="True"
-                            Background="{DynamicResource LumiSurfaceAltBrush}" IsVisible="{Binding PreviewPath, Converter={x:Static ObjectConverters.IsNotNull}}">
-                      <Image Source="{Binding PreviewPath, Converter={x:Static views:PathToBitmapConverter.Instance}}" Stretch="Uniform"
-                             RenderOptions.BitmapInterpolationMode="None" />
-                    </Border>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Name}" FontWeight="Medium" />
-                      <TextBlock Text="{Binding Credit}" Classes="muted" />
-                    </StackPanel>
-                    <TextBlock Grid.Column="2" Text="{Binding KindText}" Classes="muted" VerticalAlignment="Center" Margin="8,0,0,0" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_CharacterNote}" TextWrapping="Wrap" />
+          <!-- 預覽區（一個物件，所以是卡片）：用同一個角色即時播放所選的狀態。master／detail 的版面規則見 Themes/Controls.axaml -->
+          <Panel x:Name="SpritePreviewArea" Classes="master" VerticalAlignment="Top">
+            <Border x:Name="SpritePreviewCard" Classes="card" Width="240" Height="240" Padding="0" HorizontalAlignment="Left">
+              <Border x:Name="SpritePreviewHost" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </Panel>
 
-            <!-- 角色資料夾：放好素材後按「重新載入」 -->
-            <StackPanel Spacing="6" IsVisible="{Binding CanReload}">
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button x:Name="SpriteReloadButton" Content="{Binding ReloadLabel}" Command="{Binding ReloadCommand}" />
-                <Button x:Name="SpriteOpenFolderButton" Content="{x:Static res:Strings.SpriteSettings_OpenFolder}" Command="{Binding OpenFolderCommand}"
-                        IsVisible="{Binding HasSpritesDirectory}" />
+          <ctl:FractionWidthLimiter x:Name="SpriteDetail" Classes="detail" MaxPixels="560" HorizontalAlignment="Stretch">
+            <StackPanel>
+
+              <!-- 角色 -->
+              <StackPanel x:Name="SpriteCharacterSection" Spacing="8">
+                <TextBlock Classes="section-title" Text="{x:Static res:Strings.SpriteSettings_Character}" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_CharacterNote}" TextWrapping="Wrap" />
+                <ListBox x:Name="SpriteList" Classes="cards" Margin="0,8,0,0" ItemsSource="{Binding Sprites}" SelectedItem="{Binding SelectedSprite}"
+                         AutomationProperties.Name="{x:Static res:Strings.SpriteSettings_Character}">
+                  <ListBox.Styles>
+                    <Style Selector="ListBoxItem" x:DataType="vm:SpriteOption">
+                      <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                    </Style>
+                  </ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SpriteOption">
+                      <Border Classes="card" Padding="12">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                          <!-- 縮圖：素材型角色的 preview.png（沒有就顯示佔位圖示）；像素圖用最近鄰，不要糊掉 -->
+                          <Border Grid.Column="0" Width="48" Height="48" CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True"
+                                  Background="{DynamicResource LumiSurfaceAltBrush}">
+                            <Panel>
+                              <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="20" Foreground="{DynamicResource LumiTextMutedBrush}"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            IsVisible="{Binding PreviewPath, Converter={x:Static ObjectConverters.IsNull}}" />
+                              <Image Source="{Binding PreviewPath, Converter={x:Static views:PathToBitmapConverter.Instance}}" Stretch="Uniform"
+                                     RenderOptions.BitmapInterpolationMode="None"
+                                     IsVisible="{Binding PreviewPath, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                            </Panel>
+                          </Border>
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" FontSize="{DynamicResource LumiFontSizeCard}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Classes="muted" Text="{Binding Credit}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <Border Classes="tag" HorizontalAlignment="Right"><TextBlock Text="{Binding KindText}" /></Border>
+                            <Border Classes="badge active-badge" HorizontalAlignment="Right"><TextBlock Text="{x:Static res:Strings.Common_Active}" /></Border>
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- 角色資料夾：放好素材後按「重新載入」。兩個都是 secondary（選了立即生效，這一區沒有 Primary） -->
+                <StackPanel Spacing="8" IsVisible="{Binding CanReload}">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="SpriteReloadButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                            Content="{Binding ReloadLabel}" Command="{Binding ReloadCommand}" />
+                    <Button x:Name="SpriteOpenFolderButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                            Content="{x:Static res:Strings.SpriteSettings_OpenFolder}" Command="{Binding OpenFolderCommand}"
+                            IsVisible="{Binding HasSpritesDirectory}" />
+                  </StackPanel>
+                  <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_FolderNote}" TextWrapping="Wrap" />
+                  <TextBlock x:Name="SpriteFolderPath" Classes="muted mono" Text="{Binding SpritesDirectory}" TextWrapping="Wrap" IsVisible="{Binding HasSpritesDirectory}" />
+                </StackPanel>
+
+                <!-- 載入失敗與警告：每項一行，三角圖示＋種類文字（失敗用 Danger 淡底、警告用 Warning 淡底），不只靠顏色 -->
+                <StackPanel x:Name="SpriteIssuesPanel" Spacing="8" IsVisible="{Binding HasIssues}" Margin="0,8,0,0">
+                  <TextBlock Text="{x:Static res:Strings.SpriteSettings_Issues}" FontSize="{DynamicResource LumiFontSizeBody}" FontWeight="Bold" />
+                  <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_IssuesNote}" TextWrapping="Wrap" />
+                  <ItemsControl x:Name="SpriteIssueList" ItemsSource="{Binding Issues}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:SpriteIssueItem">
+                        <Border Classes="issue" Classes.fatal="{Binding IsFatal}" Classes.warn="{Binding !IsFatal}">
+                          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" VerticalAlignment="Top" />
+                            <StackPanel Grid.Column="1">
+                              <TextBlock Text="{Binding KindText}" FontSize="{DynamicResource LumiFontSizeCaption}" FontWeight="Bold" />
+                              <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCaption}" />
+                            </StackPanel>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
               </StackPanel>
-              <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_FolderNote}" TextWrapping="Wrap" />
-              <TextBlock x:Name="SpriteFolderPath" Classes="muted mono" Text="{Binding SpritesDirectory}" TextWrapping="Wrap" IsVisible="{Binding HasSpritesDirectory}" />
+
+              <Border Classes="divider" />
+
+              <!-- 大小與語氣 -->
+              <StackPanel x:Name="SpriteLookSection" Spacing="16">
+                <TextBlock Classes="section-title" Text="{x:Static res:Strings.SpriteSettings_SectionLook}" />
+                <ctl:FormField Label="{x:Static res:Strings.SpriteSettings_Size}" Hint="{x:Static res:Strings.SpriteSettings_SizeNote}">
+                  <ComboBox x:Name="SpriteSizeBox" ItemsSource="{Binding Sizes}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="{x:Static res:Strings.SpriteSettings_Size}">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SpriteSizeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                </ctl:FormField>
+                <ctl:FormField Label="{x:Static res:Strings.SpriteSettings_Voice}" Hint="{x:Static res:Strings.SpriteSettings_VoiceNote}">
+                  <CheckBox x:Name="SpriteVoiceBox" IsChecked="{Binding VoiceEnabled}" Content="{x:Static res:Strings.SpriteSettings_VoiceToggle}" />
+                </ctl:FormField>
+                <TextBlock Classes="muted" IsVisible="{Binding HasNoVoice}" Text="{x:Static res:Strings.SpriteSettings_VoiceNone}" TextWrapping="Wrap" />
+              </StackPanel>
+
+              <Border Classes="divider" />
+
+              <!-- 狀態預覽 -->
+              <StackPanel x:Name="SpritePreviewSection" Spacing="8">
+                <TextBlock Classes="section-title" Text="{x:Static res:Strings.SpriteSettings_Preview}" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_PreviewNote}" TextWrapping="Wrap" />
+                <ListBox x:Name="SpriteStateList" Classes="rows" Margin="0,8,0,0" ItemsSource="{Binding States}" SelectedItem="{Binding PreviewState}"
+                         AutomationProperties.Name="{x:Static res:Strings.SpriteSettings_Preview}">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SpriteStateItem">
+                      <Grid ColumnDefinitions="112,*">
+                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{Binding Note}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+
+              <TextBlock Classes="error" Margin="0,16,0,0" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
             </StackPanel>
-
-            <!-- 載入失敗與警告 -->
-            <StackPanel x:Name="SpriteIssuesPanel" Spacing="4" IsVisible="{Binding HasIssues}" Margin="0,4,0,0">
-              <TextBlock Classes="label" Text="{x:Static res:Strings.SpriteSettings_Issues}" />
-              <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_IssuesNote}" TextWrapping="Wrap" />
-              <ItemsControl x:Name="SpriteIssueList" ItemsSource="{Binding Issues}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:SpriteIssueItem">
-                    <Grid ColumnDefinitions="20,*" Margin="0,2">
-                      <TextBlock Grid.Column="0" Text="{Binding Icon}" FontWeight="Bold" Foreground="{DynamicResource LumiWarningIconBrush}" />
-                      <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCaption}" />
-                    </Grid>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-
-            <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Size}" />
-            <ComboBox x:Name="SpriteSizeBox" ItemsSource="{Binding Sizes}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Stretch">
-              <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SpriteSizeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-            </ComboBox>
-            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_SizeNote}" TextWrapping="Wrap" />
-
-            <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Voice}" />
-            <CheckBox x:Name="SpriteVoiceBox" IsChecked="{Binding VoiceEnabled}" Content="{x:Static res:Strings.SpriteSettings_VoiceToggle}" />
-            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_VoiceNote}" TextWrapping="Wrap" />
-            <TextBlock Classes="muted" IsVisible="{Binding HasNoVoice}" Text="{x:Static res:Strings.SpriteSettings_VoiceNone}" TextWrapping="Wrap" />
-
-            <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Preview}" />
-            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_PreviewNote}" TextWrapping="Wrap" />
-            <ListBox x:Name="SpriteStateList" Classes="rows" ItemsSource="{Binding States}" SelectedItem="{Binding PreviewState}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:SpriteStateItem">
-                  <Grid ColumnDefinitions="110,*">
-                    <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="Medium" />
-                    <TextBlock Grid.Column="1" Text="{Binding Note}" Classes="muted" TextWrapping="Wrap" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-          </StackPanel>
+          </ctl:FractionWidthLimiter>
         </Grid>
        </StackPanel>
       </ScrollViewer>

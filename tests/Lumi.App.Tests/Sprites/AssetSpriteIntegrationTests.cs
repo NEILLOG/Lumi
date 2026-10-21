@@ -245,7 +245,7 @@ public class AssetSpriteIntegrationTests
         Assert.True(host.Sprite.HasIssues);
         var item = Assert.Single(issues);
         Assert.True(item.IsFatal);
-        Assert.Equal("✕", item.Icon);
+        Assert.Equal(Lumi.App.Resources.Strings.SpriteSettings_Issue_Fatal, item.KindText);
         Assert.Contains("broken", item.Text);
         Assert.Contains("animations", item.Text);
         Assert.Equal(["lumi.orb", CorgiPack.CorgiId], host.Sprite.Sprites.Select(s => s.Id));   // 壞掉的不在清單裡

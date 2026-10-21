@@ -338,4 +338,21 @@ public static class Strings
     public static string Models_MaxOutputHint => Get(nameof(Models_MaxOutputHint));
     public static string Models_ContextWindowHint => Get(nameof(Models_ContextWindowHint));
     public static string Form_FixErrors => Get(nameof(Form_FixErrors));
+    public static string Common_Active => Get(nameof(Common_Active));
+    public static string General_ThemeMode => Get(nameof(General_ThemeMode));
+    public static string General_ThemeHint => Get(nameof(General_ThemeHint));
+    public static string General_PaletteNote => Get(nameof(General_PaletteNote));
+    public static string General_PaletteAutomationFormat => Get(nameof(General_PaletteAutomationFormat));
+    public static string General_PaletteAutomationActiveFormat => Get(nameof(General_PaletteAutomationActiveFormat));
+    public static string Theme_PaletteDesc_sage => Get(nameof(Theme_PaletteDesc_sage));
+    public static string Theme_PaletteDesc_teal => Get(nameof(Theme_PaletteDesc_teal));
+    public static string Theme_PaletteDesc_mist_blue => Get(nameof(Theme_PaletteDesc_mist_blue));
+    public static string Theme_PaletteDesc_indigo => Get(nameof(Theme_PaletteDesc_indigo));
+    public static string Theme_PaletteDesc_terracotta => Get(nameof(Theme_PaletteDesc_terracotta));
+    public static string Persona_SectionStyle => Get(nameof(Persona_SectionStyle));
+    public static string Persona_SectionProactivity => Get(nameof(Persona_SectionProactivity));
+    public static string Persona_CustomLabel => Get(nameof(Persona_CustomLabel));
+    public static string SpriteSettings_SectionLook => Get(nameof(SpriteSettings_SectionLook));
+    public static string SpriteSettings_Issue_Fatal => Get(nameof(SpriteSettings_Issue_Fatal));
+    public static string SpriteSettings_Issue_Warning => Get(nameof(SpriteSettings_Issue_Warning));
 }

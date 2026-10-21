@@ -110,7 +110,7 @@
   <data name="Models_DefaultChanged" xml:space="preserve"><value>預設模型已改為「{0}」。</value></data>
   <data name="Models_NoDefault" xml:space="preserve"><value>（未設定）</value></data>
   <data name="Models_Select" xml:space="preserve"><value>請先選擇一個模型設定，或新增一個。</value></data>
-  <data name="General_Theme" xml:space="preserve"><value>外觀主題</value></data>
+  <data name="General_Theme" xml:space="preserve"><value>明暗</value></data>
   <data name="Theme_System" xml:space="preserve"><value>跟隨系統</value></data>
   <data name="Theme_Light" xml:space="preserve"><value>淺色</value></data>
   <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
@@ -352,4 +352,21 @@
   <data name="Models_MaxOutputHint" xml:space="preserve"><value>單次回答最多輸出的 token 數。</value></data>
   <data name="Models_ContextWindowHint" xml:space="preserve"><value>模型一次能讀入的內容長度上限。</value></data>
   <data name="Form_FixErrors" xml:space="preserve"><value>有欄位需要修正，請先處理上方標示的錯誤才能儲存。</value></data>
+  <data name="Common_Active" xml:space="preserve"><value>使用中</value></data>
+  <data name="General_ThemeMode" xml:space="preserve"><value>顯示模式</value></data>
+  <data name="General_ThemeHint" xml:space="preserve"><value>跟隨系統會在系統切換深淺色時一起切換。</value></data>
+  <data name="General_PaletteNote" xml:space="preserve"><value>點選後立即套用，只改變顏色，不改變版面。</value></data>
+  <data name="General_PaletteAutomationFormat" xml:space="preserve"><value>{0}，{1}</value></data>
+  <data name="General_PaletteAutomationActiveFormat" xml:space="preserve"><value>{0}，{1}，使用中</value></data>
+  <data name="Theme_PaletteDesc_sage" xml:space="preserve"><value>柔和、生活化、低刺激</value></data>
+  <data name="Theme_PaletteDesc_teal" xml:space="preserve"><value>清爽、友善、識別度高</value></data>
+  <data name="Theme_PaletteDesc_mist_blue" xml:space="preserve"><value>穩定、熟悉、生產力工具感</value></data>
+  <data name="Theme_PaletteDesc_indigo" xml:space="preserve"><value>現代、鮮明、AI 科技感</value></data>
+  <data name="Theme_PaletteDesc_terracotta" xml:space="preserve"><value>溫暖、人文感</value></data>
+  <data name="Persona_SectionStyle" xml:space="preserve"><value>說話個性</value></data>
+  <data name="Persona_SectionProactivity" xml:space="preserve"><value>主動程度</value></data>
+  <data name="Persona_CustomLabel" xml:space="preserve"><value>補充內容</value></data>
+  <data name="SpriteSettings_SectionLook" xml:space="preserve"><value>大小與語氣</value></data>
+  <data name="SpriteSettings_Issue_Fatal" xml:space="preserve"><value>載入失敗</value></data>
+  <data name="SpriteSettings_Issue_Warning" xml:space="preserve"><value>警告</value></data>
 </root>
