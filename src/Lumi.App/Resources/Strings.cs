@@ -134,6 +134,8 @@ public static class Strings
     public static string Workbench_NoModelClickToSetup => Get(nameof(Workbench_NoModelClickToSetup));
     public static string ModelPicker_Search => Get(nameof(ModelPicker_Search));
     public static string ModelPicker_Manage => Get(nameof(ModelPicker_Manage));
+    public static string ModelPicker_Session => Get(nameof(ModelPicker_Session));
+    public static string ModelPicker_ContextFormat => Get(nameof(ModelPicker_ContextFormat));
     public static string ModelPicker_NoMatch => Get(nameof(ModelPicker_NoMatch));
     public static string Workbench_Today => Get(nameof(Workbench_Today));
     public static string Tool_Running => Get(nameof(Tool_Running));

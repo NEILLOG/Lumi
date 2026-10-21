@@ -17,7 +17,7 @@
         ExtendClientAreaTitleBarHeightHint="40">
 
   <Window.Styles>
-    <!-- 歷史抽屜與狀態列用到的共用樣式；工具列、訊息流、輸入區各自在自己的 UserControl 裡載入 -->
+    <!-- 歷史抽屜用到的共用樣式；工具列、訊息流、輸入區各自在自己的 UserControl 裡載入 -->
     <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
     <!-- 選取列用 Soft 底＋OnSoft 文字（ui-guide.html 第 3 節），文字對比 ≥ 4.5:1 -->
     <Style Selector="ListBoxItem:selected">
@@ -28,7 +28,7 @@
     </Style>
   </Window.Styles>
 
-  <!-- 由上而下：標題列、工具列、訊息流＋輸入區＋狀態列（ui-spec 第 2 節）。只用 token 上色。 -->
+  <!-- 由上而下：標題列、工具列、訊息流＋輸入區（ui-spec 第 2 節；用量與連線狀態在模型選單頂部）。只用 token 上色。 -->
   <Grid RowDefinitions="Auto,Auto,*">
 
     <!-- 自訂標題列：Lumi 標誌、拖曳區、小精靈模式（SpriteModeButton 在它裡面，見 CustomTitleBar.SpriteModeButton） -->
@@ -64,7 +64,7 @@
         </DockPanel>
       </SplitView.Pane>
 
-      <Grid RowDefinitions="Auto,*,Auto,Auto">
+      <Grid RowDefinitions="Auto,*,Auto">
         <!-- 查看中：小精靈回應中開啟的工作台，輸入與切換都停用，結束後自動解除（ui-spec 2.2） -->
         <Border x:Name="ViewOnlyBanner" Grid.Row="0" IsVisible="{Binding IsViewOnly}" Padding="16,8"
                 Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}" BorderThickness="0,0,0,1">
@@ -76,29 +76,6 @@
 
         <!-- 輸入區（InputArea、InputBox、ContextBar、AddFileButton… 在它裡面） -->
         <views:ChatComposer x:Name="Composer" Grid.Row="2" />
-
-        <!-- 輸入 N · 輸出 N · 回合 N · 上下文 [進度條] 14K / 1M（ui-spec 2.3） -->
-        <Border Grid.Row="3" Padding="16,6"
-                Background="{DynamicResource LumiChromeBrush}"
-                BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
-          <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center" />
-              <ProgressBar Width="120" MinWidth="120" VerticalAlignment="Center"
-                           Minimum="0" Maximum="{Binding ContextWindow}" Value="{Binding ContextUsed}" />
-              <TextBlock Text="{Binding ContextText}" Classes="muted" VerticalAlignment="Center" />
-            </StackPanel>
-            <!-- 連線狀態：最近一次回應或測試連線的結果 -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <Panel Width="10" VerticalAlignment="Center">
-                <Ellipse Width="9" Height="9" IsVisible="{Binding IsConnectionOk}" Fill="{DynamicResource LumiSuccessBrush}" />
-                <Ellipse Width="9" Height="9" IsVisible="{Binding IsConnectionFailed}" Fill="{DynamicResource LumiDangerBrush}" />
-                <Ellipse Width="9" Height="9" IsVisible="{Binding IsConnectionUnknown}" Fill="{DynamicResource LumiBorderStrongBrush}" />
-              </Panel>
-              <TextBlock Text="{Binding ConnectionStatusText}" Classes="muted" />
-            </StackPanel>
-          </Grid>
-        </Border>
       </Grid>
     </SplitView>
   </Grid>

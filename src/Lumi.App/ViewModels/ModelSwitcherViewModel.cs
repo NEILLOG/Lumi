@@ -92,6 +92,36 @@ public partial class ModelSwitcherViewModel : ObservableObject
             string.Format(Strings.Workbench_ConnectionStatusFormat, StatusText), Strings.Workbench_CostNote)
         : Strings.Workbench_NoModelClickToSetup;
 
+    // ---- 「本對話」區塊（模型選單頂部）：工作台推進來的用量；沒有推進（例如錯誤列的重試選單）就不顯示 ----
+
+    /// <summary>有本對話的用量資料時才顯示「本對話」區塊；錯誤列的「換模型重試」選單沒有，所以隱藏。</summary>
+    [ObservableProperty]
+    private bool _hasSession;
+
+    /// <summary>「輸入 N · 輸出 N · 回合 N」。</summary>
+    [ObservableProperty]
+    private string _usageText = "";
+
+    [ObservableProperty]
+    private int _contextUsed;
+
+    [ObservableProperty]
+    private int _contextWindow;
+
+    /// <summary>進度條旁的文字：「上下文 14K / 1M」。</summary>
+    [ObservableProperty]
+    private string _contextLabel = "";
+
+    /// <summary>工作台把本對話的用量推進來；<paramref name="contextText"/> 是已格式化的「14K / 1M」。</summary>
+    public void UpdateSession(string usageText, int contextUsed, int contextWindow, string contextText)
+    {
+        UsageText = usageText;
+        ContextUsed = contextUsed;
+        ContextWindow = contextWindow;
+        ContextLabel = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.ModelPicker_ContextFormat, contextText);
+        HasSession = true;
+    }
+
     public bool IsOk => CurrentStatus == ConnectionStatus.Ok;
 
     public bool IsFailed => CurrentStatus == ConnectionStatus.Failed;

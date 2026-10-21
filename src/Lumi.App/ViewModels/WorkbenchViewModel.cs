@@ -87,6 +87,7 @@ public partial class WorkbenchViewModel : ObservableObject
         };
         // 錯誤列的「換模型重試」：選完模型接著重送
         RetrySwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, RetryAfterModelSwitchAsync);
+        SyncSessionUsage();
 
         _session.ConversationChanged += OnConversationChanged;
         _session.RunStarted += OnRunStarted;
@@ -150,10 +151,14 @@ public partial class WorkbenchViewModel : ObservableObject
         OnPropertyChanged(nameof(ModelName));
         OnPropertyChanged(nameof(ContextWindow));
         OnPropertyChanged(nameof(ContextText));
+        SyncSessionUsage();
         OnConnectionStatusChanged();
     }
 
-    // ---- 連線狀態（狀態列右側） ----
+    /// <summary>把本對話的用量（輸入／輸出／回合、上下文）推給模型選單頂部的「本對話」區塊（底部狀態列已移除）。</summary>
+    private void SyncSessionUsage() => ModelSwitcher.UpdateSession(StatusText, ContextUsed, ContextWindow, ContextText);
+
+    // ---- 連線狀態（模型選單的「本對話」區塊與膠囊 Tooltip 另用 ModelSwitcher 的同一份狀態） ----
 
     private ConnectionStatus CurrentConnectionStatus =>
         WorkbenchModel is { } m ? _status.Get(m.Connection.Id).Status : ConnectionStatus.Unknown;
@@ -238,6 +243,10 @@ public partial class WorkbenchViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText))]
     private int _turns;
+
+    partial void OnLastUsageChanged(TokenUsage? value) => SyncSessionUsage();
+
+    partial void OnTurnsChanged(int value) => SyncSessionUsage();
 
     public bool HasError => ErrorMessage is not null;
 

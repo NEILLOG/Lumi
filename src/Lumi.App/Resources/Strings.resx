@@ -37,7 +37,7 @@
   <data name="Workbench_ErrorKept" xml:space="preserve"><value>對話內容已保留。</value></data>
   <data name="Workbench_Retry" xml:space="preserve"><value>重試</value></data>
   <data name="Workbench_UnexpectedError" xml:space="preserve"><value>發生未預期的錯誤，請再試一次。</value></data>
-  <data name="Workbench_StatusFormat" xml:space="preserve"><value>輸入 {0} · 輸出 {1} · 回合 {2} · 上下文</value></data>
+  <data name="Workbench_StatusFormat" xml:space="preserve"><value>輸入 {0} · 輸出 {1} · 回合 {2}</value></data>
   <data name="ApiKey_Missing" xml:space="preserve"><value>尚未設定 Anthropic API 金鑰，請輸入後儲存。</value></data>
   <data name="ApiKey_Invalid" xml:space="preserve"><value>金鑰無效，請重新輸入。</value></data>
   <data name="ApiKey_Unreadable" xml:space="preserve"><value>金鑰無法讀取，請重新輸入。</value></data>
@@ -148,6 +148,8 @@
   <data name="Workbench_NoModelClickToSetup" xml:space="preserve"><value>未設定模型，點此開啟設定</value></data>
   <data name="ModelPicker_Search" xml:space="preserve"><value>搜尋模型</value></data>
   <data name="ModelPicker_Manage" xml:space="preserve"><value>管理連線與模型…</value></data>
+  <data name="ModelPicker_Session" xml:space="preserve"><value>本對話</value></data>
+  <data name="ModelPicker_ContextFormat" xml:space="preserve"><value>上下文 {0}</value></data>
   <data name="ModelPicker_NoMatch" xml:space="preserve"><value>沒有符合的模型</value></data>
   <data name="Workbench_Today" xml:space="preserve"><value>今天</value></data>
   <data name="Tool_Running" xml:space="preserve"><value>執行中…</value></data>
@@ -188,7 +190,7 @@
   <data name="Context_AddFolder" xml:space="preserve"><value>加入資料夾</value></data>
   <data name="Context_Remove" xml:space="preserve"><value>移除</value></data>
   <data name="Context_Tokens" xml:space="preserve"><value>≈ {0} tokens</value></data>
-  <data name="Context_TokensHint" xml:space="preserve"><value>估算值：包含對話歷史、待送出的內容與輸入框的文字；實際用量以下方狀態列（供應商回傳的值）為準</value></data>
+  <data name="Context_TokensHint" xml:space="preserve"><value>估算值：包含對話歷史、待送出的內容與輸入框的文字；實際用量（供應商回傳的值）請看模型選單裡的「本對話」</value></data>
   <data name="Context_TokensOver" xml:space="preserve"><value>預估超過這個模型的上下文上限（{0}）</value></data>
   <data name="Context_Sent" xml:space="preserve"><value>已帶入</value></data>
   <data name="Context_Missing" xml:space="preserve"><value>找不到</value></data>
