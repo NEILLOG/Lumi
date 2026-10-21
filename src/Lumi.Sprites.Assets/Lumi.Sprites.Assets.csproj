@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Sprites.Assets</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.Sprites.Tests" />
+  </ItemGroup>
+
+  <!-- 只引用 Abstractions 與 Avalonia（來自 Abstractions）；不引用任何其他 Lumi 專案 -->
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Sprites.Abstractions\Lumi.Sprites.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

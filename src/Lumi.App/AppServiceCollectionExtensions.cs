@@ -3,7 +3,9 @@ using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
 using Lumi.Core.Tools;
+using Lumi.Infrastructure;
 using Lumi.Sprites.Abstractions;
+using Lumi.Sprites.Assets;
 using Lumi.Sprites.Orb;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -48,6 +50,9 @@ public static class AppServiceCollectionExtensions
         // 小精靈的殼（M7）與內建的光球角色；殼的數字都在 SpriteShellOptions
         services.AddSingleton(new SpriteShellOptions());
         services.AddSprite<OrbSpriteFactory>();
+        // 素材型角色（M8）：角色資料夾在使用者資料夾下的 sprites/，啟動時掃描一次，設定頁可以重新載入
+        services.AddLumiAssetSprites(o => o.Directory = Path.Combine(LumiPaths.DataDirectory, "sprites"));
+        services.AddSingleton<IFolderOpener, ProcessFolderOpener>();
         services.AddSingleton<SpriteStateMapper>();
         services.AddSingleton<SpriteBubbleViewModel>();
         services.AddSingleton<SpriteWindow>();

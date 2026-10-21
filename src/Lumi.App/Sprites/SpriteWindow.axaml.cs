@@ -13,6 +13,7 @@ using Lumi.Core.Chat;
 using Lumi.Core.Models;
 using Lumi.Core.Platform;
 using Lumi.Sprites.Abstractions;
+using Lumi.Sprites.Assets;
 using Microsoft.Extensions.Logging;
 
 namespace Lumi.App.Sprites;
@@ -47,7 +48,6 @@ public partial class SpriteWindow : Window
     private ISpriteFactory _factory = null!;
     private ISpriteView _view = null!;
     private SpriteOptions _spriteOptions = null!;
-    private string _builtSpriteId = "";
     private SpriteSize _builtSize;
     private SpriteLayout _layout = null!;
     private FrameDriver? _frames;
@@ -102,14 +102,10 @@ public partial class SpriteWindow : Window
         Bubble.DataContext = _bubble;
         _mapper.Changed += SetState;
         _bubble.Dismissed += _mapper.Acknowledge;   // 錯誤的氣泡被關掉：角色離開 Error
-        // 設定頁換了角色或尺寸：立即生效（在 UI 執行緒上重建角色，位置以角色中心為準不跳動）
-        _settings.Changed += (_, _) =>
-        {
-            if (Dispatcher.UIThread.CheckAccess())
-                RebuildIfSettingsChanged();
-            else
-                Dispatcher.UIThread.Post(RebuildIfSettingsChanged);
-        };
+        // 設定頁換了角色或尺寸、或角色資料夾重新載入了：立即生效（在 UI 執行緒上重建角色，位置以角色中心為準不跳動）
+        _settings.Changed += (_, _) => PostRebuild();
+        if (_catalog is IReloadableSpriteCatalog reloadable)
+            reloadable.Changed += (_, _) => PostRebuild();
         BuildSprite(_settings.Current.Sprite);
 
         SpriteHost.PointerPressed += OnSpritePressed;
@@ -208,7 +204,6 @@ public partial class SpriteWindow : Window
         foreach (var warning in fit.Warnings)
             _logger.LogWarning("{Warning}", warning);
 
-        _builtSpriteId = _factory.Manifest.Id;
         _builtSize = settings.Size;
         _spriteOptions = fit.Options;
         _view = _factory.Create(_spriteOptions);
@@ -248,12 +243,24 @@ public partial class SpriteWindow : Window
         RebuildIfSettingsChanged();
     }
 
-    /// <summary>目前的設定和已經建好的角色（id、尺寸）不同才重建；設定的其他變更（主題、人設…）不會動到角色。</summary>
+    private void PostRebuild()
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+            RebuildIfSettingsChanged();
+        else
+            Dispatcher.UIThread.Post(RebuildIfSettingsChanged);
+    }
+
+    /// <summary>
+    /// 想要的角色（設定裡的 id，找不到就退回第一個）和已經建好的不同才重建：換了角色、換了尺寸，
+    /// 或重新載入之後同一個角色有了新的工廠（圖片可能改過）。設定的其他變更（主題、人設…）不會動到角色。
+    /// 選用的角色被移走時退回第一個，設定裡的選擇不動，角色回來之後重新載入就自動換回去。
+    /// </summary>
     private void RebuildIfSettingsChanged()
     {
         var wanted = _settings.Current.Sprite;
-        var wantedId = (_catalog.Find(wanted.SpriteId) ?? _catalog.All.FirstOrDefault())?.Manifest.Id;
-        if (wantedId == _builtSpriteId && wanted.Size == _builtSize)
+        var wantedFactory = _catalog.Find(wanted.SpriteId) ?? _catalog.All.FirstOrDefault();
+        if (ReferenceEquals(wantedFactory, _factory) && wanted.Size == _builtSize)
             return;
 
         var center = SpriteCenterOnScreen;

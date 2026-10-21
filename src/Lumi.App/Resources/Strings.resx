@@ -276,4 +276,13 @@
   <data name="Sprite_State_Error" xml:space="preserve"><value>錯誤</value></data>
   <data name="Sprite_State_Sleep" xml:space="preserve"><value>休眠</value></data>
   <data name="Sprite_MenuSwitchSprite" xml:space="preserve"><value>切換角色…</value></data>
+  <data name="SpriteSettings_Kind_Code" xml:space="preserve"><value>程式型</value></data>
+  <data name="SpriteSettings_Kind_Asset" xml:space="preserve"><value>素材型</value></data>
+  <data name="SpriteSettings_Reload" xml:space="preserve"><value>重新載入</value></data>
+  <data name="SpriteSettings_Reloading" xml:space="preserve"><value>載入中…</value></data>
+  <data name="SpriteSettings_OpenFolder" xml:space="preserve"><value>開啟角色資料夾</value></data>
+  <data name="SpriteSettings_FolderNote" xml:space="preserve"><value>角色放在這個資料夾裡（一個角色一個子資料夾，裡面是 manifest.json 與圖片），放好後按「重新載入」。</value></data>
+  <data name="SpriteSettings_Issues" xml:space="preserve"><value>載入失敗與警告</value></data>
+  <data name="SpriteSettings_IssuesNote" xml:space="preserve"><value>失敗的角色不會出現在清單裡；警告的角色照常可以使用。</value></data>
+  <data name="SpriteSettings_OpenFolderFailed" xml:space="preserve"><value>無法開啟資料夾。</value></data>
 </root>

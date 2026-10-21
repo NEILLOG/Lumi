@@ -24,9 +24,15 @@ public partial class SettingsWindow : Window
         viewModel.Sprite.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SpriteSettingsViewModel.PreviewFactory))
+            {
                 _preview.Show(viewModel.Sprite.PreviewFactory);
+                viewModel.Sprite.RefreshIssues();   // 素材型角色的圖第一次用到才解碼，解碼時發現的問題（例如內容貼邊）這時才有
+            }
             else if (e.PropertyName == nameof(SpriteSettingsViewModel.PreviewState) && viewModel.Sprite.PreviewState is { } item)
+            {
                 _preview.SetState(item.State);
+                viewModel.Sprite.RefreshIssues();
+            }
         };
         viewModel.PropertyChanged += (_, e) =>
         {

@@ -1,8 +1,11 @@
 using System.Globalization;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Models;
 using Lumi.Sprites.Abstractions;
+using Lumi.Sprites.Assets;
 
 namespace Lumi.App.ViewModels;
 
@@ -14,6 +17,20 @@ public sealed record SpriteOption(ISpriteFactory Factory)
     public string Name => Factory.Manifest.Name;
 
     public string Credit => string.Format(CultureInfo.CurrentCulture, Strings.SpriteSettings_AuthorFormat, Factory.Manifest.Author, Factory.Manifest.Version);
+
+    /// <summary>素材型角色（用圖片加 manifest.json 做的）；其他是程式型。</summary>
+    public bool IsAsset => Factory is AssetSpriteFactory;
+
+    public string KindText => IsAsset ? Strings.SpriteSettings_Kind_Asset : Strings.SpriteSettings_Kind_Code;
+
+    /// <summary>清單的縮圖（素材型角色的 preview.png，載入時已經檢查過大小）；沒有就是 null。</summary>
+    public string? PreviewPath => (Factory as AssetSpriteFactory)?.Definition.PreviewPath;
+}
+
+/// <summary>「載入失敗與警告」清單的一項。</summary>
+public sealed record SpriteIssueItem(string Text, bool IsFatal)
+{
+    public string Icon => IsFatal ? "✕" : "⚠";
 }
 
 public sealed record SpriteSizeOption(SpriteSize Size)
@@ -61,15 +78,21 @@ public sealed record SpriteStateItem(SpriteState State, SpriteState Resolved)
 public partial class SpriteSettingsViewModel : ObservableObject
 {
     private readonly IModelCatalog _catalog;
+    private readonly ISpriteCatalog _sprites;
+    private readonly IReloadableSpriteCatalog? _library;
+    private readonly IFolderOpener? _folders;
     private SpriteOption _selectedSprite;
     private SpriteSizeOption _selectedSize;
     private bool _voiceEnabled;
 
-    public SpriteSettingsViewModel(IModelCatalog catalog, ISpriteCatalog sprites, IUiDispatcher dispatcher)
+    public SpriteSettingsViewModel(IModelCatalog catalog, ISpriteCatalog sprites, IUiDispatcher dispatcher, IFolderOpener? folders = null)
     {
         _catalog = catalog;
-        Sprites = [.. sprites.All.Select(f => new SpriteOption(f))];
-        if (Sprites.Count == 0)
+        _sprites = sprites;
+        _library = sprites as IReloadableSpriteCatalog;
+        _folders = folders;
+        _options = BuildList();
+        if (_options.Count == 0)
             throw new InvalidOperationException("沒有任何已註冊的小精靈角色。");
 
         var saved = catalog.Current.Sprite;
@@ -77,11 +100,38 @@ public partial class SpriteSettingsViewModel : ObservableObject
         _selectedSize = SpriteSizeOption.All.First(o => o.Size == saved.Size);
         _voiceEnabled = saved.VoiceEnabled;
         RebuildStates();
+        RefreshIssues();
 
         catalog.Changed += (_, settings) => dispatcher.Post(() => Reload(settings.Sprite));
+        if (_library is not null)
+            _library.Changed += (_, _) => dispatcher.Post(OnLibraryChanged);
     }
 
-    public IReadOnlyList<SpriteOption> Sprites { get; }
+    private IReadOnlyList<SpriteOption> _options;
+
+    public IReadOnlyList<SpriteOption> Sprites => _options;
+
+    /// <summary>目錄可以重新載入（有「重新載入」「開啟角色資料夾」）。</summary>
+    public bool CanReload => _library is not null;
+
+    /// <summary>角色資料夾的位置；沒有設定時是 null。</summary>
+    public string? SpritesDirectory => _library?.Directory;
+
+    public bool HasSpritesDirectory => SpritesDirectory is not null;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReloadLabel))]
+    [NotifyCanExecuteChangedFor(nameof(ReloadCommand))]
+    private bool _isReloading;
+
+    public string ReloadLabel => IsReloading ? Strings.SpriteSettings_Reloading : Strings.SpriteSettings_Reload;
+
+    /// <summary>載入失敗與警告（目錄掃描的結果，加上素材型角色解碼時才發現的問題）。</summary>
+    public ObservableCollection<SpriteIssueItem> Issues { get; } = [];
+
+    public bool HasIssues => Issues.Count > 0;
+
+    private IReadOnlyList<SpriteOption> BuildList() => [.. _sprites.All.Select(f => new SpriteOption(f))];
 
     public IReadOnlyList<SpriteSizeOption> Sizes => SpriteSizeOption.All;
 
@@ -102,11 +152,16 @@ public partial class SpriteSettingsViewModel : ObservableObject
         get => _selectedSprite;
         set
         {
-            if (value is null || value.Id == _selectedSprite.Id)
+            if (value is null)
+                return;
+            // 設定裡存的角色不在清單裡時（資料夾被移走），畫面顯示的是第一個；使用者明確選它就要存起來
+            var needsSave = value.Id != _catalog.Current.Sprite.SpriteId;
+            if (value.Id == _selectedSprite.Id && !needsSave)
                 return;
             _selectedSprite = value;
             OnSelectedSpriteChanged();
-            _ = ApplyAsync(s => s with { SpriteId = value.Id });
+            if (needsSave)
+                _ = ApplyAsync(s => s with { SpriteId = value.Id });
         }
     }
 
@@ -142,6 +197,71 @@ public partial class SpriteSettingsViewModel : ObservableObject
     public bool HasNoVoice => !HasVoice;
 
     private SpriteOption Find(string id) => Sprites.FirstOrDefault(s => s.Id == id) ?? Sprites[0];
+
+    [RelayCommand(CanExecute = nameof(CanExecuteReload))]
+    private async Task ReloadAsync()
+    {
+        if (_library is null)
+            return;
+        IsReloading = true;
+        try
+        {
+            await _library.ReloadAsync();   // 完成時 Changed 會重建清單
+        }
+        finally
+        {
+            IsReloading = false;
+        }
+    }
+
+    private bool CanExecuteReload() => _library is not null && !IsReloading;
+
+    [RelayCommand]
+    private async Task OpenFolderAsync()
+    {
+        Error = null;
+        if (SpritesDirectory is not { } directory || _folders is null)
+            return;
+        if (!await _folders.OpenAsync(directory))
+            Error = Strings.SpriteSettings_OpenFolderFailed;
+    }
+
+    /// <summary>
+    /// 重新載入之後：清單整份換掉。選中的角色依設定裡存的 id 找；找不到（資料夾被移走）就顯示第一個，
+    /// 但<b>不</b>改設定——角色回來之後重新載入就自動換回去。
+    /// </summary>
+    private void OnLibraryChanged()
+    {
+        var previous = _selectedSprite;
+        _options = BuildList();
+        OnPropertyChanged(nameof(Sprites));
+        _selectedSprite = Find(_catalog.Current.Sprite.SpriteId);
+        if (!ReferenceEquals(previous.Factory, _selectedSprite.Factory))
+            OnSelectedSpriteChanged();   // 換了角色，或同一個角色重新載入了（圖片可能改過）：預覽重建
+        else
+            OnPropertyChanged(nameof(SelectedSprite));
+        RefreshIssues();
+    }
+
+    /// <summary>目錄的載入結果，加上素材型角色解碼時才發現的問題（動畫第一次播放才會有）。預覽播放之後會再呼叫。</summary>
+    public void RefreshIssues()
+    {
+        var items = new List<SpriteIssueItem>();
+        if (_library is not null)
+            items.AddRange(_library.Issues.Select(i => new SpriteIssueItem(i.ToString(), i.Fatal)));
+        foreach (var option in Sprites)
+        {
+            if (option.Factory is AssetSpriteFactory asset)
+                items.AddRange(asset.DecodeIssues.Select(i => new SpriteIssueItem(i.ToString(), i.Fatal)));
+        }
+
+        if (items.Select(i => i.Text).SequenceEqual(Issues.Select(i => i.Text)))
+            return;
+        Issues.Clear();
+        foreach (var item in items)
+            Issues.Add(item);
+        OnPropertyChanged(nameof(HasIssues));
+    }
 
     private void OnSelectedSpriteChanged()
     {

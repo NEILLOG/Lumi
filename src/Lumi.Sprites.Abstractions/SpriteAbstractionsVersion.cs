@@ -7,7 +7,7 @@ namespace Lumi.Sprites.Abstractions;
 public static class SpriteAbstractionsVersion
 {
     public const int Major = 1;
-    public const int Minor = 0;
+    public const int Minor = 1;
 
-    public const string Current = "1.0";
+    public const string Current = "1.1";
 }

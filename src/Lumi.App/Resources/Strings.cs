@@ -262,4 +262,13 @@ public static class Strings
     public static string Sprite_State_Error => Get(nameof(Sprite_State_Error));
     public static string Sprite_State_Sleep => Get(nameof(Sprite_State_Sleep));
     public static string Sprite_MenuSwitchSprite => Get(nameof(Sprite_MenuSwitchSprite));
+    public static string SpriteSettings_Kind_Code => Get(nameof(SpriteSettings_Kind_Code));
+    public static string SpriteSettings_Kind_Asset => Get(nameof(SpriteSettings_Kind_Asset));
+    public static string SpriteSettings_Reload => Get(nameof(SpriteSettings_Reload));
+    public static string SpriteSettings_Reloading => Get(nameof(SpriteSettings_Reloading));
+    public static string SpriteSettings_OpenFolder => Get(nameof(SpriteSettings_OpenFolder));
+    public static string SpriteSettings_FolderNote => Get(nameof(SpriteSettings_FolderNote));
+    public static string SpriteSettings_Issues => Get(nameof(SpriteSettings_Issues));
+    public static string SpriteSettings_IssuesNote => Get(nameof(SpriteSettings_IssuesNote));
+    public static string SpriteSettings_OpenFolderFailed => Get(nameof(SpriteSettings_OpenFolderFailed));
 }

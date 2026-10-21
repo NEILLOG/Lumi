@@ -137,7 +137,7 @@ public class SpriteLimitsTests
         Assert.Equal(1.6, SpriteLimits.LongSideFactor);
         Assert.Equal(0.4, SpriteLimits.EffectMarginMax);
         Assert.Equal(200, SpriteLimits.VoiceMaxLength);
-        Assert.Equal("1.0", SpriteAbstractionsVersion.Current);
+        Assert.Equal("1.1", SpriteAbstractionsVersion.Current);
     }
 
     // ---- 目錄與註冊 ----

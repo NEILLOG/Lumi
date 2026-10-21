@@ -12,6 +12,17 @@ internal sealed class SettingsHost : IDisposable
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "lumi-settings-vm-" + Guid.NewGuid().ToString("N"));
 
     public SettingsHost(string? settingsFileContent = null, params Lumi.Sprites.Abstractions.ISpriteFactory[] extraSprites)
+        : this(settingsFileContent, new Lumi.Sprites.Abstractions.SpriteCatalog([new Lumi.Sprites.Orb.OrbSpriteFactory(), .. extraSprites]), null)
+    {
+    }
+
+    /// <summary>用指定的角色目錄（例如真的 <c>SpriteLibrary</c>）與資料夾開啟器。</summary>
+    public SettingsHost(Lumi.Sprites.Abstractions.ISpriteCatalog spriteCatalog, IFolderOpener? folders = null)
+        : this(null, spriteCatalog, folders)
+    {
+    }
+
+    private SettingsHost(string? settingsFileContent, Lumi.Sprites.Abstractions.ISpriteCatalog spriteCatalog, IFolderOpener? folders)
     {
         SettingsPath = Path.Combine(_directory, "settings.json");
         if (settingsFileContent is not null)
@@ -27,8 +38,8 @@ internal sealed class SettingsHost : IDisposable
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Persona = new PersonaViewModel(Catalog, dispatcher);
         General = new GeneralViewModel(Catalog, dispatcher);
-        SpriteCatalog = new Lumi.Sprites.Abstractions.SpriteCatalog([new Lumi.Sprites.Orb.OrbSpriteFactory(), .. extraSprites]);
-        Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher);
+        SpriteCatalog = spriteCatalog;
+        Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
         Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Catalog, Confirm);
     }
 

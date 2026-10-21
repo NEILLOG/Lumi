@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lumi.Sprites.Orb", "src\Lum
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lumi.Sprites.Tests", "tests\Lumi.Sprites.Tests\Lumi.Sprites.Tests.csproj", "{60689F3C-0635-476D-B16D-1860B26DBF91}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lumi.Sprites.Assets", "src\Lumi.Sprites.Assets\Lumi.Sprites.Assets.csproj", "{874885B2-E6BA-43F8-8A83-B187606B16E9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -241,6 +243,18 @@ Global
 		{60689F3C-0635-476D-B16D-1860B26DBF91}.Release|x64.Build.0 = Release|Any CPU
 		{60689F3C-0635-476D-B16D-1860B26DBF91}.Release|x86.ActiveCfg = Release|Any CPU
 		{60689F3C-0635-476D-B16D-1860B26DBF91}.Release|x86.Build.0 = Release|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Debug|x64.Build.0 = Debug|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Debug|x86.Build.0 = Debug|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Release|x64.ActiveCfg = Release|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Release|x64.Build.0 = Release|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Release|x86.ActiveCfg = Release|Any CPU
+		{874885B2-E6BA-43F8-8A83-B187606B16E9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -262,5 +276,6 @@ Global
 		{4E29BBF9-44EB-4F68-A956-CDF2BE7A2925} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{AE77A5D5-631A-4A44-B424-D8D8134F7656} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{60689F3C-0635-476D-B16D-1860B26DBF91} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{874885B2-E6BA-43F8-8A83-B187606B16E9} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

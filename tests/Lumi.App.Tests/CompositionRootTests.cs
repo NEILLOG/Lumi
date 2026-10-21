@@ -12,6 +12,7 @@ using Lumi.Providers;
 using Lumi.Tools;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace Lumi.App.Tests;
@@ -46,6 +47,8 @@ public sealed class CompositionRootTests : IDisposable
         builder.Services.Configure<ModelCatalogOptions>(o => o.SettingsPath = Path.Combine(_directory, "settings.json"));
         builder.Services.AddLumiTools(o => o.NotesDirectory = Path.Combine(_directory, "notes"));
         builder.Services.AddLumiApp();
+        // 角色資料夾：測試用暫存資料夾，不要碰到使用者真正的 sprites/
+        builder.Services.Replace(ServiceDescriptor.Singleton(new Lumi.Sprites.Assets.AssetSpriteOptions { Directory = Path.Combine(_directory, "sprites") }));
         return builder.Build();
     }
 
@@ -85,6 +88,14 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Views.WindowHost>(services.GetRequiredService<Lumi.App.Services.IWindowHost>());
         Assert.IsType<Lumi.App.Sprites.SpriteVoiceProvider>(services.GetRequiredService<Lumi.Core.Prompts.ISpriteVoiceProvider>());
         Assert.Equal([Lumi.Sprites.Orb.OrbSpriteFactory.SpriteId], services.GetRequiredService<Lumi.Sprites.Abstractions.ISpriteCatalog>().All.Select(f => f.Manifest.Id));
+        // M8：角色目錄可以重新載入（素材型角色），而且和殼、設定頁共用同一份
+        var library = services.GetRequiredService<Lumi.Sprites.Assets.IReloadableSpriteCatalog>();
+        Assert.Same(library, services.GetRequiredService<Lumi.Sprites.Abstractions.ISpriteCatalog>());
+        Assert.Equal(Path.Combine(_directory, "sprites"), library.Directory);
+        await library.ReloadAsync();   // 資料夾還不存在：視為空，不是錯誤
+        Assert.Equal([Lumi.Sprites.Orb.OrbSpriteFactory.SpriteId], library.All.Select(f => f.Manifest.Id));
+        Assert.Empty(library.Issues);
+        Assert.IsType<Lumi.App.Services.ProcessFolderOpener>(services.GetRequiredService<IFolderOpener>());
         var vm = services.GetRequiredService<WorkbenchViewModel>();
         Assert.True(vm.HasModeCoordinator);
 

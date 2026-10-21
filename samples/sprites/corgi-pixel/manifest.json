@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "neillog.corgi-pixel",
+  "name": "柯基（像素）",
+  "author": "張仲毅",
+  "version": "0.1.0",
+  "kind": "frames",
+  "box": {
+    "width": 112,
+    "height": 112
+  },
+  "effectMargin": 0,
+  "hitShape": "alpha",
+  "bubbleAnchor": {
+    "x": 0.5,
+    "y": 0.12
+  },
+  "voice": "句尾偶爾加「汪」，語氣熱情、容易興奮，被稱讚時特別開心。",
+  "rendering": "pixelated",
+  "pixelGrid": 28,
+  "animations": {
+    "idle": {
+      "source": "idle.png",
+      "frames": 12,
+      "columns": 4,
+      "fps": 8,
+      "loop": true
+    },
+    "listening": {
+      "source": "listening.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 10,
+      "loop": true
+    },
+    "transcribing": {
+      "source": "transcribing.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 8,
+      "loop": true
+    },
+    "thinking": {
+      "source": "thinking.png",
+      "frames": 10,
+      "columns": 5,
+      "fps": 8,
+      "loop": true
+    },
+    "tool": {
+      "source": "tool.png",
+      "frames": 10,
+      "columns": 5,
+      "fps": 12,
+      "loop": true
+    },
+    "streaming": {
+      "source": "streaming.png",
+      "frames": 6,
+      "columns": 6,
+      "fps": 10,
+      "loop": true
+    },
+    "done": {
+      "source": "done.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 12,
+      "loop": false,
+      "next": "idle"
+    },
+    "attention": {
+      "source": "attention.png",
+      "frames": 6,
+      "columns": 6,
+      "fps": 10,
+      "loop": true
+    },
+    "error": {
+      "source": "error.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 10,
+      "loop": false,
+      "hold": "last"
+    },
+    "sleep": {
+      "source": "sleep.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 4,
+      "loop": true
+    },
+    "poke.press": {
+      "source": "poke_press.png",
+      "frames": 4,
+      "columns": 4,
+      "fps": 16,
+      "loop": false,
+      "hold": "last"
+    },
+    "poke.release": {
+      "source": "poke_rel.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 16,
+      "loop": false,
+      "next": "idle"
+    },
+    "drag": {
+      "source": "drag.png",
+      "frames": 6,
+      "columns": 6,
+      "fps": 12,
+      "loop": true
+    }
+  }
+}

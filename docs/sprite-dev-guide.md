@@ -127,14 +127,23 @@ public interface ISpriteView
 
 ## 7. 素材型角色
 
-不用寫程式：準備圖片和一份 `manifest.json`，放進「角色」資料夾就會自動載入。素材型角色不會執行任何程式碼。
+不用寫程式：準備圖片和一份 `manifest.json`，放進「角色」資料夾，在設定 ›「小精靈」按「重新載入」就能選用。
+素材型角色**不會執行任何程式碼**；載入的檔案一律當作不可信的輸入，所以路徑、大小、圖片尺寸、語氣都會檢查（見「載入檢查」）。
+範例：`samples/sprites/corgi-pixel/`（像素柯基，13 個動畫，也是自動測試的資料）。
+
+### 安裝
+
+- 角色資料夾：Windows `%APPDATA%\Lumi\sprites`、macOS `~/Library/Application Support/Lumi/sprites`（和 `settings.json` 同一層）。設定 ›「小精靈」有「開啟角色資料夾」鈕，資料夾不存在會先建立。
+- **一個角色一個子資料夾**，裡面是 `manifest.json` 與圖片；只掃描第一層。把整個資料夾複製進去，按「重新載入」。啟動時也會掃描一次，不監看檔案變動。
+- 載入失敗的角色不會出現在清單裡，原因（哪個資料夾、哪個欄位、為什麼）列在設定頁的「載入失敗與警告」；有警告的角色照常可以使用。
+- 修改素材之後按「重新載入」，目前選用的角色會用新圖重建，位置不動。選用的角色被移走時小精靈暫時退回光球，設定裡的選擇不變，資料夾放回去、重新載入就自動換回來。
 
 ### 資料夾結構
 
 ```
-sprites/cat/
+sprites/corgi-pixel/
   manifest.json
-  preview.png          設定頁圖鑑用的預覽圖
+  preview.png          設定頁清單的縮圖（選填，≤ 1 MB、≤ 512×512）
   idle.png             sprite sheet（多格排成一張）
   listening.png
   poke_press.png
@@ -146,24 +155,27 @@ sprites/cat/
 ```json
 {
   "schemaVersion": 1,
-  "id": "example.cat",
-  "name": "小貓",
+  "id": "neillog.corgi-pixel",
+  "name": "柯基（像素）",
   "author": "作者名稱",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "kind": "frames",
 
-  "box": { "width": 100, "height": 120 },
-  "effectMargin": 0.3,
-  "hitShape": "ellipse",
-  "bubbleAnchor": { "x": 0.5, "y": 0.05 },
+  "box": { "width": 112, "height": 112 },
+  "effectMargin": 0,
+  "hitShape": "alpha",
+  "bubbleAnchor": { "x": 0.5, "y": 0.12 },
+  "rendering": "pixelated",
+  "pixelGrid": 28,
 
-  "voice": "句尾偶爾加「喵」，語氣有點傲嬌。",
+  "voice": "句尾偶爾加「汪」，語氣熱情、容易興奮。",
 
   "animations": {
     "idle":         { "source": "idle.png",       "frames": 12, "columns": 4, "fps": 8,  "loop": true },
-    "listening":    { "source": "listening.png",  "frames": 8,  "columns": 4, "fps": 12, "loop": true },
-    "thinking":     { "source": "thinking.png",   "frames": 10, "columns": 5, "fps": 10, "loop": true },
-    "done":         { "source": "done.png",       "frames": 6,  "columns": 6, "fps": 12, "loop": false, "next": "idle" },
+    "listening":    { "source": "listening.png",  "frames": 8,  "columns": 4, "fps": 10, "loop": true },
+    "thinking":     { "source": "thinking.png",   "frames": 10, "columns": 5, "fps": 8,  "loop": true },
+    "done":         { "source": "done.png",       "frames": 8,  "columns": 4, "fps": 12, "loop": false, "next": "idle" },
+    "error":        { "source": "error.png",      "frames": 8,  "columns": 4, "fps": 10, "loop": false, "hold": "last" },
     "poke.press":   { "source": "poke_press.png", "frames": 4,  "columns": 4, "fps": 16, "loop": false, "hold": "last" },
     "poke.release": { "source": "poke_rel.png",   "frames": 8,  "columns": 4, "fps": 16, "loop": false, "next": "idle" },
     "drag":         { "source": "drag.png",       "frames": 6,  "columns": 6, "fps": 12, "loop": true }
@@ -171,37 +183,93 @@ sprites/cat/
 
   "fallback": {
     "transcribing": "listening",
-    "tool": "thinking",
-    "streaming": "idle",
-    "attention": "done",
-    "error": "idle",
-    "sleep": "idle"
+    "tool": "thinking"
   }
 }
 ```
 
+（`animations` 只列出部分；沒有動畫的狀態走 `fallback` 與預設的退化規則。）
+
 ### 欄位說明
+
+| 欄位 | 必要 | 說明 |
+|---|---|---|
+| `schemaVersion` | 是 | 目前只有 `1` |
+| `id` | 是 | 小寫英數與 `. _ -`，3～64 字元，英數開頭。**`lumi.` 前綴保留給內建角色**；不能和已有的角色重複（重複時依資料夾名稱排序先到先得） |
+| `name`、`author`、`version` | 是 | 各最多 100 字，設定頁顯示用 |
+| `kind` | 否 | 目前只有 `"frames"`（sprite sheet），沒寫就是 `frames` |
+| `box` | 是 | 「中」檔位的角色框大小（DIP），超出第 5 節的限制時殼會自動縮放並警告 |
+| `effectMargin` | 否 | 特效外擴比例，0～0.4（超出會被限制並警告），預設 0 |
+| `hitShape` | 否 | 點擊範圍：`ellipse`（預設）、`rect`、`alpha`（見下） |
+| `bubbleAnchor` | 否 | 氣泡位置，相對於角色框的比例座標（0～1），預設頭頂中央 |
+| `rendering` | 否 | `smooth`（預設，高品質縮放）或 `pixelated`（最近鄰，像素風用） |
+| `pixelGrid` | 否 | 像素風角色：每一格在寬度方向有幾個邏輯像素（見「像素風角色」） |
+| `voice` | 否 | 角色語氣，見第 8 節的規則 |
+| `animations` | 是 | 至少要有 `idle`；key 是十個狀態（小寫：`idle`、`listening`、`transcribing`、`thinking`、`tool`、`streaming`、`done`、`attention`、`error`、`sleep`）或互動動畫 `poke.press`、`poke.release`、`drag` |
+| `fallback` | 否 | 沒提供動畫的狀態改用哪一個（狀態名稱對狀態名稱）；沒寫時用預設規則（第 2 節） |
+
+每個動畫：
 
 | 欄位 | 說明 |
 |---|---|
-| `box` | 「中」檔位的角色框大小（DIP），必須符合第 5 節的限制 |
-| `effectMargin` | 特效外擴比例，0～0.4 |
-| `hitShape` | `ellipse` 或 `rect`，點擊範圍的形狀 |
-| `bubbleAnchor` | 氣泡位置，相對於角色框的比例座標（0～1） |
-| `voice` | 角色語氣，選填，見第 8 節 |
-| `animations.*.frames / columns` | sprite sheet 的總格數與每列格數，由左到右、由上到下排列 |
-| `loop` | 是否循環 |
+| `source` | sprite sheet 的檔名（相對於角色資料夾，可以在子資料夾；只能是 `.png`） |
+| `frames` | 總格數，1～120 |
+| `columns` | 每列幾格，1～`frames`；格子由左到右、由上到下排列，最後一列可以不滿 |
+| `fps` | 每秒幾格，1～60（可以是小數） |
+| `loop` | 是否循環，沒寫就是 `false` |
 | `next` | 播完後接哪個動畫（`loop: false` 時使用） |
-| `hold` | `last`：播完後停在最後一格（例如按住戳的時候） |
-| `fallback` | 沒提供動畫的狀態要改用哪一個 |
+| `hold` | `"last"`：播完停在最後一格 |
+
+### 動畫怎麼播
+
+- **狀態動畫**：殼設定狀態時從該動畫的第 0 格開始；同一個狀態重複設定不會重來。
+- **播完不循環的動畫**：有 `next` 就接那個動畫（從頭播）；有 `hold: "last"` 就停在最後一格；**兩個都沒有就回到 `idle`**（`idle` 本身停在最後一格）。`loop: true` 的動畫不會結束，`next` 沒有意義（會被忽略並警告）。
+- **互動動畫**（覆蓋在狀態動畫上，互動期間狀態動畫的時間凍結，結束後從原來的位置繼續）：
+  - `poke.press`：按住戳時播放，播完停在最後一格等放開。
+  - `poke.release`：放開時播放，播完回到**目前的狀態**（所以它的 `next` 不用寫，寫了也不影響）。
+  - `drag`：拖曳時循環播放，放開就結束。
+  - 角色沒有某個互動動畫就不反應；`Near`（靠近）與 `Look`（游標方向）沒有對應的動畫，直接忽略（要眼睛跟著游標需要程式型角色）。
+- **幀率**：殼用動畫自己的 fps 驅動，畫面停住（停在最後一格、單格動畫）時降到最低。所以像素角色的待機 8 fps、休眠 4 fps，比光球省電。
+
+### 格子與尺寸
+
+- **每一格涵蓋的是 `Outer`（角色框加上特效外擴）**：`effectMargin` 是 0 時就是角色框，大於 0 時格子要把光暈、特效那一圈也畫進去。格子的長寬比要和 `Outer` 一致（差超過 2% 警告）；不一致時殼會等比例縮放並**底部置中**，不會拉伸。
+- 一個角色所有動畫的格子大小必須相同（以 `idle` 為準；不同的動畫會被丟掉並警告）。每張圖的大小必須是「欄數×格寬」、「列數×格高」，不是整數倍的動畫會被丟掉。
+- 角色框是「中」檔（光球直徑 80）的大小；小 64、大 104 由殼等比例縮放（柯基框 112：小 89.6、大 145.6）。
+- 解析度：以「大」檔的 **2 倍**畫（Retina），柯基框 112、大檔 145.6 DIP，格子 280 px。
+
+### 像素風角色
+
+像素圖在非整數倍縮放時，最近鄰會讓有的邏輯像素 5 px、有的 6 px，看起來粗細不均。解法是兩個選填欄位：
+
+- `"rendering": "pixelated"`：縮放時不做平滑（沒有混色）。
+- `"pixelGrid": N`：每一格在**寬度方向**有 N 個邏輯像素（邏輯像素是正方形，所以高度方向的個數由長寬比決定，必須剛好是整數；柯基是 28：每個邏輯像素 10 px、整格 280 px）。有宣告時，殼把每個邏輯像素畫成**整數個裝置像素**（向下取整、至少 1），整張圖**底部置中**貼齊角色框（腳底的基準線不動）。
+
+柯基在各檔位、各螢幕縮放下每個邏輯像素是：中檔 1 倍 4 px、2 倍 8 px、Windows 125% 5 px、150% 6 px（剛好填滿框）；小檔 1 倍 3 px、2 倍 6 px（整張 84 DIP）；大檔 1 倍 5 px、2 倍 10 px（整張 140 DIP）。小、大檔會比框略小，不會超出。作者的邏輯像素大小最好讓「中檔框 ÷ pixelGrid」剛好是整數 DIP（柯基 112 ÷ 28 = 4）。
+
+### 點擊範圍
+
+- `ellipse`：角色框內接的橢圓；`rect`：整個角色框。
+- `alpha`：看角色**目前這一格**的透明度，不透明處與其周圍一個邏輯像素內才算命中（沒有 `pixelGrid` 時以格寬的 1/28 為準）。適合輪廓不規則的角色：柯基是瘦高的輪廓、腳在左右下角，橢圓會漏掉腳，矩形又包含大片透明區、會擋住下方的桌面。
+- 三種都一律限制在角色框內。
 
 ### 美術素材規格
 
-- 格式：PNG，帶透明背景
-- 解析度：以「大」檔位的 **2 倍**繪製（Retina 用），例如框寬 100 時，大檔約 130 DIP，每格畫 260 px
-- 每格大小必須相同，角色在每格中的對位要一致，避免播放時抖動
-- 光暈、陰影畫在 `effectMargin` 允許的範圍內
-- 第一版只支援 PNG 連續圖或 sprite sheet。Lottie 之後再評估。
+- 格式：PNG，帶透明背景。像素風不要有半透明像素（邊緣硬邊），調色盤保持精簡。
+- 每格大小相同，角色在每格中的對位一致（腳底基準線不變），避免播放時抖動。
+- **特效不要貼著格子的左、上、右邊緣**：離邊緣至少留 1 個邏輯像素（柯基是 10 px），否則邊緣會被切掉（載入時只能警告）。腳貼底邊沒問題，那是設計。
+- 光暈、陰影畫在 `effectMargin` 允許的範圍內（格子涵蓋 `Outer`）。
+- 第一版只支援 sprite sheet；PNG 連續圖（每格一個檔案）、Lottie 之後再評估。
+
+### 載入檢查
+
+整個角色**拒載**：找不到或超過 64 KB 的 `manifest.json`、不是合法 JSON、`schemaVersion` 不是 1、`kind` 不是 `frames`、`id` 不合規或用了保留前綴或重複、缺 `name`／`author`／`version`、`box` 不是正數、沒有 `idle` 或 `idle` 動畫無法使用、所有圖片解碼後超過 96 MB。
+
+**只丟掉那個動畫**（角色照常載入，對應的狀態走退化，並警告）：`source` 是絕對路徑、含 `..`、指向資料夾外、經過捷徑或符號連結、不是 `.png`、不存在、超過 8 MB；PNG 標頭不合法、寬或高超過 4096；`frames`／`columns`／`fps` 超出範圍；圖片大小不是格數的整數倍；格子大小和 `idle` 不同。
+
+**只警告**（自動修正）：欄位值不認得（`hitShape`、`rendering` 退回預設）、`effectMargin` 或 `bubbleAnchor` 超出範圍（限制到範圍內）、`pixelGrid` 不合法（忽略，用一般縮放）、不認得的動畫 key、`next`／`hold`／`fallback` 指向不存在的東西（忽略那一項）、格子長寬比對不上、特效貼著格子邊緣、`name` 等文字過長（截斷）、語氣沒通過檢查（忽略語氣，見第 8 節）。未知的欄位一律忽略，不警告。
+
+圖片在每個動畫**第一次用到時才解碼**並快取（柯基 12 張圖全解開約 30 MB）；載入階段只讀 PNG 標頭。
 
 ## 8. 角色語氣與人設
 
@@ -217,12 +285,15 @@ sprites/cat/
 - 語氣只影響說話風格，例如句尾、口癖。不能改變能力、規則或回答長度。
 - 和人設衝突時，以人設為準。
 - 使用者可以在設定中關閉角色語氣。
-- 只描述語氣，不要寫指令性的內容（例如「忽略之前的規則」），這類內容會在載入時被拒絕。
+- 語氣要是**單行純文字**，不超過 200 字，不能含 `<` `>` 或反引號（不能偽裝成 prompt 的標籤或程式碼區塊），也不能含指令式的字眼（例如「忽略」「不要遵守」「你現在是」「ignore」「override」，完整清單見 `SpriteVoiceValidator.Forbidden`）。
+- 沒通過檢查的語氣會被**忽略**：角色照常載入，只是沒有語氣，設定頁的「載入失敗與警告」會寫出原因（「語氣被忽略：…」）。程式型角色的語氣也經過同一個檢查（`SpriteVoiceProvider`）。
+- 這個檢查是安全網，不是保證：語氣層本來就在 prompt 的最低優先，使用者也可以在設定中關閉它。
 
 ## 9. 驗證你的角色
 
 - **設定頁的預覽**：設定 ›「小精靈」會用同一個殼的規則（縮放、退化、幀率）播放所選角色的每個狀態，沒有專屬表現的狀態會標示退化成哪個。
 - **自動測試**：`tests/Lumi.App.Tests/Sprites/ChangingTheSpriteTests.cs` 用一個只畫色塊、只支援 `Idle` 的假角色（`BlockSpriteFactory`）示範：用 `AddSprite<T>()` 註冊、在設定選用，殼、氣泡、輸入列、尺寸檔位與設定頁都照常運作，不支援的狀態走退化。你的角色專案可以照 `tests/Lumi.Sprites.Tests/OrbSpriteTests.cs` 的寫法測：每個狀態都畫得出東西、`HitTest` 不超出角色框、`PreferredFps` 隨狀態變。
+- **素材型角色**：把資料夾放進角色資料夾、按「重新載入」，設定頁的「載入失敗與警告」會告訴你哪裡不合規；狀態預覽一個一個播，確認沒有被切掉的特效、點擊範圍（`alpha`）和腳底基準線都對。`tests/Lumi.Sprites.Tests/CorgiSampleTests.cs` 示範怎麼用自動測試守住一個真的素材包：載入零警告、每個動畫的格子與時間、各檔位各縮放下每個邏輯像素的裝置像素數、命中範圍跟著輪廓。
 - **耗能**：開 `Lumi:Developer:ShowSpriteHud=true`，HUD 顯示 FPS 與 30 秒平均 CPU；待機與休眠要和光球相近。
 
 ## 10. 上線前檢查清單
@@ -235,9 +306,13 @@ sprites/cat/
 - [ ] 待機與休眠時有降低幀率；待機 30 秒的 CPU 平均和光球相近
 - [ ] 在 Windows 與 macOS 都看過一次
 - [ ] 設定頁的圖鑑中，每個狀態都能預覽
+- [ ] 素材型：重新載入後「載入失敗與警告」是空的；特效離格子左、上、右邊緣至少 1 個邏輯像素；`id` 不用 `lumi.` 開頭
+- [ ] 像素風：宣告 `rendering: pixelated` 與 `pixelGrid`，小、中、大三檔與 1 倍、2 倍螢幕上像素粗細一致
+- [ ] 輪廓不規則的角色用 `hitShape: alpha`，腳與邊角都點得到、旁邊的透明處會穿透
 
 ## 11. 版本紀錄
 
 | Abstractions 版本 | 變更 |
 |---|---|
+| 1.1 | 2026-10-22 新增（選填、不影響既有角色）：`SpriteManifest.Rendering`（`smooth`／`pixelated`）、`SpriteManifest.PixelGrid`、`SpriteHitShape.Alpha`、`SpriteVoiceValidator`（語氣的載入檢查）。素材型角色的載入器與播放器在 `Lumi.Sprites.Assets`（第 7 節），不是 Abstractions 的一部分 |
 | 1.0 | 2026-10-21 初版：狀態、互動、`ISpriteFactory`、`ISpriteView`、manifest schemaVersion 1 |

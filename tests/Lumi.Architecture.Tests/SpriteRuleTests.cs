@@ -9,7 +9,7 @@ namespace Lumi.Architecture.Tests;
 /// </summary>
 public partial class SpriteRuleTests
 {
-    private static readonly string[] SpriteAssemblies = ["Lumi.Sprites.Abstractions", "Lumi.Sprites.Orb"];
+    private static readonly string[] SpriteAssemblies = ["Lumi.Sprites.Abstractions", "Lumi.Sprites.Orb", "Lumi.Sprites.Assets"];
 
     private static string[] LumiReferences(string name) =>
         Assembly.Load(name).GetReferencedAssemblies().Select(a => a.Name!).Where(n => n.StartsWith("Lumi.", StringComparison.Ordinal)).ToArray();
@@ -24,6 +24,13 @@ public partial class SpriteRuleTests
     public void Orb_ReferencesOnlyAbstractionsAmongLumiProjects()
     {
         Assert.Equal(["Lumi.Sprites.Abstractions"], LumiReferences("Lumi.Sprites.Orb"));
+    }
+
+    [Fact]
+    public void Assets_ReferencesOnlyAbstractionsAmongLumiProjects()
+    {
+        // 素材型角色的載入器與播放器：和程式型角色一樣，不認識對話、平台、設定
+        Assert.Equal(["Lumi.Sprites.Abstractions"], LumiReferences("Lumi.Sprites.Assets"));
     }
 
     [Theory]

@@ -6,8 +6,8 @@ namespace Lumi.App.Sprites;
 
 /// <summary>
 /// 目前角色的語氣（prompt 第 4 層，只在小精靈模式）：讀角色 manifest 的 <c>voice</c>，使用者可以在設定關閉。
-/// 光球沒有語氣；素材型角色（M8）才會有，載入時拒絕指令式內容的檢查也在 M8，
-/// 這裡只多一道保險：超過 <see cref="SpriteLimits.VoiceMaxLength"/> 字就不採用。
+/// 光球沒有語氣；素材型角色（M8）才會有。載入時已經檢查過，這裡再用同一個 <see cref="SpriteVoiceValidator"/> 檢查一次
+/// （程式型角色不經過載入器，所以也要擋）：沒通過就當作沒有語氣。
 /// </summary>
 public sealed class SpriteVoiceProvider(IModelCatalog settings, ISpriteCatalog sprites) : ISpriteVoiceProvider
 {
@@ -17,7 +17,6 @@ public sealed class SpriteVoiceProvider(IModelCatalog settings, ISpriteCatalog s
         if (!sprite.VoiceEnabled)
             return null;
 
-        var voice = (sprites.Find(sprite.SpriteId) ?? sprites.All.FirstOrDefault())?.Manifest.Voice?.Trim();
-        return string.IsNullOrEmpty(voice) || voice.Length > SpriteLimits.VoiceMaxLength ? null : voice;
+        return SpriteVoiceValidator.Check((sprites.Find(sprite.SpriteId) ?? sprites.All.FirstOrDefault())?.Manifest.Voice).Voice;
     }
 }

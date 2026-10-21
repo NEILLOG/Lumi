@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Lumi.App.Services;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
+using Lumi.Sprites.Assets;
 using Lumi.App.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -47,6 +48,8 @@ public partial class App : Application
     {
         try
         {
+            // 先載入角色資料夾：上次選用的是素材型角色時，小精靈一開始就是它（不會先閃一下光球）
+            await _services.GetRequiredService<IReloadableSpriteCatalog>().ReloadAsync();
             await _services.GetRequiredService<WorkbenchViewModel>().InitializeAsync();
             _services.GetRequiredService<SpriteConversationController>().Attach();
             var modes = _services.GetRequiredService<IAppModeCoordinator>();

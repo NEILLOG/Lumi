@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Lumi.App.ViewModels"
         xmlns:res="using:Lumi.App.Resources"
+        xmlns:views="using:Lumi.App.Views"
         x:Class="Lumi.App.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="{x:Static res:Strings.Settings_Title}"
@@ -322,14 +323,50 @@
             <ListBox x:Name="SpriteList" Classes="rows" ItemsSource="{Binding Sprites}" SelectedItem="{Binding SelectedSprite}">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:SpriteOption">
-                  <StackPanel>
-                    <TextBlock Text="{Binding Name}" FontWeight="Medium" />
-                    <TextBlock Text="{Binding Credit}" Classes="muted" />
-                  </StackPanel>
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- 縮圖：素材型角色的 preview.png（沒有就空著）；像素圖用最近鄰，不要糊掉 -->
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" Margin="0,0,10,0" ClipToBounds="True"
+                            Background="{DynamicResource LumiSurfaceAltBrush}" IsVisible="{Binding PreviewPath, Converter={x:Static ObjectConverters.IsNotNull}}">
+                      <Image Source="{Binding PreviewPath, Converter={x:Static views:PathToBitmapConverter.Instance}}" Stretch="Uniform"
+                             RenderOptions.BitmapInterpolationMode="None" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                      <TextBlock Text="{Binding Credit}" Classes="muted" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding KindText}" Classes="muted" VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
             <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_CharacterNote}" TextWrapping="Wrap" />
+
+            <!-- 角色資料夾：放好素材後按「重新載入」 -->
+            <StackPanel Spacing="6" IsVisible="{Binding CanReload}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="SpriteReloadButton" Content="{Binding ReloadLabel}" Command="{Binding ReloadCommand}" />
+                <Button x:Name="SpriteOpenFolderButton" Content="{x:Static res:Strings.SpriteSettings_OpenFolder}" Command="{Binding OpenFolderCommand}"
+                        IsVisible="{Binding HasSpritesDirectory}" />
+              </StackPanel>
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_FolderNote}" TextWrapping="Wrap" />
+              <TextBlock x:Name="SpriteFolderPath" Classes="muted mono" Text="{Binding SpritesDirectory}" TextWrapping="Wrap" IsVisible="{Binding HasSpritesDirectory}" />
+            </StackPanel>
+
+            <!-- 載入失敗與警告 -->
+            <StackPanel x:Name="SpriteIssuesPanel" Spacing="4" IsVisible="{Binding HasIssues}" Margin="0,4,0,0">
+              <TextBlock Classes="label" Text="{x:Static res:Strings.SpriteSettings_Issues}" />
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_IssuesNote}" TextWrapping="Wrap" />
+              <ItemsControl x:Name="SpriteIssueList" ItemsSource="{Binding Issues}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SpriteIssueItem">
+                    <Grid ColumnDefinitions="20,*" Margin="0,2">
+                      <TextBlock Grid.Column="0" Text="{Binding Icon}" FontWeight="Bold" Foreground="{DynamicResource LumiWarningIconBrush}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCaption}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
 
             <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Size}" />
             <ComboBox x:Name="SpriteSizeBox" ItemsSource="{Binding Sizes}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Stretch">
