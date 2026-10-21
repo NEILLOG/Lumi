@@ -1,16 +1,342 @@
 <!--
   共用控制項樣式（ui-guide.html 第 3、4、6、7 節）：輸入框、按鈕四種層級。元件只引用 token。
-  已知缺口：Focus 的 3px Soft 光暈需要自訂 TextBox 模板，UA 先用 Accent 邊框，光暈留到 UB 處理。
   卡片、分隔線、徽章只提供樣式 class，實際套用在 UB／UD 的元件改寫時進行。
 -->
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:Lumi.App.Controls">
+  <!--
+    TextBox／ComboBox（ui-guide.html 第 5 節）：高 40、圓角 10、邊框 1，全部吃主題 token，深色模式不再是 Fluent 的純黑底。
+    Focus：Accent 邊框＋外圈 3px 的 Soft 光暈。TextBox／ComboBox 沒有 BoxShadow，所以模板裡多放一個透明的外框
+    （PART_FocusGlow／FocusGlow：邊框 3px、Margin -3、圓角 +3），Focus 時顯示。多行輸入框的高度由使用處自行設定（MinHeight 40 只是下限）。
+    錯誤：加 class="error"（Danger 邊框；一定要同時顯示錯誤文字）。停用：SurfaceAlt 底＋Muted 文字（要另外寫出原因）。
+    模板的 PART_ 名稱沿用 Fluent，Avalonia 的程式碼會用名稱找這些零件。
+  -->
   <Style Selector="TextBox">
+    <Setter Property="MinHeight" Value="{StaticResource LumiControlHeight}" />
     <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
     <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="TextBox">
+        <DataValidationErrors>
+          <Panel>
+            <Border Name="PART_FocusGlow"
+                    Margin="-3"
+                    BorderThickness="3"
+                    CornerRadius="13"
+                    BorderBrush="{DynamicResource LumiAccentSoftBrush}"
+                    IsVisible="False"
+                    IsHitTestVisible="False" />
+            <Border Name="PART_BorderElement"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    MinWidth="{TemplateBinding MinWidth}"
+                    MinHeight="{TemplateBinding MinHeight}" />
+            <Border Margin="{TemplateBinding BorderThickness}">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <ContentPresenter Grid.Column="0"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  Content="{TemplateBinding InnerLeftContent}" />
+                <DockPanel x:Name="PART_InnerDockPanel" Grid.Column="1" Margin="{TemplateBinding Padding}">
+                  <TextBlock Name="PART_FloatingWatermark"
+                             Foreground="{DynamicResource LumiAccentTextBrush}"
+                             IsVisible="False"
+                             Text="{TemplateBinding Watermark}"
+                             DockPanel.Dock="Top" />
+                  <ScrollViewer Name="PART_ScrollViewer"
+                                HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                    <Panel>
+                      <TextBlock Name="PART_Watermark"
+                                 Foreground="{DynamicResource LumiTextMutedBrush}"
+                                 Text="{TemplateBinding Watermark}"
+                                 TextAlignment="{TemplateBinding TextAlignment}"
+                                 TextWrapping="{TemplateBinding TextWrapping}"
+                                 HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                 VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                        <TextBlock.IsVisible>
+                          <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding ElementName="PART_TextPresenter" Path="PreeditText" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                            <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Text" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                          </MultiBinding>
+                        </TextBlock.IsVisible>
+                      </TextBlock>
+                      <TextPresenter Name="PART_TextPresenter"
+                                     Text="{TemplateBinding Text, Mode=TwoWay}"
+                                     CaretBlinkInterval="{TemplateBinding CaretBlinkInterval}"
+                                     CaretIndex="{TemplateBinding CaretIndex}"
+                                     SelectionStart="{TemplateBinding SelectionStart}"
+                                     SelectionEnd="{TemplateBinding SelectionEnd}"
+                                     TextAlignment="{TemplateBinding TextAlignment}"
+                                     TextWrapping="{TemplateBinding TextWrapping}"
+                                     LineHeight="{TemplateBinding LineHeight}"
+                                     LetterSpacing="{TemplateBinding LetterSpacing}"
+                                     PasswordChar="{TemplateBinding PasswordChar}"
+                                     RevealPassword="{TemplateBinding RevealPassword}"
+                                     SelectionBrush="{TemplateBinding SelectionBrush}"
+                                     SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                     CaretBrush="{TemplateBinding CaretBrush}"
+                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Panel>
+                    <ScrollViewer.Styles>
+                      <Style Selector="ScrollContentPresenter#PART_ContentPresenter">
+                        <Setter Property="Cursor" Value="IBeam" />
+                      </Style>
+                    </ScrollViewer.Styles>
+                  </ScrollViewer>
+                </DockPanel>
+                <ContentPresenter Grid.Column="2"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  Content="{TemplateBinding InnerRightContent}" />
+              </Grid>
+            </Border>
+          </Panel>
+        </DataValidationErrors>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <!-- 多行輸入框：文字靠上，高度由使用處決定 -->
+  <Style Selector="TextBox[AcceptsReturn=True]">
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+
+  <!-- 狀態。Fluent 的 :pointerover／:focus 也會設 Border 的背景與邊框，所以這裡每個狀態都明確寫一次，確保吃 token -->
+  <Style Selector="TextBox:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+  </Style>
+  <Style Selector="TextBox:focus">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
   </Style>
   <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_FocusGlow">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ TextBlock#PART_Watermark, TextBox:pointerover /template/ TextBlock#PART_Watermark">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <!-- 錯誤：Danger 邊框（class="error" 或資料驗證失敗）。一定要同時顯示錯誤文字，不能只靠顏色 -->
+  <Style Selector="TextBox.error /template/ Border#PART_BorderElement, TextBox:error /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBrush}" />
+  </Style>
+  <Style Selector="TextBox.error:focus /template/ Border#PART_BorderElement, TextBox:error:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBrush}" />
+  </Style>
+  <Style Selector="TextBox.error:focus /template/ Border#PART_FocusGlow, TextBox:error:focus /template/ Border#PART_FocusGlow">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+  </Style>
+  <!-- 停用：要在旁邊用 Caption 寫出原因 -->
+  <Style Selector="TextBox:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+  </Style>
+  <Style Selector="TextBox:disabled /template/ TextBlock#PART_Watermark">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <!-- 嵌在別的控制項裡（可編輯 ComboBox）：沒有自己的外框、底色與光暈 -->
+  <Style Selector="TextBox.embedded">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="TextBox.embedded /template/ Border#PART_BorderElement, TextBox.embedded:pointerover /template/ Border#PART_BorderElement, TextBox.embedded:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TextBox.embedded:focus /template/ Border#PART_FocusGlow">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <!-- ComboBox：同一組高度、圓角、邊框與 Focus 樣式；下拉箭頭用 LumiIcon（chevron-down） -->
+  <Style Selector="ComboBox">
+    <Setter Property="MinHeight" Value="{StaticResource LumiControlHeight}" />
+    <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="12,8,0,8" />
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="PlaceholderForeground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="ComboBox">
+        <DataValidationErrors>
+          <Grid ColumnDefinitions="*,32">
+            <Border x:Name="FocusGlow"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Margin="-3"
+                    BorderThickness="3"
+                    CornerRadius="13"
+                    BorderBrush="{DynamicResource LumiAccentSoftBrush}"
+                    IsVisible="False"
+                    IsHitTestVisible="False" />
+            <Border x:Name="Background"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    MinWidth="{DynamicResource ComboBoxThemeMinWidth}" />
+            <TextBlock x:Name="PlaceholderTextBlock"
+                       Grid.Column="0"
+                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                       Margin="{TemplateBinding Padding}"
+                       Text="{TemplateBinding PlaceholderText}"
+                       Foreground="{TemplateBinding PlaceholderForeground}">
+              <TextBlock.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="SelectionBoxItem" RelativeSource="{RelativeSource TemplatedParent}" Converter="{x:Static ObjectConverters.IsNull}" />
+                  <Binding Path="!IsEditable" RelativeSource="{RelativeSource TemplatedParent}" />
+                </MultiBinding>
+              </TextBlock.IsVisible>
+            </TextBlock>
+            <ContentControl x:Name="ContentPresenter"
+                            Grid.Column="0"
+                            Content="{TemplateBinding SelectionBoxItem}"
+                            Margin="{TemplateBinding Padding}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                            IsVisible="{TemplateBinding IsEditable, Converter={x:Static BoolConverters.Not}}" />
+            <TextBox Name="PART_EditableTextBox"
+                     Classes="embedded"
+                     Grid.Column="0"
+                     Padding="{TemplateBinding Padding}"
+                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                     VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                     Foreground="{TemplateBinding Foreground}"
+                     Text="{TemplateBinding Text, Mode=TwoWay}"
+                     Watermark="{TemplateBinding PlaceholderText}"
+                     IsVisible="{TemplateBinding IsEditable}" />
+            <Border x:Name="DropDownOverlay"
+                    Grid.Column="1"
+                    Background="Transparent"
+                    Margin="0,1,1,1"
+                    Width="30"
+                    IsVisible="False"
+                    HorizontalAlignment="Right" />
+            <controls:LumiIcon x:Name="DropDownGlyph"
+                               Grid.Column="1"
+                               Data="{StaticResource LumiIconChevronDown}"
+                               Size="16"
+                               Margin="0,0,12,0"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource LumiTextMutedBrush}" />
+            <Popup Name="PART_Popup"
+                   WindowManagerAddShadowHint="False"
+                   IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                   MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                   MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                   PlacementTarget="Background"
+                   IsLightDismissEnabled="True"
+                   InheritsTransform="True">
+              <Border x:Name="PopupBorder"
+                      Background="{DynamicResource LumiSurfaceBrush}"
+                      BorderBrush="{DynamicResource LumiBorderBrush}"
+                      BorderThickness="1"
+                      Padding="4"
+                      HorizontalAlignment="Stretch"
+                      CornerRadius="{StaticResource LumiRadiusInput}">
+                <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                              IsScrollChainingEnabled="False"
+                              VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
+                              IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}">
+                  <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+        </DataValidationErrors>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ComboBox:pointerover /template/ Border#Background, ComboBox:pressed /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+  </Style>
+  <Style Selector="ComboBox:focus-within /template/ Border#Background, ComboBox:focus-within:pointerover /template/ Border#Background, ComboBox:focus-within:pressed /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+  </Style>
+  <Style Selector="ComboBox:focus-within /template/ Border#FocusGlow">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="ComboBox:focus /template/ ContentControl#ContentPresenter, ComboBox:focus-visible /template/ ContentControl#ContentPresenter, ComboBox:focus:pressed /template/ ContentControl#ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+  </Style>
+  <Style Selector="ComboBox:focus /template/ TextBlock#PlaceholderTextBlock, ComboBox:focus-visible /template/ TextBlock#PlaceholderTextBlock, ComboBox:focus:pressed /template/ TextBlock#PlaceholderTextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="ComboBox:focus /template/ controls|LumiIcon#DropDownGlyph, ComboBox:focus-visible /template/ controls|LumiIcon#DropDownGlyph, ComboBox:focus:pressed /template/ controls|LumiIcon#DropDownGlyph">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="ComboBox.error /template/ Border#Background, ComboBox:error /template/ Border#Background, ComboBox.error:focus-within /template/ Border#Background">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBrush}" />
+  </Style>
+  <Style Selector="ComboBox:disabled /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+  </Style>
+  <Style Selector="ComboBox:disabled /template/ ContentControl#ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="ComboBox:disabled /template/ TextBlock#PlaceholderTextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="ComboBox:disabled /template/ controls|LumiIcon#DropDownGlyph">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+  </Style>
+  <Style Selector="ComboBox[IsEditable=true]">
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="KeyboardNavigation.TabNavigation" Value="Local" />
+  </Style>
+
+  <!-- 下拉清單項目：選取＝Soft 底＋OnSoft 文字，Hover＝SurfaceAlt -->
+  <Style Selector="ComboBoxItem">
+    <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter, ComboBoxItem:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:selected /template/ ContentPresenter, ComboBoxItem:selected:pointerover /template/ ContentPresenter, ComboBoxItem:selected:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+  </Style>
+  <Style Selector="ComboBoxItem:disabled /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
 
   <!-- 每個動作區最多一個 primary（ui-guide.html 第 6 節） -->

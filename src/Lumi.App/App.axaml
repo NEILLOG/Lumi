@@ -10,6 +10,7 @@
         <ResourceInclude Source="avares://Lumi.App/Themes/Tokens.axaml" />
         <ResourceInclude Source="avares://Lumi.App/Themes/Typography.axaml" />
         <ResourceInclude Source="avares://Lumi.App/Themes/Metrics.axaml" />
+        <ResourceInclude Source="avares://Lumi.App/Themes/Icons.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

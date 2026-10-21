@@ -1,0 +1,54 @@
+<!--
+  圖示資源（ui-guide.html：圖示一律走這份，不用 Unicode 字元）。
+  來源：Lucide（lucide-static v0.468.0，ISC 授權，見 Assets/LICENSES/Lucide-LICENSE.txt）。
+  24x24 座標、只有線條（stroke），沒有填色：用 <controls:LumiIcon Data="{StaticResource LumiIconXxx}" /> 顯示，
+  描邊色 = 目前的 Foreground（線寬 1.75、圓角線帽與線接合），尺寸預設 16。
+  新增圖示：從 https://unpkg.com/lucide-static@0.468.0/icons/NAME.svg 取路徑資料，key 命名為 LumiIcon + PascalCase。
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- 向下箭頭（下拉選單、展開）（lucide: chevron-down） -->
+  <StreamGeometry x:Key="LumiIconChevronDown">m6 9 6 6 6-6</StreamGeometry>
+  <!-- 新增（lucide: plus） -->
+  <StreamGeometry x:Key="LumiIconPlus">M5 12h14 M12 5v14</StreamGeometry>
+  <!-- 歷史對話（lucide: clock） -->
+  <StreamGeometry x:Key="LumiIconClock">M2 12A10 10 0 0 1 12 2A10 10 0 0 1 22 12A10 10 0 0 1 12 22A10 10 0 0 1 2 12Z M12 6L12 12L16 14</StreamGeometry>
+  <!-- 更多（…選單）（lucide: ellipsis） -->
+  <StreamGeometry x:Key="LumiIconMoreHorizontal">M11 12A1 1 0 0 1 12 11A1 1 0 0 1 13 12A1 1 0 0 1 12 13A1 1 0 0 1 11 12Z M18 12A1 1 0 0 1 19 11A1 1 0 0 1 20 12A1 1 0 0 1 19 13A1 1 0 0 1 18 12Z M4 12A1 1 0 0 1 5 11A1 1 0 0 1 6 12A1 1 0 0 1 5 13A1 1 0 0 1 4 12Z</StreamGeometry>
+  <!-- 小精靈（lucide: sparkles） -->
+  <StreamGeometry x:Key="LumiIconSparkle">M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z M20 3v4 M22 5h-4 M4 17v2 M5 18H3</StreamGeometry>
+  <!-- 送出（lucide: arrow-up） -->
+  <StreamGeometry x:Key="LumiIconArrowUp">m5 12 7-7 7 7 M12 19V5</StreamGeometry>
+  <!-- 停止（lucide: square） -->
+  <StreamGeometry x:Key="LumiIconSquare">M5 3H19A2 2 0 0 1 21 5V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V5A2 2 0 0 1 5 3Z</StreamGeometry>
+  <!-- 附加檔案（lucide: paperclip） -->
+  <StreamGeometry x:Key="LumiIconPaperclip">M13.234 20.252 21 12.3 M16 6 l-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486</StreamGeometry>
+  <!-- 資料夾（lucide: folder） -->
+  <StreamGeometry x:Key="LumiIconFolder">M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z</StreamGeometry>
+  <!-- 麥克風（lucide: mic） -->
+  <StreamGeometry x:Key="LumiIconMic">M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z M19 10v2a7 7 0 0 1-14 0v-2 M12 19L12 22</StreamGeometry>
+  <!-- 複製（lucide: copy） -->
+  <StreamGeometry x:Key="LumiIconCopy">M10 8H20A2 2 0 0 1 22 10V20A2 2 0 0 1 20 22H10A2 2 0 0 1 8 20V10A2 2 0 0 1 10 8Z M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2</StreamGeometry>
+  <!-- 重新回答（lucide: refresh-cw） -->
+  <StreamGeometry x:Key="LumiIconRefresh">M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5</StreamGeometry>
+  <!-- 讚（lucide: thumbs-up） -->
+  <StreamGeometry x:Key="LumiIconThumbsUp">M7 10v12 M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z</StreamGeometry>
+  <!-- 倒讚（lucide: thumbs-down） -->
+  <StreamGeometry x:Key="LumiIconThumbsDown">M17 14V2 M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z</StreamGeometry>
+  <!-- 關閉、清除（lucide: x） -->
+  <StreamGeometry x:Key="LumiIconX">M18 6 6 18 M6 6 l12 12</StreamGeometry>
+  <!-- 完成、已選取（lucide: check） -->
+  <StreamGeometry x:Key="LumiIconCheck">M20 6 9 17l-5-5</StreamGeometry>
+  <!-- 設定（lucide: settings） -->
+  <StreamGeometry x:Key="LumiIconSettings">M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z M9 12A3 3 0 0 1 12 9A3 3 0 0 1 15 12A3 3 0 0 1 12 15A3 3 0 0 1 9 12Z</StreamGeometry>
+  <!-- 回到上一層、回到對話（lucide: arrow-left） -->
+  <StreamGeometry x:Key="LumiIconArrowLeft">m12 19-7-7 7-7 M19 12H5</StreamGeometry>
+  <!-- 設定首頁（lucide: house） -->
+  <StreamGeometry x:Key="LumiIconHome">M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z</StreamGeometry>
+  <!-- 菱形（品牌／裝飾）（lucide: diamond） -->
+  <StreamGeometry x:Key="LumiIconDiamond">M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z</StreamGeometry>
+  <!-- 外觀（明暗）（lucide: sun） -->
+  <StreamGeometry x:Key="LumiIconSun">M8 12A4 4 0 0 1 12 8A4 4 0 0 1 16 12A4 4 0 0 1 12 16A4 4 0 0 1 8 12Z M12 2v2 M12 20v2 M4.93 4.93 l1.41 1.41 M17.66 17.66 l1.41 1.41 M2 12h2 M20 12h2 M6.34 17.66 l-1.41 1.41 M19.07 4.93 l-1.41 1.41</StreamGeometry>
+  <!-- 資料與隱私（lucide: shield） -->
+  <StreamGeometry x:Key="LumiIconShield">M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z</StreamGeometry>
+</ResourceDictionary>
