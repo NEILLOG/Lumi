@@ -27,28 +27,37 @@
     <Setter Property="TextDecorations" Value="Underline" />
   </Style>
 
-  <!-- 程式碼區塊 -->
+  <!-- 程式碼區塊：外框圓角 12；標題列（語言標籤＋複製鈕）固定在上方，只有下面的程式碼區水平捲動 -->
   <Style Selector="Border.md-codeblock">
     <Setter Property="Background" Value="{DynamicResource LumiCodeBackgroundBrush}" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="12" />
     <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.md-codeheader">
+    <Setter Property="Background" Value="{DynamicResource LumiCodeHeaderBrush}" />
+    <Setter Property="Padding" Value="16,4,8,4" />
   </Style>
   <Style Selector="TextBlock.md-codelang">
     <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
-    <Setter Property="Opacity" Value="0.65" />
+    <Setter Property="Opacity" Value="0.75" />
     <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
     <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="TextBlock.md-codetext">
     <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
     <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
-    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="FontSize" Value="13" />
   </Style>
   <Style Selector="Button.md-copy">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
     <Setter Property="FontSize" Value="12" />
-    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="Button.md-copy:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiCodeBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
   </Style>
 
   <!-- 引用、分隔線 -->

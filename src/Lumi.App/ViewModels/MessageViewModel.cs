@@ -13,10 +13,17 @@ public partial class MessageViewModel : ObservableObject
 
     private DateTimeOffset? _thinkingStartedAt;
 
-    private protected MessageViewModel(bool isUser)
+    private protected MessageViewModel(bool isUser, DateTimeOffset? createdAt = null)
     {
         IsUser = isUser;
+        CreatedAt = createdAt ?? DateTimeOffset.UtcNow;
     }
+
+    /// <summary>訊息建立時間。載入的訊息用資料庫裡的 <c>CreatedAt</c>；串流中的助理訊息用氣泡建立的當下。</summary>
+    public DateTimeOffset CreatedAt { get; }
+
+    /// <summary>訊息上方顯示的時間：本地時間 <c>HH:mm</c>（24 小時制，與地區設定無關）。</summary>
+    public string TimeText => CreatedAt.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
     public bool IsUser { get; }
 
@@ -24,18 +31,19 @@ public partial class MessageViewModel : ObservableObject
     public virtual bool IsAssistant => !IsUser;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasText), nameof(ShowTypingIndicator), nameof(ShowActions))]
+    [NotifyPropertyChangedFor(nameof(HasText), nameof(ShowTypingIndicator), nameof(ShowActions), nameof(ShowBubble))]
     private string _text = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasThinking))]
+    [NotifyPropertyChangedFor(nameof(HasThinking), nameof(ShowBubble))]
     private string _thinking = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowBubble))]
     private bool _isStopped;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowTypingIndicator), nameof(ShowActions))]
+    [NotifyPropertyChangedFor(nameof(ShowTypingIndicator), nameof(ShowActions), nameof(ShowBubble))]
     private bool _isStreaming;
 
     /// <summary>後面緊接著工具段落：這則只是「先說一聲再去用工具」，不是這一輪的結尾，不顯示動作列。</summary>
@@ -80,6 +88,9 @@ public partial class MessageViewModel : ObservableObject
     /// <summary>已送出、但還沒收到任何文字時顯示「…」。</summary>
     public bool ShowTypingIndicator => IsStreaming && !HasText;
 
+    /// <summary>助理的淡底氣泡：至少有思考過程、文字、等待中的「…」或「已停止」其中一項才畫（避免空泡）。</summary>
+    public bool ShowBubble => HasThinking || HasText || ShowTypingIndicator || IsStopped;
+
     /// <summary>動作列（複製、重新產生、token）：助理訊息、不在串流中、有文字才顯示。</summary>
     public bool ShowActions => IsAssistant && !IsStreaming && HasText && !IsFollowedByTools;
 
@@ -100,14 +111,15 @@ public partial class MessageViewModel : ObservableObject
             WorkbenchViewModel.FormatTokens(u.OutputTokens))
         : "";
 
-    public static MessageViewModel User(string text, IReadOnlyList<MessageChipViewModel>? attachments = null) =>
-        new(isUser: true) { Text = text, Attachments = attachments ?? NoChips };
+    public static MessageViewModel User(string text, IReadOnlyList<MessageChipViewModel>? attachments = null, DateTimeOffset? createdAt = null) =>
+        new(isUser: true, createdAt) { Text = text, Attachments = attachments ?? NoChips };
 
-    public static MessageViewModel StreamingAssistant() => new(isUser: false) { IsStreaming = true };
+    public static MessageViewModel StreamingAssistant(DateTimeOffset? createdAt = null) =>
+        new(isUser: false, createdAt) { IsStreaming = true };
 
     public static MessageViewModel From(ChatMessage message)
     {
-        var vm = new MessageViewModel(message.Role == ChatRole.User);
+        var vm = new MessageViewModel(message.Role == ChatRole.User, message.CreatedAt);
         vm.ApplyContent(message);
         vm.IsStopped = message.Status == MessageStatus.Stopped;
         if (message.Role == ChatRole.User)

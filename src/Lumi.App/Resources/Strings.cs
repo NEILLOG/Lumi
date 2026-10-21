@@ -113,6 +113,15 @@ public static class Strings
     public static string Workbench_Copy => Get(nameof(Workbench_Copy));
     public static string Workbench_Copied => Get(nameof(Workbench_Copied));
     public static string Workbench_Regenerate => Get(nameof(Workbench_Regenerate));
+    public static string Workbench_WelcomeTitle => Get(nameof(Workbench_WelcomeTitle));
+    public static string Workbench_WelcomeSubtitle => Get(nameof(Workbench_WelcomeSubtitle));
+    public static string Workbench_You => Get(nameof(Workbench_You));
+    public static string Workbench_AssistantName => Get(nameof(Workbench_AssistantName));
+    public static string Workbench_CopyTip => Get(nameof(Workbench_CopyTip));
+    public static string Workbench_RegenerateTip => Get(nameof(Workbench_RegenerateTip));
+    public static string Workbench_Like => Get(nameof(Workbench_Like));
+    public static string Workbench_Dislike => Get(nameof(Workbench_Dislike));
+    public static string Workbench_FeedbackComingSoon => Get(nameof(Workbench_FeedbackComingSoon));
     public static string Workbench_History => Get(nameof(Workbench_History));
     public static string Workbench_HistoryEmpty => Get(nameof(Workbench_HistoryEmpty));
     public static string TitleBar_Brand => Get(nameof(TitleBar_Brand));

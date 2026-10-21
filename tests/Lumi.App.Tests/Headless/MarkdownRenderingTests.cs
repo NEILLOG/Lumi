@@ -135,6 +135,8 @@ public class MarkdownRenderingTests
 
     // ---- 程式碼區塊 ----
 
+    private static string ButtonLabel(Button button) => All<TextBlock>(button).Single().Text!;
+
     [AvaloniaFact]
     public void CodeBlock_ShowsLanguage_AndCopyButtonCopiesOnlyTheCode()
     {
@@ -144,12 +146,73 @@ public class MarkdownRenderingTests
         Assert.Contains("md-codeblock", block.Classes);
         Assert.Equal("csharp", All<TextBlock>(block).Single(t => t.Classes.Contains("md-codelang")).Text);
         var button = All<Button>(block).Single();
-        Assert.Equal(Strings.Workbench_Copy, button.Content);
+        Assert.Equal(Strings.Workbench_Copy, ButtonLabel(button));
+        Assert.NotNull(All<LumiIcon>(button).Single().Data);   // copy 圖示
 
         button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
         Assert.Equal(["var x = 1;"], fake.Copied);
-        Assert.Equal(Strings.Workbench_Copied, button.Content);
+        Assert.Equal(Strings.Workbench_Copied, ButtonLabel(button));
+    }
+
+    [AvaloniaFact]
+    public void CodeBlock_CopyButton_SwapsToACheckIcon_AndBack()
+    {
+        var (view, window, _) = Show("```\ncode\n```");
+        var button = All<Button>(view.RenderedBlocks[0]).Single();
+        var icon = All<LumiIcon>(button).Single();
+        var copyIcon = icon.Data;
+
+        button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout();
+
+        Assert.NotNull(icon.Data);
+        Assert.NotEqual(copyIcon, icon.Data);   // 打勾圖示
+        Assert.Equal(Strings.Workbench_Copied, ButtonLabel(button));
+    }
+
+    [AvaloniaFact]
+    public void CodeBlock_HasAHeaderRow_WithTheLanguageOnTheLeftAndTheCopyButtonOnTheRight()
+    {
+        var (view, window, _) = Show("```csharp\nvar x = 1;\n```");
+        var block = (Border)view.RenderedBlocks[0];
+        Assert.Equal(new CornerRadius(12), block.CornerRadius);
+
+        var header = All<Border>(block).Single(b => b.Classes.Contains("md-codeheader"));
+        var language = All<TextBlock>(header).Single(t => t.Classes.Contains("md-codelang"));
+        var button = All<Button>(header).Single();   // 複製鈕在標題列裡
+        Assert.True(language.TranslatePoint(default, block)!.Value.X < button.TranslatePoint(default, block)!.Value.X);
+        Assert.True(button.TranslatePoint(default, block)!.Value.X + button.Bounds.Width <= block.Bounds.Width + 0.5);
+
+        // 複製鈕不在捲動區裡，不會隨程式碼捲動
+        var scroller = All<ScrollViewer>(block).Single();
+        Assert.Empty(All<Button>(scroller));
+        Assert.DoesNotContain(button, All<Control>(scroller));
+        Assert.True(header.TranslatePoint(default, block)!.Value.Y < scroller.TranslatePoint(default, block)!.Value.Y);
+    }
+
+    [AvaloniaFact]
+    public void CodeBlock_ScrollsHorizontally_WithoutWrapping_AndTheCopyButtonStaysPut()
+    {
+        var longLine = new string('x', 400);
+        var (view, window, _) = Show($"```\n{longLine}\n```", width: 400);
+        var block = (Border)view.RenderedBlocks[0];
+        var scroller = All<ScrollViewer>(block).Single();
+        var code = All<EmojiTextBlock>(scroller).Single(t => t.Classes.Contains("md-codetext"));
+        var button = All<Button>(block).Single();
+
+        Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, scroller.HorizontalScrollBarVisibility);
+        Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, scroller.VerticalScrollBarVisibility);
+        Assert.Equal(TextWrapping.NoWrap, code.TextWrapping);
+        Assert.True(code.FontSize >= 12 && code.FontSize <= 13, $"字級 {code.FontSize}");
+        Assert.True(scroller.Extent.Width > scroller.Viewport.Width);   // 內容比可視範圍寬，要用捲動
+
+        var before = button.TranslatePoint(default, block)!.Value;
+        scroller.Offset = new Vector(120, 0);
+        window.UpdateLayout();
+
+        Assert.True(scroller.Offset.X > 0);
+        Assert.Equal(before, button.TranslatePoint(default, block)!.Value);   // 複製鈕沒有跟著捲
     }
 
     [AvaloniaFact]

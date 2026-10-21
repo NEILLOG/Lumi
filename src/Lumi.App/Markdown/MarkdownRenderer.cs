@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Automation;
 using Avalonia.Controls.Documents;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -183,23 +185,47 @@ public sealed class MarkdownRenderer
 
     // ---- 程式碼區塊 ----
 
+    /// <summary>
+    /// 程式碼區塊：外框（<c>md-codeblock</c>）＝標題列（<c>md-codeheader</c>：左側語言標籤、右側「複製」鈕）＋水平捲動的程式碼區。
+    /// 複製鈕在捲動區外面，不會隨程式碼捲動；複製後短暫變成打勾圖示加「已複製」。
+    /// </summary>
     private Control CreateCodeBlock(MdCodeBlock block)
     {
         var language = new TextBlock { Text = block.Language ?? "", VerticalAlignment = VerticalAlignment.Center, Classes = { "md-codelang" } };
-        var copy = new Button { Content = Strings.Workbench_Copy, Classes = { "md-copy" }, HorizontalAlignment = HorizontalAlignment.Right };
+
+        var icon = new LumiIcon { Size = 14 };
+        icon.Bind(LumiIcon.DataProperty, new DynamicResourceExtension("LumiIconCopy"));
+        var label = new TextBlock { Text = Strings.Workbench_Copy, VerticalAlignment = VerticalAlignment.Center };
+        var copy = new Button
+        {
+            Classes = { "md-copy" },
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { icon, label } },
+        };
+        ToolTip.SetTip(copy, Strings.Workbench_Copy);
+        AutomationProperties.SetName(copy, Strings.Workbench_Copy);
+
+        void ShowCopied(bool copied)
+        {
+            icon.Bind(LumiIcon.DataProperty, new DynamicResourceExtension(copied ? "LumiIconCheck" : "LumiIconCopy"));
+            label.Text = copied ? Strings.Workbench_Copied : Strings.Workbench_Copy;
+        }
+
         copy.Click += async (_, _) =>
         {
             await _services.CopyText(block.Code);
-            copy.Content = Strings.Workbench_Copied;
+            ShowCopied(true);
             await Task.Delay(1500);
-            Dispatcher.UIThread.Post(() => copy.Content = Strings.Workbench_Copy);
+            Dispatcher.UIThread.Post(() => ShowCopied(false));
         };
 
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(12, 4, 6, 0) };
+        var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         Grid.SetColumn(language, 0);
         Grid.SetColumn(copy, 1);
-        header.Children.Add(language);
-        header.Children.Add(copy);
+        headerGrid.Children.Add(language);
+        headerGrid.Children.Add(copy);
+        var header = new Border { Classes = { "md-codeheader" }, Child = headerGrid };
 
         var code = new EmojiTextBlock { Text = block.Code, TextWrapping = TextWrapping.NoWrap, Classes = { "md-codetext" } };
         var scroller = new ScrollViewer
@@ -207,7 +233,7 @@ public sealed class MarkdownRenderer
             Content = code,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-            Padding = new Thickness(12, 2, 12, 12),
+            Padding = new Thickness(16, 12, 16, 12),
         };
 
         var stack = new StackPanel();

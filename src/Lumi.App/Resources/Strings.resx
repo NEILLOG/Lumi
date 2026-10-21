@@ -127,6 +127,15 @@
   <data name="Workbench_Copy" xml:space="preserve"><value>複製</value></data>
   <data name="Workbench_Copied" xml:space="preserve"><value>已複製</value></data>
   <data name="Workbench_Regenerate" xml:space="preserve"><value>重新產生</value></data>
+  <data name="Workbench_WelcomeTitle" xml:space="preserve"><value>今天想請 Lumi 幫什麼忙？</value></data>
+  <data name="Workbench_WelcomeSubtitle" xml:space="preserve"><value>輸入問題，也可以加入檔案或資料夾。</value></data>
+  <data name="Workbench_You" xml:space="preserve"><value>你</value></data>
+  <data name="Workbench_AssistantName" xml:space="preserve"><value>Lumi</value></data>
+  <data name="Workbench_CopyTip" xml:space="preserve"><value>複製這則回覆</value></data>
+  <data name="Workbench_RegenerateTip" xml:space="preserve"><value>重新產生這則回覆</value></data>
+  <data name="Workbench_Like" xml:space="preserve"><value>覺得有幫助</value></data>
+  <data name="Workbench_Dislike" xml:space="preserve"><value>覺得沒幫助</value></data>
+  <data name="Workbench_FeedbackComingSoon" xml:space="preserve"><value>評價功能即將推出</value></data>
   <data name="Workbench_History" xml:space="preserve"><value>歷史對話</value></data>
   <data name="Workbench_HistoryEmpty" xml:space="preserve"><value>還沒有對話紀錄</value></data>
   <data name="Workbench_SpriteMode" xml:space="preserve"><value>小精靈模式</value></data>

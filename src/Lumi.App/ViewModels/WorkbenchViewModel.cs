@@ -71,6 +71,7 @@ public partial class WorkbenchViewModel : ObservableObject
         _clipboard = clipboard;
         _time = time;
         _logger = logger;
+        Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ShowWelcome));
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
         _session = session ?? new ChatSession(conversations, store, NullLogger<ChatSession>.Instance);
         _modes = modes;
@@ -103,6 +104,16 @@ public partial class WorkbenchViewModel : ObservableObject
     }
 
     public ObservableCollection<MessageViewModel> Messages { get; } = [];
+
+    /// <summary>
+    /// 歡迎區（「今天想請 Lumi 幫什麼忙？」）：對話沒有任何訊息、而且不是還在載入最近一則對話時才顯示，
+    /// 避免啟動時載入前閃一下。
+    /// </summary>
+    public bool ShowWelcome => !IsLoadingMessages && Messages.Count == 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowWelcome))]
+    private bool _isLoadingMessages;
 
     public HistoryViewModel History { get; }
 
@@ -244,8 +255,16 @@ public partial class WorkbenchViewModel : ObservableObject
         if (_initialized)
             return;   // 啟動時就載入（小精靈模式下工作台視窗還沒開），視窗第一次開啟時不要再載入一次
         _initialized = true;
-        var conversation = await NavigateAsync(() => _session.InitializeAsync(Strings.Workbench_NewConversationTitle));
-        await LoadAsync(conversation);
+        IsLoadingMessages = true;
+        try
+        {
+            var conversation = await NavigateAsync(() => _session.InitializeAsync(Strings.Workbench_NewConversationTitle));
+            await LoadAsync(conversation);
+        }
+        finally
+        {
+            IsLoadingMessages = false;
+        }
     }
 
     // ---- 送出、重試、重新產生、停止 ----
@@ -260,7 +279,7 @@ public partial class WorkbenchViewModel : ObservableObject
         if (Messages.Count == 0)
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
         // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
-        Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips())));
+        Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips()), _time.GetUtcNow()));
         await RunResponseAsync(() => _session.SendAsync(text), reloadOnFailure: false);
         if (conversationId == CurrentConversationId)
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
@@ -497,7 +516,7 @@ public partial class WorkbenchViewModel : ObservableObject
             // 別處（小精靈）送出的：同一則對話，使用者的訊息也要出現在這裡
             if (Messages.Count == 0)
                 Title = ConversationService.MakeTitle(text);
-            Messages.Add(MessageViewModel.User(text));
+            Messages.Add(MessageViewModel.User(text, createdAt: _time.GetUtcNow()));
         }
 
         _cards.Clear();
@@ -511,7 +530,7 @@ public partial class WorkbenchViewModel : ObservableObject
 
     private MessageViewModel StartBubble()
     {
-        var created = MessageViewModel.StreamingAssistant();
+        var created = MessageViewModel.StreamingAssistant(_time.GetUtcNow());
         Messages.Add(created);
         RefreshMessageState();
         return created;

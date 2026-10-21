@@ -21,6 +21,7 @@
       <Color x:Key="LumiWarningBorderColor">#E9B85A</Color>
       <Color x:Key="LumiCodeBackgroundColor">#1A1D22</Color>
       <Color x:Key="LumiCodeTextColor">#D7DCE3</Color>
+      <Color x:Key="LumiCodeHeaderColor">#252A31</Color>
 
       <SolidColorBrush x:Key="LumiInfoBrush" Color="{StaticResource LumiInfoColor}" />
       <SolidColorBrush x:Key="LumiSuccessBrush" Color="{StaticResource LumiSuccessColor}" />
@@ -33,6 +34,7 @@
       <SolidColorBrush x:Key="LumiWarningBorderBrush" Color="{StaticResource LumiWarningBorderColor}" />
       <SolidColorBrush x:Key="LumiCodeBackgroundBrush" Color="{StaticResource LumiCodeBackgroundColor}" />
       <SolidColorBrush x:Key="LumiCodeTextBrush" Color="{StaticResource LumiCodeTextColor}" />
+      <SolidColorBrush x:Key="LumiCodeHeaderBrush" Color="{StaticResource LumiCodeHeaderColor}" />
       <!-- 狀態點（非文字元件）：ui-guide.html 的固定語意色，淺深色相同、不隨主題變。文字用上面的 Success／Danger／Warning -->
       <Color x:Key="LumiSuccessDotColor">#55A981</Color>
       <Color x:Key="LumiWarningDotColor">#D99A3E</Color>
@@ -53,6 +55,7 @@
       <Color x:Key="LumiWarningBorderColor">#6B5320</Color>
       <Color x:Key="LumiCodeBackgroundColor">#1A1D22</Color>
       <Color x:Key="LumiCodeTextColor">#D7DCE3</Color>
+      <Color x:Key="LumiCodeHeaderColor">#252A31</Color>
 
       <SolidColorBrush x:Key="LumiInfoBrush" Color="{StaticResource LumiInfoColor}" />
       <SolidColorBrush x:Key="LumiSuccessBrush" Color="{StaticResource LumiSuccessColor}" />
@@ -65,6 +68,7 @@
       <SolidColorBrush x:Key="LumiWarningBorderBrush" Color="{StaticResource LumiWarningBorderColor}" />
       <SolidColorBrush x:Key="LumiCodeBackgroundBrush" Color="{StaticResource LumiCodeBackgroundColor}" />
       <SolidColorBrush x:Key="LumiCodeTextBrush" Color="{StaticResource LumiCodeTextColor}" />
+      <SolidColorBrush x:Key="LumiCodeHeaderBrush" Color="{StaticResource LumiCodeHeaderColor}" />
       <!-- 狀態點（非文字元件）：ui-guide.html 的固定語意色，淺深色相同、不隨主題變。文字用上面的 Success／Danger／Warning -->
       <Color x:Key="LumiSuccessDotColor">#55A981</Color>
       <Color x:Key="LumiWarningDotColor">#D99A3E</Color>
