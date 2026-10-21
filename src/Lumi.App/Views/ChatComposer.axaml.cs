@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -22,6 +23,12 @@ public partial class ChatComposer : UserControl
         InputArea.AddHandler(DragDrop.DragOverEvent, OnDragOver);
         InputArea.AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
         InputArea.AddHandler(DragDrop.DropEvent, OnDrop);
+        // 輸入框沒有自己的外框：取得焦點時，由外層 InputArea 用 Accent 邊框表達（純視覺，所以放在 code-behind）
+        InputBox.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == InputElement.IsKeyboardFocusWithinProperty)
+                InputArea.Classes.Set("focused", InputBox.IsKeyboardFocusWithin);
+        };
     }
 
     private WorkbenchViewModel? ViewModel => DataContext as WorkbenchViewModel;

@@ -187,7 +187,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip), nameof(AddFileTip), nameof(AddFolderTip))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand))]
     private bool _isResponding;
 
@@ -220,6 +220,11 @@ public partial class WorkbenchViewModel : ObservableObject
 
     /// <summary>「小精靈模式」按鈕的 Tooltip：回應中說明為什麼停用，平時是按鈕名稱（窄版只剩圖示時靠它說明）。</summary>
     public string SpriteModeTip => IsResponding ? Strings.Workbench_SwitchBlocked : Strings.Workbench_SpriteMode;
+
+    /// <summary>「加入檔案」「加入資料夾」的 Tooltip：回應中停用，改說明為什麼（取代原本佔版面的提示文字）。</summary>
+    public string AddFileTip => IsResponding ? Strings.Composer_AddBlocked : Strings.Context_AddFile;
+
+    public string AddFolderTip => IsResponding ? Strings.Composer_AddBlocked : Strings.Context_AddFolder;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]

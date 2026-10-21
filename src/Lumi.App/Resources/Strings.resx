@@ -32,7 +32,6 @@
   <data name="Workbench_InputPlaceholder" xml:space="preserve"><value>輸入訊息（Enter 送出、Shift+Enter 換行）</value></data>
   <data name="Workbench_Send" xml:space="preserve"><value>送出</value></data>
   <data name="Workbench_Stop" xml:space="preserve"><value>停止</value></data>
-  <data name="Workbench_WaitingHint" xml:space="preserve"><value>回應結束後才能送出</value></data>
   <data name="Workbench_Thinking" xml:space="preserve"><value>思考過程</value></data>
   <data name="Workbench_Stopped" xml:space="preserve"><value>你已停止這次回應</value></data>
   <data name="Workbench_ErrorKept" xml:space="preserve"><value>對話內容已保留。</value></data>
@@ -202,7 +201,11 @@
   <data name="Context_RemovedSentNote" xml:space="preserve"><value>已從範圍移除；模型之前看過的內容仍在這則對話裡</value></data>
   <data name="Context_NotFoundFormat" xml:space="preserve"><value>找不到：{0}</value></data>
   <data name="Context_PastedImageName" xml:space="preserve"><value>貼上的截圖 {0}</value></data>
-  <data name="Context_LockedHint" xml:space="preserve"><value>回應中不能更改上下文</value></data>
+  <data name="Composer_SendHint" xml:space="preserve"><value>Enter 傳送 · Shift + Enter 換行</value></data>
+  <data name="Composer_RespondingHint" xml:space="preserve"><value>回應結束後才能送出，期間不能更改上下文</value></data>
+  <data name="Composer_AddBlocked" xml:space="preserve"><value>回應中，暫時無法加入</value></data>
+  <data name="Composer_Mic" xml:space="preserve"><value>語音輸入</value></data>
+  <data name="Composer_MicSoon" xml:space="preserve"><value>語音輸入即將推出</value></data>
   <data name="Context_DropHint" xml:space="preserve"><value>放開以加入到這則對話的上下文</value></data>
   <data name="Context_NotEmbedded" xml:space="preserve"><value>沒有放入內容</value></data>
   <data name="Settings_CategoryPersona" xml:space="preserve"><value>人格與主動性</value></data>

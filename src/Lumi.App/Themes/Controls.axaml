@@ -170,6 +170,25 @@
     <Setter Property="IsVisible" Value="False" />
   </Style>
 
+  <!--
+    對話輸入區（ChatComposer）裡的多行輸入框：沒有自己的外框、底色與光暈，外框與焦點由外層 InputArea 表達
+    （焦點時 InputArea 用 Accent 邊框，見 ChatComposer）。高度由使用處決定（MinHeight 64、MaxHeight 160）。
+  -->
+  <Style Selector="TextBox.composer">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0,4" />
+  </Style>
+  <Style Selector="TextBox.composer /template/ Border#PART_BorderElement, TextBox.composer:pointerover /template/ Border#PART_BorderElement, TextBox.composer:focus /template/ Border#PART_BorderElement, TextBox.composer:disabled /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TextBox.composer:focus /template/ Border#PART_FocusGlow">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
   <!-- ComboBox：同一組高度、圓角、邊框與 Focus 樣式；下拉箭頭用 LumiIcon（chevron-down） -->
   <Style Selector="ComboBox">
     <Setter Property="MinHeight" Value="{StaticResource LumiControlHeight}" />

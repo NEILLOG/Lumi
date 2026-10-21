@@ -118,7 +118,7 @@ public class ContextBarRenderingTests
         var window = await ShowAsync(rig);
         await rig.Bar.AddPathsAsync(["/a.txt"]);
         window.UpdateLayout();
-        var remove = All<Button>(window.FindByName<ItemsControl>("ContextChips")).Single(b => b.Content as string == "×");
+        var remove = All<Button>(window.FindByName<ItemsControl>("ContextChips")).Single(b => Avalonia.Automation.AutomationProperties.GetName(b) == Lumi.App.Resources.Strings.Context_Remove);
 
         Click(window, remove);
         await SettingsHost.WaitUntil(() => !rig.Bar.HasItems);
@@ -156,7 +156,7 @@ public class ContextBarRenderingTests
 
         Assert.False(window.FindByName<Button>("AddFileButton").IsEffectivelyEnabled);
         Assert.False(window.FindByName<Button>("AddFolderButton").IsEffectivelyEnabled);
-        Assert.Contains("回應中不能更改上下文", VisibleTexts(window));
+        Assert.Contains(Lumi.App.Resources.Strings.Composer_RespondingHint, VisibleTexts(window));
     }
 
     [AvaloniaFact]
@@ -181,7 +181,11 @@ public class ContextBarRenderingTests
         rig.Bar.ContextWindow = 10;
         window.UpdateLayout();
 
-        Assert.Contains("⚠", VisibleTexts(window.FindByName<StackPanel>("ContextBar")));
+        var bar = window.FindByName<StackPanel>("ContextBar");
+        Assert.DoesNotContain("⚠", VisibleTexts(bar));
+        var icon = bar.GetVisualDescendants().OfType<Lumi.App.Controls.LumiIcon>().Single(i => i.Name == "OverLimitIcon");
+        Assert.True(icon.IsEffectivelyVisible);
+        Assert.False(string.IsNullOrEmpty(ToolTip.GetTip(icon) as string));
     }
 
     [AvaloniaFact]

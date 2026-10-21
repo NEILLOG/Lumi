@@ -9,14 +9,52 @@
 
   <UserControl.Styles>
     <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <!--
+      輸入區的版面常數集中在這裡（Wide 值）：外框左右邊距 64（和 ConversationView 的 conversation-page 左右 Padding 對齊）、
+      圓角 16（頁面區域）。RWD（UC）只要在根節點 class 下覆寫，例如 Window.compact Border.composer-area { Margin = 24,8,24,16 }。
+      外框顏色與邊框粗細全部寫在樣式裡（不寫本地值），所以 focused／dropping 的樣式才蓋得過去。
+    -->
+    <Style Selector="Border.composer-area">
+      <Setter Property="Margin" Value="64,8,64,16" />
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusPanel}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    </Style>
+    <!-- 輸入框取得焦點：外框改 Accent 邊框（InputBox 本身沒有外框；由 code-behind 切換 focused） -->
+    <Style Selector="Border.composer-area.focused">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+    </Style>
+    <!-- 拖放檔案進來：2px Accent 邊框（要排在 focused 後面，蓋過它） -->
+    <Style Selector="Border.composer-area.dropping">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <!-- 下層工具列的 tertiary 按鈕：32 高，圖示加文字 -->
+    <Style Selector="Button.composer-tool">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <!-- chip 上的移除鈕：20x20 的 tertiary 圖示按鈕 -->
+    <Style Selector="Button.chip-remove">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <!-- 送出／停止：圓形圖示按鈕。送出用 Accent 底（不算 Primary 文字按鈕），停止用 Primary 底 -->
     <Style Selector="Button.round">
-      <Setter Property="Width" Value="34" />
-      <Setter Property="Height" Value="34" />
-      <Setter Property="CornerRadius" Value="17" />
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="CornerRadius" Value="18" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="FontWeight" Value="Bold" />
     </Style>
     <Style Selector="Button.send">
       <Setter Property="Background" Value="{DynamicResource LumiAccentBrush}" />
@@ -26,39 +64,37 @@
       <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
     </Style>
-    <Style Selector="Border.dropping">
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
-      <Setter Property="BorderThickness" Value="2" />
-    </Style>
   </UserControl.Styles>
 
-  <!-- 輸入區：上下文列、輸入框、送出／停止、加入檔案／資料夾、拖放（ui-spec 第 6 節） -->
-  <Border x:Name="InputArea" Margin="24,8,24,14" Padding="12,8" CornerRadius="14" BorderThickness="1"
-          DragDrop.AllowDrop="True"
-          Background="{DynamicResource LumiSurfaceBrush}"
-          BorderBrush="{DynamicResource LumiBorderStrongBrush}">
-    <StackPanel Spacing="6">
+  <!--
+    輸入區（RWD原則 3.5、ui-spec 第 6 節）：兩層。
+    上層：上下文 chip（有項目才出現）＋輸入框；下層：加入檔案、加入資料夾、語音輸入（停用佔位）｜提示文字｜送出／停止。
+    外框、焦點與拖放邊框都由 InputArea 表達，輸入框沒有自己的外框。
+  -->
+  <Border x:Name="InputArea" Classes="composer-area" DragDrop.AllowDrop="True">
+    <StackPanel Spacing="8">
       <!-- 此對話的上下文（ui-spec 6.1）：有項目時才出現 -->
-      <StackPanel x:Name="ContextBar" DataContext="{Binding Context}" IsVisible="{Binding HasItems}" Spacing="6">
+      <StackPanel x:Name="ContextBar" DataContext="{Binding Context}" IsVisible="{Binding HasItems}" Spacing="8">
         <Grid ColumnDefinitions="*,Auto">
           <TextBlock Text="{x:Static res:Strings.Context_Title}" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
                       ToolTip.Tip="{x:Static res:Strings.Context_TokensHint}">
             <TextBlock Text="{Binding TokensText}" Classes="muted" />
-            <TextBlock IsVisible="{Binding IsOverLimit}" Text="⚠" Foreground="{DynamicResource LumiWarningIconBrush}"
-                       ToolTip.Tip="{Binding OverLimitText}" />
+            <ctl:LumiIcon x:Name="OverLimitIcon" IsVisible="{Binding IsOverLimit}" Data="{StaticResource LumiIconAlertTriangle}" Size="16"
+                          Foreground="{DynamicResource LumiWarningIconBrush}"
+                          ToolTip.Tip="{Binding OverLimitText}" />
           </StackPanel>
         </Grid>
         <ItemsControl x:Name="ContextChips" ItemsSource="{Binding Items}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" />
+              <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ContextChipViewModel">
               <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}" ToolTip.Tip="{Binding Tooltip}">
-                <StackPanel Orientation="Horizontal" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
                   <!-- 圖片縮圖（解碼失敗就沒有） -->
                   <Image IsVisible="{Binding $self.Source, Converter={x:Static ObjectConverters.IsNotNull}}" Width="20" Height="20" Stretch="UniformToFill"
                          Source="{Binding Path, Converter={x:Static views:PathToBitmapConverter.Instance}}" />
@@ -66,9 +102,12 @@
                                       VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCaption}" />
                   <TextBlock IsVisible="{Binding HasDetail}" Text="{Binding Detail}" Classes="muted" VerticalAlignment="Center" />
                   <TextBlock IsVisible="{Binding IsSent}" Text="{Binding SentLabel}" Classes="muted" VerticalAlignment="Center" />
-                  <Button Classes="chrome small" Padding="5,0" Content="×" VerticalAlignment="Center"
+                  <Button Classes="tertiary chip-remove" VerticalAlignment="Center"
                           ToolTip.Tip="{x:Static res:Strings.Context_Remove}"
-                          Command="{Binding $parent[views:ChatComposer].((vm:WorkbenchViewModel)DataContext).Context.RemoveCommand}" CommandParameter="{Binding}" />
+                          AutomationProperties.Name="{x:Static res:Strings.Context_Remove}"
+                          Command="{Binding $parent[views:ChatComposer].((vm:WorkbenchViewModel)DataContext).Context.RemoveCommand}" CommandParameter="{Binding}">
+                    <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="12" />
+                  </Button>
                 </StackPanel>
               </Border>
             </DataTemplate>
@@ -78,32 +117,67 @@
         <TextBlock IsVisible="{Binding HasError}" Text="{Binding Error}" TextWrapping="Wrap"
                    Foreground="{DynamicResource LumiWarningTextBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
       </StackPanel>
-  
-      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-        <!-- Enter 送出、Shift+Enter 換行（code-behind）；約 8 行後改捲動 -->
-        <TextBox x:Name="InputBox" Grid.Row="0" Grid.Column="0"
-                 Text="{Binding InputText}"
-                 Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
-                 AcceptsReturn="True" TextWrapping="Wrap" IsEnabled="{Binding !IsViewOnly}"
-                 MinHeight="40" MaxHeight="190"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
-        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="10,0,0,0" VerticalAlignment="Bottom">
-          <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Workbench_WaitingHint}"
-                     Classes="muted" VerticalAlignment="Center" />
-          <Button x:Name="SendButton" IsVisible="{Binding !IsResponding}" Classes="round send" Content="↑"
-                  ToolTip.Tip="{x:Static res:Strings.Workbench_Send}" Command="{Binding SendCommand}" />
-          <Button x:Name="StopButton" IsVisible="{Binding IsResponding}" Classes="round stop" Content="■"
-                  ToolTip.Tip="{x:Static res:Strings.Workbench_Stop}" Command="{Binding StopCommand}" />
+
+      <!-- 上層：輸入框（Enter 送出、Shift+Enter 換行：code-behind）；最高 160，之後改捲動 -->
+      <TextBox x:Name="InputBox" Classes="composer"
+               Text="{Binding InputText}"
+               Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
+               AcceptsReturn="True" TextWrapping="Wrap" IsEnabled="{Binding !IsViewOnly}"
+               MinHeight="64" MaxHeight="160"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+      <!-- 下層：左 加入檔案／加入資料夾／語音輸入；右 提示文字、送出／停止 -->
+      <Grid x:Name="ComposerToolbar" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+          <!-- 回應中停用，Tooltip 說明原因（取代原本佔版面的提示文字） -->
+          <Button x:Name="AddFileButton" Classes="tertiary composer-tool" Command="{Binding Context.AddFileCommand}"
+                  ToolTip.Tip="{Binding AddFileTip}" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{x:Static res:Strings.Context_AddFile}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconPaperclip}" Size="16" />
+              <TextBlock Text="{x:Static res:Strings.Context_AddFile}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="AddFolderButton" Classes="tertiary composer-tool" Command="{Binding Context.AddFolderCommand}"
+                  ToolTip.Tip="{Binding AddFolderTip}" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{x:Static res:Strings.Context_AddFolder}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconFolder}" Size="16" />
+              <TextBlock Text="{x:Static res:Strings.Context_AddFolder}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <!-- 語音輸入：沒有後端（M6），停用佔位；旁邊用 Caption 寫出原因（UC：Compact 起隱藏 MicCaption） -->
+          <Button x:Name="MicButton" Classes="tertiary composer-tool" IsEnabled="False"
+                  ToolTip.Tip="{x:Static res:Strings.Composer_MicSoon}" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{x:Static res:Strings.Composer_Mic}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconMic}" Size="16" />
+              <TextBlock Text="{x:Static res:Strings.Composer_Mic}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock x:Name="MicCaption" Classes="muted" Text="{x:Static res:Strings.Composer_MicSoon}" VerticalAlignment="Center" Margin="4,0,0,0" />
         </StackPanel>
-        <!-- 左下：加入檔案、加入資料夾（回應中停用） -->
-        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="2" Margin="0,4,0,0">
-          <Button x:Name="AddFileButton" Classes="chrome small" Content="{x:Static res:Strings.Context_AddFile}"
-                  Command="{Binding Context.AddFileCommand}" />
-          <Button x:Name="AddFolderButton" Classes="chrome small" Content="{x:Static res:Strings.Context_AddFolder}"
-                  Command="{Binding Context.AddFolderCommand}" />
-          <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Context_LockedHint}" Classes="muted"
-                     VerticalAlignment="Center" Margin="6,0,0,0" />
-        </StackPanel>
+
+        <!-- 提示文字區：平時是操作提示（SendHint）；回應中改顯示原因（RespondingHint），不另外佔一行 -->
+        <Panel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <TextBlock x:Name="SendHint" IsVisible="{Binding !IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_SendHint}"
+                     TextTrimming="CharacterEllipsis" />
+          <TextBlock x:Name="RespondingHint" IsVisible="{Binding IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_RespondingHint}"
+                     TextTrimming="CharacterEllipsis" />
+        </Panel>
+
+        <Panel Grid.Column="2" VerticalAlignment="Center">
+          <Button x:Name="SendButton" IsVisible="{Binding !IsResponding}" Classes="round send"
+                  ToolTip.Tip="{x:Static res:Strings.Workbench_Send}" AutomationProperties.Name="{x:Static res:Strings.Workbench_Send}"
+                  Command="{Binding SendCommand}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconArrowUp}" Size="18" />
+          </Button>
+          <Button x:Name="StopButton" IsVisible="{Binding IsResponding}" Classes="round stop"
+                  ToolTip.Tip="{x:Static res:Strings.Workbench_Stop}" AutomationProperties.Name="{x:Static res:Strings.Workbench_Stop}"
+                  Command="{Binding StopCommand}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconSquare}" Size="14" />
+          </Button>
+        </Panel>
       </Grid>
     </StackPanel>
   </Border>

@@ -18,7 +18,6 @@ public static class Strings
     public static string Workbench_InputPlaceholder => Get(nameof(Workbench_InputPlaceholder));
     public static string Workbench_Send => Get(nameof(Workbench_Send));
     public static string Workbench_Stop => Get(nameof(Workbench_Stop));
-    public static string Workbench_WaitingHint => Get(nameof(Workbench_WaitingHint));
     public static string Workbench_Thinking => Get(nameof(Workbench_Thinking));
     public static string Workbench_Stopped => Get(nameof(Workbench_Stopped));
     public static string Workbench_ErrorKept => Get(nameof(Workbench_ErrorKept));
@@ -188,7 +187,11 @@ public static class Strings
     public static string Context_RemovedSentNote => Get(nameof(Context_RemovedSentNote));
     public static string Context_NotFoundFormat => Get(nameof(Context_NotFoundFormat));
     public static string Context_PastedImageName => Get(nameof(Context_PastedImageName));
-    public static string Context_LockedHint => Get(nameof(Context_LockedHint));
+    public static string Composer_SendHint => Get(nameof(Composer_SendHint));
+    public static string Composer_RespondingHint => Get(nameof(Composer_RespondingHint));
+    public static string Composer_AddBlocked => Get(nameof(Composer_AddBlocked));
+    public static string Composer_Mic => Get(nameof(Composer_Mic));
+    public static string Composer_MicSoon => Get(nameof(Composer_MicSoon));
     public static string Context_DropHint => Get(nameof(Context_DropHint));
     public static string Context_NotEmbedded => Get(nameof(Context_NotEmbedded));
     public static string Settings_CategoryPersona => Get(nameof(Settings_CategoryPersona));
