@@ -175,7 +175,6 @@
     （焦點時 InputArea 用 Accent 邊框，見 ChatComposer）。高度由使用處決定（MinHeight 64、MaxHeight 160）。
   -->
   <Style Selector="TextBox.composer">
-    <Setter Property="MinHeight" Value="0" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Padding" Value="0,4" />

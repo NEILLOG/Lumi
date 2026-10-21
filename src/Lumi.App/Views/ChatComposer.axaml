@@ -31,6 +31,10 @@
       <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
       <Setter Property="BorderThickness" Value="2" />
     </Style>
+    <!-- 輸入框預設高度：Normal 64（約三行）；short 起縮成兩行高（48），veryshort 沿用（RWD原則 第 5 節）。MaxHeight 160 之後改捲動 -->
+    <Style Selector="TextBox#InputBox">
+      <Setter Property="MinHeight" Value="64" />
+    </Style>
     <!-- 下層工具列的 tertiary 按鈕：32 高，圖示加文字 -->
     <Style Selector="Button.composer-tool">
       <Setter Property="Height" Value="32" />
@@ -86,6 +90,13 @@
     </Style>
     <Style Selector="Window.compact Border.compact-hidden, Window.compact TextBlock.compact-hidden, Window.narrow Border.compact-hidden, Window.narrow TextBlock.compact-hidden">
       <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <!--
+      高度規則（根節點 short／veryshort）。兩行高 = 2 × 行高（約 20）+ 上下 Padding 8 = 48；
+      下層工具列（送出鈕 36 高）不縮，所以兩行輸入加一列工具按鈕永遠完整可見。
+    -->
+    <Style Selector="Window.short TextBox#InputBox, Window.veryshort TextBox#InputBox">
+      <Setter Property="MinHeight" Value="48" />
     </Style>
   </UserControl.Styles>
 
@@ -146,7 +157,7 @@
                Text="{Binding InputText}"
                Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
                AcceptsReturn="True" TextWrapping="Wrap" IsEnabled="{Binding !IsViewOnly}"
-               MinHeight="64" MaxHeight="160"
+               MaxHeight="160"
                ScrollViewer.VerticalScrollBarVisibility="Auto" />
 
       <!-- 下層：左 加入檔案／加入資料夾／語音輸入；右 提示文字、送出／停止 -->

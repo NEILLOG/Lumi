@@ -9,7 +9,7 @@
         x:Class="Lumi.App.Views.WorkbenchWindow"
         x:DataType="vm:WorkbenchViewModel"
         Title="{Binding Title}"
-        Width="960" Height="760"
+        Width="1040" Height="760"
         MinWidth="500" MinHeight="420"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
@@ -48,7 +48,8 @@
     <SplitView Grid.Row="2" IsPaneOpen="{Binding History.IsOpen}" PanePlacement="Left" OpenPaneLength="260"
                PaneBackground="{DynamicResource LumiChromeBrush}">
       <SplitView.Pane>
-        <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel">
+        <!-- 收起時整個隱藏，抽屜裡的清單才不會被 Tab 聚焦到 -->
+        <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel" IsVisible="{Binding IsOpen}">
           <Border DockPanel.Dock="Top" Padding="14,10" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,1">
             <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Medium" />
           </Border>
