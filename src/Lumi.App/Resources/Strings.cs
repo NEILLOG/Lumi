@@ -115,6 +115,8 @@ public static class Strings
     public static string Workbench_Regenerate => Get(nameof(Workbench_Regenerate));
     public static string Workbench_History => Get(nameof(Workbench_History));
     public static string Workbench_HistoryEmpty => Get(nameof(Workbench_HistoryEmpty));
+    public static string TitleBar_Brand => Get(nameof(TitleBar_Brand));
+    public static string TitleBar_LogoMark => Get(nameof(TitleBar_LogoMark));
     public static string Workbench_SpriteMode => Get(nameof(Workbench_SpriteMode));
     public static string Workbench_SwitchBlocked => Get(nameof(Workbench_SwitchBlocked));
     public static string Workbench_RetryOtherModel => Get(nameof(Workbench_RetryOtherModel));

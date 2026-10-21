@@ -11,7 +11,10 @@
         Title="{Binding Title}"
         Width="960" Height="760"
         MinWidth="560" MinHeight="420"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="PreferSystemChrome"
+        ExtendClientAreaTitleBarHeightHint="40">
 
   <Window.Styles>
     <Style Selector="Button.chrome">
@@ -51,10 +54,6 @@
       <Setter Property="CornerRadius" Value="16" />
       <Setter Property="Padding" Value="14,5" />
     </Style>
-    <Style Selector="Button.sprite:disabled">
-      <Setter Property="Foreground" Value="{DynamicResource LumiAccentTextBrush}" />
-      <Setter Property="Opacity" Value="0.55" />
-    </Style>
     <Style Selector="Button.small">
       <Setter Property="Padding" Value="8,3" />
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
@@ -86,20 +85,20 @@
     </Style>
   </Window.Styles>
 
-  <!-- 由上而下：頂端列、訊息流、輸入區、狀態列（ui-spec 第 2 節）。只用 token 上色。 -->
-  <Grid RowDefinitions="Auto,*">
+  <!-- 由上而下：標題列、工具列、訊息流＋輸入區＋狀態列（ui-spec 第 2 節）。只用 token 上色。 -->
+  <Grid RowDefinitions="Auto,Auto,*">
 
-    <Border Grid.Row="0" Padding="12,8"
+    <!-- 自訂標題列：Lumi 標誌、拖曳區、小精靈模式（SpriteModeButton 在它裡面，見 CustomTitleBar.SpriteModeButton） -->
+    <views:CustomTitleBar x:Name="TitleBar" Grid.Row="0" />
+
+    <!-- 工具列：下一個任務（UB）才會重做，這裡只是把原本頂端列裡的標題列內容搬走 -->
+    <Border Grid.Row="1" Padding="12,8"
             Background="{DynamicResource LumiChromeBrush}"
             BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
           <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_History}" Command="{Binding History.ToggleCommand}" />
           <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_NewConversation}" Command="{Binding NewConversationCommand}" />
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="10,0,0,0" VerticalAlignment="Center">
-            <Ellipse Width="12" Height="12" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center" />
-            <TextBlock Text="Lumi" FontWeight="Medium" VerticalAlignment="Center" />
-          </StackPanel>
         </StackPanel>
 
         <!-- 模型切換膠囊：狀態點、模型名稱、連線名稱、下拉箭頭。回應中停用並說明原因 -->
@@ -126,16 +125,13 @@
         </StackPanel>
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-          <!-- 小精靈模式：隱藏工作台、顯示小精靈。回應中停用，旁邊的膠囊提示「回應中，暫時無法切換」 -->
-          <Button x:Name="SpriteModeButton" Classes="chrome sprite" Content="{x:Static res:Strings.Workbench_SpriteMode}"
-                  Command="{Binding EnterSpriteModeCommand}" />
           <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}" Command="{Binding OpenSettingsCommand}" />
         </StackPanel>
       </Grid>
     </Border>
 
     <!-- 歷史對話抽屜（內嵌，開啟時把訊息區往右推） -->
-    <SplitView Grid.Row="1" IsPaneOpen="{Binding History.IsOpen}" DisplayMode="Inline" PanePlacement="Left" OpenPaneLength="260"
+    <SplitView Grid.Row="2" IsPaneOpen="{Binding History.IsOpen}" DisplayMode="Inline" PanePlacement="Left" OpenPaneLength="260"
                PaneBackground="{DynamicResource LumiChromeBrush}">
       <SplitView.Pane>
         <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel">

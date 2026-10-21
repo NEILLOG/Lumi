@@ -171,7 +171,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand))]
     private bool _isResponding;
 
@@ -198,6 +198,9 @@ public partial class WorkbenchViewModel : ObservableObject
     public bool ShowSwitchBlockedHint => IsResponding;
 
     public bool CanSwitchModel => !IsResponding;
+
+    /// <summary>「小精靈模式」按鈕的 Tooltip：回應中說明為什麼停用，平時是按鈕名稱（窄版只剩圖示時靠它說明）。</summary>
+    public string SpriteModeTip => IsResponding ? Strings.Workbench_SwitchBlocked : Strings.Workbench_SpriteMode;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]

@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.CustomTitleBar"
+             x:DataType="vm:WorkbenchViewModel"
+             Height="40">
+
+  <UserControl.Styles>
+    <!-- 小精靈模式：Soft 底、圖示加文字（ui-guide.html 第 6 節，tertiary 以外的視窗層級入口） -->
+    <Style Selector="Button.spriteMode">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="MinWidth" Value="36" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.spriteMode:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="Button.spriteMode:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="Button.spriteMode:disabled">
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+    <Style Selector="Button.spriteMode:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- 整條標題列都是拖曳面（Background 要有值才吃得到滑鼠）；按鈕自己處理點擊，不會觸發拖曳 -->
+  <Border x:Name="TitleBarSurface" Background="{DynamicResource LumiChromeBrush}">
+    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+      <!-- macOS 讓出紅綠燈、Windows 的左邊界 -->
+      <Border x:Name="LeftSpacer" Grid.Column="0" Width="16" />
+
+      <StackPanel x:Name="Brand" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Border Width="24" Height="24" CornerRadius="8" Background="{DynamicResource LumiAccentBrush}">
+          <TextBlock Text="{x:Static res:Strings.TitleBar_LogoMark}" FontWeight="Bold" FontSize="{DynamicResource LumiFontSizeCaption}"
+                     Foreground="{DynamicResource LumiOnAccentBrush}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock Text="{x:Static res:Strings.TitleBar_Brand}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <!-- Grid.Column=2 是中間的空白，拖曳由 TitleBarSurface 處理 -->
+
+      <!-- 小精靈模式：隱藏工作台、顯示小精靈。回應中停用，停用時的 Tooltip 說明原因 -->
+      <Button x:Name="SpriteModeButton" Grid.Column="3" Classes="spriteMode"
+              Command="{Binding EnterSpriteModeCommand}"
+              ToolTip.Tip="{Binding SpriteModeTip}" ToolTip.ShowOnDisabled="True"
+              AutomationProperties.Name="{x:Static res:Strings.Workbench_SpriteMode}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="16" />
+          <TextBlock x:Name="SpriteModeLabel" Text="{x:Static res:Strings.Workbench_SpriteMode}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+
+      <!-- 和系統按鈕之間的分隔線（Windows） -->
+      <Border x:Name="Divider" Grid.Column="4" Width="1" Height="16" Margin="12,0,0,0" VerticalAlignment="Center"
+              Background="{DynamicResource LumiBorderBrush}" />
+
+      <!-- Windows：為系統按鈕保留的寬度；macOS：右邊界 -->
+      <Border x:Name="RightSpacer" Grid.Column="5" Width="16" />
+    </Grid>
+  </Border>
+</UserControl>

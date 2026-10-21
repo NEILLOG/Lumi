@@ -265,7 +265,7 @@ public class WorkbenchSpriteModeTests
         var rig = new Rig(Answers("好"));
         var window = new WorkbenchWindow(rig.Vm, rig.Modes);
         window.Show();
-        var button = window.FindControl<Button>("SpriteModeButton")!;
+        var button = window.FindByName<Button>("SpriteModeButton");
 
         Assert.True(button.IsEnabled);
         button.Command!.Execute(null);
