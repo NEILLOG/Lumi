@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Sprites.Abstractions</RootNamespace>
+  </PropertyGroup>
+
+  <!-- 只引用 Avalonia 的基礎型別（Control、Point…）與 DI 抽象；不引用任何 Lumi 專案 -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>

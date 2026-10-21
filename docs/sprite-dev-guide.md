@@ -64,20 +64,30 @@ public interface ISpriteFactory
     ISpriteView Create(SpriteOptions options);
 }
 
+// 殼建立角色時給的尺寸，已經過 SpriteLimits.Fit 縮放
+public sealed record SpriteOptions(double Diameter, Size Box, Size Outer)
+{
+    public Rect BoxRect { get; }      // 角色框在 Outer 裡的位置（正中央）
+}
+
 public interface ISpriteView
 {
-    Control Visual { get; }
-    void SetState(SpriteState state);
+    Control Visual { get; }           // 大小必須是 SpriteOptions.Outer
+    void SetState(SpriteState state); // 只會收到 Manifest.Supported 裡的狀態（殼已依退化規則解析）
     void OnInteraction(SpriteInteraction e);
     void Advance(TimeSpan dt);        // 由殼的 FrameDriver 統一呼叫
-    bool HitTest(Point p);            // 角色本體的範圍，用於點擊穿透與戳
+    bool HitTest(Point p);            // 角色本體的範圍，用於點擊穿透與戳；角色框外一律 false
     Point BubbleAnchor { get; }       // 氣泡接在哪裡（通常是頭頂）
     int PreferredFps { get; }         // 角色目前需要的幀率
 }
 ```
 
-註冊：`services.AddSprite<MySpriteFactory>()`。
-`Lumi.Sprites.Abstractions` 帶有版本號，介面若有變動，必須升版並在本文件末尾記錄。
+- **座標**：`HitTest`、`BubbleAnchor`、`PokeBegin` 的點，原點都是 `Visual` 的左上角。
+- **`Visual` 的大小是 `Outer`**（角色框加上特效外擴），角色框在正中央。光暈、粒子畫在框外那一圈；不要畫到 `Visual` 之外，Avalonia 不會替你清掉畫在控制項外面的殘影。
+- **`HitTest` 不可以依賴排版**：殼可能在 `Visual` 排版之前就呼叫它，座標一律用 `SpriteOptions` 算。
+
+註冊：`services.AddSprite<MySpriteFactory>()`（會同時提供 `ISpriteCatalog`，設定頁的角色清單從這裡來）。
+`Lumi.Sprites.Abstractions` 帶有版本號（`SpriteAbstractionsVersion.Current`），介面若有變動，必須升版並在本文件末尾記錄。
 
 ## 5. 尺寸與比例限制（`SpriteLimits`）
 
@@ -91,9 +101,10 @@ public interface ISpriteView
 | 點擊範圍 | 必須在角色框內 | `HitTest` 在框外一律回傳 false |
 | 角色語氣 | 200 字以內 | 見第 8 節 |
 
-尺寸檔位：小 64、中 80（預設）、大 104，以光球直徑為基準。角色在 manifest 中宣告「中」檔的框大小，其他檔位由殼等比例縮放。
+尺寸檔位：小 64、中 80（預設）、大 104，以光球直徑為基準（`SpriteLimits.Tiers`）。角色在 manifest 中宣告「中」檔的框大小，其他檔位由殼等比例縮放。
+特效外擴是**每邊**，大小是角色框對應邊長乘以 `effectMargin`（最多 0.4）：框 96×96、外擴 0.4 時，`Visual` 是 172.8×172.8。
 
-**不合規的處理**：殼載入時會自動把角色縮放到上限內，並在 log 中警告，不會讓角色撐大視窗。
+**不合規的處理**：殼載入時會自動把角色縮放到上限內（`SpriteLimits.Fit`），並在 log 中警告，不會讓角色撐大視窗。長寬比超出就縮窄或縮矮；最長邊超出就整個等比例縮小；外擴超出就限制在 0.4。
 殼的視窗大小由「角色框 + 特效外擴 + 氣泡 + 輸入列」自動計算。
 
 ## 6. 程式型角色
@@ -112,7 +123,7 @@ public interface ISpriteView
 - 閒置時降低 `PreferredFps`：待機建議 30，休眠建議 12，互動中才用 60。
 - 尺寸用比例計算（以光球半徑為基準），不要寫死像素。
 
-參考實作：`Lumi.Sprites.Orb`（來源是 `poc/Lumi.OrbPoc/OrbControl.cs`）。
+參考實作：`Lumi.Sprites.Orb`（來源是 `poc/Lumi.OrbPoc/OrbControl.cs`）。它的角色框是光球直徑的 1.2 倍（本體加一圈點擊範圍），外擴 0.4。測試的寫法（每個狀態都畫得出東西、`HitTest` 不超出角色框）見 `tests/Lumi.Sprites.Tests/OrbSpriteTests.cs`。
 
 ## 7. 素材型角色
 
@@ -223,4 +234,4 @@ sprites/cat/
 
 | Abstractions 版本 | 變更 |
 |---|---|
-| 1.0（規劃中） | 初版：狀態、互動、`ISpriteFactory`、`ISpriteView`、manifest schemaVersion 1 |
+| 1.0 | 2026-10-21 初版：狀態、互動、`ISpriteFactory`、`ISpriteView`、manifest schemaVersion 1 |
