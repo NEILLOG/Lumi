@@ -345,10 +345,6 @@
                     Command="{Binding Context.AddFolderCommand}" />
             <TextBlock IsVisible="{Binding IsResponding}" Text="{x:Static res:Strings.Context_LockedHint}" Classes="muted"
                        VerticalAlignment="Center" Margin="6,0,0,0" />
-            <!-- 開發用（Lumi:Developer:ShowSpriteModeToggle）：M7 之前驗收小精靈 prompt -->
-            <CheckBox x:Name="SpriteModeToggle" IsVisible="{Binding ShowSpriteModeToggle}" IsEnabled="{Binding CanChangeMode}"
-                      IsChecked="{Binding IsSpriteMode}" Content="{x:Static res:Strings.Workbench_SpriteModeToggle}"
-                      FontSize="{DynamicResource LumiFontSizeCaption}" Margin="10,0,0,0" MinHeight="0" VerticalAlignment="Center" />
           </StackPanel>
         </Grid>
       </StackPanel>

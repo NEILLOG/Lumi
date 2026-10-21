@@ -52,6 +52,7 @@
         <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryConnections}" Padding="12,9" />
         <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryPersona}" Padding="12,9" />
         <ListBoxItem Content="{x:Static res:Strings.Settings_CategoryGeneral}" Padding="12,9" />
+        <ListBoxItem Content="{x:Static res:Strings.Settings_CategorySprite}" Padding="12,9" />
       </ListBox>
     </Border>
 
@@ -306,6 +307,57 @@
         <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
       </Panel>
+
+      <!-- ===== 小精靈：角色、尺寸、語氣、狀態預覽（選了立即生效） ===== -->
+      <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSprite}">
+        <Grid x:Name="SpritePanel" Margin="24" ColumnDefinitions="240,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
+          <!-- 預覽區：用同一個角色即時播放所選的狀態 -->
+          <Border Grid.Column="0" VerticalAlignment="Top" Height="240" CornerRadius="14" BorderThickness="1" Margin="0,0,24,0"
+                  Background="{DynamicResource LumiSurfaceAltBrush}" BorderBrush="{DynamicResource LumiBorderBrush}">
+            <Border x:Name="SpritePreviewHost" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+
+          <StackPanel Grid.Column="1" Spacing="8" MaxWidth="460" HorizontalAlignment="Left">
+            <TextBlock Classes="label" Text="{x:Static res:Strings.SpriteSettings_Character}" />
+            <ListBox x:Name="SpriteList" Classes="rows" ItemsSource="{Binding Sprites}" SelectedItem="{Binding SelectedSprite}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SpriteOption">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                    <TextBlock Text="{Binding Credit}" Classes="muted" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_CharacterNote}" TextWrapping="Wrap" />
+
+            <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Size}" />
+            <ComboBox x:Name="SpriteSizeBox" ItemsSource="{Binding Sizes}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:SpriteSizeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_SizeNote}" TextWrapping="Wrap" />
+
+            <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Voice}" />
+            <CheckBox x:Name="SpriteVoiceBox" IsChecked="{Binding VoiceEnabled}" Content="{x:Static res:Strings.SpriteSettings_VoiceToggle}" />
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_VoiceNote}" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" IsVisible="{Binding HasNoVoice}" Text="{x:Static res:Strings.SpriteSettings_VoiceNone}" TextWrapping="Wrap" />
+
+            <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.SpriteSettings_Preview}" />
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_PreviewNote}" TextWrapping="Wrap" />
+            <ListBox x:Name="SpriteStateList" Classes="rows" ItemsSource="{Binding States}" SelectedItem="{Binding PreviewState}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SpriteStateItem">
+                  <Grid ColumnDefinitions="110,*">
+                    <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="Medium" />
+                    <TextBlock Grid.Column="1" Text="{Binding Note}" Classes="muted" TextWrapping="Wrap" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
     </Grid>
   </Grid>
 </Window>

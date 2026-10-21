@@ -30,6 +30,7 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<ModelsViewModel>();
         services.AddTransient<PersonaViewModel>();
         services.AddTransient<GeneralViewModel>();
+        services.AddTransient<SpriteSettingsViewModel>();
 
         // 權限確認：取代 Core 預設的「一律拒絕」；對話迴圈等在 IToolApprovalService，卡片上的按鈕走 IToolApprovalResponder
         services.AddSingleton<ToolApprovalService>();

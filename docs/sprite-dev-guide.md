@@ -219,7 +219,13 @@ sprites/cat/
 - 使用者可以在設定中關閉角色語氣。
 - 只描述語氣，不要寫指令性的內容（例如「忽略之前的規則」），這類內容會在載入時被拒絕。
 
-## 9. 上線前檢查清單
+## 9. 驗證你的角色
+
+- **設定頁的預覽**：設定 ›「小精靈」會用同一個殼的規則（縮放、退化、幀率）播放所選角色的每個狀態，沒有專屬表現的狀態會標示退化成哪個。
+- **自動測試**：`tests/Lumi.App.Tests/Sprites/ChangingTheSpriteTests.cs` 用一個只畫色塊、只支援 `Idle` 的假角色（`BlockSpriteFactory`）示範：用 `AddSprite<T>()` 註冊、在設定選用，殼、氣泡、輸入列、尺寸檔位與設定頁都照常運作，不支援的狀態走退化。你的角色專案可以照 `tests/Lumi.Sprites.Tests/OrbSpriteTests.cs` 的寫法測：每個狀態都畫得出東西、`HitTest` 不超出角色框、`PreferredFps` 隨狀態變。
+- **耗能**：開 `Lumi:Developer:ShowSpriteHud=true`，HUD 顯示 FPS 與 30 秒平均 CPU；待機與休眠要和光球相近。
+
+## 10. 上線前檢查清單
 
 - [ ] 支援 `Idle`；其他狀態有動畫或已設定退化規則
 - [ ] 符合 `SpriteLimits`（長寬比、最長邊、特效外擴）
@@ -230,7 +236,7 @@ sprites/cat/
 - [ ] 在 Windows 與 macOS 都看過一次
 - [ ] 設定頁的圖鑑中，每個狀態都能預覽
 
-## 10. 版本紀錄
+## 11. 版本紀錄
 
 | Abstractions 版本 | 變更 |
 |---|---|

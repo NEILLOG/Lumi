@@ -11,7 +11,7 @@ internal sealed class SettingsHost : IDisposable
 {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "lumi-settings-vm-" + Guid.NewGuid().ToString("N"));
 
-    public SettingsHost(string? settingsFileContent = null)
+    public SettingsHost(string? settingsFileContent = null, params Lumi.Sprites.Abstractions.ISpriteFactory[] extraSprites)
     {
         SettingsPath = Path.Combine(_directory, "settings.json");
         if (settingsFileContent is not null)
@@ -27,7 +27,9 @@ internal sealed class SettingsHost : IDisposable
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Persona = new PersonaViewModel(Catalog, dispatcher);
         General = new GeneralViewModel(Catalog, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, Persona, General, Catalog, Confirm);
+        SpriteCatalog = new Lumi.Sprites.Abstractions.SpriteCatalog([new Lumi.Sprites.Orb.OrbSpriteFactory(), .. extraSprites]);
+        Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher);
+        Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Catalog, Confirm);
     }
 
     public string SettingsPath { get; }
@@ -40,6 +42,8 @@ internal sealed class SettingsHost : IDisposable
     public ModelsViewModel Models { get; }
     public PersonaViewModel Persona { get; }
     public GeneralViewModel General { get; }
+    public SpriteSettingsViewModel Sprite { get; }
+    public Lumi.Sprites.Abstractions.ISpriteCatalog SpriteCatalog { get; }
     public SettingsViewModel Settings { get; }
 
     public void Dispose()

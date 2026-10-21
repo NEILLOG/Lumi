@@ -61,7 +61,6 @@ public class WorkbenchSharedSessionTests
         await Wait(() => rig.Vm.IsResponding);
 
         Assert.False(rig.Vm.CanSwitchModel);
-        Assert.False(rig.Vm.CanChangeMode);
         rig.Vm.InputText = "另一則";
         Assert.False(rig.Vm.SendCommand.CanExecute(null));   // 不能同時送出兩輪
 
@@ -161,7 +160,7 @@ public class WorkbenchSharedSessionTests
     }
 
     [Fact]
-    public async Task ModeChangedOnTheSession_IsReflectedByTheWorkbench()
+    public async Task ModeChangedOnTheSession_TellsTheWorkbenchToRecomputeViewOnly()
     {
         var rig = CreateRig(new SequenceChatProvider(SequenceChatProvider.Answer("好")));
         await rig.Vm.InitializeAsync();
@@ -170,8 +169,8 @@ public class WorkbenchSharedSessionTests
 
         rig.Session.TrySetMode(ChatMode.Sprite);
 
-        Assert.True(rig.Vm.IsSpriteMode);
-        Assert.Contains(nameof(WorkbenchViewModel.IsSpriteMode), changed);
+        Assert.Equal(ChatMode.Sprite, rig.Session.ActiveMode);
+        Assert.Contains(nameof(WorkbenchViewModel.IsViewOnly), changed);
     }
 
     [Fact]

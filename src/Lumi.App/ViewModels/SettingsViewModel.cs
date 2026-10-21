@@ -4,18 +4,19 @@ using Lumi.Core.Models;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>設定視窗：左側分類（連線與模型、人格與主動性、一般），「連線與模型」內分連線、模型設定兩個分頁。</summary>
+/// <summary>設定視窗：左側分類（連線與模型、人格與主動性、一般、小精靈），「連線與模型」內分連線、模型設定兩個分頁。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, GeneralViewModel general,
-        IModelCatalog catalog, IConfirmService confirm)
+        SpriteSettingsViewModel sprite, IModelCatalog catalog, IConfirmService confirm)
     {
         Connections = connections;
         Models = models;
         Persona = persona;
         General = general;
+        Sprite = sprite;
         _confirm = confirm;
         LoadProblem = catalog.LoadProblem;
     }
@@ -28,13 +29,15 @@ public partial class SettingsViewModel : ObservableObject
 
     public GeneralViewModel General { get; }
 
+    public SpriteSettingsViewModel Sprite { get; }
+
     /// <summary>設定檔損毀或版本太新時的說明（版本太新時所有儲存都會失敗）。</summary>
     public string? LoadProblem { get; }
 
     public bool HasLoadProblem => LoadProblem is not null;
 
-    /// <summary>左側分類：0 = 連線與模型、1 = 人格與主動性、2 = 一般。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowGeneral))]
+    /// <summary>左側分類：0 = 連線與模型、1 = 人格與主動性、2 = 一般、3 = 小精靈。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowGeneral), nameof(ShowSprite))]
     private int _categoryIndex;
 
     /// <summary>「連線與模型」內的分頁：0 = 連線、1 = 模型設定。</summary>
@@ -47,6 +50,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool ShowGeneral => CategoryIndex == 2;
 
+    public bool ShowSprite => CategoryIndex == 3;
+
     public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty;
 
     public async Task NavigateAsync(SettingsNavigation navigation)
@@ -58,6 +63,9 @@ public partial class SettingsViewModel : ObservableObject
                 break;
             case SettingsSection.General:
                 CategoryIndex = 2;
+                break;
+            case SettingsSection.Sprite:
+                CategoryIndex = 3;
                 break;
             case SettingsSection.Models:
                 CategoryIndex = 0;

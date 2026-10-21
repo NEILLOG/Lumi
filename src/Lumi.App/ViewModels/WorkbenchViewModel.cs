@@ -60,7 +60,6 @@ public partial class WorkbenchViewModel : ObservableObject
         ILogger<WorkbenchViewModel> logger,
         IToolApprovalResponder? approvals = null,
         ContextBarViewModel? contextBar = null,
-        DeveloperOptions? developer = null,
         IChatSession? session = null,
         IAppModeCoordinator? modes = null)
     {
@@ -77,7 +76,6 @@ public partial class WorkbenchViewModel : ObservableObject
         _modes = modes;
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
-        ShowSpriteModeToggle = developer?.ShowSpriteModeToggle ?? false;
 
         History = new HistoryViewModel(store, OpenConversationAsync, time);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
@@ -90,7 +88,6 @@ public partial class WorkbenchViewModel : ObservableObject
         _session.RunFinished += OnRunFinished;
         _session.ModeChanged += (_, _) =>
         {
-            OnPropertyChanged(nameof(IsSpriteMode));
             OnPropertyChanged(nameof(IsViewOnly));
             EnterSpriteModeCommand.NotifyCanExecuteChanged();
         };
@@ -174,7 +171,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(CanChangeMode), nameof(IsViewOnly))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand))]
     private bool _isResponding;
 
@@ -192,23 +189,6 @@ public partial class WorkbenchViewModel : ObservableObject
     private bool CanEnterSpriteMode() => _modes is not null && !IsResponding;
 
     public bool HasModeCoordinator => _modes is not null;
-
-    // ---- 開發用：以小精靈模式送出（M7 之前沒有小精靈畫面可以驗收 M5） ----
-
-    public bool ShowSpriteModeToggle { get; }
-
-    /// <summary>用小精靈模式送出（短回答、<c>show_details</c>，並使用小精靈的預設模型）。回應中不能切換（ui-spec 2.2）。</summary>
-    public bool IsSpriteMode
-    {
-        get => _session.ActiveMode == ChatMode.Sprite;
-        set
-        {
-            if (!_session.TrySetMode(value ? ChatMode.Sprite : ChatMode.Workbench))
-                OnPropertyChanged();   // 被拒絕時讓切換鈕回到原本的狀態
-        }
-    }
-
-    public bool CanChangeMode => !IsResponding;
 
     partial void OnIsRespondingChanged(bool value) => Context.IsLocked = value;
 

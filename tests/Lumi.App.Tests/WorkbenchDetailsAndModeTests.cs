@@ -24,19 +24,20 @@ public class WorkbenchDetailsAndModeTests
         public void Resolve(string callId, ApprovalDecision decision) { }
     }
 
-    private sealed record Rig(WorkbenchViewModel Vm, InMemoryConversationStore Store, SequenceChatProvider Provider, FakeModelCatalog Catalog);
+    private sealed record Rig(WorkbenchViewModel Vm, InMemoryConversationStore Store, SequenceChatProvider Provider, FakeModelCatalog Catalog, ChatSession Session);
 
-    private static Rig CreateRig(SequenceChatProvider provider, bool showToggle = true, InMemoryConversationStore? store = null)
+    private static Rig CreateRig(SequenceChatProvider provider, InMemoryConversationStore? store = null)
     {
         store ??= new InMemoryConversationStore();
         var catalog = new FakeModelCatalog();
         var time = new FakeTimeProvider();
         var service = new ConversationService(provider, store, catalog, new ToolRegistry([new ShowDetailsTool()]), new ToolApprovalService(),
             new ToolPermissionMemory(), new ToolLoopOptions(), time, NullLogger<ConversationService>.Instance, composer: Composer);
+        var session = new ChatSession(service, store);
         var vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
             new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), time, NullLogger<WorkbenchViewModel>.Instance,
-            developer: new DeveloperOptions { ShowSpriteModeToggle = showToggle });
-        return new Rig(vm, store, provider, catalog);
+            session: session);
+        return new Rig(vm, store, provider, catalog, session);
     }
 
     private static SequenceChatProvider DetailsThenAnswer() => new(
@@ -59,7 +60,7 @@ public class WorkbenchDetailsAndModeTests
     {
         var rig = CreateRig(DetailsThenAnswer());
         await rig.Vm.InitializeAsync();
-        rig.Vm.IsSpriteMode = true;
+        Assert.True(rig.Session.TrySetMode(ChatMode.Sprite));
 
         rig.Vm.InputText = "寫一段 C# 讀檔範例";
         await rig.Vm.SendCommand.ExecuteAsync(null);
@@ -81,7 +82,7 @@ public class WorkbenchDetailsAndModeTests
     {
         var rig = CreateRig(DetailsThenAnswer());
         await rig.Vm.InitializeAsync();
-        rig.Vm.IsSpriteMode = true;
+        Assert.True(rig.Session.TrySetMode(ChatMode.Sprite));
         rig.Vm.InputText = "x";
         await rig.Vm.SendCommand.ExecuteAsync(null);
 
@@ -151,20 +152,19 @@ public class WorkbenchDetailsAndModeTests
         Assert.True(run.IsGroup);
     }
 
-    // ---- 開發用的模式切換 ----
+    // ---- 模式（由會話決定；工作台與小精靈共用） ----
 
     [Fact]
-    public async Task ModeToggle_DefaultsToWorkbench_AndSpriteModeSendsTheSpriteSuffix()
+    public async Task TheMode_DefaultsToWorkbench_AndSpriteModeSendsTheSpriteSuffix()
     {
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"), SequenceChatProvider.Answer("好"));
         var rig = CreateRig(provider);
         await rig.Vm.InitializeAsync();
-        Assert.True(rig.Vm.ShowSpriteModeToggle);
-        Assert.False(rig.Vm.IsSpriteMode);
+        Assert.Equal(ChatMode.Workbench, rig.Session.ActiveMode);
 
         rig.Vm.InputText = "一";
         await rig.Vm.SendCommand.ExecuteAsync(null);
-        rig.Vm.IsSpriteMode = true;
+        Assert.True(rig.Session.TrySetMode(ChatMode.Sprite));
         rig.Vm.InputText = "二";
         await rig.Vm.SendCommand.ExecuteAsync(null);
 
@@ -173,15 +173,6 @@ public class WorkbenchDetailsAndModeTests
         Assert.Equal(provider.Requests[0].System, provider.Requests[1].System);   // 切換模式不改 system
         Assert.Null(provider.Requests[0].MaxOutputTokens);
         Assert.Equal(1024, provider.Requests[1].MaxOutputTokens);   // min(模型設定 1024, 2048)
-    }
-
-    [Fact]
-    public async Task ToggleIsHiddenByDefault()
-    {
-        var rig = CreateRig(new SequenceChatProvider(), showToggle: false);
-        await rig.Vm.InitializeAsync();
-
-        Assert.False(rig.Vm.ShowSpriteModeToggle);
     }
 
     [Fact]
@@ -195,15 +186,12 @@ public class WorkbenchDetailsAndModeTests
         var sending = rig.Vm.SendCommand.ExecuteAsync(null);
         await SettingsHost.WaitUntil(() => rig.Vm.IsResponding && provider.Calls == 1);
 
-        Assert.False(rig.Vm.CanChangeMode);
-        rig.Vm.IsSpriteMode = true;
-        Assert.False(rig.Vm.IsSpriteMode);   // 回應中（ui-spec 2.2）：被拒絕
+        Assert.False(rig.Session.TrySetMode(ChatMode.Sprite));   // 回應中（ui-spec 2.2）：被拒絕
+        Assert.Equal(ChatMode.Workbench, rig.Session.ActiveMode);
 
         await rig.Vm.StopAndWaitAsync();
         await sending;
-        Assert.True(rig.Vm.CanChangeMode);
-        rig.Vm.IsSpriteMode = true;
-        Assert.True(rig.Vm.IsSpriteMode);
+        Assert.True(rig.Session.TrySetMode(ChatMode.Sprite));
     }
 
     [Fact]
@@ -212,7 +200,7 @@ public class WorkbenchDetailsAndModeTests
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("一"), SequenceChatProvider.Answer("二"));
         var rig = CreateRig(provider);
         await rig.Vm.InitializeAsync();
-        rig.Vm.IsSpriteMode = true;
+        Assert.True(rig.Session.TrySetMode(ChatMode.Sprite));
         rig.Vm.InputText = "x";
         await rig.Vm.SendCommand.ExecuteAsync(null);
 

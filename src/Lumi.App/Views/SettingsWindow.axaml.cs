@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 
 namespace Lumi.App.Views;
@@ -8,6 +9,7 @@ namespace Lumi.App.Views;
 public partial class SettingsWindow : Window
 {
     private bool _closeConfirmed;
+    private SpritePreviewHost? _preview;
 
     public SettingsWindow(SettingsViewModel viewModel)
     {
@@ -16,7 +18,37 @@ public partial class SettingsWindow : Window
         DataContext = viewModel;
         viewModel.Connections.FocusApiKeyRequested += () =>
             Dispatcher.UIThread.Post(() => KeyBox.Focus(), DispatcherPriority.Loaded);
+
+        // 「小精靈」分頁的預覽區：角色或狀態一變就更新；只在這個分頁可見時才驅動畫面
+        _preview = new SpritePreviewHost(SpritePreviewHost, this);
+        viewModel.Sprite.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SpriteSettingsViewModel.PreviewFactory))
+                _preview.Show(viewModel.Sprite.PreviewFactory);
+            else if (e.PropertyName == nameof(SpriteSettingsViewModel.PreviewState) && viewModel.Sprite.PreviewState is { } item)
+                _preview.SetState(item.State);
+        };
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.ShowSprite))
+                UpdatePreviewRunning();
+        };
+        _preview.Show(viewModel.Sprite.PreviewFactory);
+        if (viewModel.Sprite.PreviewState is { } initial)
+            _preview.SetState(initial.State);
+        Opened += (_, _) => UpdatePreviewRunning();
+        Closed += (_, _) => _preview.Dispose();
     }
+
+    private void UpdatePreviewRunning()
+    {
+        if (ViewModel.ShowSprite && IsVisible)
+            _preview?.Start();
+        else
+            _preview?.Stop();
+    }
+
+    internal SpritePreviewHost? Preview => _preview;
 
     public SettingsViewModel ViewModel { get; }
 

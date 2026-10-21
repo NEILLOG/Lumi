@@ -111,7 +111,6 @@ public class WorkbenchSpriteModeTests
 
         Assert.True(rig.Vm.IsViewOnly);
         Assert.False(rig.Vm.CanSwitchModel);
-        Assert.False(rig.Vm.CanChangeMode);
         Assert.False(rig.Vm.EnterSpriteModeCommand.CanExecute(null));
 
         await rig.Session.StopAndWaitAsync();
@@ -140,11 +139,11 @@ public class WorkbenchSpriteModeTests
     {
         var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("好")) { HangOnCall = 1 }, withModes: false);
         await rig.Vm.InitializeAsync();
-        rig.Session.TrySetMode(ChatMode.Sprite);   // 開發用的模式切換
+        rig.Session.TrySetMode(ChatMode.Sprite);
         var sprite = rig.Session.SendAsync("嗨");
         await SettingsHost.WaitUntil(() => rig.Vm.IsResponding);
 
-        Assert.False(rig.Vm.IsViewOnly);   // 沒有小精靈殼（舊的開發用切換），工作台維持原樣
+        Assert.False(rig.Vm.IsViewOnly);   // 沒有協調者（沒有小精靈殼），工作台維持原樣
         await rig.Session.StopAndWaitAsync();
         await sprite;
     }

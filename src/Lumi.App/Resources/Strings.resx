@@ -124,7 +124,6 @@
   <data name="Workbench_History" xml:space="preserve"><value>歷史對話</value></data>
   <data name="Workbench_HistoryEmpty" xml:space="preserve"><value>還沒有對話紀錄</value></data>
   <data name="Workbench_SpriteMode" xml:space="preserve"><value>小精靈模式</value></data>
-  <data name="Workbench_SpriteModeSoon" xml:space="preserve"><value>之後的版本提供</value></data>
   <data name="Workbench_SwitchBlocked" xml:space="preserve"><value>回應中，暫時無法切換</value></data>
   <data name="Workbench_RetryOtherModel" xml:space="preserve"><value>換模型重試</value></data>
   <data name="Workbench_StatusConnected" xml:space="preserve"><value>已連線</value></data>
@@ -216,7 +215,6 @@
   <data name="Persona_Reset" xml:space="preserve"><value>還原預設</value></data>
   <data name="Persona_Saved" xml:space="preserve"><value>已儲存，下一則訊息起生效。</value></data>
   <data name="Details_Characters" xml:space="preserve"><value>{0} 字</value></data>
-  <data name="Workbench_SpriteModeToggle" xml:space="preserve"><value>小精靈模式（開發用）</value></data>
   <data name="Workbench_UsageCacheFormat" xml:space="preserve"><value>（快取 {0}）</value></data>
   <data name="Sprite_InputPlaceholder" xml:space="preserve"><value>問小精靈…</value></data>
   <data name="Sprite_Send" xml:space="preserve"><value>送出</value></data>
@@ -249,4 +247,33 @@
   <data name="Sprite_MenuHide" xml:space="preserve"><value>暫時隱藏 30 分鐘</value></data>
   <data name="Sprite_MenuExit" xml:space="preserve"><value>結束 Lumi</value></data>
   <data name="Workbench_ViewOnlyBanner" xml:space="preserve"><value>小精靈回應中，結束後可在這裡繼續</value></data>
+  <data name="Settings_CategorySprite" xml:space="preserve"><value>小精靈</value></data>
+  <data name="SpriteSettings_Character" xml:space="preserve"><value>角色</value></data>
+  <data name="SpriteSettings_CharacterNote" xml:space="preserve"><value>換角色立即生效；小精靈視窗的位置不會動。</value></data>
+  <data name="SpriteSettings_AuthorFormat" xml:space="preserve"><value>作者：{0} · 版本 {1}</value></data>
+  <data name="SpriteSettings_Size" xml:space="preserve"><value>大小</value></data>
+  <data name="SpriteSettings_SizeNote" xml:space="preserve"><value>以光球直徑為準；切換時位置不會跳動。</value></data>
+  <data name="SpriteSettings_Size_Small" xml:space="preserve"><value>小（64）</value></data>
+  <data name="SpriteSettings_Size_Medium" xml:space="preserve"><value>中（80，預設）</value></data>
+  <data name="SpriteSettings_Size_Large" xml:space="preserve"><value>大（104）</value></data>
+  <data name="SpriteSettings_Voice" xml:space="preserve"><value>角色語氣</value></data>
+  <data name="SpriteSettings_VoiceToggle" xml:space="preserve"><value>讓小精靈的回答帶上角色語氣</value></data>
+  <data name="SpriteSettings_VoiceNote" xml:space="preserve"><value>語氣只影響說話風格，不影響能力、規則或回答長度；和人設衝突時以人設為準。</value></data>
+  <data name="SpriteSettings_VoiceNone" xml:space="preserve"><value>目前的角色沒有語氣設定。</value></data>
+  <data name="SpriteSettings_Preview" xml:space="preserve"><value>狀態預覽</value></data>
+  <data name="SpriteSettings_PreviewNote" xml:space="preserve"><value>點一個狀態，在左邊的預覽區即時播放。</value></data>
+  <data name="SpriteSettings_PreviewNative" xml:space="preserve"><value>角色自己的表現</value></data>
+  <data name="SpriteSettings_PreviewFallback" xml:space="preserve"><value>沒有專屬表現，改用「{0}」</value></data>
+  <data name="SpriteSettings_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
+  <data name="Sprite_State_Idle" xml:space="preserve"><value>待機</value></data>
+  <data name="Sprite_State_Listening" xml:space="preserve"><value>聆聽</value></data>
+  <data name="Sprite_State_Transcribing" xml:space="preserve"><value>轉寫</value></data>
+  <data name="Sprite_State_Thinking" xml:space="preserve"><value>思考</value></data>
+  <data name="Sprite_State_Tool" xml:space="preserve"><value>呼叫工具</value></data>
+  <data name="Sprite_State_Streaming" xml:space="preserve"><value>回覆中</value></data>
+  <data name="Sprite_State_Done" xml:space="preserve"><value>完成</value></data>
+  <data name="Sprite_State_Attention" xml:space="preserve"><value>需要確認</value></data>
+  <data name="Sprite_State_Error" xml:space="preserve"><value>錯誤</value></data>
+  <data name="Sprite_State_Sleep" xml:space="preserve"><value>休眠</value></data>
+  <data name="Sprite_MenuSwitchSprite" xml:space="preserve"><value>切換角色…</value></data>
 </root>

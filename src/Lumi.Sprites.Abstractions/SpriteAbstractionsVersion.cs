@@ -1,7 +1,7 @@
 namespace Lumi.Sprites.Abstractions;
 
 /// <summary>
-/// 介面若有變動必須升版，並記錄在 <c>docs/sprite-dev-guide.md</c> 第 10 節。
+/// 介面若有變動必須升版，並記錄在 <c>docs/sprite-dev-guide.md</c> 第 11 節。
 /// 同一個主版本內只能新增、不能改變既有成員的意義。
 /// </summary>
 public static class SpriteAbstractionsVersion

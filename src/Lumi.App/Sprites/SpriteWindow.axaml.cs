@@ -47,6 +47,8 @@ public partial class SpriteWindow : Window
     private ISpriteFactory _factory = null!;
     private ISpriteView _view = null!;
     private SpriteOptions _spriteOptions = null!;
+    private string _builtSpriteId = "";
+    private SpriteSize _builtSize;
     private SpriteLayout _layout = null!;
     private FrameDriver? _frames;
 
@@ -100,6 +102,14 @@ public partial class SpriteWindow : Window
         Bubble.DataContext = _bubble;
         _mapper.Changed += SetState;
         _bubble.Dismissed += _mapper.Acknowledge;   // 錯誤的氣泡被關掉：角色離開 Error
+        // 設定頁換了角色或尺寸：立即生效（在 UI 執行緒上重建角色，位置以角色中心為準不跳動）
+        _settings.Changed += (_, _) =>
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                RebuildIfSettingsChanged();
+            else
+                Dispatcher.UIThread.Post(RebuildIfSettingsChanged);
+        };
         BuildSprite(_settings.Current.Sprite);
 
         SpriteHost.PointerPressed += OnSpritePressed;
@@ -198,6 +208,8 @@ public partial class SpriteWindow : Window
         foreach (var warning in fit.Warnings)
             _logger.LogWarning("{Warning}", warning);
 
+        _builtSpriteId = _factory.Manifest.Id;
+        _builtSize = settings.Size;
         _spriteOptions = fit.Options;
         _view = _factory.Create(_spriteOptions);
         SpriteHost.Child = _view.Visual;
@@ -227,15 +239,25 @@ public partial class SpriteWindow : Window
     /// <summary>角色中心在螢幕上的位置（螢幕像素）。</summary>
     internal PixelPoint SpriteCenterOnScreen => _layout.SpriteCenterOnScreen(Position, DesktopScaling);
 
-    /// <summary>換尺寸檔位：視窗重算、角色重建，位置以角色中心為準不跳動。</summary>
+    /// <summary>換尺寸檔位：寫進設定，視窗重算、角色重建，位置以角色中心為準不跳動。</summary>
     public async Task SetSizeAsync(SpriteSize size)
     {
         var current = _settings.Current.Sprite;
         if (current.Size != size)
             await _settings.SetSpriteAsync(current with { Size = size });
+        RebuildIfSettingsChanged();
+    }
+
+    /// <summary>目前的設定和已經建好的角色（id、尺寸）不同才重建；設定的其他變更（主題、人設…）不會動到角色。</summary>
+    private void RebuildIfSettingsChanged()
+    {
+        var wanted = _settings.Current.Sprite;
+        var wantedId = (_catalog.Find(wanted.SpriteId) ?? _catalog.All.FirstOrDefault())?.Manifest.Id;
+        if (wantedId == _builtSpriteId && wanted.Size == _builtSize)
+            return;
 
         var center = SpriteCenterOnScreen;
-        BuildSprite(_settings.Current.Sprite);
+        BuildSprite(wanted);
         MoveCenterTo(center);
         ClampToScreens();
     }
@@ -538,6 +560,9 @@ public partial class SpriteWindow : Window
         var newConversation = new MenuItem { Header = Strings.Sprite_MenuNewConversation };
         newConversation.Click += async (_, _) => await NewConversationAsync();
 
+        var switchSprite = new MenuItem { Header = Strings.Sprite_MenuSwitchSprite };
+        switchSprite.Click += (_, _) => _ = _settingsWindow?.ShowAsync(new SettingsNavigation(SettingsSection.Sprite));
+
         var settings = new MenuItem { Header = Strings.Sprite_MenuSettings };
         settings.Click += (_, _) => _ = _settingsWindow?.ShowAsync(new SettingsNavigation(SettingsSection.Connections));
 
@@ -557,6 +582,7 @@ public partial class SpriteWindow : Window
         menu.Items.Add(openWorkbench);
         menu.Items.Add(newConversation);
         menu.Items.Add(new Separator());
+        menu.Items.Add(switchSprite);
         menu.Items.Add(settings);
         menu.Items.Add(hide);
         menu.Items.Add(new Separator());

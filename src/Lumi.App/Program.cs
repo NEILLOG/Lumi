@@ -38,10 +38,9 @@ internal static class Program
             options.NotesDirectory = builder.Configuration["Lumi:Tools:NotesDirectory"];
         });
         builder.Services.AddLumiApp();
-        // 開發用開關：Lumi:Developer:ShowSpriteModeToggle（驗收小精靈 prompt 用）、ShowSpriteHud（小精靈殼的診斷 HUD 與開發選單）
+        // 開發用開關：Lumi:Developer:ShowSpriteHud（小精靈殼的診斷 HUD 與開發選單）
         builder.Services.AddSingleton(new DeveloperOptions
         {
-            ShowSpriteModeToggle = bool.TryParse(builder.Configuration["Lumi:Developer:ShowSpriteModeToggle"], out var showSprite) && showSprite,
             ShowSpriteHud = bool.TryParse(builder.Configuration["Lumi:Developer:ShowSpriteHud"], out var showHud) && showHud,
         });
 
