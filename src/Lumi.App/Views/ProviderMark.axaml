@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.ProviderMark"
+             x:Name="MarkRoot"
+             Focusable="False" IsHitTestVisible="False">
+
+  <!-- 供應商字首方塊（Soft 底＋字首字元；不使用官方商標）。大小由使用處設定 Width／Height，字元大小跟著方塊 -->
+  <Border x:Name="MarkBox" Background="{DynamicResource LumiAccentSoftBrush}" CornerRadius="{StaticResource LumiRadiusInput}">
+    <TextBlock x:Name="MarkText" Text="{Binding #MarkRoot.Text}" FontWeight="Bold" FontSize="{DynamicResource LumiFontSizeTitle}"
+               Foreground="{DynamicResource LumiAccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+  </Border>
+</UserControl>

@@ -1,0 +1,187 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.ConnectionsPanel"
+             x:DataType="vm:ConnectionsViewModel">
+
+  <UserControl.Styles>
+    <!-- 測試結果：成功＝Soft 底＋勾；失敗＝Danger 淡底＋三角形＋訊息文字（不能只靠顏色） -->
+    <Style Selector="Border.result">
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.result.ok">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <Style Selector="Border.result.fail">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- 清單＋詳細（ui-guide.html 第 8 節）：清單 260、詳細吃剩餘寬度；視窗 < 900 時由根節點的 stacked class 改成上下排（Themes/Controls.axaml） -->
+  <ScrollViewer x:Name="PanelScroll" Classes="master-detail-scroll" HorizontalScrollBarVisibility="Disabled">
+    <Grid x:Name="Layout" ColumnDefinitions="260,*" RowDefinitions="Auto,*">
+
+      <!-- 清單 -->
+      <DockPanel x:Name="MasterHost" Classes="master">
+        <TextBlock x:Name="ListCaption" DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8" Text="{Binding ListTitle}" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <ListBox x:Name="ConnectionList" Classes="cards" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ConnectionListItem">
+                  <Border Classes="card" Padding="12" ToolTip.Tip="{Binding Name}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <views:ProviderMark Grid.Column="0" Width="40" Height="40" Margin="0,0,12,0" Text="{Binding Initial}" />
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <views:StatusIndicator Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Status="{Binding Status}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Button x:Name="AddConnectionButton" Classes="dashed" Command="{Binding NewConnectionCommand}"
+                    AutomationProperties.Name="{x:Static res:Strings.Conn_New}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Conn_New}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
+
+      <!-- 詳細：一個容器卡片（只一層），裡面是表單，不再包卡片 -->
+      <Panel x:Name="DetailHost" Classes="detail">
+        <TextBlock x:Name="DetailPlaceholder" IsVisible="{Binding ShowPlaceholder}" Text="{x:Static res:Strings.Conn_Select}" Classes="muted"
+                   TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32" />
+
+        <Border x:Name="DetailCard" Classes="card" Padding="24" IsVisible="{Binding HasEditor}">
+          <DockPanel>
+
+            <!-- 底部：錯誤與測試結果、分隔線、動作列（刪除 danger｜測試連線 secondary、儲存 primary） -->
+            <StackPanel DockPanel.Dock="Bottom" Spacing="8">
+              <TextBlock x:Name="FieldErrorsText" Classes="error" Text="{x:Static res:Strings.Form_FixErrors}" IsVisible="{Binding HasFieldErrors}" />
+              <TextBlock x:Name="SaveErrorText" Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
+
+              <Border x:Name="TestResultOk" Classes="result ok" IsVisible="{Binding ShowTestOk}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconCheck}" Size="16" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Top" />
+                  <TextBlock Grid.Column="1" Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+                </Grid>
+              </Border>
+              <Border x:Name="TestResultFail" Classes="result fail" IsVisible="{Binding ShowTestFailure}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}" VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="{x:Static res:Strings.Conn_StatusFailed}" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
+                    <TextBlock Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <Border Classes="divider" />
+
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button x:Name="DeleteButton" Grid.Column="0" Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                  <Button x:Name="TestButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Test}" Command="{Binding TestCommand}" IsVisible="{Binding !IsTesting}" />
+                  <TextBlock x:Name="TestingText" Text="{x:Static res:Strings.Conn_Testing}" IsVisible="{Binding IsTesting}" VerticalAlignment="Center" />
+                  <Button x:Name="CancelTestButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_TestCancel}" Command="{Binding CancelTestCommand}" IsVisible="{Binding IsTesting}" />
+                  <Button x:Name="SaveButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+
+            <!-- 標頭：字首圖示、名稱、供應商（Caption）、狀態徽章 -->
+            <Grid x:Name="DetailHeader" DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+              <views:ProviderMark Grid.Column="0" Width="48" Height="48" Margin="0,0,16,0" Text="{Binding HeaderInitial}" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="HeaderTitleText" Text="{Binding HeaderTitle}" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold"
+                           Foreground="{DynamicResource LumiTextBrush}" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="HeaderProviderText" Classes="muted" Text="{Binding HeaderProvider}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <views:StatusIndicator x:Name="StatusBadge" Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Center" IsBadge="True" Status="{Binding EditorStatus}" />
+            </Grid>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="16" Margin="0,0,12,8">
+
+                <Border IsVisible="{Binding HasNotice}" Padding="12,8" CornerRadius="{StaticResource LumiRadiusInput}" BorderThickness="1"
+                        Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}">
+                  <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+                </Border>
+
+                <ctl:FormField x:Name="NameField" Label="{x:Static res:Strings.Conn_Name}" Requirement="Required"
+                               Hint="{x:Static res:Strings.Conn_NameHint}" Error="{Binding NameError}">
+                  <TextBox x:Name="NameBox" Text="{Binding Name}" Classes.error="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           AutomationProperties.Name="{x:Static res:Strings.Conn_Name}" />
+                </ctl:FormField>
+
+                <!-- 金鑰：已存的永遠不讀回來顯示，只顯示「已設定 · 結尾 xxxx」 -->
+                <ctl:FormField x:Name="ApiKeyField" Label="{x:Static res:Strings.Conn_ApiKey}" Hint="{x:Static res:Strings.ApiKey_Note}">
+                  <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowKeyStatus}">
+                      <TextBlock Grid.Column="0" Text="{Binding KeyStatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="secondary" Content="{x:Static res:Strings.Conn_KeyReplace}" Command="{Binding ReplaceKeyCommand}" IsVisible="{Binding !ReplacingKey}" />
+                        <Button Classes="tertiary" Content="{x:Static res:Strings.Conn_KeyClear}" Command="{Binding ClearKeyCommand}" IsVisible="{Binding !ReplacingKey}" />
+                        <Button Classes="secondary" Content="{x:Static res:Strings.Conn_KeyCancel}" Command="{Binding CancelReplaceKeyCommand}" IsVisible="{Binding ReplacingKey}" />
+                      </StackPanel>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowKeyInput}">
+                      <TextBox x:Name="KeyBox" Grid.Column="0" Text="{Binding NewApiKey}" PasswordChar="•" RevealPassword="{Binding RevealKey}"
+                               Watermark="{x:Static res:Strings.Conn_KeyPlaceholder}" AutomationProperties.Name="{x:Static res:Strings.Conn_ApiKey}" />
+                      <ToggleButton x:Name="RevealKeyButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                                    Content="{x:Static res:Strings.Conn_KeyShow}" IsChecked="{Binding RevealKey}" />
+                    </Grid>
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Conn_KeyOptionalHint}" />
+                  </StackPanel>
+                </ctl:FormField>
+
+                <!-- 進階（預設收合）：供應商格式、API 位置。有錯誤或警告時會自動展開（ConnectionsPanel.axaml.cs），不讓錯誤藏在收合的區段裡 -->
+                <Expander x:Name="AdvancedExpander" Classes="advanced" Header="{x:Static res:Strings.Settings_Advanced}" IsExpanded="False">
+                  <StackPanel Spacing="16" Margin="0,8,0,0">
+                    <ctl:FormField x:Name="FormatField" Label="{x:Static res:Strings.Conn_Format}" Hint="{x:Static res:Strings.Conn_FormatHint}">
+                      <ComboBox x:Name="FormatBox" ItemsSource="{Binding Formats}" SelectedItem="{Binding Format}" HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="{x:Static res:Strings.Conn_Format}">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="vm:FormatOption">
+                            <TextBlock Text="{Binding Text}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </ctl:FormField>
+
+                    <ctl:FormField x:Name="BaseUrlField" Label="{x:Static res:Strings.Conn_BaseUrl}" Hint="{x:Static res:Strings.Conn_BaseUrlHint}"
+                                   Error="{Binding BaseUrlError}">
+                      <StackPanel Spacing="4">
+                        <TextBox x:Name="BaseUrlBox" Text="{Binding BaseUrl}" Classes.error="{Binding BaseUrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 AutomationProperties.Name="{x:Static res:Strings.Conn_BaseUrl}" />
+                        <TextBlock x:Name="BaseUrlWarningText" Classes="warning" Text="{Binding BaseUrlWarning}"
+                                   IsVisible="{Binding BaseUrlWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                      </StackPanel>
+                    </ctl:FormField>
+                  </StackPanel>
+                </Expander>
+              </StackPanel>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Panel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

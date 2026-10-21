@@ -16,6 +16,7 @@ public static class ResponsiveRules
     private const double CompactEnterFromNarrow = 628, CompactEnter = 620, CompactLeave = 612;
     private const double ShortEnter = 700, ShortLeave = 708;
     private const double VeryShortEnter = 600, VeryShortLeave = 608;
+    private const double StackedEnter = 900, StackedLeave = 908;
 
     public static WidthClass ClassifyWidth(double width, WidthClass previous)
     {
@@ -41,4 +42,11 @@ public static class ResponsiveRules
         var shortLimit = previous is HeightClass.Short or HeightClass.VeryShort ? ShortLeave : ShortEnter;
         return height < shortLimit ? HeightClass.Short : HeightClass.Normal;
     }
+
+    /// <summary>
+    /// 設定視窗的「清單＋詳細」是否改成上下排（ui-guide.html 第 8 節）：寬度 &lt; 900 時上下排；
+    /// 已經是上下排時要到 908 以上才回到左右排（±8 緩衝，避免 899/900 抖動）。只有設定視窗用，工作台不看這個。
+    /// </summary>
+    public static bool ClassifyStacked(double width, bool previous) =>
+        width < (previous ? StackedLeave : StackedEnter);
 }

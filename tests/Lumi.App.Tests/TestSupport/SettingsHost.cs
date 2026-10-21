@@ -22,7 +22,14 @@ internal sealed class SettingsHost : IDisposable
     {
     }
 
-    private SettingsHost(string? settingsFileContent, Lumi.Sprites.Abstractions.ISpriteCatalog spriteCatalog, IFolderOpener? folders)
+    /// <summary>用指定的 UI 派送器（例如真的 Avalonia 的），讓目錄變動的事件在 UI 執行緒上更新畫面；預設是同步執行的假派送器。</summary>
+    public SettingsHost(IUiDispatcher dispatcher)
+        : this(null, new Lumi.Sprites.Abstractions.SpriteCatalog([new Lumi.Sprites.Orb.OrbSpriteFactory()]), null, dispatcher)
+    {
+    }
+
+    private SettingsHost(string? settingsFileContent, Lumi.Sprites.Abstractions.ISpriteCatalog spriteCatalog, IFolderOpener? folders,
+        IUiDispatcher? uiDispatcher = null)
     {
         SettingsPath = Path.Combine(_directory, "settings.json");
         if (settingsFileContent is not null)
@@ -33,7 +40,7 @@ internal sealed class SettingsHost : IDisposable
 
         Catalog = new JsonModelCatalog(Options.Create(new ModelCatalogOptions { SettingsPath = SettingsPath }),
             Secrets, NullLogger<JsonModelCatalog>.Instance);
-        var dispatcher = new SyncUiDispatcher();
+        var dispatcher = uiDispatcher ?? new SyncUiDispatcher();
         Connections = new ConnectionsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Persona = new PersonaViewModel(Catalog, dispatcher);

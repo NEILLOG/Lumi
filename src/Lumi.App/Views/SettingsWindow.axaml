@@ -7,7 +7,7 @@
         x:Class="Lumi.App.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="{x:Static res:Strings.Settings_Title}"
-        Width="900" Height="640" MinWidth="720" MinHeight="480"
+        Width="1040" Height="760" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="PreferSystemChrome"
@@ -38,9 +38,6 @@
     </Style>
     <Style Selector="ListBox.rows ListBoxItem">
       <Setter Property="Padding" Value="10,8" />
-    </Style>
-    <Style Selector="TabItem">
-      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
     </Style>
     <!-- 選取列用 Soft 底＋OnSoft 文字（ui-guide.html 第 3 節），文字對比 ≥ 4.5:1 -->
     <Style Selector="ListBoxItem:selected">
@@ -212,209 +209,51 @@
         <TextBlock Text="{Binding LoadProblem}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
       </Border>
 
-      <!-- ===== 連線與模型 ===== -->
-      <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowConnectionsAndModels}" Margin="32">
-      <views:SettingsPageHeader x:Name="ConnectionsHeader" Grid.Row="0"
-                                Eyebrow="{x:Static res:Strings.Settings_CategoryConnections}"
-                                Title="{x:Static res:Strings.Settings_HeaderConnectionsTitle}"
-                                Description="{x:Static res:Strings.Settings_HeaderConnectionsDescription}" />
-      <TabControl Grid.Row="1" SelectedIndex="{Binding TabIndex}">
-
-        <!-- 連線 -->
-        <TabItem Header="{x:Static res:Strings.Settings_TabConnections}">
-          <Grid ColumnDefinitions="260,*" Margin="0,8,0,0" DataContext="{Binding Connections}" x:DataType="vm:ConnectionsViewModel">
-
-            <DockPanel Grid.Column="0" Margin="0,0,12,0">
-              <Button DockPanel.Dock="Bottom" Margin="0,8,0,0" HorizontalAlignment="Stretch"
-                      Content="{x:Static res:Strings.Conn_New}" Command="{Binding NewConnectionCommand}" />
-              <ListBox Classes="rows" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ConnectionListItem">
-                    <Grid ColumnDefinitions="Auto,*">
-                      <Panel Grid.Column="0" Width="12" Margin="0,5,10,0" VerticalAlignment="Top">
-                        <Ellipse Width="10" Height="10" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessBrush}" />
-                        <Ellipse Width="10" Height="10" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerBrush}" />
-                        <Ellipse Width="10" Height="10" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiBorderStrongBrush}" />
-                      </Panel>
-                      <StackPanel Grid.Column="1">
-                        <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted">
-                          <Run Text="{Binding FormatText}" /><Run Text=" · " /><Run Text="{Binding ModelCountText}" />
-                        </TextBlock>
-                      </StackPanel>
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </DockPanel>
-
-            <Panel Grid.Column="1">
-              <TextBlock IsVisible="{Binding ShowPlaceholder}" Text="{x:Static res:Strings.Conn_Select}" Classes="muted"
-                         HorizontalAlignment="Center" VerticalAlignment="Center" />
-
-              <ScrollViewer IsVisible="{Binding HasEditor}">
-                <StackPanel Spacing="6" Margin="0,0,12,16" MaxWidth="560" HorizontalAlignment="Left">
-
-                  <Border IsVisible="{Binding HasNotice}" Padding="12,8" CornerRadius="8" BorderThickness="1"
-                          Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}">
-                    <TextBlock Text="{Binding Notice}" TextWrapping="Wrap" Foreground="{DynamicResource LumiAccentTextBrush}" />
-                  </Border>
-
-                  <TextBlock Classes="label" Text="{x:Static res:Strings.Conn_Name}" />
-                  <TextBox Text="{Binding Name}" />
-                  <TextBlock Classes="error" Text="{Binding NameError}" IsVisible="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}" />
-
-                  <TextBlock Classes="label" Text="{x:Static res:Strings.Conn_Format}" />
-                  <ComboBox ItemsSource="{Binding Formats}" SelectedItem="{Binding Format}" HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate>
-                      <DataTemplate x:DataType="vm:FormatOption">
-                        <TextBlock Text="{Binding Text}" />
-                      </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                  </ComboBox>
-
-                  <TextBlock Classes="label" Text="{x:Static res:Strings.Conn_BaseUrl}" />
-                  <TextBox Text="{Binding BaseUrl}" />
-                  <TextBlock Classes="error" Text="{Binding BaseUrlError}" IsVisible="{Binding BaseUrlError, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                  <TextBlock Classes="warning" Text="{Binding BaseUrlWarning}" IsVisible="{Binding BaseUrlWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
-
-                  <!-- 金鑰：已存的永遠不讀回來顯示，只顯示「已設定 · 結尾 xxxx」 -->
-                  <TextBlock Classes="label" Text="{x:Static res:Strings.Conn_ApiKey}" />
-                  <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowKeyStatus}">
-                    <TextBlock Text="{Binding KeyStatusText}" VerticalAlignment="Center" />
-                    <Button Content="{x:Static res:Strings.Conn_KeyReplace}" Command="{Binding ReplaceKeyCommand}" IsVisible="{Binding !ReplacingKey}" />
-                    <Button Content="{x:Static res:Strings.Conn_KeyClear}" Command="{Binding ClearKeyCommand}" IsVisible="{Binding !ReplacingKey}" />
-                    <Button Content="{x:Static res:Strings.Conn_KeyCancel}" Command="{Binding CancelReplaceKeyCommand}" IsVisible="{Binding ReplacingKey}" />
-                  </StackPanel>
-                  <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding ShowKeyInput}">
-                    <TextBox x:Name="KeyBox" Grid.Column="0" Text="{Binding NewApiKey}" PasswordChar="•" RevealPassword="{Binding RevealKey}"
-                             Watermark="{x:Static res:Strings.Conn_KeyPlaceholder}" />
-                    <ToggleButton Grid.Column="1" Margin="8,0,0,0" Content="{x:Static res:Strings.Conn_KeyShow}" IsChecked="{Binding RevealKey}" />
-                  </Grid>
-                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Conn_KeyOptionalHint}" />
-                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.ApiKey_Note}" />
-
-                  <!-- 測試連線：用表單上目前的設定與還沒儲存的金鑰 -->
-                  <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
-                    <Button Content="{x:Static res:Strings.Conn_Test}" Command="{Binding TestCommand}" IsVisible="{Binding !IsTesting}" />
-                    <TextBlock Text="{x:Static res:Strings.Conn_Testing}" IsVisible="{Binding IsTesting}" VerticalAlignment="Center" />
-                    <Button Content="{x:Static res:Strings.Conn_TestCancel}" Command="{Binding CancelTestCommand}" IsVisible="{Binding IsTesting}" />
-                  </StackPanel>
-                  <TextBlock Text="{Binding TestResultText}" IsVisible="{Binding ShowTestOk}" TextWrapping="Wrap"
-                             Foreground="{DynamicResource LumiSuccessBrush}" />
-                  <TextBlock Text="{Binding TestResultText}" IsVisible="{Binding ShowTestFailure}" TextWrapping="Wrap"
-                             Foreground="{DynamicResource LumiDangerBrush}" />
-
-                  <TextBlock Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
-
-                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-                    <Button Classes="primary" Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
-                    <Button Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
-                  </StackPanel>
+      <!-- ===== AI 連線：頁首（主要動作隨分段切換）→ 分段切換（連線／模型設定）→ 清單＋詳細 ===== -->
+      <Grid x:Name="ConnectionsPage" Grid.Row="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding ShowConnectionsAndModels}" Margin="32">
+        <views:SettingsPageHeader x:Name="ConnectionsHeader" Grid.Row="0"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategoryConnections}"
+                                  Title="{x:Static res:Strings.Settings_HeaderConnectionsTitle}"
+                                  Description="{x:Static res:Strings.Settings_HeaderConnectionsDescription}">
+          <views:SettingsPageHeader.Actions>
+            <!-- 頁首這一區只有一個 Primary：兩個按鈕一次只顯示一個 -->
+            <Panel>
+              <Button x:Name="NewConnectionButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      IsVisible="{Binding ShowConnectionsTab}" Command="{Binding Connections.NewConnectionCommand}"
+                      AutomationProperties.Name="{x:Static res:Strings.Conn_New}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                  <TextBlock Text="{x:Static res:Strings.Conn_New}" VerticalAlignment="Center" />
                 </StackPanel>
-              </ScrollViewer>
+              </Button>
+              <Button x:Name="NewModelButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      IsVisible="{Binding ShowModelsTab}" Command="{Binding Models.NewModelCommand}"
+                      AutomationProperties.Name="{x:Static res:Strings.Models_New}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                  <TextBlock Text="{x:Static res:Strings.Models_New}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
             </Panel>
-          </Grid>
-        </TabItem>
+          </views:SettingsPageHeader.Actions>
+        </views:SettingsPageHeader>
 
-        <!-- 模型設定 -->
-        <TabItem Header="{x:Static res:Strings.Settings_TabModels}">
-          <Grid RowDefinitions="Auto,*" Margin="0,8,0,0" DataContext="{Binding Models}" x:DataType="vm:ModelsViewModel">
+        <!-- 分段切換（取代 TabControl）：綁 TabIndex，0 = 連線、1 = 模型設定 -->
+        <Border x:Name="TabSwitch" Grid.Row="1" Classes="segmented" HorizontalAlignment="Left" Margin="0,0,0,24">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <RadioButton x:Name="TabConnections" GroupName="ConnectionsTabs" Content="{x:Static res:Strings.Settings_TabConnections}"
+                         IsChecked="{Binding TabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
+            <RadioButton x:Name="TabModels" GroupName="ConnectionsTabs" Content="{x:Static res:Strings.Settings_TabModels}"
+                         IsChecked="{Binding TabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
+          </StackPanel>
+        </Border>
 
-            <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,12,10">
-              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                <StackPanel Grid.Column="0">
-                  <TextBlock Classes="label" Text="{x:Static res:Strings.Models_WorkbenchDefault}" />
-                  <ComboBox ItemsSource="{Binding DefaultOptions}" SelectedItem="{Binding WorkbenchOption}" HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModelOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-                  </ComboBox>
-                </StackPanel>
-                <StackPanel Grid.Column="1">
-                  <TextBlock Classes="label" Text="{x:Static res:Strings.Models_SpriteDefault}" />
-                  <ComboBox ItemsSource="{Binding DefaultOptions}" SelectedItem="{Binding SpriteOption}" HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModelOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
-                  </ComboBox>
-                </StackPanel>
-              </Grid>
-              <Border IsVisible="{Binding DefaultChangedNotice, Converter={x:Static ObjectConverters.IsNotNull}}" Padding="12,8" CornerRadius="8" BorderThickness="1"
-                      Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}">
-                <TextBlock Text="{Binding DefaultChangedNotice}" TextWrapping="Wrap" Foreground="{DynamicResource LumiAccentTextBrush}" />
-              </Border>
-            </StackPanel>
-
-            <Grid Grid.Row="1" ColumnDefinitions="260,*">
-              <DockPanel Grid.Column="0" Margin="0,0,12,0">
-                <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0" Spacing="6">
-                  <TextBlock Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Models_NeedConnection}" IsVisible="{Binding ShowNeedConnectionHint}" />
-                  <Button HorizontalAlignment="Stretch" Content="{x:Static res:Strings.Models_New}" Command="{Binding NewModelCommand}" />
-                </StackPanel>
-                <ListBox Classes="rows" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
-                  <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ModelListItem">
-                      <StackPanel>
-                        <TextBlock Text="{Binding DisplayName}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Classes="muted" FontWeight="Medium" Text="{Binding Badges}" IsVisible="{Binding HasBadges}" />
-                      </StackPanel>
-                    </DataTemplate>
-                  </ListBox.ItemTemplate>
-                </ListBox>
-              </DockPanel>
-
-              <Panel Grid.Column="1">
-                <TextBlock IsVisible="{Binding ShowPlaceholder}" Text="{x:Static res:Strings.Models_Select}" Classes="muted"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <ScrollViewer IsVisible="{Binding HasEditor}">
-                  <StackPanel Spacing="6" Margin="0,0,12,16" MaxWidth="560" HorizontalAlignment="Left">
-
-                    <TextBlock Classes="label" Text="{x:Static res:Strings.Models_Connection}" />
-                    <ComboBox ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}" HorizontalAlignment="Stretch">
-                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ConnectionOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
-                    </ComboBox>
-
-                    <TextBlock Classes="label" Text="{x:Static res:Strings.Models_ModelId}" />
-                    <Grid ColumnDefinitions="*,Auto">
-                      <ComboBox Grid.Column="0" IsEditable="True" HorizontalAlignment="Stretch"
-                                ItemsSource="{Binding AvailableModelIds}" Text="{Binding ModelId}" />
-                      <Button Grid.Column="1" Margin="8,0,0,0" Content="{x:Static res:Strings.Models_Refresh}" Command="{Binding RefreshModelListCommand}" />
-                    </Grid>
-                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding ListStatusText}" IsVisible="{Binding HasListStatus}" />
-                    <TextBlock Classes="error" Text="{Binding ModelIdError}" IsVisible="{Binding ModelIdError, Converter={x:Static ObjectConverters.IsNotNull}}" />
-
-                    <TextBlock Classes="label" Text="{x:Static res:Strings.Models_DisplayName}" />
-                    <TextBox Text="{Binding DisplayName}" />
-                    <TextBlock Classes="error" Text="{Binding DisplayNameError}" IsVisible="{Binding DisplayNameError, Converter={x:Static ObjectConverters.IsNotNull}}" />
-
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                      <StackPanel Grid.Column="0">
-                        <TextBlock Classes="label" Text="{x:Static res:Strings.Models_MaxOutput}" />
-                        <NumericUpDown Value="{Binding MaxOutputTokens}" Minimum="1" Increment="256" FormatString="0" />
-                        <TextBlock Classes="error" Text="{Binding MaxOutputError}" IsVisible="{Binding MaxOutputError, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                      </StackPanel>
-                      <StackPanel Grid.Column="1">
-                        <TextBlock Classes="label" Text="{x:Static res:Strings.Models_ContextWindow}" />
-                        <NumericUpDown Value="{Binding ContextWindow}" Minimum="1" Increment="1000" FormatString="0" />
-                        <TextBlock Classes="error" Text="{Binding ContextWindowError}" IsVisible="{Binding ContextWindowError, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                      </StackPanel>
-                    </Grid>
-
-                    <CheckBox Margin="0,8,0,0" Content="{x:Static res:Strings.Models_ShowThinking}" IsChecked="{Binding ShowThinking}" />
-                    <CheckBox x:Name="ToolsEnabledCheckBox" Content="{x:Static res:Strings.Models_ToolsEnabled}" IsChecked="{Binding ToolsEnabled}"
-                              ToolTip.Tip="{x:Static res:Strings.Models_ToolsEnabledHint}" />
-
-                    <TextBlock Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
-
-                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-                      <Button Classes="primary" Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
-                      <Button Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
-                    </StackPanel>
-                  </StackPanel>
-                </ScrollViewer>
-              </Panel>
-            </Grid>
-          </Grid>
-        </TabItem>
-      </TabControl>
+        <Panel Grid.Row="2" IsVisible="{Binding ShowConnectionsTab}">
+          <views:ConnectionsPanel x:Name="ConnectionsPanel" DataContext="{Binding Connections}" />
+        </Panel>
+        <Panel Grid.Row="2" IsVisible="{Binding ShowModelsTab}">
+          <views:ModelsPanel x:Name="ModelsPanel" DataContext="{Binding Models}" />
+        </Panel>
       </Grid>
 
       <!-- ===== 人格與主動性 ===== -->

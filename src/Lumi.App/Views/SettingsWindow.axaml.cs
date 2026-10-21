@@ -17,9 +17,9 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         ViewModel = viewModel;
         DataContext = viewModel;
-        ResponsiveClasses.Track(this);
+        ResponsiveClasses.Track(this, trackStacked: true);
         viewModel.Connections.FocusApiKeyRequested += () =>
-            Dispatcher.UIThread.Post(() => KeyBox.Focus(), DispatcherPriority.Loaded);
+            Dispatcher.UIThread.Post(() => ConnectionsPanel.FocusKeyBox(), DispatcherPriority.Loaded);
 
         // 「小精靈」分頁的預覽區：角色或狀態一變就更新；只在這個分頁可見時才驅動畫面
         _preview = new SpritePreviewHost(SpritePreviewHost, this);

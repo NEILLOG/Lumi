@@ -39,7 +39,10 @@ public partial class ModelsViewModel : ObservableObject
         _status = status;
         _confirm = confirm;
         Refresh();
+        Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ListTitle));
         catalog.Changed += (_, _) => dispatcher.Post(Refresh);
+        // 清單卡片的連線狀態跟著測試連線更新：只改項目的狀態，不重建清單（重建會讓表單的選取跳掉）
+        status.Changed += (_, _) => dispatcher.Post(SyncItemStatuses);
     }
 
     public ObservableCollection<ModelListItem> Items { get; } = [];
@@ -99,7 +102,7 @@ public partial class ModelsViewModel : ObservableObject
         get => _selectedItem;
         set
         {
-            if (ReferenceEquals(value, _selectedItem))
+            if (_refreshing || ReferenceEquals(value, _selectedItem))
                 return;
             _ = SelectAsync(value);
             OnPropertyChanged();
@@ -112,9 +115,39 @@ public partial class ModelsViewModel : ObservableObject
 
     public bool IsNew => _isNew;
 
+    // ---- 清單與詳細區標頭的顯示文字（唯讀）----
+
+    /// <summary>清單上方的 Caption：「我的模型設定 · N」。</summary>
+    public string ListTitle => string.Format(CultureInfo.CurrentCulture, Strings.Models_ListTitle, Items.Count);
+
+    /// <summary>詳細區標頭的名稱：已儲存的顯示名稱；新模型設定是「新增模型設定」。</summary>
+    public string HeaderTitle => _isNew ? Strings.Models_New : _snapshot.DisplayName;
+
+    /// <summary>詳細區標頭的供應商 Caption：所選連線的名稱。</summary>
+    public string HeaderProvider => SelectedConnection?.Name ?? "";
+
+    public string HeaderInitial =>
+        ProviderInitial.Of(SelectedConnection?.Name, _catalog.Current.Connections.FirstOrDefault(c => c.Id == SelectedConnection?.Id)?.Format ?? ProviderFormat.OpenAICompatible);
+
+    /// <summary>所選連線最近一次測試連線的狀態（標頭的狀態徽章）。</summary>
+    public ConnectionStatus EditorStatus => SelectedConnection is { } c ? _status.Get(c.Id).Status : ConnectionStatus.Unknown;
+
+    public string EditorStatusText => ConnectionStatusText.Of(EditorStatus);
+
+    private void SyncItemStatuses()
+    {
+        foreach (var item in Items)
+        {
+            if (_catalog.Current.Models.FirstOrDefault(m => m.Id == item.Id) is { } model)
+                item.Status = _status.Get(model.ConnectionId).Status;
+        }
+        OnPropertyChanged(nameof(EditorStatus));
+        OnPropertyChanged(nameof(EditorStatusText));
+    }
+
     // ---- 表單欄位 ----
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDirty), nameof(CanSave))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDirty), nameof(CanSave), nameof(HeaderProvider), nameof(HeaderInitial), nameof(EditorStatus), nameof(EditorStatusText))]
     private ConnectionOption? _selectedConnection;
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsDirty), nameof(CanSave), nameof(ModelIdError))]
@@ -143,6 +176,21 @@ public partial class ModelsViewModel : ObservableObject
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanSave))]
     private bool _isSaving;
+
+    /// <summary>CanSave 一變，儲存按鈕的啟用狀態就要跟著變（命令不會自己追蹤 CanSave）。</summary>
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (e.PropertyName == nameof(CanSave))
+        {
+            SaveCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HasFieldErrors));
+        }
+    }
+
+    /// <summary>有欄位錯誤：儲存按鈕停用時，動作列旁邊用文字說明原因（錯誤可能在收合的「進階」裡）。</summary>
+    public bool HasFieldErrors => HasEditor && (SelectedConnection is null || ModelIdError is not null || DisplayNameError is not null
+        || MaxOutputError is not null || ContextWindowError is not null);
 
     // ---- 驗證 ----
 
@@ -271,7 +319,9 @@ public partial class ModelsViewModel : ObservableObject
         {
             var settings = _catalog.Current;
             var selectedId = _selectedItem?.Id;
+            var editingConnectionId = SelectedConnection?.Id;
             var connectionNames = settings.Connections.ToDictionary(c => c.Id, c => c.Name);
+            var connectionFormats = settings.Connections.ToDictionary(c => c.Id, c => c.Format);
 
             Connections.Clear();
             foreach (var c in settings.Connections)
@@ -283,7 +333,8 @@ public partial class ModelsViewModel : ObservableObject
                          .ThenBy(m => m.DisplayName, StringComparer.CurrentCulture))
             {
                 Items.Add(new ModelListItem(m.Id, connectionNames.GetValueOrDefault(m.ConnectionId, ""), m.DisplayName, m.ModelId,
-                    m.Id == settings.WorkbenchModelId, m.Id == settings.SpriteModelId));
+                    m.Id == settings.WorkbenchModelId, m.Id == settings.SpriteModelId,
+                    connectionFormats.GetValueOrDefault(m.ConnectionId, ProviderFormat.OpenAICompatible), _status.Get(m.ConnectionId).Status));
             }
 
             DefaultOptions.Clear();
@@ -293,6 +344,15 @@ public partial class ModelsViewModel : ObservableObject
             _spriteOption = DefaultOptions.FirstOrDefault(o => o.Id == settings.SpriteModelId);
             OnPropertyChanged(nameof(WorkbenchOption));
             OnPropertyChanged(nameof(SpriteOption));
+
+            // 重建清單時，下拉會把所選連線寫成 null：換成新清單裡同一個連線（不重新載入表單）
+            if (editingConnectionId is not null && SelectedConnection?.Id != editingConnectionId)
+            {
+                var wasLoading = _loading;
+                _loading = true;
+                try { SelectedConnection = Connections.FirstOrDefault(c => c.Id == editingConnectionId); }
+                finally { _loading = wasLoading; }
+            }
 
             _selectedItem = Items.FirstOrDefault(i => i.Id == selectedId);
             OnPropertyChanged(nameof(SelectedItem));
@@ -406,6 +466,11 @@ public partial class ModelsViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayNameError));
         OnPropertyChanged(nameof(MaxOutputError));
         OnPropertyChanged(nameof(ContextWindowError));
+        OnPropertyChanged(nameof(HeaderTitle));
+        OnPropertyChanged(nameof(HeaderProvider));
+        OnPropertyChanged(nameof(HeaderInitial));
+        OnPropertyChanged(nameof(EditorStatus));
+        OnPropertyChanged(nameof(EditorStatusText));
         DeleteCommand.NotifyCanExecuteChanged();
         RefreshModelListCommand.NotifyCanExecuteChanged();
     }

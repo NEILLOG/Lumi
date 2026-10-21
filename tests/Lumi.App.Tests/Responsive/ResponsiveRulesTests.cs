@@ -52,4 +52,33 @@ public sealed class ResponsiveRulesTests
     [InlineData(608, HeightClass.VeryShort, HeightClass.Short)]
     public void Height_UsesHysteresis_AroundEachBreakpoint(double height, HeightClass previous, HeightClass expected) =>
         Assert.Equal(expected, ResponsiveRules.ClassifyHeight(height, previous));
+
+    [Theory]
+    [InlineData(1040, false, false)]
+    [InlineData(900, false, false)]   // 剛好 900 還是左右排
+    [InlineData(899, false, true)]
+    [InlineData(720, false, true)]
+    [InlineData(907, true, true)]     // 已經是上下排：要到 908 才回到左右排
+    [InlineData(908, true, false)]
+    [InlineData(1200, true, false)]
+    public void Stacked_BelowNineHundred_UsesHysteresis(double width, bool previous, bool expected) =>
+        Assert.Equal(expected, ResponsiveRules.ClassifyStacked(width, previous));
+
+    [Fact]
+    public void Stacked_DoesNotFlipBackAndForth_WhenResizingAcrossBoundary()
+    {
+        var changes = new List<bool>();
+        var current = false;
+        var widths = Enumerable.Range(0, 400).Select(i => 1100.0 - i).Concat(Enumerable.Range(0, 400).Select(i => 700.0 + i));
+        foreach (var w in widths)
+        {
+            var next = ResponsiveRules.ClassifyStacked(w, current);
+            if (next != current)
+            {
+                changes.Add(next);
+                current = next;
+            }
+        }
+        Assert.Equal([true, false], changes);
+    }
 }

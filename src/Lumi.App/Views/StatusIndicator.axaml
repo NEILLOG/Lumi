@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.StatusIndicator"
+             x:Name="IndicatorRoot"
+             Focusable="False" IsHitTestVisible="False">
+
+  <UserControl.Styles>
+    <!-- 狀態點：尚未確認＝Warning、連線正常＝Success、連線失敗＝Danger（固定語意色，ui-guide.html） -->
+    <Style Selector="Ellipse#Dot">
+      <Setter Property="Fill" Value="{DynamicResource LumiWarningDotBrush}" />
+    </Style>
+    <Style Selector="Border.status-pill.ok Ellipse#Dot">
+      <Setter Property="Fill" Value="{DynamicResource LumiSuccessDotBrush}" />
+    </Style>
+    <Style Selector="Border.status-pill.failed Ellipse#Dot">
+      <Setter Property="Fill" Value="{DynamicResource LumiDangerDotBrush}" />
+    </Style>
+    <!-- 清單卡片右側的純點＋文字用 Muted；徽章模式的文字色由 Border.badge 決定（Soft 底＋OnSoft 文字） -->
+    <Style Selector="Border.status-pill:not(.badge) TextBlock#StatusLabel">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- 狀態點＋文字（狀態不能只靠顏色）。Badge 模式：Soft 底的徽章（詳細區標頭）；預設是清單卡片右側的純點＋文字 -->
+  <Border x:Name="Pill" Classes="status-pill" HorizontalAlignment="Left">
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+      <Ellipse x:Name="Dot" Width="8" Height="8" VerticalAlignment="Center" />
+      <TextBlock x:Name="StatusLabel" Text="{Binding #IndicatorRoot.StatusText}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                 VerticalAlignment="Center" />
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -320,4 +320,22 @@ public static class Strings
     public static string Settings_HeaderGeneralDescription => Get(nameof(Settings_HeaderGeneralDescription));
     public static string Settings_HeaderSpriteTitle => Get(nameof(Settings_HeaderSpriteTitle));
     public static string Settings_HeaderSpriteDescription => Get(nameof(Settings_HeaderSpriteDescription));
+    public static string Conn_StatusOk => Get(nameof(Conn_StatusOk));
+    public static string Conn_StatusFailed => Get(nameof(Conn_StatusFailed));
+    public static string Conn_StatusUnknown => Get(nameof(Conn_StatusUnknown));
+    public static string Conn_ListTitle => Get(nameof(Conn_ListTitle));
+    public static string Models_ListTitle => Get(nameof(Models_ListTitle));
+    public static string Field_Required => Get(nameof(Field_Required));
+    public static string Field_Optional => Get(nameof(Field_Optional));
+    public static string Settings_Advanced => Get(nameof(Settings_Advanced));
+    public static string Conn_NameHint => Get(nameof(Conn_NameHint));
+    public static string Conn_FormatHint => Get(nameof(Conn_FormatHint));
+    public static string Conn_BaseUrlHint => Get(nameof(Conn_BaseUrlHint));
+    public static string Models_WorkbenchDefaultHint => Get(nameof(Models_WorkbenchDefaultHint));
+    public static string Models_SpriteDefaultHint => Get(nameof(Models_SpriteDefaultHint));
+    public static string Models_ConnectionHint => Get(nameof(Models_ConnectionHint));
+    public static string Models_DisplayNameHint => Get(nameof(Models_DisplayNameHint));
+    public static string Models_MaxOutputHint => Get(nameof(Models_MaxOutputHint));
+    public static string Models_ContextWindowHint => Get(nameof(Models_ContextWindowHint));
+    public static string Form_FixErrors => Get(nameof(Form_FixErrors));
 }

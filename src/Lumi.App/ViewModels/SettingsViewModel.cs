@@ -44,8 +44,14 @@ public partial class SettingsViewModel : ObservableObject
     private int _categoryIndex;
 
     /// <summary>「AI 連線」內的分頁：0 = 連線、1 = 模型設定。</summary>
-    [ObservableProperty]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsTab), nameof(ShowModelsTab))]
     private int _tabIndex;
+
+    /// <summary>分段切換「連線」被選取（頁首的主要動作是「新增連線」）。</summary>
+    public bool ShowConnectionsTab => TabIndex == 0;
+
+    /// <summary>分段切換「模型設定」被選取（頁首的主要動作是「新增模型設定」）。</summary>
+    public bool ShowModelsTab => TabIndex == 1;
 
     public bool ShowConnectionsAndModels => CategoryIndex == 0;
 

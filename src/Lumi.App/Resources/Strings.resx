@@ -75,7 +75,7 @@
   <data name="Conn_Save" xml:space="preserve"><value>儲存</value></data>
   <data name="Conn_Delete" xml:space="preserve"><value>刪除</value></data>
   <data name="Conn_ModelCount" xml:space="preserve"><value>{0} 個模型</value></data>
-  <data name="Conn_Select" xml:space="preserve"><value>請從左側選擇連線，或新增一個。</value></data>
+  <data name="Conn_Select" xml:space="preserve"><value>請先選擇一個連線，或新增一個。</value></data>
   <data name="Conn_NameRequired" xml:space="preserve"><value>請輸入名稱。</value></data>
   <data name="Conn_UrlInvalid" xml:space="preserve"><value>請輸入完整的網址（http:// 或 https:// 開頭）。</value></data>
   <data name="Conn_UrlInsecure" xml:space="preserve"><value>這是 http 連線，金鑰會以明文在網路上傳送；只建議用在本機或內部網路。</value></data>
@@ -91,7 +91,7 @@
   <data name="Models_WorkbenchDefault" xml:space="preserve"><value>工作台預設模型</value></data>
   <data name="Models_SpriteDefault" xml:space="preserve"><value>小精靈預設模型</value></data>
   <data name="Models_New" xml:space="preserve"><value>新增模型設定</value></data>
-  <data name="Models_NeedConnection" xml:space="preserve"><value>請先到「連線」分頁新增一個連線。</value></data>
+  <data name="Models_NeedConnection" xml:space="preserve"><value>請先切換到「連線」，新增一個連線。</value></data>
   <data name="Models_Connection" xml:space="preserve"><value>使用的連線</value></data>
   <data name="Models_ModelId" xml:space="preserve"><value>模型 ID</value></data>
   <data name="Models_DisplayName" xml:space="preserve"><value>顯示名稱</value></data>
@@ -109,7 +109,7 @@
   <data name="Models_NumberInvalid" xml:space="preserve"><value>請輸入大於 0 的整數。</value></data>
   <data name="Models_DefaultChanged" xml:space="preserve"><value>預設模型已改為「{0}」。</value></data>
   <data name="Models_NoDefault" xml:space="preserve"><value>（未設定）</value></data>
-  <data name="Models_Select" xml:space="preserve"><value>請從左側選擇模型設定，或新增一個。</value></data>
+  <data name="Models_Select" xml:space="preserve"><value>請先選擇一個模型設定，或新增一個。</value></data>
   <data name="General_Theme" xml:space="preserve"><value>外觀主題</value></data>
   <data name="Theme_System" xml:space="preserve"><value>跟隨系統</value></data>
   <data name="Theme_Light" xml:space="preserve"><value>淺色</value></data>
@@ -334,4 +334,22 @@
   <data name="Settings_HeaderGeneralDescription" xml:space="preserve"><value>選擇主題色票與明暗。</value></data>
   <data name="Settings_HeaderSpriteTitle" xml:space="preserve"><value>小精靈</value></data>
   <data name="Settings_HeaderSpriteDescription" xml:space="preserve"><value>選擇桌面小精靈的角色、大小與語氣，並預覽各個狀態。</value></data>
+  <data name="Conn_StatusOk" xml:space="preserve"><value>連線正常</value></data>
+  <data name="Conn_StatusFailed" xml:space="preserve"><value>連線失敗</value></data>
+  <data name="Conn_StatusUnknown" xml:space="preserve"><value>尚未確認</value></data>
+  <data name="Conn_ListTitle" xml:space="preserve"><value>我的連線 · {0}</value></data>
+  <data name="Models_ListTitle" xml:space="preserve"><value>我的模型設定 · {0}</value></data>
+  <data name="Field_Required" xml:space="preserve"><value>必填</value></data>
+  <data name="Field_Optional" xml:space="preserve"><value>選填</value></data>
+  <data name="Settings_Advanced" xml:space="preserve"><value>進階</value></data>
+  <data name="Conn_NameHint" xml:space="preserve"><value>只有你會看到這個名稱。</value></data>
+  <data name="Conn_FormatHint" xml:space="preserve"><value>多數第三方與本機服務請選「OpenAI 相容」。</value></data>
+  <data name="Conn_BaseUrlHint" xml:space="preserve"><value>使用代理服務或相容端點時才需要修改。</value></data>
+  <data name="Models_WorkbenchDefaultHint" xml:space="preserve"><value>新對話預設使用的模型。</value></data>
+  <data name="Models_SpriteDefaultHint" xml:space="preserve"><value>小精靈回答時使用的模型。</value></data>
+  <data name="Models_ConnectionHint" xml:space="preserve"><value>模型會用這個連線的 API 金鑰送出請求。</value></data>
+  <data name="Models_DisplayNameHint" xml:space="preserve"><value>只在 Lumi 裡顯示；實際送出的仍是上面的模型 ID。</value></data>
+  <data name="Models_MaxOutputHint" xml:space="preserve"><value>單次回答最多輸出的 token 數。</value></data>
+  <data name="Models_ContextWindowHint" xml:space="preserve"><value>模型一次能讀入的內容長度上限。</value></data>
+  <data name="Form_FixErrors" xml:space="preserve"><value>有欄位需要修正，請先處理上方標示的錯誤才能儲存。</value></data>
 </root>

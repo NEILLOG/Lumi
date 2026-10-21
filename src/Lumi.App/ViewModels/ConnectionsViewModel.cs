@@ -26,6 +26,7 @@ public partial class ConnectionsViewModel : ObservableObject
     private CancellationTokenSource? _testCts;
     private ConnectionListItem? _selectedItem;
     private bool _loading;
+    private bool _rebuildingItems;   // 重建清單時，清單控制項會把選取寫成 null：這時不能當成使用者取消選取
 
     public ConnectionsViewModel(IModelCatalog catalog, IConnectionTester tester, ConnectionStatusCache status,
         IConfirmService confirm, IUiDispatcher dispatcher)
@@ -35,8 +36,14 @@ public partial class ConnectionsViewModel : ObservableObject
         _status = status;
         _confirm = confirm;
         RefreshItems();
+        Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ListTitle));
         catalog.Changed += (_, _) => dispatcher.Post(RefreshItems);
-        status.Changed += (_, _) => dispatcher.Post(RefreshItems);
+        status.Changed += (_, _) => dispatcher.Post(() =>
+        {
+            RefreshItems();
+            OnPropertyChanged(nameof(EditorStatus));
+            OnPropertyChanged(nameof(EditorStatusText));
+        });
     }
 
     public ObservableCollection<ConnectionListItem> Items { get; } = [];
@@ -51,7 +58,7 @@ public partial class ConnectionsViewModel : ObservableObject
         get => _selectedItem;
         set
         {
-            if (ReferenceEquals(value, _selectedItem))
+            if (_rebuildingItems || ReferenceEquals(value, _selectedItem))
                 return;
             // 有未儲存的變更要先詢問；詢問期間先讓畫面還原成原本的選取
             _ = SelectAsync(value);
@@ -65,10 +72,28 @@ public partial class ConnectionsViewModel : ObservableObject
 
     public bool IsNew { get; private set; }
 
+    // ---- 清單與詳細區標頭的顯示文字（唯讀）----
+
+    /// <summary>清單上方的 Caption：「我的連線 · N」。</summary>
+    public string ListTitle => string.Format(CultureInfo.CurrentCulture, Strings.Conn_ListTitle, Items.Count);
+
+    /// <summary>詳細區標頭的名稱：已儲存的名稱（輸入中的名稱不會即時改標頭）；新連線是預設名稱。</summary>
+    public string HeaderTitle => IsNew ? Strings.Conn_NewName : _snapshot.Name;
+
+    /// <summary>詳細區標頭的供應商 Caption：目前選的供應商格式。</summary>
+    public string HeaderProvider => Format.Text;
+
+    public string HeaderInitial => ProviderInitial.Of(HeaderTitle, _snapshot.Format);
+
+    /// <summary>目前編輯的連線最近一次測試連線的狀態（標頭的狀態徽章）；新連線或沒有測試過是「尚未確認」。</summary>
+    public ConnectionStatus EditorStatus => _editingId is { } id ? _status.Get(id).Status : ConnectionStatus.Unknown;
+
+    public string EditorStatusText => ConnectionStatusText.Of(EditorStatus);
+
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(NameError), nameof(CanSave), nameof(IsDirty))]
     private string _name = "";
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanSave), nameof(IsDirty))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CanSave), nameof(IsDirty), nameof(HeaderProvider))]
     private FormatOption _format = FormatOption.All[1];
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(BaseUrlError), nameof(BaseUrlWarning), nameof(CanSave), nameof(IsDirty))]
@@ -107,6 +132,20 @@ public partial class ConnectionsViewModel : ObservableObject
     private string? _saveError;
 
     public bool HasSaveError => SaveError is not null;
+
+    /// <summary>CanSave 一變，儲存按鈕的啟用狀態就要跟著變（命令不會自己追蹤 CanSave）。</summary>
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (e.PropertyName == nameof(CanSave))
+        {
+            SaveCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HasFieldErrors));
+        }
+    }
+
+    /// <summary>有欄位錯誤：儲存按鈕停用時，動作列旁邊用文字說明原因（錯誤可能在收合的「進階」裡）。</summary>
+    public bool HasFieldErrors => HasEditor && (NameError is not null || BaseUrlError is not null);
 
     // ---- 驗證 ----
 
@@ -250,6 +289,11 @@ public partial class ConnectionsViewModel : ObservableObject
         OnPropertyChanged(nameof(NameError));
         OnPropertyChanged(nameof(BaseUrlError));
         OnPropertyChanged(nameof(BaseUrlWarning));
+        OnPropertyChanged(nameof(HeaderTitle));
+        OnPropertyChanged(nameof(HeaderProvider));
+        OnPropertyChanged(nameof(HeaderInitial));
+        OnPropertyChanged(nameof(EditorStatus));
+        OnPropertyChanged(nameof(EditorStatusText));
         DeleteCommand.NotifyCanExecuteChanged();
         TestCommand.NotifyCanExecuteChanged();
     }
@@ -258,9 +302,17 @@ public partial class ConnectionsViewModel : ObservableObject
     {
         var settings = _catalog.Current;
         var selectedId = _selectedItem?.Id;
-        Items.Clear();
-        foreach (var c in settings.Connections)
-            Items.Add(new ConnectionListItem(c.Id, c.Name, c.Format, settings.Models.Count(m => m.ConnectionId == c.Id), _status.Get(c.Id).Status));
+        _rebuildingItems = true;
+        try
+        {
+            Items.Clear();
+            foreach (var c in settings.Connections)
+                Items.Add(new ConnectionListItem(c.Id, c.Name, c.Format, settings.Models.Count(m => m.ConnectionId == c.Id), _status.Get(c.Id).Status));
+        }
+        finally
+        {
+            _rebuildingItems = false;
+        }
 
         _selectedItem = Items.FirstOrDefault(i => i.Id == selectedId);
         OnPropertyChanged(nameof(SelectedItem));

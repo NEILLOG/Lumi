@@ -400,11 +400,235 @@
   <!-- 狀態徽章：Soft 底＋文字（不能只靠顏色或圓點）。文字用 OnSoft 色 -->
   <Style Selector="Border.badge">
     <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="Padding" Value="8,4" />
     <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
   </Style>
   <Style Selector="Border.badge TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+  </Style>
+
+  <!--
+    表單欄位（controls:FormField）：標籤在輸入框上方、右側「必填／選填」、說明 Caption 在下方、錯誤文字（Danger）在說明下方。
+    輸入框放在 Content；輸入框有錯誤時另外加 class="error"（Danger 邊框），但文字一定要有。
+  -->
+  <Style Selector="controls|FormField">
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Spacing="4">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Name="PART_Label" Grid.Column="0" Text="{TemplateBinding Label}"
+                       IsVisible="{TemplateBinding Label, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       FontSize="{DynamicResource LumiFontSizeBody}" FontWeight="Bold"
+                       Foreground="{DynamicResource LumiTextBrush}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Name="PART_Requirement" Grid.Column="1" Margin="8,0,0,0" Text="{TemplateBinding RequirementText}"
+                       IsVisible="{TemplateBinding RequirementText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+          </Grid>
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+          <TextBlock Name="PART_Hint" Text="{TemplateBinding Hint}"
+                     IsVisible="{TemplateBinding Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                     FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" TextWrapping="Wrap" />
+          <TextBlock Name="PART_Error" Text="{TemplateBinding Error}"
+                     IsVisible="{TemplateBinding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                     FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiDangerBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!--
+    分段切換（ui-guide.html 第 3 節的選取樣式）：Border.segmented 裡放 RadioButton。選取＝Soft 底＋OnSoft 文字，圓角 10；
+    沒選取＝Muted 文字，Hover 是 Surface 底。外框是 SurfaceAlt 底，用來表示「這幾個是同一組」。
+  -->
+  <Style Selector="Border.segmented">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    <Setter Property="Padding" Value="4" />
+  </Style>
+  <Style Selector="Border.segmented RadioButton">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="16,4" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="RadioButton">
+        <Border Name="PART_Segment" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                CornerRadius="{StaticResource LumiRadiusInput}" MinHeight="{TemplateBinding MinHeight}" Padding="{TemplateBinding Padding}">
+          <ContentPresenter Name="SegmentContent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Foreground="{TemplateBinding Foreground}" FontWeight="{TemplateBinding FontWeight}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Border.segmented RadioButton:pointerover /template/ Border#PART_Segment">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.segmented RadioButton:focus-visible /template/ Border#PART_Segment">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+  </Style>
+  <Style Selector="Border.segmented RadioButton:checked">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+  </Style>
+  <Style Selector="Border.segmented RadioButton:checked /template/ Border#PART_Segment, Border.segmented RadioButton:checked:pointerover /template/ Border#PART_Segment">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+  </Style>
+
+  <!--
+    卡片清單（ListBox.cards）：每一列是一張 Border.card（巢狀最多一層）。可點擊所以 Hover 才有陰影；
+    選取＝Soft 底＋Accent 邊框（狀態另外用文字表達）。ListBoxItem 本身不畫底色，避免蓋住卡片的圓角。
+  -->
+  <Style Selector="ListBox.cards">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem /template/ ContentPresenter, ListBox.cards ListBoxItem:pointerover /template/ ContentPresenter, ListBox.cards ListBoxItem:selected /template/ ContentPresenter, ListBox.cards ListBoxItem:selected:pointerover /template/ ContentPresenter, ListBox.cards ListBoxItem:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem:pointerover Border.card">
+    <Setter Property="BoxShadow" Value="{DynamicResource LumiCardHoverShadow}" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem:selected Border.card, ListBox.cards ListBoxItem:selected:pointerover Border.card">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+  </Style>
+  <Style Selector="ListBox.cards ListBoxItem:focus-visible Border.card">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+  </Style>
+
+  <!-- 虛線「＋新增」入口：tertiary 風格（不是 Primary）。Avalonia 的 Border 沒有虛線，用 Rectangle 描邊 -->
+  <Style Selector="Button.dashed">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="Button">
+        <Panel>
+          <Rectangle Name="PART_Dash" RadiusX="10" RadiusY="10" StrokeThickness="1" StrokeDashArray="4,3"
+                     Stroke="{DynamicResource LumiBorderStrongBrush}" Fill="{TemplateBinding Background}" IsHitTestVisible="False" />
+          <ContentPresenter Name="DashContent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.dashed:pointerover, Button.dashed:pressed">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+  </Style>
+  <Style Selector="Button.dashed:pointerover /template/ Rectangle#PART_Dash, Button.dashed:focus-visible /template/ Rectangle#PART_Dash">
+    <Setter Property="Stroke" Value="{DynamicResource LumiAccentBrush}" />
+  </Style>
+  <Style Selector="Button.dashed:disabled">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
+
+  <!-- 進階區段（預設收合）：沒有外框，標題是 Muted 文字加 chevron，展開時 chevron 轉 180 度；內容與標題之間留 8 -->
+  <Style Selector="Expander.advanced">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <ControlTemplate TargetType="Expander">
+        <StackPanel>
+          <ToggleButton Name="ExpanderHeader" IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Left"
+                        Foreground="{DynamicResource LumiTextMutedBrush}" FontWeight="SemiBold" Padding="8,8">
+            <ToggleButton.Template>
+              <ControlTemplate TargetType="ToggleButton">
+                <Border Name="HeaderBorder" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                        CornerRadius="{StaticResource LumiRadiusInput}" Padding="{TemplateBinding Padding}">
+                  <ContentPresenter Name="HeaderContent" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" />
+                </Border>
+              </ControlTemplate>
+            </ToggleButton.Template>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <controls:LumiIcon Name="Chevron" Data="{StaticResource LumiIconChevronDown}" Size="16" />
+              <ContentPresenter Content="{TemplateBinding Header}" VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
+          <Border Name="ExpanderContent" IsVisible="{TemplateBinding IsExpanded}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+          </Border>
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Expander.advanced /template/ ToggleButton#ExpanderHeader:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+  </Style>
+  <Style Selector="Expander.advanced /template/ ToggleButton#ExpanderHeader:focus-visible /template/ Border#HeaderBorder">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+  </Style>
+  <Style Selector="Expander.advanced:expanded /template/ controls|LumiIcon#Chevron">
+    <Setter Property="RenderTransform" Value="rotate(180deg)" />
+  </Style>
+
+  <!-- 切換「顯示／隱藏」之類的 ToggleButton 用 secondary 樣式；選取＝Soft 底＋OnSoft 文字 -->
+  <Style Selector="ToggleButton.secondary">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="ToggleButton.secondary:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+  </Style>
+
+  <!--
+    清單＋詳細（ui-guide.html 第 8 節）：Grid 兩欄（清單 260＋詳細）兩列。清單 class="master"、詳細 class="detail"。
+    視窗寬 < 900 時，根節點（Window）有 stacked class（ResponsiveClasses），清單改到上面、詳細在下面，整區改成整頁捲動。
+    清單＋詳細外層的 ScrollViewer（class="master-detail-scroll"）：並排時不捲動（清單、詳細各自捲動），上下排時整頁捲動。
+  -->
+  <Style Selector="ScrollViewer.master-detail-scroll">
+    <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
+  </Style>
+  <Style Selector=":is(Control).master">
+    <Setter Property="Grid.Column" Value="0" />
+    <Setter Property="Grid.ColumnSpan" Value="1" />
+    <Setter Property="Grid.Row" Value="0" />
+    <Setter Property="Grid.RowSpan" Value="2" />
+    <Setter Property="Margin" Value="0,0,16,0" />
+  </Style>
+  <Style Selector=":is(Control).detail">
+    <Setter Property="Grid.Column" Value="1" />
+    <Setter Property="Grid.ColumnSpan" Value="1" />
+    <Setter Property="Grid.Row" Value="0" />
+    <Setter Property="Grid.RowSpan" Value="2" />
+  </Style>
+  <Style Selector="Window.stacked ScrollViewer.master-detail-scroll">
+    <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+    <Setter Property="Padding" Value="0,0,12,0" />
+  </Style>
+  <Style Selector="Window.stacked :is(Control).master">
+    <Setter Property="Grid.ColumnSpan" Value="2" />
+    <Setter Property="Grid.RowSpan" Value="1" />
+    <Setter Property="Margin" Value="0,0,0,16" />
+  </Style>
+  <Style Selector="Window.stacked :is(Control).detail">
+    <Setter Property="Grid.Column" Value="0" />
+    <Setter Property="Grid.ColumnSpan" Value="2" />
+    <Setter Property="Grid.Row" Value="1" />
+    <Setter Property="Grid.RowSpan" Value="1" />
   </Style>
 </Styles>

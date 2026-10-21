@@ -7,6 +7,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <!-- 小精靈的氣泡與輸入列浮在任意桌面背景上，用陰影與細框線確保看得清楚（ui-spec 8.1） -->
   <BoxShadows x:Key="LumiSpriteShadow">0 8 24 0 #59000000</BoxShadows>
+  <!-- 可點擊卡片 Hover 的陰影（ui-guide.html：陰影只用在浮起與 Hover） -->
+  <BoxShadows x:Key="LumiCardHoverShadow">0 4 12 0 #1F000000</BoxShadows>
 
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">

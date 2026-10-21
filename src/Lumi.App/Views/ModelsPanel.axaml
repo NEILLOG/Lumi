@@ -1,0 +1,176 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.ModelsPanel"
+             x:DataType="vm:ModelsViewModel">
+
+  <ScrollViewer x:Name="PanelScroll" Classes="master-detail-scroll" HorizontalScrollBarVisibility="Disabled">
+    <Grid RowDefinitions="Auto,*">
+
+      <!-- 預設模型（工作台、小精靈）：標籤在上、Caption 說明在下；改了立即生效 -->
+      <StackPanel x:Name="DefaultsSection" Grid.Row="0" Spacing="8" Margin="0,0,0,24">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+          <ctl:FormField x:Name="WorkbenchDefaultField" Grid.Column="0" Label="{x:Static res:Strings.Models_WorkbenchDefault}"
+                         Hint="{x:Static res:Strings.Models_WorkbenchDefaultHint}">
+            <ComboBox x:Name="WorkbenchDefaultBox" ItemsSource="{Binding DefaultOptions}" SelectedItem="{Binding WorkbenchOption}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="{x:Static res:Strings.Models_WorkbenchDefault}">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModelOption"><TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+          </ctl:FormField>
+          <ctl:FormField x:Name="SpriteDefaultField" Grid.Column="1" Label="{x:Static res:Strings.Models_SpriteDefault}"
+                         Hint="{x:Static res:Strings.Models_SpriteDefaultHint}">
+            <ComboBox x:Name="SpriteDefaultBox" ItemsSource="{Binding DefaultOptions}" SelectedItem="{Binding SpriteOption}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="{x:Static res:Strings.Models_SpriteDefault}">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ModelOption"><TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+          </ctl:FormField>
+        </Grid>
+
+        <!-- 費用說明（BYOK：費用歸屬要清楚） -->
+        <TextBlock x:Name="CostNote" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Workbench_CostNote}" />
+
+        <Border IsVisible="{Binding DefaultChangedNotice, Converter={x:Static ObjectConverters.IsNotNull}}" Padding="12,8" CornerRadius="{StaticResource LumiRadiusInput}" BorderThickness="1"
+                Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}">
+          <TextBlock Text="{Binding DefaultChangedNotice}" TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+        </Border>
+      </StackPanel>
+
+      <!-- 清單＋詳細：清單 260、詳細吃剩餘寬度；視窗 < 900 時由根節點的 stacked class 改成上下排（Themes/Controls.axaml） -->
+      <Grid x:Name="Layout" Grid.Row="1" ColumnDefinitions="260,*" RowDefinitions="Auto,*">
+
+        <!-- 清單 -->
+        <DockPanel x:Name="MasterHost" Classes="master">
+          <TextBlock x:Name="ListCaption" DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8" Text="{Binding ListTitle}" />
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+              <ListBox x:Name="ModelList" Classes="cards" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ModelListItem">
+                    <Border Classes="card" Padding="12" ToolTip.Tip="{Binding CardTooltip}">
+                      <Grid ColumnDefinitions="Auto,*,Auto">
+                        <views:ProviderMark Grid.Column="0" Width="40" Height="40" Margin="0,0,12,0" Text="{Binding Initial}" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Classes="muted" Text="{Binding CardSubtitle}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <views:StatusIndicator Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Status="{Binding Status}" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Button x:Name="AddModelButton" Classes="dashed" Command="{Binding NewModelCommand}"
+                      AutomationProperties.Name="{x:Static res:Strings.Models_New}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                  <TextBlock Text="{x:Static res:Strings.Models_New}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <!-- 按鈕停用的原因（停用一定要說明） -->
+              <TextBlock x:Name="NeedConnectionHint" Classes="muted" Margin="0,8,0,0" TextWrapping="Wrap"
+                         Text="{x:Static res:Strings.Models_NeedConnection}" IsVisible="{Binding ShowNeedConnectionHint}" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+
+        <!-- 詳細：一個容器卡片（只一層） -->
+        <Panel x:Name="DetailHost" Classes="detail">
+          <TextBlock x:Name="DetailPlaceholder" IsVisible="{Binding ShowPlaceholder}" Text="{x:Static res:Strings.Models_Select}" Classes="muted"
+                     TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32" />
+
+          <Border x:Name="DetailCard" Classes="card" Padding="24" IsVisible="{Binding HasEditor}">
+            <DockPanel>
+
+              <!-- 底部：錯誤、分隔線、動作列（刪除 danger｜儲存 primary） -->
+              <StackPanel DockPanel.Dock="Bottom" Spacing="8">
+                <TextBlock x:Name="FieldErrorsText" Classes="error" Text="{x:Static res:Strings.Form_FixErrors}" IsVisible="{Binding HasFieldErrors}" />
+              <TextBlock x:Name="SaveErrorText" Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
+                <Border Classes="divider" />
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Button x:Name="DeleteButton" Grid.Column="0" Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
+                  <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
+                </Grid>
+              </StackPanel>
+
+              <!-- 標頭：字首圖示（所屬連線）、顯示名稱、供應商（Caption）、所屬連線的狀態徽章 -->
+              <Grid x:Name="DetailHeader" DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+                <views:ProviderMark Grid.Column="0" Width="48" Height="48" Margin="0,0,16,0" Text="{Binding HeaderInitial}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                  <TextBlock x:Name="HeaderTitleText" Text="{Binding HeaderTitle}" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold"
+                             Foreground="{DynamicResource LumiTextBrush}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock x:Name="HeaderProviderText" Classes="muted" Text="{Binding HeaderProvider}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <views:StatusIndicator x:Name="StatusBadge" Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Center" IsBadge="True" Status="{Binding EditorStatus}" />
+              </Grid>
+
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16" Margin="0,0,12,8">
+
+                  <ctl:FormField x:Name="ConnectionField" Label="{x:Static res:Strings.Models_Connection}" Requirement="Required"
+                                 Hint="{x:Static res:Strings.Models_ConnectionHint}">
+                    <ComboBox x:Name="ConnectionBox" ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}" HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="{x:Static res:Strings.Models_Connection}">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ConnectionOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </ctl:FormField>
+
+                  <!-- 模型 ID：可編輯下拉＋重新整理；說明列顯示可用模型數或取不到的原因 -->
+                  <ctl:FormField x:Name="ModelIdField" Label="{x:Static res:Strings.Models_ModelId}" Requirement="Required"
+                                 Hint="{Binding ListStatusText}" Error="{Binding ModelIdError}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <ComboBox x:Name="ModelIdBox" Grid.Column="0" IsEditable="True" HorizontalAlignment="Stretch"
+                                ItemsSource="{Binding AvailableModelIds}" Text="{Binding ModelId}"
+                                Classes.error="{Binding ModelIdError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                AutomationProperties.Name="{x:Static res:Strings.Models_ModelId}" />
+                      <Button x:Name="RefreshModelsButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                              Command="{Binding RefreshModelListCommand}" AutomationProperties.Name="{x:Static res:Strings.Models_Refresh}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <ctl:LumiIcon Data="{StaticResource LumiIconRefresh}" Size="16" />
+                          <TextBlock Text="{x:Static res:Strings.Models_Refresh}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </ctl:FormField>
+
+                  <ctl:FormField x:Name="DisplayNameField" Label="{x:Static res:Strings.Models_DisplayName}" Requirement="Required"
+                                 Hint="{x:Static res:Strings.Models_DisplayNameHint}" Error="{Binding DisplayNameError}">
+                    <TextBox x:Name="DisplayNameBox" Text="{Binding DisplayName}" Classes.error="{Binding DisplayNameError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             AutomationProperties.Name="{x:Static res:Strings.Models_DisplayName}" />
+                  </ctl:FormField>
+
+                  <StackPanel Spacing="8">
+                    <CheckBox x:Name="ShowThinkingCheckBox" Content="{x:Static res:Strings.Models_ShowThinking}" IsChecked="{Binding ShowThinking}" />
+                    <CheckBox x:Name="ToolsEnabledCheckBox" Content="{x:Static res:Strings.Models_ToolsEnabled}" IsChecked="{Binding ToolsEnabled}"
+                              ToolTip.Tip="{x:Static res:Strings.Models_ToolsEnabledHint}" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Models_ToolsEnabledHint}" />
+                  </StackPanel>
+
+                  <!-- 進階（預設收合）：技術欄位。有錯誤時自動展開（ModelsPanel.axaml.cs） -->
+                  <Expander x:Name="AdvancedExpander" Classes="advanced" Header="{x:Static res:Strings.Settings_Advanced}" IsExpanded="False">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,8,0,0">
+                      <ctl:FormField x:Name="MaxOutputField" Grid.Column="0" Label="{x:Static res:Strings.Models_MaxOutput}" Requirement="Required"
+                                     Hint="{x:Static res:Strings.Models_MaxOutputHint}" Error="{Binding MaxOutputError}">
+                        <NumericUpDown x:Name="MaxOutputBox" Value="{Binding MaxOutputTokens}" Minimum="1" Increment="256" FormatString="0"
+                                       AutomationProperties.Name="{x:Static res:Strings.Models_MaxOutput}" />
+                      </ctl:FormField>
+                      <ctl:FormField x:Name="ContextWindowField" Grid.Column="1" Label="{x:Static res:Strings.Models_ContextWindow}" Requirement="Required"
+                                     Hint="{x:Static res:Strings.Models_ContextWindowHint}" Error="{Binding ContextWindowError}">
+                        <NumericUpDown x:Name="ContextWindowBox" Value="{Binding ContextWindow}" Minimum="1" Increment="1000" FormatString="0"
+                                       AutomationProperties.Name="{x:Static res:Strings.Models_ContextWindow}" />
+                      </ctl:FormField>
+                    </Grid>
+                  </Expander>
+                </StackPanel>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+        </Panel>
+      </Grid>
+    </Grid>
+  </ScrollViewer>
+</UserControl>
