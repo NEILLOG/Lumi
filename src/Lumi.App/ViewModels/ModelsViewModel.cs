@@ -370,7 +370,7 @@ public partial class ModelsViewModel : ObservableObject
     {
         if (ReferenceEquals(item, _selectedItem) && HasEditor)
             return true;
-        if (IsDirty && !await _confirm.ConfirmAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
+        if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
             return false;
 
         _selectedItem = item;
@@ -392,7 +392,7 @@ public partial class ModelsViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAddModel))]
     private async Task NewModelAsync()
     {
-        if (IsDirty && !await _confirm.ConfirmAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
+        if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
             return;
 
         _selectedItem = null;
@@ -516,7 +516,7 @@ public partial class ModelsViewModel : ObservableObject
         }
 
         var message = string.Format(CultureInfo.CurrentCulture, Strings.Confirm_DeleteModel, DisplayName);
-        if (!await _confirm.ConfirmAsync(message, Strings.Confirm_Delete))
+        if (!await _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Delete))
             return;
 
         var before = _catalog.Current.WorkbenchModelId;

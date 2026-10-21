@@ -210,7 +210,7 @@ public partial class ConnectionsViewModel : ObservableObject
     {
         if (ReferenceEquals(item, _selectedItem) && HasEditor)
             return true;
-        if (IsDirty && !await _confirm.ConfirmAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
+        if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
             return false;
 
         _selectedItem = item;
@@ -225,7 +225,7 @@ public partial class ConnectionsViewModel : ObservableObject
     [RelayCommand]
     private async Task NewConnectionAsync()
     {
-        if (IsDirty && !await _confirm.ConfirmAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
+        if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
             return;
 
         _selectedItem = null;
@@ -339,7 +339,7 @@ public partial class ConnectionsViewModel : ObservableObject
     {
         var id = _editingId!;
         var message = string.Format(CultureInfo.CurrentCulture, Strings.Confirm_ClearKey, Name);
-        if (!await _confirm.ConfirmAsync(message, Strings.Confirm_Clear))
+        if (!await _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Clear))
             return;
 
         await RunCatalogAsync(async () =>
@@ -404,7 +404,7 @@ public partial class ConnectionsViewModel : ObservableObject
         var message = models > 0
             ? string.Format(CultureInfo.CurrentCulture, Strings.Confirm_DeleteConnection, Name, models)
             : string.Format(CultureInfo.CurrentCulture, Strings.Confirm_DeleteConnectionNoModels, Name);
-        if (!await _confirm.ConfirmAsync(message, Strings.Confirm_Delete))
+        if (!await _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Delete))
             return;
 
         if (await RunCatalogAsync(async () =>

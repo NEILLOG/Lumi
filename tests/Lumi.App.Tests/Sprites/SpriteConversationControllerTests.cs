@@ -131,7 +131,7 @@ public class SpriteConversationControllerTests
         rig.Type("一");
         rig.Submit();
         await SettingsHost.WaitUntil(() => rig.Session.IsResponding);
-        Assert.True(rig.Window.FindControl<Avalonia.Controls.Shapes.Path>("StopIcon")!.IsVisible);
+        Assert.True(rig.Window.FindControl<Lumi.App.Controls.LumiIcon>("StopIcon")!.IsVisible);
 
         rig.Type("二");           // 草稿
         rig.Window.FindControl<Button>("SendButton")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));   // 這時是停止

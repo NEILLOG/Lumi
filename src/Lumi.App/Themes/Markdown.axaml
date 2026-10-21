@@ -6,9 +6,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
   <!-- 標題 -->
-  <Style Selector="TextBlock.md-h1"><Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,10,0,2" /></Style>
-  <Style Selector="TextBlock.md-h2"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,8,0,2" /></Style>
-  <Style Selector="TextBlock.md-h3"><Setter Property="FontSize" Value="17.5" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,6,0,0" /></Style>
+  <Style Selector="TextBlock.md-h1"><Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,12,0,4" /></Style>
+  <Style Selector="TextBlock.md-h2"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,8,0,4" /></Style>
+  <Style Selector="TextBlock.md-h3"><Setter Property="FontSize" Value="17.5" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,8,0,0" /></Style>
   <Style Selector="TextBlock.md-h4"><Setter Property="FontSize" Value="16" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Margin" Value="0,4,0,0" /></Style>
   <Style Selector="TextBlock.md-h5"><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="Bold" /></Style>
   <Style Selector="TextBlock.md-h6">
@@ -84,7 +84,7 @@
   <Style Selector="Border.md-cell">
     <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
-    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Padding" Value="12,4" />
   </Style>
   <Style Selector="Border.md-thead">
     <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />

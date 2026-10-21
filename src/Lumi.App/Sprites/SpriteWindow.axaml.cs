@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -180,6 +181,8 @@ public partial class SpriteWindow : Window
         _responding = responding;
         SendIcon.IsVisible = !responding;
         StopIcon.IsVisible = responding;
+        SendButton.Classes.Set("stop", responding);   // 純視覺：送出 = Accent 底，停止 = Primary 底
+        AutomationProperties.SetName(SendButton, responding ? Strings.Sprite_Stop : Strings.Sprite_Send);
         ToolTip.SetTip(SendButton, responding ? Strings.Sprite_Stop : Strings.Sprite_Send);
     }
 

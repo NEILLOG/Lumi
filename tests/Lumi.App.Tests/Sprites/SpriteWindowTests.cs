@@ -366,8 +366,8 @@ public class SpriteWindowTests
         input.Text = "草稿";
 
         rig.Window.SetResponding(true);
-        Assert.True(rig.Window.FindControl<Avalonia.Controls.Shapes.Path>("StopIcon")!.IsVisible);
-        Assert.False(rig.Window.FindControl<Avalonia.Controls.Shapes.Path>("SendIcon")!.IsVisible);
+        Assert.True(rig.Window.FindControl<Lumi.App.Controls.LumiIcon>("StopIcon")!.IsVisible);
+        Assert.False(rig.Window.FindControl<Lumi.App.Controls.LumiIcon>("SendIcon")!.IsVisible);
         rig.Window.FindControl<Button>("SendButton")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
         Assert.Equal(1, stops);

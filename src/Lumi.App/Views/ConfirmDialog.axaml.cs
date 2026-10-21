@@ -4,11 +4,13 @@ namespace Lumi.App.Views;
 
 public partial class ConfirmDialog : Window
 {
-    public ConfirmDialog(string message, string confirmText)
+    /// <param name="destructive">破壞性動作（刪除、清除、放棄變更）：確認鍵是 danger 風格；否則是 primary。</param>
+    public ConfirmDialog(string message, string confirmText, bool destructive = false)
     {
         InitializeComponent();
         MessageText.Text = message;
         ConfirmButton.Content = confirmText;
+        ConfirmButton.Classes.Add(destructive ? "danger" : "primary");
         ConfirmButton.Click += (_, _) => Close(true);
         CancelButton.Click += (_, _) => Close(false);
     }

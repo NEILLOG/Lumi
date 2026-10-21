@@ -102,5 +102,5 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>關閉視窗前：有未儲存的變更就詢問。</summary>
     public async Task<bool> ConfirmCloseAsync() =>
-        !HasUnsavedChanges || await _confirm.ConfirmAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard);
+        !HasUnsavedChanges || await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard);
 }

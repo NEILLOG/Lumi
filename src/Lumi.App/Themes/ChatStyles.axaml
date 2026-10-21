@@ -7,11 +7,11 @@
   <Style Selector="Button.chrome">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
-    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Padding" Value="12,4" />
     <Setter Property="CornerRadius" Value="8" />
   </Style>
   <Style Selector="Button.small">
-    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="Padding" Value="8,4" />
     <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
     <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
@@ -25,7 +25,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="Padding" Value="9,3,4,3" />
+    <Setter Property="Padding" Value="8,4,4,4" />
   </Style>
   <Style Selector="Border.chip.folder">
     <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />

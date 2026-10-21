@@ -259,7 +259,7 @@
   <data name="Sprite_DestructiveQuestion" xml:space="preserve"><value>「{0}」會刪除或覆蓋內容，而且無法復原。要執行嗎？</value></data>
   <data name="Sprite_StatusAllowed" xml:space="preserve"><value>已允許 · {0}中…</value></data>
   <data name="Sprite_StatusDenied" xml:space="preserve"><value>已拒絕 · {0}</value></data>
-  <data name="Sprite_OpenDetails" xml:space="preserve"><value>在工作台開啟完整內容 →</value></data>
+  <data name="Sprite_OpenDetails" xml:space="preserve"><value>在工作台開啟完整內容</value></data>
   <data name="Sprite_Retry" xml:space="preserve"><value>重試</value></data>
   <data name="Sprite_ViewErrorInWorkbench" xml:space="preserve"><value>在工作台查看</value></data>
   <data name="Sprite_OpenSettings" xml:space="preserve"><value>開啟設定</value></data>

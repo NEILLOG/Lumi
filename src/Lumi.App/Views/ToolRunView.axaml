@@ -10,11 +10,9 @@
     左側留出和助理氣泡一樣的位置（光球的寬度）。
   -->
   <UserControl.Styles>
+    <!-- 群組卡：Border.card（圓角 14、Border 色邊框）；Padding 由標題按鈕與清單的 Margin 負責。裡面的工具卡片是第二層（最多一層巢狀） -->
     <Style Selector="Border.toolgroup">
-      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="0" />
     </Style>
     <Style Selector="Border.toolgroup.awaiting">
       <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
@@ -27,7 +25,7 @@
     <Style Selector="Button.groupheader">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Padding" Value="16,8" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
@@ -47,7 +45,7 @@
       <ItemsControl IsVisible="{Binding ShowSingleCards}" ItemsSource="{Binding Cards}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <StackPanel Spacing="6" />
+            <StackPanel Spacing="8" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
@@ -58,28 +56,28 @@
       </ItemsControl>
 
       <!-- 3 個以上：群組卡 -->
-      <Border IsVisible="{Binding IsGroup}" Classes="toolgroup"
+      <Border IsVisible="{Binding IsGroup}" Classes="card toolgroup"
               Classes.awaiting="{Binding GroupHasAwaiting}" Classes.failed="{Binding GroupHasFailure}">
         <StackPanel>
           <Button x:Name="GroupHeader" Classes="groupheader" Command="{Binding ToggleGroupCommand}">
-            <Grid ColumnDefinitions="22,*,Auto" VerticalAlignment="Center">
-              <Panel Grid.Column="0" Width="18" HorizontalAlignment="Left" VerticalAlignment="Center">
-                <TextBlock IsVisible="{Binding GroupAllSucceeded}" Text="✓" FontWeight="Bold" Foreground="{DynamicResource LumiSuccessBrush}" />
-                <TextBlock IsVisible="{Binding GroupHasFailure}" Text="✕" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
-                <TextBlock IsVisible="{Binding GroupHasAwaiting}" Text="⚠" FontWeight="Bold" Foreground="{DynamicResource LumiWarningIconBrush}" />
+            <Grid ColumnDefinitions="24,*,Auto" VerticalAlignment="Center">
+              <Panel Grid.Column="0" Width="16" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <ctl:LumiIcon IsVisible="{Binding GroupAllSucceeded}" Data="{StaticResource LumiIconCheck}" Foreground="{DynamicResource LumiSuccessBrush}" />
+                <ctl:LumiIcon IsVisible="{Binding GroupHasFailure}" Data="{StaticResource LumiIconX}" Foreground="{DynamicResource LumiDangerBrush}" />
+                <ctl:LumiIcon IsVisible="{Binding GroupHasAwaiting}" Data="{StaticResource LumiIconAlertTriangle}" Foreground="{DynamicResource LumiWarningIconBrush}" />
               </Panel>
               <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding GroupTitle}" TextTrimming="CharacterEllipsis" MaxLines="1"
                                   VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
-              <Panel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
-                <TextBlock IsVisible="{Binding !GroupIsOpen}" Text="›" Classes="muted" />
-                <TextBlock IsVisible="{Binding GroupIsOpen}" Text="⌄" Classes="muted" />
+              <Panel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center">
+                <ctl:LumiIcon IsVisible="{Binding !GroupIsOpen}" Data="{StaticResource LumiIconChevronRight}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                <ctl:LumiIcon IsVisible="{Binding GroupIsOpen}" Data="{StaticResource LumiIconChevronDown}" Foreground="{DynamicResource LumiTextMutedBrush}" />
               </Panel>
             </Grid>
           </Button>
-          <ItemsControl IsVisible="{Binding GroupIsOpen}" ItemsSource="{Binding Cards}" Margin="8,0,8,8">
+          <ItemsControl IsVisible="{Binding GroupIsOpen}" ItemsSource="{Binding Cards}" Margin="12,0,12,12">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
-                <StackPanel Spacing="6" />
+                <StackPanel Spacing="8" />
               </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>

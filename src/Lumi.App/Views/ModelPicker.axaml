@@ -2,17 +2,40 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Lumi.App.ViewModels"
              xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
              x:Class="Lumi.App.Views.ModelPicker"
              x:DataType="vm:ModelSwitcherViewModel"
              Width="320">
   <UserControl.Styles>
     <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <!--
+      清單項目：圓角 10；目前使用的模型 = Soft 底＋OnSoft 文字（加勾勾圖示，不只靠顏色）。
+      ListBoxItem 本身不留內距，內距由列內的 Border 負責，Soft 底才會蓋滿整列。
+    -->
+    <Style Selector="ListBox#EntryList ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    </Style>
+    <Style Selector="ListBox#EntryList ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.model-row">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    </Style>
+    <Style Selector="Border.model-row.current">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.model-row.current TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
   </UserControl.Styles>
   <!-- 模型切換選單的內容：搜尋、依連線分組的清單、管理連線與模型。頂端膠囊與錯誤列的「換模型重試」共用 -->
   <StackPanel Spacing="8">
     <!-- 本對話：用量、上下文進度條、連線狀態（文字＋狀態點）、費用說明。沒有本對話資料（錯誤列的重試選單）時隱藏 -->
     <StackPanel x:Name="SessionSection" Spacing="8" IsVisible="{Binding HasSession}">
-      <TextBlock Text="{x:Static res:Strings.ModelPicker_Session}" Classes="muted" FontWeight="Medium" />
+      <TextBlock Text="{x:Static res:Strings.ModelPicker_Session}" Classes="muted" FontWeight="SemiBold" />
       <TextBlock x:Name="UsageLine" Text="{Binding UsageText}" />
       <StackPanel Spacing="4">
         <ProgressBar x:Name="ContextProgress" Minimum="0" Maximum="{Binding ContextWindow}" Value="{Binding ContextUsed}" />
@@ -27,7 +50,7 @@
         <TextBlock x:Name="ConnectionText" Text="{Binding StatusText}" VerticalAlignment="Center" />
       </StackPanel>
       <TextBlock x:Name="CostNote" Text="{x:Static res:Strings.Workbench_CostNote}" Classes="muted" TextWrapping="Wrap" />
-      <Border Classes="divider" Margin="0" />
+      <Border Classes="divider" Margin="0,4" />
     </StackPanel>
 
     <TextBox x:Name="SearchBox" Text="{Binding SearchText}" Watermark="{x:Static res:Strings.ModelPicker_Search}" />
@@ -38,16 +61,19 @@
         <DataTemplate x:DataType="vm:ModelPickerEntry">
           <Panel>
             <!-- 連線名稱：分組標題，不可選 -->
-            <TextBlock IsVisible="{Binding IsHeader}" Text="{Binding Text}" FontWeight="Medium" Margin="0,6,0,0"
+            <TextBlock IsVisible="{Binding IsHeader}" Text="{Binding Text}" FontWeight="SemiBold" Margin="12,8,12,0"
                        Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
-            <Grid IsVisible="{Binding IsModel}" ColumnDefinitions="18,*">
-              <TextBlock Grid.Column="0" Text="✓" IsVisible="{Binding IsCurrent}" VerticalAlignment="Center" />
-              <StackPanel Grid.Column="1">
-                <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis"
-                           Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
-              </StackPanel>
-            </Grid>
+            <Border IsVisible="{Binding IsModel}" Classes="model-row" Classes.current="{Binding IsCurrent}">
+              <Grid ColumnDefinitions="24,*">
+                <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconCheck}" IsVisible="{Binding IsCurrent}"
+                              HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis"
+                             Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
+                </StackPanel>
+              </Grid>
+            </Border>
           </Panel>
         </DataTemplate>
       </ListBox.ItemTemplate>
@@ -58,6 +84,7 @@
     <TextBlock Text="{Binding Error}" IsVisible="{Binding HasError}" TextWrapping="Wrap"
                Foreground="{DynamicResource LumiDangerBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
 
-    <Button Content="{x:Static res:Strings.ModelPicker_Manage}" Command="{Binding ManageCommand}" HorizontalAlignment="Stretch" />
+    <Button Classes="tertiary" Content="{x:Static res:Strings.ModelPicker_Manage}" Command="{Binding ManageCommand}"
+            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
   </StackPanel>
 </UserControl>

@@ -11,11 +11,10 @@
     執行中與等待允許強制展開；等待允許時確認區嵌在卡片內。只用 token 上色。
   -->
   <UserControl.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <!-- 卡片（ui-guide.html 第 7 節）：Border.card 的圓角 14、邊框；Padding 交給標題按鈕與內容區各自的 Margin，所以這裡歸零 -->
     <Style Selector="Border.toolcard">
-      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="0" />
     </Style>
     <Style Selector="Border.toolcard.awaiting">
       <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
@@ -31,7 +30,7 @@
     <Style Selector="Button.cardheader">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Padding" Value="16,8" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
@@ -49,85 +48,104 @@
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
+    <!-- 權限確認區的按鈕：一個 Primary（或 danger）、其餘 secondary／tertiary；高度與內距一致 -->
+    <Style Selector="Button.confirm">
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <!-- 執行中：圖示轉圈（只有執行中才加 spin class，結束後動畫跟著移除） -->
+    <Style Selector="ctl|LumiIcon.spin">
+      <Style.Animations>
+        <Animation Duration="0:0:1" IterationCount="INFINITE">
+          <KeyFrame Cue="0%">
+            <Setter Property="RotateTransform.Angle" Value="0" />
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="RotateTransform.Angle" Value="360" />
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
   </UserControl.Styles>
 
   <Panel>
   <!-- show_details 成功：展開的內容卡（標題＋Markdown＋複製），不走收合的工具卡 -->
-  <Border x:Name="DetailsCard" Classes="toolcard" IsVisible="{Binding ShowDetailsCard}">
-    <StackPanel Spacing="8" Margin="14,10,14,12">
-      <Grid ColumnDefinitions="22,*,Auto">
-        <TextBlock Grid.Column="0" Text="✓" FontWeight="Bold" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Center" />
+  <Border x:Name="DetailsCard" Classes="card toolcard" IsVisible="{Binding ShowDetailsCard}">
+    <StackPanel Spacing="8" Margin="16,12,16,16">
+      <Grid ColumnDefinitions="24,*,Auto">
+        <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconCheck}" Foreground="{DynamicResource LumiSuccessBrush}"
+                      HorizontalAlignment="Left" VerticalAlignment="Center" />
         <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding DetailsHeader}" TextTrimming="CharacterEllipsis" MaxLines="1" FontWeight="SemiBold"
                             VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
         <TextBlock Grid.Column="2" Text="{Binding DetailsCharacters}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
       </Grid>
       <md:MarkdownView x:Name="DetailsMarkdown" Markdown="{Binding DetailsMarkdown}" IsStreaming="False" />
-      <Button x:Name="DetailsCopyButton" Classes="chrome small" HorizontalAlignment="Left" Content="{Binding CopyLabel}"
+      <Button x:Name="DetailsCopyButton" Classes="tertiary small" HorizontalAlignment="Left" Content="{Binding CopyLabel}"
               Command="{Binding CopyResultCommand}" />
     </StackPanel>
   </Border>
 
-  <Border x:Name="Card" Classes="toolcard" IsVisible="{Binding ShowRegularCard}"
+  <Border x:Name="Card" Classes="card toolcard" IsVisible="{Binding ShowRegularCard}"
           Classes.awaiting="{Binding IsAwaiting}" Classes.failed="{Binding IsFailed}" Classes.denied="{Binding IsDenied}">
     <StackPanel>
       <Button Classes="cardheader" Command="{Binding ToggleCommand}">
-        <Grid ColumnDefinitions="22,*,Auto,Auto" VerticalAlignment="Center">
-          <!-- 狀態圖示：執行中轉圈（這裡用不確定進度條）、成功勾、失敗叉、等待三角、已拒絕禁止符號 -->
-          <Panel Grid.Column="0" Width="18" HorizontalAlignment="Left" VerticalAlignment="Center">
-            <ProgressBar IsVisible="{Binding IsRunning}" IsIndeterminate="True" Width="16" MinWidth="16" Height="3"
-                         Foreground="{DynamicResource LumiInfoBrush}" />
-            <TextBlock IsVisible="{Binding IsSucceeded}" Text="✓" FontWeight="Bold" Foreground="{DynamicResource LumiSuccessBrush}" />
-            <TextBlock IsVisible="{Binding IsFailed}" Text="✕" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
-            <TextBlock IsVisible="{Binding IsAwaiting}" Text="⚠" FontWeight="Bold" Foreground="{DynamicResource LumiWarningIconBrush}" />
-            <TextBlock IsVisible="{Binding IsDenied}" Text="⊘" FontWeight="Bold" Foreground="{DynamicResource LumiTextMutedBrush}" />
+        <Grid ColumnDefinitions="24,*,Auto,Auto" VerticalAlignment="Center">
+          <!-- 狀態圖示（形狀不同，不只靠顏色）：執行中轉圈、成功勾、失敗叉、等待三角、已拒絕禁止符號 -->
+          <Panel Grid.Column="0" Width="16" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <ctl:LumiIcon IsVisible="{Binding IsRunning}" Classes.spin="{Binding IsRunning}" Data="{StaticResource LumiIconLoader}"
+                          Foreground="{DynamicResource LumiInfoBrush}" />
+            <ctl:LumiIcon IsVisible="{Binding IsSucceeded}" Data="{StaticResource LumiIconCheck}" Foreground="{DynamicResource LumiSuccessBrush}" />
+            <ctl:LumiIcon IsVisible="{Binding IsFailed}" Data="{StaticResource LumiIconX}" Foreground="{DynamicResource LumiDangerBrush}" />
+            <ctl:LumiIcon IsVisible="{Binding IsAwaiting}" Data="{StaticResource LumiIconAlertTriangle}" Foreground="{DynamicResource LumiWarningIconBrush}" />
+            <ctl:LumiIcon IsVisible="{Binding IsDenied}" Data="{StaticResource LumiIconBan}" Foreground="{DynamicResource LumiTextMutedBrush}" />
           </Panel>
           <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" MaxLines="1"
                               VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
           <TextBlock Grid.Column="2" IsVisible="{Binding HasDuration}" Text="{Binding DurationText}" Classes="muted"
                      Margin="12,0,0,0" VerticalAlignment="Center" />
-          <Panel Grid.Column="3" Margin="10,0,0,0" VerticalAlignment="Center">
-            <TextBlock IsVisible="{Binding !IsOpen}" Text="›" Classes="muted" />
-            <TextBlock IsVisible="{Binding IsOpen}" Text="⌄" Classes="muted" />
+          <Panel Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center">
+            <ctl:LumiIcon IsVisible="{Binding !IsOpen}" Data="{StaticResource LumiIconChevronRight}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+            <ctl:LumiIcon IsVisible="{Binding IsOpen}" Data="{StaticResource LumiIconChevronDown}" Foreground="{DynamicResource LumiTextMutedBrush}" />
           </Panel>
         </Grid>
       </Button>
 
-      <StackPanel IsVisible="{Binding IsOpen}" Spacing="8" Margin="12,0,12,12">
+      <StackPanel IsVisible="{Binding IsOpen}" Spacing="8" Margin="16,0,16,16">
         <!-- 確認區（等待允許時）：這次會做什麼、按鈕依權限等級 -->
         <StackPanel IsVisible="{Binding IsAwaiting}" Spacing="8">
           <TextBlock Text="{Binding PermissionNote}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
           <ctl:EmojiTextBlock IsVisible="{Binding HasPreviewDetail}" Text="{Binding PreviewDetail}" TextWrapping="Wrap" />
           <TextBlock IsVisible="{Binding IsDestructive}" Text="{x:Static res:Strings.Tool_Irreversible}"
                      FontWeight="SemiBold" Foreground="{DynamicResource LumiDangerBrush}" />
+          <!-- 按鈕層級：一般等級 = 允許一次（primary）、本次對話都允許（secondary）、拒絕（tertiary）；
+               Destructive = 允許執行（danger，紅框紅字）、拒絕（secondary），沒有 primary -->
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button x:Name="AllowOnceButton" IsVisible="{Binding !IsDestructive}" Content="{x:Static res:Strings.Tool_AllowOnce}"
-                    Command="{Binding AllowOnceCommand}" Background="{DynamicResource LumiPrimaryButtonBrush}"
-                    Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
-            <Button x:Name="AllowExecuteButton" IsVisible="{Binding IsDestructive}" Content="{x:Static res:Strings.Tool_AllowExecute}"
-                    Command="{Binding AllowOnceCommand}" Background="{DynamicResource LumiDangerBrush}"
-                    Foreground="{DynamicResource LumiSurfaceBrush}" />
-            <Button x:Name="AllowConversationButton" IsVisible="{Binding ShowAllowForConversation}"
+            <Button x:Name="AllowOnceButton" Classes="primary confirm" IsVisible="{Binding !IsDestructive}" Content="{x:Static res:Strings.Tool_AllowOnce}"
+                    Command="{Binding AllowOnceCommand}" />
+            <Button x:Name="AllowExecuteButton" Classes="danger confirm" IsVisible="{Binding IsDestructive}" Content="{x:Static res:Strings.Tool_AllowExecute}"
+                    Command="{Binding AllowOnceCommand}" />
+            <Button x:Name="AllowConversationButton" Classes="secondary confirm" IsVisible="{Binding ShowAllowForConversation}"
                     Content="{x:Static res:Strings.Tool_AllowConversation}" Command="{Binding AllowForConversationCommand}" />
-            <Button x:Name="DenyButton" Content="{x:Static res:Strings.Tool_Deny}" Command="{Binding DenyCommand}" />
+            <Button x:Name="DenyButton" Classes="confirm" Classes.tertiary="{Binding !IsDestructive}" Classes.secondary="{Binding IsDestructive}"
+                    Content="{x:Static res:Strings.Tool_Deny}" Command="{Binding DenyCommand}" />
           </StackPanel>
         </StackPanel>
 
         <TextBlock IsVisible="{Binding HasApprovalNote}" Text="{Binding ApprovalNote}" Classes="muted" />
 
-        <StackPanel Spacing="2">
+        <StackPanel Spacing="4">
           <TextBlock Text="{x:Static res:Strings.Tool_Arguments}" Classes="cardlabel" />
           <ctl:EmojiTextBlock Text="{Binding ArgumentsText}" TextWrapping="Wrap" FontFamily="{DynamicResource LumiMonoFont}"
                               FontSize="{DynamicResource LumiFontSizeCaption}" />
         </StackPanel>
 
-        <StackPanel IsVisible="{Binding HasResult}" Spacing="2">
+        <StackPanel IsVisible="{Binding HasResult}" Spacing="4">
           <TextBlock Text="{x:Static res:Strings.Tool_Result}" Classes="cardlabel" />
           <ctl:EmojiTextBlock x:Name="ResultText" Text="{Binding ResultDisplay}" TextWrapping="Wrap"
                               FontFamily="{DynamicResource LumiMonoFont}" FontSize="{DynamicResource LumiFontSizeCaption}" />
           <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,4,0,0">
-            <Button Classes="chrome small" IsVisible="{Binding HasMoreResult}" Content="{Binding ShowFullLabel}"
+            <Button Classes="tertiary small" IsVisible="{Binding HasMoreResult}" Content="{Binding ShowFullLabel}"
                     Command="{Binding ToggleFullOutputCommand}" />
-            <Button Classes="chrome small" Content="{Binding CopyLabel}" Command="{Binding CopyResultCommand}" />
+            <Button Classes="tertiary small" Content="{Binding CopyLabel}" Command="{Binding CopyResultCommand}" />
           </StackPanel>
         </StackPanel>
       </StackPanel>

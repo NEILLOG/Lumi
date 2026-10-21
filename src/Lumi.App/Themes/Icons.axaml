@@ -55,4 +55,10 @@
   <StreamGeometry x:Key="LumiIconAlertTriangle">m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3 M12 9v4 M12 17h.01</StreamGeometry>
   <!-- 人格與主動性（lucide: user） -->
   <StreamGeometry x:Key="LumiIconUser">M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M8 7A4 4 0 0 1 12 3A4 4 0 0 1 16 7A4 4 0 0 1 12 11A4 4 0 0 1 8 7Z</StreamGeometry>
+  <!-- 展開前（收合中）（lucide: chevron-right） -->
+  <StreamGeometry x:Key="LumiIconChevronRight">m9 18 6-6-6-6</StreamGeometry>
+  <!-- 已拒絕（lucide: ban） -->
+  <StreamGeometry x:Key="LumiIconBan">M2 12A10 10 0 0 1 12 2A10 10 0 0 1 22 12A10 10 0 0 1 12 22A10 10 0 0 1 2 12Z M4.9 4.9 l14.2 14.2</StreamGeometry>
+  <!-- 執行中（旋轉用）（lucide: loader-circle） -->
+  <StreamGeometry x:Key="LumiIconLoader">M21 12a9 9 0 1 1-6.219-8.56</StreamGeometry>
 </ResourceDictionary>

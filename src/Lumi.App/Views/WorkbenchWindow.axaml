@@ -26,6 +26,20 @@
     <Style Selector="ListBoxItem:selected TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
+    <!-- 歷史抽屜的項目：圓角 10、內距 12／8、項目之間 4（選取＝上面的 Soft 底） -->
+    <Style Selector="ListBox.history-list ListBoxItem">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    </Style>
+    <!-- Fluent 的選取／Hover 底色畫在模板裡的 ContentPresenter，要在這一層覆寫才會生效 -->
+    <Style Selector="ListBox.history-list ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="ListBox.history-list ListBoxItem:selected /template/ ContentPresenter, ListBox.history-list ListBoxItem:selected:pointerover /template/ ContentPresenter, ListBox.history-list ListBoxItem:selected:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
     <!-- 歷史抽屜：Wide／Compact 內嵌（把訊息區往右推），Narrow 蓋在訊息區上方（RWD原則 / 計畫「工作台結構」） -->
     <Style Selector="SplitView">
       <Setter Property="DisplayMode" Value="Inline" />
@@ -50,14 +64,14 @@
       <SplitView.Pane>
         <!-- 收起時整個隱藏，抽屜裡的清單才不會被 Tab 聚焦到 -->
         <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel" IsVisible="{Binding IsOpen}">
-          <Border DockPanel.Dock="Top" Padding="14,10" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,1">
-            <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Medium" />
+          <Border DockPanel.Dock="Top" Padding="16,12" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,1">
+            <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Bold" />
           </Border>
           <Border BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
             <Panel>
               <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Workbench_HistoryEmpty}" Classes="muted"
-                         HorizontalAlignment="Center" Margin="0,24,0,0" />
-              <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent" Margin="6">
+                         HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
+              <ListBox Classes="history-list" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent" Margin="8">
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:ConversationListItem">
                     <Grid ColumnDefinitions="*,Auto">

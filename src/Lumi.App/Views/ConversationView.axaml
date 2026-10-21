@@ -160,7 +160,7 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:MessageChipViewModel">
                         <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}"
-                                Padding="9,3" ToolTip.Tip="{Binding Tooltip}">
+                                Padding="8,4" ToolTip.Tip="{Binding Tooltip}">
                           <StackPanel Orientation="Horizontal" Spacing="8">
                             <ctl:EmojiTextBlock Text="{Binding DisplayName}" MaxWidth="240" TextTrimming="CharacterEllipsis" MaxLines="1"
                                                 FontSize="{DynamicResource LumiFontSizeCaption}" />
@@ -252,11 +252,11 @@
         </ItemsControl>
 
         <!-- 錯誤列：原因 + 對話內容已保留 + 重試（ui-spec 第 3 節） -->
-        <Border IsVisible="{Binding HasError}" Padding="14,10" CornerRadius="10" BorderThickness="1"
+        <Border IsVisible="{Binding HasError}" Padding="16,12" CornerRadius="10" BorderThickness="1"
                 Background="{DynamicResource LumiWarningBackgroundBrush}"
                 BorderBrush="{DynamicResource LumiWarningBorderBrush}">
           <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Spacing="2" VerticalAlignment="Center">
+            <StackPanel Spacing="4" VerticalAlignment="Center">
               <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
               <TextBlock Text="{x:Static res:Strings.Workbench_ErrorKept}" Classes="muted" />
             </StackPanel>

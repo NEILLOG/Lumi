@@ -8,13 +8,15 @@
   <!--
     小精靈的氣泡（ui-spec 8.1、8.3）：狀態一行、串流中的回答、完成、等待確認（精簡／展開／Destructive）、錯誤。
     同一時間只顯示最新一則。等待確認與錯誤的氣泡有警示色外框。只用 token 上色。
+    按鈕層級（ui-guide.html 第 6 節）：每個區塊最多一個 primary（Destructive 的「允許刪除」改 danger），其餘 secondary／tertiary。
+    氣泡的內距、按鈕內距與間距（14,10／12,5／6）決定氣泡尺寸，小精靈版面不改（UE-1），所以保持原值。
   -->
   <UserControl.Styles>
     <Style Selector="Border.bubble">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusPanel}" />
       <Setter Property="Padding" Value="14,10" />
       <Setter Property="MaxWidth" Value="280" />
       <Setter Property="BoxShadow" Value="{StaticResource LumiSpriteShadow}" />
@@ -74,9 +76,10 @@
 
           <!-- 精簡版：允許（＝允許一次）、拒絕、更多選項。Destructive 只有「允許刪除」「拒絕」 -->
           <StackPanel x:Name="CompactButtons" Orientation="Horizontal" Spacing="8" IsVisible="{Binding !Approval.ShowOptions}">
-            <Button x:Name="AllowButton" Classes="small" Content="{Binding Approval.AllowLabel}" Command="{Binding AllowOnceCommand}"
-                    Background="{DynamicResource LumiPrimaryButtonBrush}" Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
-            <Button x:Name="DenyButton" Classes="small" Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
+            <Button x:Name="AllowButton" Classes="small" Classes.primary="{Binding !Approval.IsDestructive}" Classes.danger="{Binding Approval.IsDestructive}"
+                    Content="{Binding Approval.AllowLabel}" Command="{Binding AllowOnceCommand}" />
+            <Button x:Name="DenyButton" Classes="small" Classes.tertiary="{Binding !Approval.IsDestructive}" Classes.secondary="{Binding Approval.IsDestructive}"
+                    Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
           </StackPanel>
           <Button x:Name="MoreLink" Classes="link" IsVisible="{Binding Approval.ShowMoreLink}" Command="{Binding ToggleMoreOptionsCommand}"
                   Content="{x:Static res:Strings.Sprite_MoreOptions}" HorizontalAlignment="Left" />
@@ -84,12 +87,11 @@
           <!-- 展開：允許一次／這則對話都允許／拒絕／在工作台檢視 -->
           <StackPanel x:Name="Options" IsVisible="{Binding Approval.ShowOptions}" Spacing="6">
             <WrapPanel>
-              <Button x:Name="OptionAllowOnce" Classes="small" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowOnce}"
-                      Command="{Binding AllowOnceCommand}" Background="{DynamicResource LumiPrimaryButtonBrush}"
-                      Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
-              <Button x:Name="OptionAllowConversation" Classes="small" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowConversation}"
+              <Button x:Name="OptionAllowOnce" Classes="small primary" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowOnce}"
+                      Command="{Binding AllowOnceCommand}" />
+              <Button x:Name="OptionAllowConversation" Classes="small secondary" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowConversation}"
                       Command="{Binding AllowForConversationCommand}" />
-              <Button x:Name="OptionDeny" Classes="small" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
+              <Button x:Name="OptionDeny" Classes="small tertiary" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
             </WrapPanel>
             <Button x:Name="ViewLink" Classes="link" Command="{Binding ViewInWorkbenchCommand}" HorizontalAlignment="Left"
                     Content="{x:Static res:Strings.Sprite_ViewInWorkbench}" />
@@ -101,10 +103,9 @@
           <ctl:EmojiTextBlock x:Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
                               FontSize="{DynamicResource LumiFontSizeCard}" />
           <WrapPanel>
-            <Button x:Name="RetryButton" Classes="small" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{x:Static res:Strings.Sprite_Retry}"
-                    Command="{Binding RetryCommand}" Background="{DynamicResource LumiPrimaryButtonBrush}"
-                    Foreground="{DynamicResource LumiPrimaryButtonTextBrush}" />
-            <Button x:Name="SettingsButton" Classes="small" Margin="0,0,6,6" IsVisible="{Binding CanOpenSettings}"
+            <Button x:Name="RetryButton" Classes="small primary" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{x:Static res:Strings.Sprite_Retry}"
+                    Command="{Binding RetryCommand}" />
+            <Button x:Name="SettingsButton" Classes="small secondary" Margin="0,0,6,6" IsVisible="{Binding CanOpenSettings}"
                     Content="{x:Static res:Strings.Sprite_OpenSettings}" Command="{Binding OpenSettingsCommand}" />
           </WrapPanel>
           <Button x:Name="ErrorViewLink" Classes="link" Command="{Binding ViewInWorkbenchCommand}" HorizontalAlignment="Left"
