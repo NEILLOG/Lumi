@@ -49,6 +49,9 @@
   <data name="Settings_CategoryGeneral" xml:space="preserve"><value>外觀與操作</value></data>
   <data name="Settings_TabConnections" xml:space="preserve"><value>連線</value></data>
   <data name="Settings_TabModels" xml:space="preserve"><value>模型設定</value></data>
+  <data name="Settings_TabsName" xml:space="preserve"><value>連線與模型設定</value></data>
+  <data name="Settings_CategoriesName" xml:space="preserve"><value>設定分類</value></data>
+  <data name="Settings_ComingSoonName" xml:space="preserve"><value>即將推出的項目</value></data>
   <data name="Settings_SaveFailed" xml:space="preserve"><value>儲存失敗，請再試一次。</value></data>
   <data name="Format_Anthropic" xml:space="preserve"><value>Anthropic 原生</value></data>
   <data name="Format_OpenAI" xml:space="preserve"><value>OpenAI 相容</value></data>

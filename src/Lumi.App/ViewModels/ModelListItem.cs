@@ -60,10 +60,13 @@ public sealed partial class ModelListItem : ObservableObject
     public string Initial => ProviderInitial.Of(ConnectionName, Format);
 
     /// <summary>所屬連線最近一次測試連線的狀態。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(StatusText))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(StatusText), nameof(AutomationName))]
     private ConnectionStatus _status;
 
     public string StatusText => ConnectionStatusText.Of(Status);
+
+    /// <summary>卡片的可存取名稱（螢幕閱讀器）：顯示名稱、model ID 與預設標籤、所屬連線的狀態。</summary>
+    public string AutomationName => $"{DisplayName}，{CardSubtitle}，{StatusText}";
 }
 
 /// <summary>預設模型下拉的選項。</summary>

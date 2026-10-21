@@ -35,6 +35,9 @@ public static class Strings
     public static string Settings_CategoryGeneral => Get(nameof(Settings_CategoryGeneral));
     public static string Settings_TabConnections => Get(nameof(Settings_TabConnections));
     public static string Settings_TabModels => Get(nameof(Settings_TabModels));
+    public static string Settings_TabsName => Get(nameof(Settings_TabsName));
+    public static string Settings_CategoriesName => Get(nameof(Settings_CategoriesName));
+    public static string Settings_ComingSoonName => Get(nameof(Settings_ComingSoonName));
     public static string Settings_SaveFailed => Get(nameof(Settings_SaveFailed));
     public static string Format_Anthropic => Get(nameof(Format_Anthropic));
     public static string Format_OpenAI => Get(nameof(Format_OpenAI));

@@ -46,7 +46,13 @@
           <TextBlock x:Name="ListCaption" DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8" Text="{Binding ListTitle}" />
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
-              <ListBox x:Name="ModelList" Classes="cards" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+              <ListBox x:Name="ModelList" Classes="cards" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
+                       AutomationProperties.Name="{Binding ListTitle}">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem" x:DataType="vm:ModelListItem">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+                  </Style>
+                </ListBox.Styles>
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:ModelListItem">
                     <Border Classes="card" Padding="12" ToolTip.Tip="{Binding CardTooltip}">
@@ -82,23 +88,10 @@
                      TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32" />
 
           <Border x:Name="DetailCard" Classes="card" Padding="24" IsVisible="{Binding HasEditor}">
-            <DockPanel>
-
-              <!-- 底部：錯誤、分隔線、動作列（刪除 danger｜儲存 primary） -->
-              <StackPanel DockPanel.Dock="Bottom" Spacing="8">
-                <TextBlock x:Name="FieldErrorsText" Classes="error" Text="{x:Static res:Strings.Form_FixErrors}" IsVisible="{Binding HasFieldErrors}" />
-              <TextBlock x:Name="SaveErrorText" Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
-                <Border Classes="divider" />
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                  <Button x:Name="DeleteButton" Grid.Column="0" Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
-                          Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
-                  <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
-                          Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
-                </Grid>
-              </StackPanel>
-
+            <Grid RowDefinitions="Auto,*,Auto">
+              <!-- 視覺樹（也就是 Tab）順序：標頭 → 欄位 → 底部動作列；Grid 的列與子元素順序無關，所以動作列寫在最後 -->
               <!-- 標頭：字首圖示（所屬連線）、顯示名稱、供應商（Caption）、所屬連線的狀態徽章 -->
-              <Grid x:Name="DetailHeader" DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+              <Grid x:Name="DetailHeader" Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
                 <views:ProviderMark Grid.Column="0" Width="48" Height="48" Margin="0,0,16,0" Text="{Binding HeaderInitial}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                   <TextBlock x:Name="HeaderTitleText" Text="{Binding HeaderTitle}" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold"
@@ -108,7 +101,7 @@
                 <views:StatusIndicator x:Name="StatusBadge" Grid.Column="2" Margin="16,0,0,0" VerticalAlignment="Center" IsBadge="True" Status="{Binding EditorStatus}" />
               </Grid>
 
-              <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="16" Margin="0,0,12,8">
 
                   <ctl:FormField x:Name="ConnectionField" Label="{x:Static res:Strings.Models_Connection}" Requirement="Required"
@@ -167,7 +160,20 @@
                   </Expander>
                 </StackPanel>
               </ScrollViewer>
-            </DockPanel>
+
+              <!-- 底部：錯誤、分隔線、動作列（刪除 danger｜儲存 primary） -->
+              <StackPanel Grid.Row="2" Spacing="8">
+                <TextBlock x:Name="FieldErrorsText" Classes="error" Text="{x:Static res:Strings.Form_FixErrors}" IsVisible="{Binding HasFieldErrors}" />
+              <TextBlock x:Name="SaveErrorText" Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
+                <Border Classes="divider" />
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Button x:Name="DeleteButton" Grid.Column="0" Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
+                  <Button x:Name="SaveButton" Grid.Column="2" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
+                </Grid>
+              </StackPanel>
+            </Grid>
           </Border>
         </Panel>
       </Grid>

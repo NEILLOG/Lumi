@@ -13,6 +13,9 @@ public partial class ModelsPanel : UserControl
     public ModelsPanel()
     {
         InitializeComponent();
+        InnerTextBoxName.Forward(ModelIdBox, "PART_EditableTextBox");
+        InnerTextBoxName.Forward(MaxOutputBox, "PART_TextBox");
+        InnerTextBoxName.Forward(ContextWindowBox, "PART_TextBox");
         DataContextChanged += (_, _) =>
         {
             if (DataContext is ModelsViewModel vm)

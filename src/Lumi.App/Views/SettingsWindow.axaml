@@ -190,7 +190,8 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
             <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 外觀與操作、3 小精靈） -->
-            <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}">
+            <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}"
+                     AutomationProperties.Name="{x:Static res:Strings.Settings_CategoriesName}">
               <ListBoxItem x:Name="CategoryConnections" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
                 <Grid ColumnDefinitions="Auto,*">
                   <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconDiamond}" Size="18" Margin="0,0,12,0" />
@@ -232,7 +233,8 @@
             <Border Classes="divider" />
 
             <!-- 還沒有後端的項目：停用，可見的 Caption 與 Tooltip 都寫「即將推出」 -->
-            <ListBox x:Name="ComingSoonList" Classes="menu" Focusable="False" SelectionMode="Single">
+            <ListBox x:Name="ComingSoonList" Classes="menu" Focusable="False" SelectionMode="Single"
+                     AutomationProperties.Name="{x:Static res:Strings.Settings_ComingSoonName}">
               <ListBoxItem x:Name="CategoryHome" IsEnabled="False" ToolTip.Tip="{x:Static res:Strings.Settings_ComingSoon}" ToolTip.ShowOnDisabled="True"
                            AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryHome}">
                 <Grid ColumnDefinitions="Auto,*">
@@ -298,7 +300,9 @@
 
         <!-- 分段切換（取代 TabControl）：綁 TabIndex，0 = 連線、1 = 模型設定 -->
         <Border x:Name="TabSwitch" Grid.Row="1" Classes="segmented" HorizontalAlignment="Left" Margin="0,0,0,24">
-          <StackPanel Orientation="Horizontal" Spacing="4">
+          <!-- 單選群組只有一個 Tab 停靠點（停在已選的那一段），段與段之間用方向鍵切換（SettingsWindow.axaml.cs） -->
+          <StackPanel x:Name="TabSwitchPanel" Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once"
+                      AutomationProperties.Name="{x:Static res:Strings.Settings_TabsName}">
             <RadioButton x:Name="TabConnections" GroupName="ConnectionsTabs" Content="{x:Static res:Strings.Settings_TabConnections}"
                          IsChecked="{Binding TabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
             <RadioButton x:Name="TabModels" GroupName="ConnectionsTabs" Content="{x:Static res:Strings.Settings_TabModels}"

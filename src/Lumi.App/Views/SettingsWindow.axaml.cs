@@ -21,6 +21,9 @@ public partial class SettingsWindow : Window
         ResponsiveClasses.Track(this, trackStacked: true);
         // 色票卡片排在可換行的 WrapPanel：左右鍵由 ListBox 處理，上下鍵要自己找「上一列／下一列」的卡片
         PaletteBox.AddHandler(KeyDownEvent, OnPaletteKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        // 分段切換（連線／模型設定）是單選群組：Tab 只停在已選的那一段，方向鍵換段
+        TabSwitchPanel.AddHandler(KeyDownEvent, OnSegmentKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        UpdateSegmentTabStop();
         viewModel.Connections.FocusApiKeyRequested += () =>
             Dispatcher.UIThread.Post(() => ConnectionsPanel.FocusKeyBox(), DispatcherPriority.Loaded);
 
@@ -43,12 +46,39 @@ public partial class SettingsWindow : Window
         {
             if (e.PropertyName == nameof(SettingsViewModel.ShowSprite))
                 UpdatePreviewRunning();
+            else if (e.PropertyName == nameof(SettingsViewModel.TabIndex))
+                UpdateSegmentTabStop();
         };
         _preview.Show(viewModel.Sprite.PreviewFactory);
         if (viewModel.Sprite.PreviewState is { } initial)
             _preview.SetState(initial.State);
         Opened += (_, _) => UpdatePreviewRunning();
         Closed += (_, _) => _preview.Dispose();
+    }
+
+    private IReadOnlyList<RadioButton> Segments => [TabConnections, TabModels];
+
+    /// <summary>Tab 進入分段切換時落在已選的那一段（沒有選取時落在第一段）。</summary>
+    private void UpdateSegmentTabStop()
+    {
+        var current = Segments.FirstOrDefault(s => s.IsChecked == true) ?? Segments[0];
+        KeyboardNavigation.SetTabOnceActiveElement(TabSwitchPanel, current);
+    }
+
+    private void OnSegmentKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.None || e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down))
+            return;
+        var segments = Segments;
+        var index = segments.ToList().FindIndex(s => s.IsFocused);
+        if (index < 0)
+            return;
+        var step = e.Key is Key.Right or Key.Down ? 1 : -1;
+        var target = segments[(index + step + segments.Count) % segments.Count];
+        target.IsChecked = true;
+        target.Focus();
+        UpdateSegmentTabStop();
+        e.Handled = true;
     }
 
     private void UpdatePreviewRunning()

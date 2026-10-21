@@ -19,6 +19,9 @@ public sealed record ConnectionListItem(string Id, string Name, ProviderFormat F
 
     public string StatusText => ConnectionStatusText.Of(Status);
 
+    /// <summary>卡片的可存取名稱（螢幕閱讀器）：「我的 Anthropic，Anthropic 原生 · 2 個模型，連線正常」。</summary>
+    public string AutomationName => $"{Name}，{Subtitle}，{StatusText}";
+
     public bool IsOk => Status == ConnectionStatus.Ok;
 
     public bool IsFailed => Status == ConnectionStatus.Failed;

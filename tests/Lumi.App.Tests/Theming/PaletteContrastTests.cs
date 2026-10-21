@@ -1,5 +1,5 @@
-using System.Globalization;
 using System.Xml.Linq;
+using Lumi.App.Tests.TestSupport;
 using Lumi.Core.Models;
 
 namespace Lumi.App.Tests.Theming;
@@ -124,23 +124,8 @@ public sealed class PaletteContrastTests
         return result;
     }
 
-    private static double Contrast(IReadOnlyDictionary<string, string> colors, string a, string b)
-    {
-        var la = Luminance(colors[a]);
-        var lb = Luminance(colors[b]);
-        return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
-    }
-
-    private static double Luminance(string hex)
-    {
-        var h = hex.TrimStart('#');
-        double Channel(int start)
-        {
-            var c = int.Parse(h.AsSpan(start, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255.0;
-            return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
-        }
-        return 0.2126 * Channel(0) + 0.7152 * Channel(2) + 0.0722 * Channel(4);
-    }
+    private static double Contrast(IReadOnlyDictionary<string, string> colors, string a, string b) =>
+        Wcag.Ratio(Wcag.Luminance(colors[a]), Wcag.Luminance(colors[b]));
 
     private static string ThemesDir
     {

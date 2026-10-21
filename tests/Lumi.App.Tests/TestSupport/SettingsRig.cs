@@ -1,0 +1,198 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Threading;
+using Lumi.App.Services;
+using Lumi.App.ViewModels;
+using Lumi.App.Views;
+using Lumi.Core.Chat;
+using Lumi.Core.Models;
+using Lumi.Sprites.Assets;
+using Lumi.Sprites.Orb;
+using CommunityToolkit.Mvvm.Input;
+
+namespace Lumi.App.Tests.TestSupport;
+
+/// <summary>
+/// 設定視窗的測試環境（可存取性、Tab 順序、文字對比共用）：<see cref="Pages"/> 列出每個分類頁的各種畫面狀態
+/// （清單、表單、進階展開、錯誤、測試結果、載入問題…），<see cref="CreateAsync"/> 開出視窗並切到該狀態。
+/// </summary>
+internal sealed class SettingsRig : IDisposable
+{
+    /// <summary>每個分類頁要掃描的畫面狀態名稱。</summary>
+    public static readonly string[] Pages =
+    [
+        "connections-list", "connections-form", "connections-advanced", "connections-errors", "connections-key-stored",
+        "connections-test-ok", "connections-test-fail",
+        "models-list", "models-form", "models-advanced",
+        "persona", "persona-dirty", "general", "sprite", "sprite-issues",
+    ];
+
+    private readonly CorgiPack? _pack;
+
+    private SettingsRig(SettingsHost host, SettingsWindow window, CorgiPack? pack)
+    {
+        Host = host;
+        Window = window;
+        _pack = pack;
+    }
+
+    public SettingsHost Host { get; }
+
+    public SettingsWindow Window { get; }
+
+    public static async Task<SettingsRig> CreateAsync(string state, double width = 1040, double height = 760)
+    {
+        CorgiPack? pack = null;
+        SettingsHost host;
+        if (state == "sprite-issues")
+        {
+            pack = new CorgiPack();
+            pack.AddBroken();
+            var library = new SpriteLibrary([new OrbSpriteFactory()], new AssetSpriteOptions { Directory = pack.Root });
+            await library.ReloadAsync();
+            host = new SettingsHost(library, new FakeFolderOpener());
+            host.Sprite.Issues.Add(new SpriteIssueItem("corgi：內容貼邊（測試用警告）", IsFatal: false));
+        }
+        else
+        {
+            host = new SettingsHost(new AvaloniaUiDispatcher());
+        }
+
+        var window = new SettingsWindow(host.Settings) { Width = width, Height = height };
+        window.Show();
+        var rig = new SettingsRig(host, window, pack);
+        rig.Settle();
+        await rig.ApplyStateAsync(state);
+        return rig;
+    }
+
+    public void Settle()
+    {
+        Dispatcher.UIThread.RunJobs();
+        Window.UpdateLayout();
+    }
+
+    public void Resize(double width, double height)
+    {
+        Window.Width = width;
+        Window.Height = height;
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Window.UpdateLayout();
+    }
+
+    private async Task ApplyStateAsync(string state)
+    {
+        var settings = Host.Settings;
+        switch (state)
+        {
+            case "connections-list":
+                break;
+            case "connections-form":
+            case "connections-advanced":
+            case "connections-errors":
+            case "connections-key-stored":
+            case "connections-test-ok":
+            case "connections-test-fail":
+                await ApplyConnectionStateAsync(state);
+                break;
+            case "models-list":
+                settings.TabIndex = 1;
+                break;
+            case "models-form":
+            case "models-advanced":
+                settings.TabIndex = 1;
+                Settle();
+                await Host.Models.SelectAsync(Host.Models.Items[0]);
+                Settle();
+                if (state == "models-advanced")
+                    ExpandAdvanced("ModelsPanel");
+                break;
+            case "persona":
+                settings.CategoryIndex = 1;
+                break;
+            case "persona-dirty":
+                settings.CategoryIndex = 1;
+                Host.Persona.CustomPersona = "請用簡短的句子回答。";
+                break;
+            case "general":
+                settings.CategoryIndex = 2;
+                break;
+            case "sprite":
+            case "sprite-issues":
+                settings.CategoryIndex = 3;
+                break;
+            default:
+                throw new ArgumentException(state, nameof(state));
+        }
+        Settle();
+    }
+
+    private async Task ApplyConnectionStateAsync(string state)
+    {
+        var connections = Host.Connections;
+        if (state == "connections-key-stored")
+        {
+            await Host.Catalog.SaveConnectionAsync(new ConnectionSettings("withkey", "有金鑰", ProviderFormat.OpenAICompatible, "https://x.example.com/v1"),
+                new Lumi.Core.Secrets.SecretValue("sk-abcdef-1234"));
+            Settle();
+            await connections.SelectAsync(connections.Items.Single(i => i.Id == "withkey"));
+        }
+        else
+        {
+            await connections.SelectAsync(connections.Items[0]);
+        }
+        Settle();
+
+        switch (state)
+        {
+            case "connections-advanced":
+                connections.BaseUrl = "http://example.com/v1";   // 非本機的 http：顯示警告文字
+                Settle();
+                ExpandAdvanced("ConnectionsPanel");
+                break;
+            case "connections-errors":
+                connections.Name = "";                           // 必填欄位空白：錯誤文字與「請先修正欄位」
+                connections.BaseUrl = "不是網址";
+                Settle();
+                ExpandAdvanced("ConnectionsPanel");
+                break;
+            case "connections-test-ok":
+                Host.Tester.Result = ConnectionTestResult.Ok(["model-a", "model-b"]);
+                await ((IAsyncRelayCommand)connections.TestCommand).ExecuteAsync(null);
+                break;
+            case "connections-test-fail":
+                Host.Tester.Result = FakeConnectionTester.Failure(ChatFailureKind.InvalidApiKey, "金鑰無效，請重新輸入。");
+                await ((IAsyncRelayCommand)connections.TestCommand).ExecuteAsync(null);
+                break;
+        }
+    }
+
+    private void ExpandAdvanced(string panelName)
+    {
+        var panel = Window.FindByName<UserControl>(panelName);
+        var expander = panel.FindByName<Expander>("AdvancedExpander");
+        expander.IsExpanded = true;
+        Settle();
+    }
+
+    /// <summary>把色票與明暗套到整個應用程式與這個視窗（立即生效）。測試結束要呼叫 <see cref="ResetTheme"/>。</summary>
+    public void ApplyTheme(string paletteId, Avalonia.Styling.ThemeVariant variant)
+    {
+        ThemeService.ApplyPalette(Application.Current!.Resources.MergedDictionaries, paletteId);
+        Window.RequestedThemeVariant = variant;
+        Settle();
+    }
+
+    /// <summary>還原預設色票（其他測試都假設是 sage）。</summary>
+    public static void ResetTheme() =>
+        ThemeService.ApplyPalette(Application.Current!.Resources.MergedDictionaries, ThemePalettes.Default);
+
+    public void Dispose()
+    {
+        Window.Close();
+        Host.Dispose();
+        _pack?.Dispose();
+    }
+}
