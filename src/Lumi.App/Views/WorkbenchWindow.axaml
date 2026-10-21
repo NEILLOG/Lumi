@@ -37,9 +37,12 @@
       <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
     </Style>
-    <!-- 選取列是琥珀底（歷史抽屜目前的對話）：裡面的文字改用 OnAccent，確保對比 -->
+    <!-- 選取列用 Soft 底＋OnSoft 文字（ui-guide.html 第 3 節），文字對比 ≥ 4.5:1 -->
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    </Style>
     <Style Selector="ListBoxItem:selected TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
     <Style Selector="Button.capsule">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />

@@ -48,6 +48,7 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task SetWorkbenchModelAsync(string modelSettingsId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetSpriteModelAsync(string modelSettingsId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task SetThemeIdAsync(string themeId, CancellationToken ct = default) => throw new NotSupportedException();
 
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
     {

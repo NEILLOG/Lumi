@@ -6,6 +6,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Lumi.App.ViewModels;
+using Lumi.App.Views.Responsive;
 
 namespace Lumi.App.Views;
 
@@ -22,6 +23,7 @@ public partial class WorkbenchWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        ResponsiveClasses.Track(this);
 
         // TextBox 自己會處理 Enter，要在 tunnel 階段先攔下來
         InputBox.AddHandler(KeyDownEvent, OnInputKeyDown, RoutingStrategies.Tunnel);

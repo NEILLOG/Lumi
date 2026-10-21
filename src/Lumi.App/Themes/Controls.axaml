@@ -1,0 +1,66 @@
+<!--
+  共用控制項樣式（ui-guide.html 第 3、4、6、7 節）：輸入框、按鈕四種層級。元件只引用 token。
+  已知缺口：Focus 的 3px Soft 光暈需要自訂 TextBox 模板，UA 先用 Accent 邊框，光暈留到 UB 處理。
+  卡片、分隔線、徽章只提供樣式 class，實際套用在 UB／UD 的元件改寫時進行。
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+  </Style>
+
+  <!-- 每個動作區最多一個 primary（ui-guide.html 第 6 節） -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Button.tertiary">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+
+  <!-- 卡片：只用來代表一個物件（ui-guide.html 第 7 節）。不要把整份表單或每個欄位包成卡片 -->
+  <Style Selector="Border.card">
+    <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <!-- 分隔線：1px、上下 16；用來分群組，不是每個欄位下面都畫一條 -->
+  <Style Selector="Border.divider">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="0,16" />
+    <Setter Property="Background" Value="{DynamicResource LumiBorderBrush}" />
+  </Style>
+  <!-- 狀態徽章：Soft 底＋文字（不能只靠顏色或圓點）。文字用 OnSoft 色 -->
+  <Style Selector="Border.badge">
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.badge TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+  </Style>
+</Styles>

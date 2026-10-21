@@ -1,0 +1,97 @@
+<!--
+  色票：霧藍色：穩定、熟悉、生產力工具感（ui-guide.html 第 1 節）。
+  由 scratchpad 腳本依原則色碼推導；文字用色已依 WCAG 驗證（見 Lumi.App.Tests/Theming/PaletteContrastTests.cs）。
+  切換主題時整份替換（ThemeService.ApplyPalette）；元件一律引用 Lumi*Brush，不直接寫色碼。
+  色碼只能出現在 Themes/ 資料夾（tests/Lumi.Architecture.Tests/ThemeTokenRuleTests.cs）。
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="LumiBackgroundColor">#F5F7FA</Color>
+      <Color x:Key="LumiSurfaceColor">#FFFFFF</Color>
+      <Color x:Key="LumiChromeColor">#FAFBFD</Color>
+      <Color x:Key="LumiSurfaceAltColor">#ECEFF4</Color>
+      <Color x:Key="LumiBorderColor">#E2E6ED</Color>
+      <Color x:Key="LumiBorderStrongColor">#B3B7BF</Color>
+      <Color x:Key="LumiTextColor">#252B36</Color>
+      <Color x:Key="LumiTextMutedColor">#646C79</Color>
+      <Color x:Key="LumiTextOnSoftColor">#252B36</Color>
+      <Color x:Key="LumiAccentColor">#5578C8</Color>
+      <Color x:Key="LumiAccentHoverColor">#4568B7</Color>
+      <Color x:Key="LumiAccentSoftColor">#EAF0FC</Color>
+      <Color x:Key="LumiAccentBorderColor">#98AEDF</Color>
+      <Color x:Key="LumiAccentTextColor">#4269C2</Color>
+      <Color x:Key="LumiOnAccentColor">#FFFFFF</Color>
+      <Color x:Key="LumiUserBubbleColor">#EAF0FC</Color>
+      <Color x:Key="LumiUserBubbleTextColor">#252B36</Color>
+      <Color x:Key="LumiAssistantBubbleColor">#ECEFF4</Color>
+      <Color x:Key="LumiPrimaryButtonColor">#252B36</Color>
+      <Color x:Key="LumiPrimaryButtonTextColor">#FFFFFF</Color>
+
+      <SolidColorBrush x:Key="LumiBackgroundBrush" Color="{StaticResource LumiBackgroundColor}" />
+      <SolidColorBrush x:Key="LumiSurfaceBrush" Color="{StaticResource LumiSurfaceColor}" />
+      <SolidColorBrush x:Key="LumiChromeBrush" Color="{StaticResource LumiChromeColor}" />
+      <SolidColorBrush x:Key="LumiSurfaceAltBrush" Color="{StaticResource LumiSurfaceAltColor}" />
+      <SolidColorBrush x:Key="LumiBorderBrush" Color="{StaticResource LumiBorderColor}" />
+      <SolidColorBrush x:Key="LumiBorderStrongBrush" Color="{StaticResource LumiBorderStrongColor}" />
+      <SolidColorBrush x:Key="LumiTextBrush" Color="{StaticResource LumiTextColor}" />
+      <SolidColorBrush x:Key="LumiTextMutedBrush" Color="{StaticResource LumiTextMutedColor}" />
+      <SolidColorBrush x:Key="LumiTextOnSoftBrush" Color="{StaticResource LumiTextOnSoftColor}" />
+      <SolidColorBrush x:Key="LumiAccentBrush" Color="{StaticResource LumiAccentColor}" />
+      <SolidColorBrush x:Key="LumiAccentHoverBrush" Color="{StaticResource LumiAccentHoverColor}" />
+      <SolidColorBrush x:Key="LumiAccentSoftBrush" Color="{StaticResource LumiAccentSoftColor}" />
+      <SolidColorBrush x:Key="LumiAccentBorderBrush" Color="{StaticResource LumiAccentBorderColor}" />
+      <SolidColorBrush x:Key="LumiAccentTextBrush" Color="{StaticResource LumiAccentTextColor}" />
+      <SolidColorBrush x:Key="LumiOnAccentBrush" Color="{StaticResource LumiOnAccentColor}" />
+      <SolidColorBrush x:Key="LumiUserBubbleBrush" Color="{StaticResource LumiUserBubbleColor}" />
+      <SolidColorBrush x:Key="LumiUserBubbleTextBrush" Color="{StaticResource LumiUserBubbleTextColor}" />
+      <SolidColorBrush x:Key="LumiAssistantBubbleBrush" Color="{StaticResource LumiAssistantBubbleColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonBrush" Color="{StaticResource LumiPrimaryButtonColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonTextBrush" Color="{StaticResource LumiPrimaryButtonTextColor}" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="LumiBackgroundColor">#18191B</Color>
+      <Color x:Key="LumiSurfaceColor">#1F2023</Color>
+      <Color x:Key="LumiChromeColor">#1C1D1F</Color>
+      <Color x:Key="LumiSurfaceAltColor">#292A2E</Color>
+      <Color x:Key="LumiBorderColor">#3E4146</Color>
+      <Color x:Key="LumiBorderStrongColor">#565A61</Color>
+      <Color x:Key="LumiTextColor">#ECEDEE</Color>
+      <Color x:Key="LumiTextMutedColor">#AAACB1</Color>
+      <Color x:Key="LumiTextOnSoftColor">#ECEDEE</Color>
+      <Color x:Key="LumiAccentColor">#7C97D5</Color>
+      <Color x:Key="LumiAccentHoverColor">#93AADC</Color>
+      <Color x:Key="LumiAccentSoftColor">#232A38</Color>
+      <Color x:Key="LumiAccentBorderColor">#3D4966</Color>
+      <Color x:Key="LumiAccentTextColor">#B0BEDE</Color>
+      <Color x:Key="LumiOnAccentColor">#18191B</Color>
+      <Color x:Key="LumiUserBubbleColor">#2E374D</Color>
+      <Color x:Key="LumiUserBubbleTextColor">#EAECF0</Color>
+      <Color x:Key="LumiAssistantBubbleColor">#292A2E</Color>
+      <Color x:Key="LumiPrimaryButtonColor">#ECEDEE</Color>
+      <Color x:Key="LumiPrimaryButtonTextColor">#18191B</Color>
+
+      <SolidColorBrush x:Key="LumiBackgroundBrush" Color="{StaticResource LumiBackgroundColor}" />
+      <SolidColorBrush x:Key="LumiSurfaceBrush" Color="{StaticResource LumiSurfaceColor}" />
+      <SolidColorBrush x:Key="LumiChromeBrush" Color="{StaticResource LumiChromeColor}" />
+      <SolidColorBrush x:Key="LumiSurfaceAltBrush" Color="{StaticResource LumiSurfaceAltColor}" />
+      <SolidColorBrush x:Key="LumiBorderBrush" Color="{StaticResource LumiBorderColor}" />
+      <SolidColorBrush x:Key="LumiBorderStrongBrush" Color="{StaticResource LumiBorderStrongColor}" />
+      <SolidColorBrush x:Key="LumiTextBrush" Color="{StaticResource LumiTextColor}" />
+      <SolidColorBrush x:Key="LumiTextMutedBrush" Color="{StaticResource LumiTextMutedColor}" />
+      <SolidColorBrush x:Key="LumiTextOnSoftBrush" Color="{StaticResource LumiTextOnSoftColor}" />
+      <SolidColorBrush x:Key="LumiAccentBrush" Color="{StaticResource LumiAccentColor}" />
+      <SolidColorBrush x:Key="LumiAccentHoverBrush" Color="{StaticResource LumiAccentHoverColor}" />
+      <SolidColorBrush x:Key="LumiAccentSoftBrush" Color="{StaticResource LumiAccentSoftColor}" />
+      <SolidColorBrush x:Key="LumiAccentBorderBrush" Color="{StaticResource LumiAccentBorderColor}" />
+      <SolidColorBrush x:Key="LumiAccentTextBrush" Color="{StaticResource LumiAccentTextColor}" />
+      <SolidColorBrush x:Key="LumiOnAccentBrush" Color="{StaticResource LumiOnAccentColor}" />
+      <SolidColorBrush x:Key="LumiUserBubbleBrush" Color="{StaticResource LumiUserBubbleColor}" />
+      <SolidColorBrush x:Key="LumiUserBubbleTextBrush" Color="{StaticResource LumiUserBubbleTextColor}" />
+      <SolidColorBrush x:Key="LumiAssistantBubbleBrush" Color="{StaticResource LumiAssistantBubbleColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonBrush" Color="{StaticResource LumiPrimaryButtonColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonTextBrush" Color="{StaticResource LumiPrimaryButtonTextColor}" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

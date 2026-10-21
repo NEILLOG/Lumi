@@ -54,6 +54,9 @@ public sealed record AppSettings(
 
     /// <summary>小精靈的角色、尺寸、位置與上次的模式（M7）。同樣是後來加的欄位，舊檔沒有時用預設值。</summary>
     public SpriteSettings Sprite { get; init; } = SpriteSettings.Default;
+
+    /// <summary>主題色票 ID（ui-guide.html 第 1 節，見 <see cref="ThemePalettes"/>）。舊檔沒有時是預設的 sage。</summary>
+    public string ThemeId { get; init; } = ThemePalettes.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

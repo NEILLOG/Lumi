@@ -115,6 +115,12 @@
   <data name="Theme_System" xml:space="preserve"><value>跟隨系統</value></data>
   <data name="Theme_Light" xml:space="preserve"><value>淺色</value></data>
   <data name="Theme_Dark" xml:space="preserve"><value>深色</value></data>
+  <data name="General_Palette" xml:space="preserve"><value>主題色票</value></data>
+  <data name="Theme_Palette_sage" xml:space="preserve"><value>鼠尾草綠（預設）</value></data>
+  <data name="Theme_Palette_teal" xml:space="preserve"><value>清透藍綠</value></data>
+  <data name="Theme_Palette_mist_blue" xml:space="preserve"><value>霧藍色</value></data>
+  <data name="Theme_Palette_indigo" xml:space="preserve"><value>清亮靛藍</value></data>
+  <data name="Theme_Palette_terracotta" xml:space="preserve"><value>陶土色</value></data>
   <data name="Workbench_Settings" xml:space="preserve"><value>設定</value></data>
   <data name="Workbench_ThinkingWithSeconds" xml:space="preserve"><value>思考過程 · {0} 秒</value></data>
   <data name="Workbench_UsageFormat" xml:space="preserve"><value>↑ 輸入 {0} · ↓ 輸出 {1} tokens</value></data>

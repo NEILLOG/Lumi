@@ -38,9 +38,12 @@
     <Style Selector="TabItem">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
     </Style>
-    <!-- 選取列是琥珀底：裡面所有文字（含灰色說明）都改用 OnAccent，確保對比 -->
+    <!-- 選取列用 Soft 底＋OnSoft 文字（ui-guide.html 第 3 節），文字對比 ≥ 4.5:1 -->
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    </Style>
     <Style Selector="ListBoxItem:selected TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
   </Window.Styles>
 
@@ -304,6 +307,10 @@
         <TextBlock Classes="label" Text="{x:Static res:Strings.General_Theme}" />
         <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" HorizontalAlignment="Stretch">
           <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ThemeOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Classes="label" Margin="0,12,0,0" Text="{x:Static res:Strings.General_Palette}" />
+        <ComboBox x:Name="PaletteBox" ItemsSource="{Binding Palettes}" SelectedItem="{Binding SelectedPalette}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:PaletteOption"><TextBlock Text="{Binding Text}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
         <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>

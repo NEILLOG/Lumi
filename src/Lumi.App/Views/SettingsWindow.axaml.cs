@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
+using Lumi.App.Views.Responsive;
 
 namespace Lumi.App.Views;
 
@@ -16,6 +17,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         ViewModel = viewModel;
         DataContext = viewModel;
+        ResponsiveClasses.Track(this);
         viewModel.Connections.FocusApiKeyRequested += () =>
             Dispatcher.UIThread.Post(() => KeyBox.Focus(), DispatcherPriority.Loaded);
 

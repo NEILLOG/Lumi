@@ -101,6 +101,12 @@ public static class Strings
     public static string Theme_System => Get(nameof(Theme_System));
     public static string Theme_Light => Get(nameof(Theme_Light));
     public static string Theme_Dark => Get(nameof(Theme_Dark));
+    public static string General_Palette => Get(nameof(General_Palette));
+    public static string Theme_Palette_sage => Get(nameof(Theme_Palette_sage));
+    public static string Theme_Palette_teal => Get(nameof(Theme_Palette_teal));
+    public static string Theme_Palette_mist_blue => Get(nameof(Theme_Palette_mist_blue));
+    public static string Theme_Palette_indigo => Get(nameof(Theme_Palette_indigo));
+    public static string Theme_Palette_terracotta => Get(nameof(Theme_Palette_terracotta));
     public static string Workbench_Settings => Get(nameof(Workbench_Settings));
     public static string Workbench_ThinkingWithSeconds => Get(nameof(Workbench_ThinkingWithSeconds));
     public static string Workbench_UsageFormat => Get(nameof(Workbench_UsageFormat));

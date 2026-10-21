@@ -27,7 +27,9 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         // 主題：啟動時先套用設定裡的選擇，之後設定一變就即時更新
-        _services.GetRequiredService<ThemeService>().Attach(variant => RequestedThemeVariant = variant);
+        var themes = _services.GetRequiredService<ThemeService>();
+        themes.Attach(variant => RequestedThemeVariant = variant);
+        themes.AttachPalette(id => ThemeService.ApplyPalette(Resources.MergedDictionaries, id));
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {

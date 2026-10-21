@@ -49,6 +49,13 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task SetSpriteModelAsync(string modelSettingsId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) => throw new NotSupportedException();
 
+    public Task SetThemeIdAsync(string themeId, CancellationToken ct = default)
+    {
+        Current = Current with { ThemeId = Lumi.Core.Models.ThemePalettes.Normalize(themeId) };
+        Raise();
+        return Task.CompletedTask;
+    }
+
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
     {
         Current = Current with { Sprite = sprite.Normalize() };

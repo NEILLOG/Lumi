@@ -126,6 +126,12 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) =>
         MutateAsync(s => s with { Theme = theme }, ct);
 
+    public Task SetThemeIdAsync(string themeId, CancellationToken ct = default)
+    {
+        var id = ThemePalettes.Normalize(themeId);
+        return MutateAsync(s => s with { ThemeId = id }, ct);
+    }
+
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default)
     {
         var normalized = persona.Normalize();
@@ -169,6 +175,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Models = models,
             WorkbenchModelId = Fix(settings.WorkbenchModelId),
             SpriteModelId = Fix(settings.SpriteModelId),
+            ThemeId = ThemePalettes.Normalize(settings.ThemeId),
         };
     }
 
@@ -231,6 +238,7 @@ public sealed class JsonModelCatalog : IModelCatalog
         {
             Persona = file.Persona?.Normalize() ?? PersonaSettings.Default,
             Sprite = file.Sprite?.Normalize() ?? SpriteSettings.Default,   // M7 加的欄位，同樣舊檔沒有時用預設
+            ThemeId = ThemePalettes.Normalize(file.ThemeId),               // 主題色票（UA）：缺欄位或不認得就是 sage
         });
         return (settings, false, null);
     }
@@ -249,7 +257,7 @@ public sealed class JsonModelCatalog : IModelCatalog
 
     private static byte[] Serialize(AppSettings settings) => JsonSerializer.SerializeToUtf8Bytes(
         new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme,
-            settings.Persona, settings.Sprite),
+            settings.Persona, settings.Sprite, settings.ThemeId),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -299,5 +307,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         string? SpriteModelId,
         ThemePreference Theme,
         PersonaSettings? Persona = null,
-        SpriteSettings? Sprite = null);
+        SpriteSettings? Sprite = null,
+        string? ThemeId = null);
 }

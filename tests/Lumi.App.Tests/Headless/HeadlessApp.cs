@@ -26,6 +26,10 @@ public sealed class TestApp : Application
         Styles.Add(new FluentTheme());
         Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Tokens.axaml") });
         Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Typography.axaml") });
+        Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Metrics.axaml") });
+        // 與正式 App 相同：預設色票由 ThemeService 套用
+        Lumi.App.Services.ThemeService.ApplyPalette(Resources.MergedDictionaries, Lumi.Core.Models.ThemePalettes.Default);
+        Styles.Add(new StyleInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Controls.axaml") });
         Styles.Add(new StyleInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Markdown.axaml") });
     }
 }

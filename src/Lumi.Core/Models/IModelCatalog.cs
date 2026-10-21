@@ -36,6 +36,9 @@ public interface IModelCatalog
 
     Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default);
 
+    /// <summary>主題色票；不認得的 ID 會存成預設（<see cref="ThemePalettes.Normalize"/>）。</summary>
+    Task SetThemeIdAsync(string themeId, CancellationToken ct = default);
+
     /// <summary>自訂人設超過 <see cref="PersonaSettings.CustomPersonaMaxLength"/> 字時丟 <see cref="ArgumentException"/>。</summary>
     Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default);
 
