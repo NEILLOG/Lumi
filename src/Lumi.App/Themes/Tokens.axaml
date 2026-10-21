@@ -33,6 +33,13 @@
       <SolidColorBrush x:Key="LumiWarningBorderBrush" Color="{StaticResource LumiWarningBorderColor}" />
       <SolidColorBrush x:Key="LumiCodeBackgroundBrush" Color="{StaticResource LumiCodeBackgroundColor}" />
       <SolidColorBrush x:Key="LumiCodeTextBrush" Color="{StaticResource LumiCodeTextColor}" />
+      <!-- 狀態點（非文字元件）：ui-guide.html 的固定語意色，淺深色相同、不隨主題變。文字用上面的 Success／Danger／Warning -->
+      <Color x:Key="LumiSuccessDotColor">#55A981</Color>
+      <Color x:Key="LumiWarningDotColor">#D99A3E</Color>
+      <Color x:Key="LumiDangerDotColor">#BD5335</Color>
+      <SolidColorBrush x:Key="LumiSuccessDotBrush" Color="{StaticResource LumiSuccessDotColor}" />
+      <SolidColorBrush x:Key="LumiWarningDotBrush" Color="{StaticResource LumiWarningDotColor}" />
+      <SolidColorBrush x:Key="LumiDangerDotBrush" Color="{StaticResource LumiDangerDotColor}" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="LumiInfoColor">#6FA0F0</Color>
@@ -58,6 +65,13 @@
       <SolidColorBrush x:Key="LumiWarningBorderBrush" Color="{StaticResource LumiWarningBorderColor}" />
       <SolidColorBrush x:Key="LumiCodeBackgroundBrush" Color="{StaticResource LumiCodeBackgroundColor}" />
       <SolidColorBrush x:Key="LumiCodeTextBrush" Color="{StaticResource LumiCodeTextColor}" />
+      <!-- 狀態點（非文字元件）：ui-guide.html 的固定語意色，淺深色相同、不隨主題變。文字用上面的 Success／Danger／Warning -->
+      <Color x:Key="LumiSuccessDotColor">#55A981</Color>
+      <Color x:Key="LumiWarningDotColor">#D99A3E</Color>
+      <Color x:Key="LumiDangerDotColor">#BD5335</Color>
+      <SolidColorBrush x:Key="LumiSuccessDotBrush" Color="{StaticResource LumiSuccessDotColor}" />
+      <SolidColorBrush x:Key="LumiWarningDotBrush" Color="{StaticResource LumiWarningDotColor}" />
+      <SolidColorBrush x:Key="LumiDangerDotBrush" Color="{StaticResource LumiDangerDotColor}" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

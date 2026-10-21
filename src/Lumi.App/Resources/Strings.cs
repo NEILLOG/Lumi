@@ -279,4 +279,9 @@ public static class Strings
     public static string SpriteSettings_Issues => Get(nameof(SpriteSettings_Issues));
     public static string SpriteSettings_IssuesNote => Get(nameof(SpriteSettings_IssuesNote));
     public static string SpriteSettings_OpenFolderFailed => Get(nameof(SpriteSettings_OpenFolderFailed));
+    public static string Workbench_CapsuleFormat => Get(nameof(Workbench_CapsuleFormat));
+    public static string Workbench_CapsuleTooltipFormat => Get(nameof(Workbench_CapsuleTooltipFormat));
+    public static string Workbench_ConnectionStatusFormat => Get(nameof(Workbench_ConnectionStatusFormat));
+    public static string Workbench_CostNote => Get(nameof(Workbench_CostNote));
+    public static string Workbench_More => Get(nameof(Workbench_More));
 }

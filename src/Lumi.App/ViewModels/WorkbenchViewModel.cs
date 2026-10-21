@@ -79,6 +79,11 @@ public partial class WorkbenchViewModel : ObservableObject
 
         History = new HistoryViewModel(store, OpenConversationAsync, time);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
+        ModelSwitcher.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ModelSwitcherViewModel.CapsuleTooltip))
+                OnPropertyChanged(nameof(ModelCapsuleTip));
+        };
         // 錯誤列的「換模型重試」：選完模型接著重送
         RetrySwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, RetryAfterModelSwitchAsync);
 
@@ -171,7 +176,7 @@ public partial class WorkbenchViewModel : ObservableObject
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand))]
     private bool _isResponding;
 
@@ -198,6 +203,9 @@ public partial class WorkbenchViewModel : ObservableObject
     public bool ShowSwitchBlockedHint => IsResponding;
 
     public bool CanSwitchModel => !IsResponding;
+
+    /// <summary>模型膠囊的 Tooltip：平時是供應商、model ID、連線狀態與費用說明；回應中膠囊停用，改說明為什麼（取代原本佔版面的提示文字）。</summary>
+    public string ModelCapsuleTip => IsResponding ? Strings.Workbench_SwitchBlocked : ModelSwitcher.CapsuleTooltip;
 
     /// <summary>「小精靈模式」按鈕的 Tooltip：回應中說明為什麼停用，平時是按鈕名稱（窄版只剩圖示時靠它說明）。</summary>
     public string SpriteModeTip => IsResponding ? Strings.Workbench_SwitchBlocked : Strings.Workbench_SpriteMode;

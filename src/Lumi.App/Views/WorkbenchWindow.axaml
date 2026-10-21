@@ -34,7 +34,7 @@
     <!-- 自訂標題列：Lumi 標誌、拖曳區、小精靈模式（SpriteModeButton 在它裡面，見 CustomTitleBar.SpriteModeButton） -->
     <views:CustomTitleBar x:Name="TitleBar" Grid.Row="0" />
 
-    <!-- 工具列：歷史、新對話、模型膠囊（CapsuleButton）、設定 -->
+    <!-- 工具列：新對話、歷史對話、模型膠囊（CapsuleButton）、「…」選單 -->
     <views:ChatToolbar x:Name="Toolbar" Grid.Row="1" />
 
     <!-- 歷史對話抽屜（內嵌，開啟時把訊息區往右推） -->

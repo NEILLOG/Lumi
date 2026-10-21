@@ -53,18 +53,44 @@ public partial class ModelSwitcherViewModel : ObservableObject
 
     // ---- 膠囊上顯示的目前模型 ----
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasCurrent), nameof(CapsuleText))]
+    /// <summary>使用者自訂的顯示名稱（模型選單與設定清單的主文字）；膠囊不用它，膠囊顯示確切的 <see cref="ModelId"/>。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasCurrent), nameof(CapsuleText), nameof(CapsuleTooltip))]
     private string _currentName = Strings.Workbench_NoModel;
 
     [ObservableProperty]
     private string _currentConnectionName = "";
 
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsOk), nameof(IsFailed), nameof(IsUnknown))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsOk), nameof(IsFailed), nameof(IsUnknown), nameof(StatusText), nameof(CapsuleTooltip))]
     private ConnectionStatus _currentStatus = ConnectionStatus.Unknown;
+
+    /// <summary>供應商顯示名：用連線名稱（例如「Anthropic」「Ollama」）；連線沒有名稱時退回格式名稱。沒有模型時是空字串。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CapsuleText), nameof(CapsuleTooltip))]
+    private string _providerName = "";
+
+    /// <summary>確切的 model ID（<see cref="ModelSettings.ModelId"/>，例如 <c>gpt-5-mini</c>），不是自訂的顯示名稱。沒有模型時是空字串。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(CapsuleText), nameof(CapsuleTooltip))]
+    private string _modelId = "";
 
     public bool HasCurrent => _catalog.Resolve(_catalog.Current.WorkbenchModelId) is not null;
 
-    public string CapsuleText => HasCurrent ? CurrentName : Strings.Workbench_NoModelClickToSetup;
+    /// <summary>膠囊文字：「供應商 · model ID」；還沒有模型時是設定提示。</summary>
+    public string CapsuleText => HasCurrent
+        ? string.Format(Strings.Workbench_CapsuleFormat, ProviderName, ModelId)
+        : Strings.Workbench_NoModelClickToSetup;
+
+    /// <summary>連線狀態的文字（已連線／連線失敗／尚未確認）；連線狀態不能只靠圓點。</summary>
+    public string StatusText => CurrentStatus switch
+    {
+        ConnectionStatus.Ok => Strings.Workbench_StatusConnected,
+        ConnectionStatus.Failed => Strings.Workbench_StatusFailed,
+        _ => Strings.Workbench_StatusUnknown,
+    };
+
+    /// <summary>膠囊的 Tooltip：供應商與完整 model ID、連線狀態文字、費用歸屬。窄版文字被省略時靠它看完整名稱。</summary>
+    public string CapsuleTooltip => HasCurrent
+        ? string.Format(Strings.Workbench_CapsuleTooltipFormat, ProviderName, ModelId,
+            string.Format(Strings.Workbench_ConnectionStatusFormat, StatusText), Strings.Workbench_CostNote)
+        : Strings.Workbench_NoModelClickToSetup;
 
     public bool IsOk => CurrentStatus == ConnectionStatus.Ok;
 
@@ -82,9 +108,12 @@ public partial class ModelSwitcherViewModel : ObservableObject
         var current = _catalog.Resolve(settings.WorkbenchModelId);
         CurrentName = current?.Model.DisplayName ?? Strings.Workbench_NoModel;
         CurrentConnectionName = current?.Connection.Name ?? "";
+        ProviderName = current is null ? "" : ProviderNameOf(current.Connection);
+        ModelId = current?.Model.ModelId ?? "";
         CurrentStatus = current is null ? ConnectionStatus.Unknown : _status.Get(current.Connection.Id).Status;
         OnPropertyChanged(nameof(HasCurrent));
         OnPropertyChanged(nameof(CapsuleText));
+        OnPropertyChanged(nameof(CapsuleTooltip));
 
         var query = SearchText.Trim();
         Entries.Clear();
@@ -107,6 +136,11 @@ public partial class ModelSwitcherViewModel : ObservableObject
         }
         OnPropertyChanged(nameof(HasMatches));
     }
+
+    private static string ProviderNameOf(ConnectionSettings connection) =>
+        !string.IsNullOrWhiteSpace(connection.Name)
+            ? connection.Name.Trim()
+            : connection.Format == ProviderFormat.Anthropic ? Strings.Format_Anthropic : Strings.Format_OpenAI;
 
     /// <summary>選了模型：改工作台預設模型；回應中不能切換。</summary>
     public async Task<bool> SelectAsync(ModelPickerEntry? entry)

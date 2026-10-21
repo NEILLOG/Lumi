@@ -65,7 +65,64 @@ public sealed class ModelSwitcherViewModelTests
         Assert.Equal("", switcher.SearchText);
         Assert.Equal("Qwen 3", switcher.CurrentName);
         Assert.Equal("Ollama", switcher.CurrentConnectionName);
-        Assert.Equal("Qwen 3", switcher.CapsuleText);
+        // 膠囊顯示供應商與確切的 model ID，不是自訂的顯示名稱
+        Assert.Equal("Ollama", switcher.ProviderName);
+        Assert.Equal("qwen3:8b", switcher.ModelId);
+        Assert.Equal("Ollama · qwen3:8b", switcher.CapsuleText);
+    }
+
+    [Fact]
+    public async Task Capsule_ShowsProviderAndExactModelId_NotTheDisplayName()
+    {
+        var (switcher, host, _, _) = await CreateAsync();
+        using var _ = host;
+        var current = host.Catalog.Resolve(host.Catalog.Current.WorkbenchModelId)!;
+
+        Assert.Equal(current.Connection.Name, switcher.ProviderName);
+        Assert.Equal(current.Model.ModelId, switcher.ModelId);
+        Assert.NotEqual(current.Model.DisplayName, switcher.ModelId);
+        Assert.Equal($"{current.Connection.Name} · {current.Model.ModelId}", switcher.CapsuleText);
+        Assert.DoesNotContain(current.Model.DisplayName, switcher.CapsuleText);
+    }
+
+    [Theory]
+    [InlineData(ProviderFormat.Anthropic)]
+    [InlineData(ProviderFormat.OpenAICompatible)]
+    public void ProviderName_FallsBackToTheFormatName_WhenTheConnectionNameIsBlank(ProviderFormat format)
+    {
+        var catalog = new FakeModelCatalog();
+        var connection = new ConnectionSettings("c", "  ", format, "http://localhost:1/v1");
+        var model = new ModelSettings("m", "c", "gpt-5-mini", "迷你", 4096, 128_000, false);
+        catalog.Current = new AppSettings([connection], [model], model.Id, model.Id, ThemePreference.System);
+        var status = new ConnectionStatusCache();
+
+        var switcher = new ModelSwitcherViewModel(catalog, status, new FakeSettingsWindowService(), new SyncUiDispatcher(), () => false);
+
+        var expected = format == ProviderFormat.Anthropic ? Strings.Format_Anthropic : Strings.Format_OpenAI;
+        Assert.Equal(expected, switcher.ProviderName);
+        Assert.Equal($"{expected} · gpt-5-mini", switcher.CapsuleText);
+    }
+
+    [Fact]
+    public async Task CapsuleTooltip_HasProviderModelIdStatusText_AndTheCostNote_AndTracksTheStatus()
+    {
+        var (switcher, host, _, _) = await CreateAsync();
+        using var _ = host;
+        var changed = new List<string?>();
+        switcher.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        Assert.Contains(switcher.CapsuleText, switcher.CapsuleTooltip);
+        Assert.Contains(Strings.Workbench_StatusUnknown, switcher.CapsuleTooltip);
+        Assert.Contains(Strings.Workbench_CostNote, switcher.CapsuleTooltip);
+
+        host.Status.Mark("dev-anthropic", ConnectionStatus.Ok);
+        Assert.Contains(Strings.Workbench_StatusConnected, switcher.CapsuleTooltip);
+        Assert.Equal(Strings.Workbench_StatusConnected, switcher.StatusText);
+        Assert.Contains(nameof(ModelSwitcherViewModel.CapsuleTooltip), changed);
+
+        host.Status.Mark("dev-anthropic", ConnectionStatus.Failed);
+        Assert.Contains(Strings.Workbench_StatusFailed, switcher.CapsuleTooltip);
+        Assert.DoesNotContain(Strings.Workbench_StatusConnected, switcher.CapsuleTooltip);
     }
 
     [Fact]
@@ -150,6 +207,9 @@ public sealed class ModelSwitcherViewModelTests
 
         Assert.False(switcher.HasCurrent);
         Assert.Equal(Strings.Workbench_NoModelClickToSetup, switcher.CapsuleText);
+        Assert.Equal(Strings.Workbench_NoModelClickToSetup, switcher.CapsuleTooltip);
+        Assert.Equal("", switcher.ProviderName);
+        Assert.Equal("", switcher.ModelId);
         Assert.False(switcher.HasMatches);
     }
 

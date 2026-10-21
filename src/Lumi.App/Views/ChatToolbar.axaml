@@ -2,57 +2,95 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Lumi.App.ViewModels"
              xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
              xmlns:views="using:Lumi.App.Views"
              x:Class="Lumi.App.Views.ChatToolbar"
              x:DataType="vm:WorkbenchViewModel">
 
   <UserControl.Styles>
     <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <!-- 工具列上的按鈕統一 32 高；secondary／tertiary 的外觀來自 Themes/Controls.axaml -->
+    <Style Selector="Button.toolbar">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.toolbar.iconOnly">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <!-- 模型膠囊：圓角膠囊形的 secondary，文字過長時省略，不推走其他按鈕 -->
     <Style Selector="Button.capsule">
-      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="Padding" Value="14,5" />
+      <Setter Property="MinWidth" Value="120" />
+      <Setter Property="MaxWidth" Value="360" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
   </UserControl.Styles>
 
-  <!-- 工具列：歷史、新對話、模型膠囊、設定。下一個任務（UB）才會重做內容 -->
+  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 「…」選單（設定、管理連線與模型） -->
   <Border Padding="12,8"
           Background="{DynamicResource LumiChromeBrush}"
           BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
-    <Grid ColumnDefinitions="Auto,*,Auto">
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
-        <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_History}" Command="{Binding History.ToggleCommand}" />
-        <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_NewConversation}" Command="{Binding NewConversationCommand}" />
-      </StackPanel>
-
-      <!-- 模型切換膠囊：狀態點、模型名稱、連線名稱、下拉箭頭。回應中停用並說明原因 -->
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Button x:Name="CapsuleButton" Classes="capsule" IsEnabled="{Binding CanSwitchModel}">
-          <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedLeft">
-              <views:ModelPicker DataContext="{Binding ModelSwitcher}" />
-            </Flyout>
-          </Button.Flyout>
-          <StackPanel Orientation="Horizontal" Spacing="8" DataContext="{Binding ModelSwitcher}" x:DataType="vm:ModelSwitcherViewModel">
-            <Panel Width="10" VerticalAlignment="Center">
-              <Ellipse Width="9" Height="9" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessBrush}" />
-              <Ellipse Width="9" Height="9" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerBrush}" />
-              <Ellipse Width="9" Height="9" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiBorderStrongBrush}" />
-            </Panel>
-            <TextBlock Text="{Binding CapsuleText}" FontWeight="Medium" VerticalAlignment="Center" />
-            <TextBlock Text="{Binding CurrentConnectionName}" Classes="muted" VerticalAlignment="Center" />
-            <TextBlock Text="▾" Classes="muted" VerticalAlignment="Center" />
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+        <Button x:Name="NewConversationButton" Classes="secondary toolbar" Command="{Binding NewConversationCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Workbench_NewConversation}"
+                AutomationProperties.Name="{x:Static res:Strings.Workbench_NewConversation}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+            <TextBlock Text="{x:Static res:Strings.Workbench_NewConversation}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <TextBlock IsVisible="{Binding ShowSwitchBlockedHint}" Text="{x:Static res:Strings.Workbench_SwitchBlocked}"
-                   Classes="muted" VerticalAlignment="Center" />
+        <Button x:Name="HistoryButton" Classes="secondary toolbar" Command="{Binding History.ToggleCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Workbench_History}"
+                AutomationProperties.Name="{x:Static res:Strings.Workbench_History}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconClock}" Size="16" />
+            <TextBlock Text="{x:Static res:Strings.Workbench_History}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
       </StackPanel>
 
-      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
-        <Button Classes="chrome" Content="{x:Static res:Strings.Workbench_Settings}" Command="{Binding OpenSettingsCommand}" />
-      </StackPanel>
+      <!-- 模型切換膠囊：狀態點、「供應商 · model ID」、下拉箭頭。回應中停用，Tooltip 說明原因（不佔版面） -->
+      <Button x:Name="CapsuleButton" Grid.Column="1" Classes="secondary toolbar capsule" HorizontalAlignment="Center"
+              IsEnabled="{Binding CanSwitchModel}"
+              ToolTip.Tip="{Binding ModelCapsuleTip}" ToolTip.ShowOnDisabled="True"
+              AutomationProperties.Name="{Binding ModelSwitcher.CapsuleText}">
+        <Button.Flyout>
+          <Flyout Placement="BottomEdgeAlignedLeft">
+            <views:ModelPicker DataContext="{Binding ModelSwitcher}" />
+          </Flyout>
+        </Button.Flyout>
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" DataContext="{Binding ModelSwitcher}" x:DataType="vm:ModelSwitcherViewModel">
+          <Panel Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center">
+            <Ellipse Width="8" Height="8" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessDotBrush}" />
+            <Ellipse Width="8" Height="8" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
+            <Ellipse Width="8" Height="8" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiWarningDotBrush}" />
+          </Panel>
+          <TextBlock Grid.Column="1" Text="{Binding CapsuleText}" FontWeight="Medium" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+          <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronDown}" Size="16"
+                        Foreground="{DynamicResource LumiTextMutedBrush}" />
+        </Grid>
+      </Button>
+
+      <!-- 「…」：設定、管理連線與模型 -->
+      <Button x:Name="MoreButton" Grid.Column="2" Classes="tertiary toolbar iconOnly"
+              ToolTip.Tip="{x:Static res:Strings.Workbench_More}"
+              AutomationProperties.Name="{x:Static res:Strings.Workbench_More}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+        <Button.Flyout>
+          <MenuFlyout Placement="BottomEdgeAlignedRight">
+            <MenuItem x:Name="SettingsMenuItem" Header="{x:Static res:Strings.Workbench_Settings}"
+                      Command="{Binding OpenSettingsCommand}" />
+            <MenuItem x:Name="ManageModelsMenuItem" Header="{x:Static res:Strings.ModelPicker_Manage}"
+                      Command="{Binding ModelSwitcher.ManageCommand}" />
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
     </Grid>
   </Border>
 </UserControl>

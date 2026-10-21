@@ -293,4 +293,9 @@
   <data name="SpriteSettings_Issues" xml:space="preserve"><value>載入失敗與警告</value></data>
   <data name="SpriteSettings_IssuesNote" xml:space="preserve"><value>失敗的角色不會出現在清單裡；警告的角色照常可以使用。</value></data>
   <data name="SpriteSettings_OpenFolderFailed" xml:space="preserve"><value>無法開啟資料夾。</value></data>
+  <data name="Workbench_CapsuleFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Workbench_CapsuleTooltipFormat" xml:space="preserve"><value>{0} · {1}&#10;{2}&#10;{3}</value></data>
+  <data name="Workbench_ConnectionStatusFormat" xml:space="preserve"><value>連線狀態：{0}</value></data>
+  <data name="Workbench_CostNote" xml:space="preserve"><value>實際費用由供應商依模型與 token 用量計算，費用由你的帳號支付。</value></data>
+  <data name="Workbench_More" xml:space="preserve"><value>更多</value></data>
 </root>

@@ -119,9 +119,9 @@ public class CustomTitleBarTests
         Assert.Equal(TitleBarLayout.Height, window.ExtendClientAreaTitleBarHeightHint);
         Assert.Equal(TitleBarLayout.Height, bar.Bounds.Height);
         Assert.Equal(0, BoundsIn(bar, window).Top);
-        // 工具列（含設定按鈕）在標題列下方，小精靈按鈕不在工具列裡
-        var settings = window.GetVisualDescendants().OfType<Button>().First(b => Equals(b.Content, Strings.Workbench_Settings));
-        Assert.True(BoundsIn(settings, window).Top >= bar.Bounds.Height);
+        // 工具列（含「…」按鈕）在標題列下方，小精靈按鈕不在工具列裡
+        var more = window.FindByName<ChatToolbar>("Toolbar").MoreButton;
+        Assert.True(BoundsIn(more, window).Top >= bar.Bounds.Height);
         Assert.NotNull(bar.GetVisualDescendants().OfType<Button>().SingleOrDefault(b => b.Name == "SpriteModeButton"));
         window.Close();
     }

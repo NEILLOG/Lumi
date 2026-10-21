@@ -54,6 +54,32 @@ public sealed class PaletteContrastTests
     }
 
     [Theory]
+    [InlineData("SuccessDot")]
+    [InlineData("WarningDot")]
+    [InlineData("DangerDot")]
+    public void StatusDots_AreFixedColors_AndMeetNonTextContrastOnEverySurface(string dot)
+    {
+        // 膠囊的狀態點是非文字元件：WCAG 3:1。狀態另外用文字表達（Tooltip），不只靠圓點。
+        // 已知例外：ui-guide.html 指定的 Success #55A981、Warning #D99A3E 在淺色 Surface／Chrome 上只有 2.35–2.85:1
+        // （色碼照原則，不調整）。這兩個組合只守住下限 2.3:1 防止再變差，並列在人工驗收（plan/12 的 UB-2 項）。
+        var tokens = ReadColors(Path.Combine(ThemesDir, "Tokens.axaml"));
+        Assert.Equal(tokens["Light"][dot], tokens["Dark"][dot]);   // 不隨明暗變
+        foreach (var (theme, variant) in AllPalettes())
+        {
+            var colors = new Dictionary<string, string>(theme.Colors[variant]);
+            foreach (var (key, value) in tokens[variant])
+                colors[key] = value;
+            foreach (var surface in new[] { "Surface", "Chrome" })
+            {
+                var ratio = Contrast(colors, dot, surface);
+                var knownLow = variant == "Light" && dot is "SuccessDot" or "WarningDot";
+                var minimum = knownLow ? 2.3 : 3.0;
+                Assert.True(ratio >= minimum, $"{theme.Id} {variant}：{dot} 在 {surface} 上只有 {ratio:0.00}:1（需要 {minimum}:1）");
+            }
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(SemanticTextPairs))]
     public void SemanticText_MeetsWcagAa_OnEveryTheme(string text, string background)
     {
