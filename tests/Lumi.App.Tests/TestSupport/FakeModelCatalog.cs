@@ -1,5 +1,6 @@
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
+using Lumi.Core.Speech;
 
 namespace Lumi.App.Tests.TestSupport;
 
@@ -62,6 +63,19 @@ internal sealed class FakeModelCatalog : IModelCatalog
         Raise();
         return Task.CompletedTask;
     }
+
+    /// <summary>每次 <see cref="SetSpeechAsync"/> 的參數（端點、語言、逾時，以及 Token；沒有輸入新 Token 時是 null）。</summary>
+    public List<(SpeechSettings Settings, SecretValue? Token)> SpeechSaves { get; } = [];
+
+    public Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default)
+    {
+        SpeechSaves.Add((settings, newToken));
+        Current = Current with { Speech = settings.Normalize() };
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> HasSpeechTokenAsync(CancellationToken ct = default) => Task.FromResult(false);
+    public Task ClearSpeechTokenAsync(CancellationToken ct = default) => throw new NotSupportedException();
 
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default)
     {

@@ -28,18 +28,21 @@
 | 狀態 | 何時發生 | 光球的參考表現 | 退化時改用 |
 |---|---|---|---|
 | `Idle` 待機 | 沒有任務 | 暖色、4 秒呼吸、眼睛偶爾探出來 | —（必須支援） |
-| `Listening` 聆聽 | 收音中 | 冰藍、漣漪擴散、眼睛睜大 | `Idle` |
-| `Transcribing` 轉寫 | Whisper 處理中 | 藍往靛色漂移、眼睛左右掃視 | `Listening` |
+| `Listening` 聆聽 | 收音中（語音輸入，M6） | 冰藍、漣漪擴散、眼睛睜大 | `Idle` |
+| `Transcribing` 轉寫 | 語音轉寫中（Whisper 處理中，M6） | 藍往靛色漂移、眼睛左右掃視 | `Listening` |
 | `Thinking` 思考 | 等待第一個 token | 紫藍流轉、粒子繞行、眼睛往上飄 | `Idle` |
 | `Tool` 呼叫工具 | 執行工具中 | 琥珀色旋轉弧線、瞇眼 | `Thinking` |
 | `Streaming` 回覆中 | 文字串流中 | 青綠閃動、眨眼變頻繁 | `Idle` |
 | `Done` 完成 | 回覆結束（數秒後回到待機） | 綠光彈一下、單眼 wink | `Idle` |
 | `Attention` 需要確認 | 工具需要使用者同意 | 橘色上下彈跳 | `Done` |
-| `Error` 錯誤 | API 失敗、斷線 | 紅色搖頭、眼睛擠成線 | `Idle` |
+| `Error` 錯誤 | API 失敗、斷線；語音轉寫失敗（M6） | 紅色搖頭、眼睛擠成線 | `Idle` |
 | `Sleep` 休眠 | 閒置一段時間 | 灰藍、8 秒慢呼吸、閉眼 | `Idle` |
 
 只有 `Idle` 是必要的，其他狀態可以在 manifest 裡用退化規則對應到別的狀態。
 退化規則可以串接，例如 `Transcribing → Listening → Idle`，殼會一路往下找。
+
+`Listening`、`Transcribing`、`Error`（語音失敗）由語音輸入觸發（M6 6E），來源是 `IVoiceInputController.State`，經 `SpriteStateMapper.OnVoiceState` 轉成狀態。
+對話優先：回應進行中（含等待權限確認）語音狀態不會蓋過對話狀態；回應結束後語音狀態才會再生效。語音的退化一樣交給 `SpriteStateResolver`，殼不自己做退化。
 
 ## 3. 互動
 

@@ -33,6 +33,7 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<PersonaViewModel>();
         services.AddTransient<GeneralViewModel>();
         services.AddTransient<SpriteSettingsViewModel>();
+        services.AddTransient<SpeechViewModel>();
 
         // 權限確認：取代 Core 預設的「一律拒絕」；對話迴圈等在 IToolApprovalService，卡片上的按鈕走 IToolApprovalResponder
         services.AddSingleton<ToolApprovalService>();
@@ -45,6 +46,8 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IFilePickerService, FilePickerService>();
         services.AddSingleton<IClipboardImageService, ClipboardImageService>();
         services.AddSingleton<ContextBarViewModel>();
+        // 語音輸入（M6 6D）：工作台與小精靈共用同一個控制器；App 結束時由容器釋放（會取消錄音）
+        services.AddSingleton<IVoiceInputController, VoiceInputController>();
 
         services.AddSingleton<IApiKeyPrompt, SettingsApiKeyPrompt>();
         // 小精靈的殼（M7）與內建的光球角色；殼的數字都在 SpriteShellOptions

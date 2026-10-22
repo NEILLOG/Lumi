@@ -21,6 +21,12 @@ internal static partial class ObjC
 
     internal static nint Sel(string name) => sel_registerName(name);
 
+    [LibraryImport(Lib, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial nint objc_getClass(string name);
+
+    [LibraryImport(Lib, EntryPoint = "objc_msgSend")]
+    internal static partial nint SendPtrArg(nint receiver, nint selector, nint argument);
+
     [LibraryImport(Lib, EntryPoint = "objc_msgSend")]
     internal static partial nint SendPtr(nint receiver, nint selector);
 

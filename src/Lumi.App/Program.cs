@@ -5,6 +5,7 @@ using Lumi.Core;
 using Lumi.Infrastructure;
 using Lumi.Platform;
 using Lumi.Providers;
+using Lumi.Speech;
 using Lumi.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,6 +30,7 @@ internal static class Program
                 options.Layered = layered;
         });
         builder.Services.AddLumiProviders();
+        builder.Services.AddLumiSpeech();
         builder.Services.AddLumiInfrastructure();
         builder.Services.AddLumiTools(options =>
         {

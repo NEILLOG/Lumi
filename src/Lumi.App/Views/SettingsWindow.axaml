@@ -125,6 +125,20 @@
       <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
+    <!-- 語音頁的測試結果（同 ConnectionsPanel）：成功＝Soft 底＋勾；失敗＝Danger 淡底＋三角形＋文字 -->
+    <Style Selector="Border.result">
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.result.ok">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <Style Selector="Border.result.fail">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+    </Style>
     <Style Selector="ListBox.menu ListBoxItem:disabled /template/ ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
@@ -189,7 +203,7 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 外觀與操作、3 小精靈） -->
+            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 外觀與操作、3 小精靈、4 語音） -->
             <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}"
                      AutomationProperties.Name="{x:Static res:Strings.Settings_CategoriesName}">
               <ListBoxItem x:Name="CategoryConnections" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
@@ -225,6 +239,15 @@
                   <StackPanel Grid.Column="1">
                     <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategorySprite}" />
                     <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategorySpriteSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategorySpeech" AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySpeech}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconMic}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategorySpeech}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategorySpeechSub}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </Grid>
               </ListBoxItem>
@@ -598,6 +621,132 @@
             </StackPanel>
           </ctl:FractionWidthLimiter>
         </Grid>
+       </StackPanel>
+      </ScrollViewer>
+
+      <!-- ===== 語音：服務（端點、語言、逾時）→ Token → 測試結果與動作列（測試連線 secondary、還原 secondary、儲存 primary） ===== -->
+      <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSpeech}">
+       <StackPanel Margin="32">
+        <views:SettingsPageHeader x:Name="SpeechHeader"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategorySpeech}"
+                                  Title="{x:Static res:Strings.Settings_HeaderSpeechTitle}"
+                                  Description="{x:Static res:Strings.Settings_HeaderSpeechDescription}" />
+        <ctl:FractionWidthLimiter MaxPixels="560" HorizontalAlignment="Stretch">
+          <StackPanel x:Name="SpeechForm" DataContext="{Binding Speech}" x:DataType="vm:SpeechViewModel">
+
+            <StackPanel x:Name="SpeechServiceSection" Spacing="16">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.Speech_SectionService}" />
+              <ctl:FormField x:Name="SpeechEndpointField" Label="{x:Static res:Strings.Speech_Endpoint}" Requirement="Required"
+                             Hint="{x:Static res:Strings.Speech_EndpointHint}" Error="{Binding EndpointError}">
+                <TextBox x:Name="SpeechEndpointBox" Text="{Binding Endpoint}" Classes.error="{Binding EndpointError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         Watermark="{x:Static res:Strings.Speech_EndpointWatermark}"
+                         AutomationProperties.Name="{x:Static res:Strings.Speech_Endpoint}" />
+              </ctl:FormField>
+
+              <ctl:FormField x:Name="SpeechLanguageField" Label="{x:Static res:Strings.Speech_Language}" Requirement="Optional"
+                             Hint="{x:Static res:Strings.Speech_LanguageHint}">
+                <StackPanel Spacing="8">
+                  <TextBox x:Name="SpeechLanguageBox" Text="{Binding Language}" Watermark="{x:Static res:Strings.Speech_LanguageWatermark}"
+                           AutomationProperties.Name="{x:Static res:Strings.Speech_Language}" />
+                  <!-- 常用快選：tertiary，文字就是名稱；「留空」由服務端判斷 -->
+                  <WrapPanel>
+                    <Button x:Name="SpeechLangAutoButton" Classes="tertiary" Margin="0,0,8,8" Padding="12,8"
+                            Content="{x:Static res:Strings.Speech_LangAuto}" Command="{Binding SetLanguageCommand}" CommandParameter="" />
+                    <Button x:Name="SpeechLangZhButton" Classes="tertiary" Margin="0,0,8,8" Padding="12,8"
+                            Content="{x:Static res:Strings.Speech_LangZh}" Command="{Binding SetLanguageCommand}" CommandParameter="zh" />
+                    <Button x:Name="SpeechLangEnButton" Classes="tertiary" Margin="0,0,8,8" Padding="12,8"
+                            Content="{x:Static res:Strings.Speech_LangEn}" Command="{Binding SetLanguageCommand}" CommandParameter="en" />
+                    <Button x:Name="SpeechLangJaButton" Classes="tertiary" Margin="0,0,8,8" Padding="12,8"
+                            Content="{x:Static res:Strings.Speech_LangJa}" Command="{Binding SetLanguageCommand}" CommandParameter="ja" />
+                  </WrapPanel>
+                </StackPanel>
+              </ctl:FormField>
+
+              <ctl:FormField x:Name="SpeechTimeoutField" Label="{x:Static res:Strings.Speech_Timeout}" Requirement="Required"
+                             Hint="{x:Static res:Strings.Speech_TimeoutHint}" Error="{Binding TimeoutError}">
+                <TextBox x:Name="SpeechTimeoutBox" Text="{Binding TimeoutText}" Width="120" HorizontalAlignment="Left"
+                         Classes.error="{Binding TimeoutError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         AutomationProperties.Name="{x:Static res:Strings.Speech_Timeout}" />
+              </ctl:FormField>
+
+              <TextBlock x:Name="SpeechPrivacyNote" Classes="muted" Text="{x:Static res:Strings.Speech_NotePrivacy}" TextWrapping="Wrap" />
+              <TextBlock x:Name="SpeechCertificateNote" Classes="muted" Text="{x:Static res:Strings.Speech_NoteCertificate}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="divider" />
+
+            <!-- Token：已設定時顯示「已設定 · 結尾 xxxx」與更換／清除；端點主機變了就改顯示警告並要求重新輸入 -->
+            <StackPanel x:Name="SpeechTokenSection" Spacing="16">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.Speech_SectionToken}" />
+              <ctl:FormField x:Name="SpeechTokenField" Label="{x:Static res:Strings.Speech_Token}" Requirement="Required"
+                             Hint="{x:Static res:Strings.Speech_TokenNote}">
+                <StackPanel Spacing="8">
+                  <Grid x:Name="SpeechTokenStatusRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowTokenStatus}">
+                    <TextBlock Grid.Column="0" Text="{Binding TokenStatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                      <Button x:Name="SpeechReplaceTokenButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                              Content="{x:Static res:Strings.Speech_TokenReplace}" Command="{Binding ReplaceTokenCommand}" IsVisible="{Binding !ReplacingToken}" />
+                      <Button x:Name="SpeechClearTokenButton" Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                              Content="{x:Static res:Strings.Speech_TokenClear}" Command="{Binding ClearTokenCommand}" IsVisible="{Binding !ReplacingToken}" />
+                      <Button x:Name="SpeechCancelReplaceTokenButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                              Content="{x:Static res:Strings.Speech_TokenCancelReplace}" Command="{Binding CancelReplaceTokenCommand}" IsVisible="{Binding ReplacingToken}" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock x:Name="SpeechTokenHostChangedText" Classes="warning" Text="{x:Static res:Strings.Speech_TokenHostChanged}"
+                             IsVisible="{Binding HostChanged}" />
+                  <Grid x:Name="SpeechTokenInputRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowTokenInput}">
+                    <TextBox x:Name="SpeechTokenBox" Grid.Column="0" Text="{Binding NewToken}" PasswordChar="•" RevealPassword="{Binding RevealToken}"
+                             Watermark="{x:Static res:Strings.Speech_TokenPlaceholder}" AutomationProperties.Name="{x:Static res:Strings.Speech_Token}" />
+                    <ToggleButton x:Name="SpeechRevealTokenButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                                  Content="{x:Static res:Strings.Speech_TokenShow}" IsChecked="{Binding RevealToken}" />
+                  </Grid>
+                </StackPanel>
+              </ctl:FormField>
+            </StackPanel>
+
+            <Border Classes="divider" />
+
+            <!-- 測試結果：成功＝Success 淡底＋勾＋文字；失敗＝Danger 淡底＋三角＋原因文字（不只靠顏色）；停用的原因寫在動作列旁邊 -->
+            <StackPanel x:Name="SpeechResults" Spacing="8">
+              <Border x:Name="SpeechTestOk" Classes="result ok" IsVisible="{Binding ShowTestOk}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconCheck}" Size="16" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Top" />
+                  <TextBlock Grid.Column="1" Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+                </Grid>
+              </Border>
+              <Border x:Name="SpeechTestFail" Classes="result fail" IsVisible="{Binding ShowTestFailure}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}" VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="{x:Static res:Strings.Speech_TestFailed}" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
+                    <TextBlock Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </StackPanel>
+
+            <!-- 動作列：左邊是訊息與停用原因，右邊是測試連線（secondary）、還原（secondary）、儲存（primary，這一區唯一的 Primary） -->
+            <Grid x:Name="SpeechActions" ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,16,0,0">
+              <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                <TextBlock x:Name="SpeechMessage" Classes="muted" Classes.error="{Binding MessageIsError}"
+                           IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
+                <TextBlock x:Name="SpeechTestBlockedText" Classes="muted" Text="{Binding TestBlockedReason}" TextWrapping="Wrap"
+                           IsVisible="{Binding HasTestBlockedReason}" />
+                <TextBlock x:Name="SpeechSaveBlockedText" Classes="muted" Text="{Binding SaveBlockedReason}" TextWrapping="Wrap"
+                           IsVisible="{Binding HasSaveBlockedReason}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="SpeechTestButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Speech_Test}" Command="{Binding TestCommand}" IsVisible="{Binding !IsTesting}" />
+                <TextBlock x:Name="SpeechTestingText" Text="{x:Static res:Strings.Speech_Testing}" IsVisible="{Binding IsTesting}" VerticalAlignment="Center" />
+                <Button x:Name="SpeechRevertButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Speech_Revert}" Command="{Binding RevertCommand}" />
+                <Button x:Name="SpeechSaveButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Speech_Save}" Command="{Binding SaveCommand}" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </ctl:FractionWidthLimiter>
        </StackPanel>
       </ScrollViewer>
     </Grid>

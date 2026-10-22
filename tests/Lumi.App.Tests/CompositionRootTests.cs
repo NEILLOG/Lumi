@@ -9,6 +9,7 @@ using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
 using Lumi.Platform;
 using Lumi.Providers;
+using Lumi.Speech;
 using Lumi.Tools;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,7 @@ public sealed class CompositionRootTests : IDisposable
             o.DpapiFilePath = Path.Combine(_directory, "secrets.json");
         });
         builder.Services.AddLumiProviders();
+        builder.Services.AddLumiSpeech();
         builder.Services.AddLumiInfrastructure(o => o.DatabasePath = Path.Combine(_directory, "lumi.db"));
         builder.Services.Configure<Lumi.Infrastructure.Attachments.AttachmentOptions>(o => o.Directory = Path.Combine(_directory, "attachments"));
         builder.Services.Configure<ModelCatalogOptions>(o => o.SettingsPath = Path.Combine(_directory, "settings.json"));

@@ -41,6 +41,8 @@ public partial class SpriteWindow : Window
     private readonly IAppModeCoordinator? _coordinator;
     private readonly IChatSession? _session;
     private readonly ISettingsWindowService? _settingsWindow;
+    private readonly IVoiceInputController _voice;
+    private readonly SpriteVoiceBarViewModel _voiceBar;
     private readonly DispatcherTimer _pollTimer;
     private readonly DispatcherTimer _perfTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly PerfMonitor _perf = new();
@@ -57,6 +59,7 @@ public partial class SpriteWindow : Window
     private SpriteState? _applied;
     private bool _inputShown;
     private bool _bubbleShown;
+    private VoiceInputState _focusedVoiceState = VoiceInputState.Idle;
     private bool _responding;
     private bool _menuOpen;
     private bool _pointerInside;
@@ -80,7 +83,8 @@ public partial class SpriteWindow : Window
         SpriteBubbleViewModel? bubble = null,
         IAppModeCoordinator? coordinator = null,
         IChatSession? session = null,
-        ISettingsWindowService? settingsWindow = null)
+        ISettingsWindowService? settingsWindow = null,
+        IVoiceInputController? voice = null)
     {
         _catalog = catalog;
         _overlay = overlay;
@@ -96,11 +100,22 @@ public partial class SpriteWindow : Window
         _coordinator = coordinator;
         _session = session;
         _settingsWindow = settingsWindow;
+        _voice = voice ?? NoVoiceInputController.Instance;
         _pollTimer = new DispatcherTimer { Interval = shell.PollInterval };
 
         InitializeComponent();
         _tracker.Raised += OnTrackerEvent;
         Bubble.DataContext = _bubble;
+
+        // 語音：輸入列的麥克風與收音列（ViewModel），狀態改變時把焦點放到該狀態的預設按鈕
+        _voiceBar = new SpriteVoiceBarViewModel(_voice);
+        InputBar.DataContext = _voiceBar;
+        Input.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty)   // 用屬性變更而不是 TextChanged：程式設定的文字也要拿掉語音標籤
+                _voiceBar.OnInputEdited(Input.Text ?? "");
+        };
+        _voiceBar.PropertyChanged += (_, _) => OnVoiceStateMaybeChanged();
         _mapper.Changed += SetState;
         _bubble.Dismissed += _mapper.Acknowledge;   // 錯誤的氣泡被關掉：角色離開 Error
         // 設定頁換了角色或尺寸、或角色資料夾重新載入了：立即生效（在 UI 執行緒上重建角色，位置以角色中心為準不跳動）
@@ -125,6 +140,11 @@ public partial class SpriteWindow : Window
         };
         KeyDown += OnWindowKeyDown;
         PointerEntered += (_, _) => _pointerInside = true;
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == IsVisibleProperty)
+                _voiceBar.Shown = IsVisible;   // 隱藏時收音會停止（不在背景錄音）；麥克風停用並說明原因
+        };
         PointerExited += (_, _) => _pointerInside = false;
 
         _pollTimer.Tick += (_, _) => Poll();
@@ -428,7 +448,7 @@ public partial class SpriteWindow : Window
     private void UpdateChrome()
     {
         var typing = Input.IsFocused && !string.IsNullOrEmpty(Input.Text);
-        var showInput = _tracker.IsNear || _applied is SpriteState.Listening or SpriteState.Transcribing || typing;
+        var showInput = _tracker.IsNear || _applied is SpriteState.Listening or SpriteState.Transcribing || typing || _voiceBar.IsVoiceActive;
         SetShown(InputBar, ref _inputShown, showInput, 12, interactive: true);
         if (!showInput && Input.IsFocused)
             Focus();
@@ -483,6 +503,53 @@ public partial class SpriteWindow : Window
             UpdateHud();
             e.Handled = true;
         }
+        else if (e.Key == Key.Escape && _voiceBar.CancelRecordingIfAny())
+        {
+            e.Handled = true;   // Esc＝取消錄音（ui-spec 6.3）
+        }
+    }
+
+    // ---- 語音：焦點跟著狀態走（ui-spec 6.3；讀屏軟體靠焦點讀出狀態） ----
+
+    /// <summary>VM 的屬性每次更新都會通知（計時、音量也是），所以只在狀態真的改變時搬移焦點。</summary>
+    private void OnVoiceStateMaybeChanged()
+    {
+        var state = _voice.State;
+        if (state == _focusedVoiceState)
+            return;
+        var previous = _focusedVoiceState;
+        _focusedVoiceState = state;
+
+        if (state == VoiceInputState.Idle)
+        {
+            if (previous != VoiceInputState.Idle)
+                Dispatcher.UIThread.Post(() => Input.Focus(), DispatcherPriority.Loaded);   // 回到閒置：回到輸入框
+            return;
+        }
+        // 延後一拍：收音列剛顯示時 Focus() 會回傳 false
+        Dispatcher.UIThread.Post(() => VoiceBar.FocusDefault(), DispatcherPriority.Loaded);
+    }
+
+    // ---- 語音與輸入框（給小精靈的語音接線用） ----
+
+    /// <summary>目前是否顯示中（隱藏時語音結果只放進輸入框，不送出）。</summary>
+    internal bool IsShown => IsVisible;
+
+    /// <summary>輸入框目前的文字。</summary>
+    internal string InputText => Input.Text ?? "";
+
+    /// <summary>
+    /// 語音結果放進輸入框（停止並編輯，或送出時被規則擋下來）：輸入框已有草稿就接在後面（輸入框只有一行，用空白分隔），
+    /// 前面顯示「語音」標籤，直到使用者改動文字為止。
+    /// </summary>
+    internal void InsertVoiceDraft(string text)
+    {
+        var flat = string.Join(' ', text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)).Trim();
+        var draft = Input.Text ?? "";
+        var combined = draft.Trim().Length == 0 ? flat : draft.TrimEnd() + " " + flat;
+        Input.Text = combined;
+        _voiceBar.MarkDraft(combined);
+        Dispatcher.UIThread.Post(() => Input.Focus(), DispatcherPriority.Loaded);
     }
 
     // ---- 指標：按下、移動、放開 ----

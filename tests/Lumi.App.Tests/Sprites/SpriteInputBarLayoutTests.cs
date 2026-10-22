@@ -14,7 +14,8 @@ namespace Lumi.App.Tests.Sprites;
 
 /// <summary>
 /// UE-1：全域 TextBox 樣式（最小高度 40、Padding、Focus 光暈）不能改變小精靈輸入列的版面。
-/// 數值是套用全域樣式之前（UA 之前的 Fluent 預設 TextBox）量到的：輸入列 300×48，輸入框 240×12 在 (17,18)，送出鈕 36×36 在 (257,6)。
+/// M6 6E 加了麥克風鈕，輸入列重排（新的座標與理由見 docs/ui-spec.md 8.2、plan/06-speech-whisper.md 6E）：
+/// 輸入列仍是 300×48；麥克風 36×36 在 (7,6)；輸入框縮成 198×12 在 (51,18)；送出鈕 36×36 在 (257,6)。
 /// </summary>
 public class SpriteInputBarLayoutTests
 {
@@ -43,9 +44,13 @@ public class SpriteInputBarLayoutTests
         var input = window.FindControl<TextBox>("Input")!;
         var send = window.FindControl<Button>("SendButton")!;
 
+        var mic = window.FindControl<Button>("MicButton")!;
+
         Assert.Equal(new Size(300, 48), bar.Bounds.Size);
-        Assert.Equal(new Size(240, 12), input.Bounds.Size);
-        Assert.Equal(new Point(17, 18), input.TranslatePoint(default, bar));
+        Assert.Equal(new Size(36, 36), mic.Bounds.Size);
+        Assert.Equal(new Point(7, 6), mic.TranslatePoint(default, bar));
+        Assert.Equal(new Size(198, 12), input.Bounds.Size);
+        Assert.Equal(new Point(51, 18), input.TranslatePoint(default, bar));
         Assert.Equal(new Size(36, 36), send.Bounds.Size);
         Assert.Equal(new Point(257, 6), send.TranslatePoint(default, bar));
     }

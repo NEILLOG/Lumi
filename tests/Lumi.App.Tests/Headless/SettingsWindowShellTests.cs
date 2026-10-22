@@ -124,19 +124,20 @@ public class SettingsWindowShellTests
     }
 
     [AvaloniaFact]
-    public void Menu_ListsTheFourCategories_WithPlainNamesAndSubtitles()
+    public void Menu_ListsTheFiveCategories_WithPlainNamesAndSubtitles()
     {
         using var host = new SettingsHost();
         var window = Show(host);
 
         var list = window.FindByName<ListBox>("CategoryList");
-        Assert.Equal(4, list.ItemCount);
+        Assert.Equal(5, list.ItemCount);
         var expected = new[]
         {
             ("CategoryConnections", "AI 連線", "供應商、金鑰與模型"),
             ("CategoryPersona", "人格與主動性", "回答風格與主動程度"),
             ("CategoryGeneral", "外觀與操作", "主題、色票與明暗"),
             ("CategorySprite", "小精靈", "角色、尺寸與語氣"),
+            ("CategorySpeech", "語音", "Whisper 語音辨識"),
         };
         for (var i = 0; i < expected.Length; i++)
         {

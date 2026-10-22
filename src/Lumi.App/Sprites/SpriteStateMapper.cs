@@ -1,3 +1,4 @@
+using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Sprites.Abstractions;
 
@@ -6,6 +7,11 @@ namespace Lumi.App.Sprites;
 /// <summary>
 /// 對話事件 → 角色狀態（純邏輯，計時用 <see cref="TimeProvider"/>）。<b>角色不知道對話</b>：它只會收到
 /// 「現在是思考中」這類訊號，由殼把這裡的結果交給角色（自動休眠與退化規則由殼另外處理）。
+/// <para>
+/// 語音輸入（M6 6E）：<c>Recording → Listening</c>、<c>Transcribing → Transcribing</c>、<c>Failed → Error</c>
+/// （失敗是 API 失敗一類，光球的參考表現是紅色搖頭，停到被關掉為止），轉寫完成回到 <c>Idle</c>。
+/// 小精靈這一輪回應進行中時語音不蓋過對話狀態（<see cref="OnVoiceState"/>）。
+/// </para>
 /// <para>
 /// <c>RunStarted → Thinking</c>、<c>ThinkingDelta → Thinking</c>、<c>TextDelta → Streaming</c>、
 /// <c>ToolCallStarted → Tool</c>、<c>ApprovalRequired → Attention</c>（被回答後回 <c>Tool</c>）、
@@ -17,6 +23,8 @@ public sealed class SpriteStateMapper(SpriteShellOptions options, TimeProvider t
 {
     private DateTimeOffset _doneAt;
     private string? _awaitingCallId;
+    private bool _running;
+    private bool _voiceDriven;
 
     public SpriteState State { get; private set; } = SpriteState.Idle;
 
@@ -24,8 +32,40 @@ public sealed class SpriteStateMapper(SpriteShellOptions options, TimeProvider t
 
     public void OnRunStarted()
     {
+        _running = true;
+        _voiceDriven = false;
         _awaitingCallId = null;
         Set(SpriteState.Thinking);
+    }
+
+    /// <summary>語音輸入的狀態改變（由小精靈的語音接線呼叫）。回應進行中忽略（對話優先）；轉寫完成（Idle）只收回自己設定的狀態。</summary>
+    public void OnVoiceState(VoiceInputState voice)
+    {
+        if (_running)
+            return;
+
+        switch (voice)
+        {
+            case VoiceInputState.Recording:
+                _voiceDriven = true;
+                Set(SpriteState.Listening);
+                break;
+            case VoiceInputState.Transcribing:
+                _voiceDriven = true;
+                Set(SpriteState.Transcribing);
+                break;
+            case VoiceInputState.Failed:
+                _voiceDriven = true;
+                Set(SpriteState.Error);
+                break;
+            case VoiceInputState.Idle:
+                if (!_voiceDriven)
+                    break;
+                _voiceDriven = false;
+                if (State is SpriteState.Listening or SpriteState.Transcribing or SpriteState.Error)
+                    Set(SpriteState.Idle);
+                break;
+        }
     }
 
     public void OnEvent(ChatEvent chatEvent)
@@ -73,6 +113,7 @@ public sealed class SpriteStateMapper(SpriteShellOptions options, TimeProvider t
 
     public void OnRunFinished(ChatRunResult result)
     {
+        _running = false;
         _awaitingCallId = null;
         if (result.Unexpected || result.Failure is not null)
             Set(SpriteState.Error);

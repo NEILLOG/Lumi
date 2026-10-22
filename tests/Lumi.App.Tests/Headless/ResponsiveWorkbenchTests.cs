@@ -281,7 +281,6 @@ public class ResponsiveWorkbenchTests
                 Assert.True(button.Bounds.Width <= 32.5);
         }
         Assert.Equal(wide, composer.FindByName<TextBlock>("SendHint").IsEffectivelyVisible);
-        Assert.Equal(wide, composer.FindByName<TextBlock>("MicCaption").IsEffectivelyVisible);
         rig.Window.Close();
     }
 

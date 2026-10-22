@@ -1,4 +1,5 @@
 using Lumi.Core.Secrets;
+using Lumi.Core.Speech;
 
 namespace Lumi.Core.Models;
 
@@ -44,6 +45,19 @@ public interface IModelCatalog
 
     /// <summary>小精靈的角色、尺寸、位置等（M7）。</summary>
     Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default);
+
+    /// <summary>
+    /// 語音服務設定（M6）。Token 只寫進 <see cref="ISecretStore"/>：端點的 Host 與 <see cref="SpeechSettings.TokenHost"/> 不同時視為沒有 Token，
+    /// 沒帶新 Token 就刪除舊的，避免舊 Token 被送到新主機。<paramref name="newToken"/> 有值時以端點 Host 綁定並更新 hint。
+    /// 端點不是有效網址時丟 <see cref="ArgumentException"/>；留空（尚未設定）允許。
+    /// </summary>
+    Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default);
+
+    /// <summary>語音 Token 有沒有存在。只查存不存在、不讀內容。</summary>
+    Task<bool> HasSpeechTokenAsync(CancellationToken ct = default);
+
+    /// <summary>刪除語音 Token，並清空 hint 與綁定的主機。</summary>
+    Task ClearSpeechTokenAsync(CancellationToken ct = default);
 
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);

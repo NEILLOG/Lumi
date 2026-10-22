@@ -55,7 +55,7 @@
 
     <!--
       RWD（根節點 class；放在最後才蓋得過上面的預設）。
-      Compact：Composer 外框左右 Margin 24；檔案、資料夾、麥克風只剩圖示；隱藏 SendHint、MicCaption（RespondingHint 保留，過長省略）。
+      Compact：Composer 外框左右 Margin 24；檔案、資料夾、麥克風只剩圖示；隱藏 SendHint（RespondingHint 保留，過長省略）。
       Narrow：Margin 16。
     -->
     <Style Selector="Window.compact Border.composer-area">
@@ -86,7 +86,7 @@
 
   <!--
     輸入區（RWD原則 3.5、ui-spec 第 6 節）：兩層。
-    上層：上下文 chip（有項目才出現）＋輸入框；下層：加入檔案、加入資料夾、語音輸入（停用佔位）｜提示文字｜送出／停止。
+    上層：上下文 chip（有項目才出現）＋輸入框（收音時換成收音面板）；下層：加入檔案、加入資料夾、語音輸入｜提示文字｜送出／停止。
     外框、焦點與拖放邊框都由 InputArea 表達，輸入框沒有自己的外框。
   -->
   <Border x:Name="InputArea" Classes="composer-area" DragDrop.AllowDrop="True">
@@ -136,13 +136,28 @@
                    Foreground="{DynamicResource LumiWarningTextBrush}" FontSize="{DynamicResource LumiFontSizeCaption}" />
       </StackPanel>
 
-      <!-- 上層：輸入框（Enter 送出、Shift+Enter 換行：code-behind）；最高 160，之後改捲動 -->
+      <!-- 語音轉寫的文字放進輸入框後的標籤（ui-spec 6.3）：使用者改動或清空後拿掉 -->
+      <Border x:Name="VoiceDraftChip" Classes="chip" HorizontalAlignment="Left" IsVisible="{Binding IsVoiceDraft}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ctl:LumiIcon Data="{StaticResource LumiIconMic}" Size="12" VerticalAlignment="Center" />
+          <TextBlock Text="{x:Static res:Strings.Voice_ChipLabel}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+      <!-- 語音的一次性提示（太短、沒聽到內容、對話已改變）：下次輸入或開始錄音時消失 -->
+      <TextBlock x:Name="VoiceNoticeText" IsVisible="{Binding HasVoiceNotice}" Text="{Binding VoiceNotice}" Classes="muted"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" TextWrapping="Wrap" />
+
+      <!-- 上層：輸入框（Enter 送出、Shift+Enter 換行：code-behind）；最高 160，之後改捲動。收音時隱藏，由收音面板取代 -->
       <TextBox x:Name="InputBox" Classes="composer"
                Text="{Binding InputText}"
                Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
                AcceptsReturn="True" TextWrapping="Wrap" IsEnabled="{Binding !IsViewOnly}"
+               IsVisible="{Binding !IsVoiceActive}"
                MaxHeight="160"
                ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+      <!-- 收音面板：錄音中／轉寫中／失敗時取代輸入框（ui-spec 6.3） -->
+      <views:VoicePanel x:Name="VoicePanelHost" IsVisible="{Binding IsVoiceActive}" />
 
       <!-- 下層：左 加入檔案／加入資料夾／語音輸入；右 提示文字、送出／停止 -->
       <Grid x:Name="ComposerToolbar" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
@@ -164,23 +179,22 @@
               <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Context_AddFolder}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <!-- 語音輸入：沒有後端（M6），停用佔位；旁邊用 Caption 寫出原因（UC：Compact 起隱藏 MicCaption） -->
-          <Button x:Name="MicButton" Classes="tertiary composer-tool collapsible" IsEnabled="False"
-                  ToolTip.Tip="{x:Static res:Strings.Composer_MicSoon}" ToolTip.ShowOnDisabled="True"
+          <!-- 語音輸入：停用時（沒設定、回應中、已在錄音…）Tooltip 寫出原因（ShowOnDisabled） -->
+          <Button x:Name="MicButton" Classes="tertiary composer-tool collapsible" Command="{Binding StartVoiceCommand}"
+                  ToolTip.Tip="{Binding MicTip}" ToolTip.ShowOnDisabled="True"
                   AutomationProperties.Name="{x:Static res:Strings.Composer_Mic}">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <ctl:LumiIcon Data="{StaticResource LumiIconMic}" Size="16" />
               <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Composer_Mic}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <TextBlock x:Name="MicCaption" Classes="muted compact-hidden" Text="{x:Static res:Strings.Composer_MicSoon}" VerticalAlignment="Center" Margin="4,0,0,0" />
         </StackPanel>
 
         <!-- 提示文字區：平時是操作提示（SendHint）；回應中改顯示原因（RespondingHint），不另外佔一行 -->
         <Panel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
           <!-- 外面包一層：Compact 起整個隱藏（SendHint 自己的 IsVisible 是回應中互斥的綁定） -->
           <Border x:Name="SendHintHost" Classes="compact-hidden">
-            <TextBlock x:Name="SendHint" IsVisible="{Binding !IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_SendHint}"
+            <TextBlock x:Name="SendHint" IsVisible="{Binding ShowSendHint}" Classes="muted" Text="{x:Static res:Strings.Composer_SendHint}"
                        TextTrimming="CharacterEllipsis" />
           </Border>
           <TextBlock x:Name="RespondingHint" IsVisible="{Binding IsResponding}" Classes="muted" Text="{x:Static res:Strings.Composer_RespondingHint}"
@@ -188,7 +202,7 @@
         </Panel>
 
         <Panel Grid.Column="2" VerticalAlignment="Center">
-          <Button x:Name="SendButton" IsVisible="{Binding !IsResponding}" Classes="round send"
+          <Button x:Name="SendButton" IsVisible="{Binding ShowSendButton}" Classes="round send"
                   ToolTip.Tip="{x:Static res:Strings.Workbench_Send}" AutomationProperties.Name="{x:Static res:Strings.Workbench_Send}"
                   Command="{Binding SendCommand}">
             <ctl:LumiIcon Data="{StaticResource LumiIconArrowUp}" Size="18" />

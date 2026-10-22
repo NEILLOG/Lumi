@@ -1,5 +1,6 @@
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
+using Lumi.Core.Speech;
 
 namespace Lumi.Core.Tests.TestSupport;
 
@@ -56,6 +57,10 @@ internal sealed class FakeModelCatalog : IModelCatalog
         Raise();
         return Task.CompletedTask;
     }
+
+    public Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task<bool> HasSpeechTokenAsync(CancellationToken ct = default) => Task.FromResult(false);
+    public Task ClearSpeechTokenAsync(CancellationToken ct = default) => throw new NotSupportedException();
 
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default)
     {

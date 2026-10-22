@@ -186,22 +186,17 @@ public class ChatComposerTests
     }
 
     [AvaloniaFact]
-    public async Task TheMicrophone_IsADisabledPlaceholder_WithATooltipAndAVisibleCaption()
+    public async Task TheMicrophone_WithoutAVoiceController_IsDisabled_WithTheReasonAsTooltip_AndNoCaption()
     {
+        // 沒有註冊語音控制器（替身）時：停用，Tooltip 說明原因；舊的「即將推出」Caption 已經拿掉（6D）
         var rig = new Rig();
         await rig.InitializeAsync();
         var mic = rig.Named<Button>("MicButton");
-        var caption = rig.Named<TextBlock>("MicCaption");
 
         Assert.False(mic.IsEffectivelyEnabled);
-        Assert.Null(mic.Command);
-        Assert.Equal(Strings.Composer_MicSoon, ToolTip.GetTip(mic));
+        Assert.Equal(Strings.Voice_NotConfigured, ToolTip.GetTip(mic));
         Assert.True(ToolTip.GetShowOnDisabled(mic));
-        Assert.True(caption.IsEffectivelyVisible);
-        Assert.Equal(Strings.Composer_MicSoon, caption.Text);
-        Assert.Contains("muted", caption.Classes);
-        // 在麥克風按鈕旁邊（右側），同一水平帶
-        Assert.True(caption.TranslatePoint(default, rig.Composer)!.Value.X >= mic.TranslatePoint(new Point(mic.Bounds.Width, 0), rig.Composer)!.Value.X - 0.5);
+        Assert.Equal(0, rig.Composer.GetVisualDescendants().OfType<TextBlock>().Count(t => t.Name == "MicCaption"));
         rig.Window.Close();
     }
 

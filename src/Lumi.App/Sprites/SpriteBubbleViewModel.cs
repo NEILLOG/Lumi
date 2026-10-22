@@ -9,7 +9,8 @@ using Lumi.Tools;
 
 namespace Lumi.App.Sprites;
 
-public enum SpriteBubbleKind { Hidden, Status, Streaming, Done, Approval, Error }
+/// <summary>氣泡的種類。<see cref="Notice"/> 是語音的短暫提示（太短、沒有聲音、沒聽到內容），會自動淡出。</summary>
+public enum SpriteBubbleKind { Hidden, Status, Streaming, Done, Approval, Error, Notice }
 
 /// <summary>氣泡內的權限確認（ui-spec 8.3）：預設精簡，「更多選項」在氣泡內展開。</summary>
 public sealed partial class SpriteApprovalViewModel(ToolApprovalRequest request) : ObservableObject
@@ -52,6 +53,8 @@ public sealed partial class SpriteApprovalViewModel(ToolApprovalRequest request)
 /// 同一時間只顯示<b>最新一則</b>、不顯示使用者的問題；思考或呼叫工具時只有一行狀態；回覆串流寫進氣泡；
 /// 完成後停留數秒淡出（游標停在上面時暫停）；等待確認與錯誤不自動淡出；
 /// 有完整內容時（呼叫了 <c>show_details</c>、回答被截斷、或達到輸出上限）底下出現「在工作台開啟完整內容 →」。
+/// 語音（M6 6E）：送出時先以小字引用轉寫結果（<see cref="QuoteText"/>）再進入思考；語音提示用 <see cref="ShowNotice"/>
+/// （自動淡出，不蓋過權限確認與錯誤）；語音轉寫失敗用 <see cref="ShowVoiceFailure"/>（和錯誤氣泡一樣不自動淡出）。
 /// </summary>
 public sealed partial class SpriteBubbleViewModel : ObservableObject
 {
@@ -85,16 +88,24 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     /// <summary>錯誤是缺少或無效的金鑰時，「開啟設定」。</summary>
     public event Action? OpenSettingsRequested;
 
+    /// <summary>語音轉寫失敗的「重試轉寫」。</summary>
+    public event Action? VoiceRetryRequested;
+
+    /// <summary>語音轉寫失敗的「放棄這段錄音」。</summary>
+    public event Action? VoiceDiscardRequested;
+
     /// <summary>錯誤氣泡被關掉（讓角色離開 <c>Error</c> 狀態）。</summary>
     public event Action? Dismissed;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsStatus), nameof(IsAnswer), nameof(IsApproval), nameof(IsError), nameof(IsInteractive))]
+    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsStatus), nameof(IsAnswer), nameof(IsApproval), nameof(IsError), nameof(IsNotice), nameof(IsInteractive))]
     private SpriteBubbleKind _kind = SpriteBubbleKind.Hidden;
 
     public bool IsVisible => Kind != SpriteBubbleKind.Hidden;
 
     public bool IsStatus => Kind == SpriteBubbleKind.Status;
+
+    public bool IsNotice => Kind == SpriteBubbleKind.Notice;
 
     public bool IsAnswer => Kind is SpriteBubbleKind.Streaming or SpriteBubbleKind.Done;
 
@@ -108,6 +119,21 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     /// <summary>一行狀態（思考中…、讀取檔案 · plan/00-master-plan.md）。沿用工具卡片標題的「動作 · 對象」。</summary>
     [ObservableProperty]
     private string _statusText = "";
+
+    /// <summary>語音送出時的引用（小字，已截斷）；開始回應後清掉。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasQuote))]
+    private string? _quoteText;
+
+    public bool HasQuote => QuoteText is not null;
+
+    /// <summary>語音提示的文字（<see cref="SpriteBubbleKind.Notice"/>）。</summary>
+    [ObservableProperty]
+    private string _noticeText = "";
+
+    /// <summary>目前的錯誤是語音轉寫失敗：按鈕是「重試轉寫」「放棄這段錄音」，而不是聊天的重試。</summary>
+    [ObservableProperty]
+    private bool _isVoiceFailure;
 
     /// <summary>目前顯示的回答（已依字數上限截斷）。</summary>
     [ObservableProperty]
@@ -133,7 +159,8 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
 
     // ---- 對話事件 ----
 
-    public void OnRunStarted()
+    /// <param name="quote">語音送出的轉寫結果：先以小字顯示在思考行上方。</param>
+    public void OnRunStarted(string? quote = null)
     {
         _fullText = "";
         _startNewSegment = false;
@@ -145,6 +172,8 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         Text = "";
         Approval = null;
         ShowDetailsLink = false;
+        IsVoiceFailure = false;
+        QuoteText = quote is null ? null : Truncate(quote, QuoteMaxClusters).Text;
         ShowStatus(Strings.Sprite_StatusThinking);
     }
 
@@ -219,6 +248,7 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     private void ShowError(ChatRunResult result)
     {
         Approval = null;
+        IsVoiceFailure = false;
         var failure = result.Failure ?? _failure;
         ErrorText = result.Unexpected || failure is null ? Strings.Workbench_UnexpectedError : failure.Message;
         CanRetry = failure is null || failure.Retryable || failure.Kind is ChatFailureKind.MissingApiKey or ChatFailureKind.InvalidApiKey or ChatFailureKind.SecretUnreadable;
@@ -237,6 +267,15 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         var now = _time.GetUtcNow();
         var elapsed = _lastTick == default ? TimeSpan.Zero : now - _lastTick;
         _lastTick = now;
+
+        if (Kind == SpriteBubbleKind.Notice)
+        {
+            if (!_hovered)
+                _lingered += elapsed;
+            if (_lingered >= _options.NoticeLinger)
+                Kind = SpriteBubbleKind.Hidden;   // 語音提示不是錯誤，淡出時不通知角色
+            return;
+        }
 
         if (Kind != SpriteBubbleKind.Done)
             return;
@@ -288,6 +327,49 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     [RelayCommand]
     private void OpenSettings() => OpenSettingsRequested?.Invoke();
 
+    [RelayCommand]
+    private void VoiceRetry() => VoiceRetryRequested?.Invoke();
+
+    [RelayCommand]
+    private void VoiceDiscard() => VoiceDiscardRequested?.Invoke();
+
+    /// <summary>
+    /// 語音提示（太短、沒有聲音、沒聽到內容、回應中改放進輸入框）：短暫的一行，自動淡出。
+    /// 權限確認與錯誤正在顯示時不蓋過它（提示只是補充，確認與錯誤要能按）。
+    /// </summary>
+    public void ShowNotice(string text)
+    {
+        if (Kind is SpriteBubbleKind.Approval or SpriteBubbleKind.Error)
+            return;
+        NoticeText = text;
+        _lingered = TimeSpan.Zero;
+        _lastTick = _time.GetUtcNow();
+        Kind = SpriteBubbleKind.Notice;
+    }
+
+    /// <summary>
+    /// 語音轉寫失敗：一句說明加「重試轉寫」「放棄這段錄音」，不自動淡出（比照錯誤氣泡）。
+    /// 等待確認時不蓋過（確認要先回答；失敗仍然在輸入列上）。
+    /// </summary>
+    public void ShowVoiceFailure(string message)
+    {
+        if (Kind == SpriteBubbleKind.Approval)
+            return;
+        Approval = null;
+        ErrorText = message;
+        CanRetry = false;
+        CanOpenSettings = false;
+        IsVoiceFailure = true;
+        Kind = SpriteBubbleKind.Error;
+    }
+
+    /// <summary>語音失敗已經處理（重試、放棄或換了對話）：拿掉語音的錯誤氣泡。不是聊天的錯誤，不會蓋掉。</summary>
+    public void HideVoiceFailure()
+    {
+        if (IsVoiceFailure && Kind == SpriteBubbleKind.Error)
+            Hide();
+    }
+
     /// <summary>換對話時清掉氣泡（不算使用者關掉錯誤，不通知角色）。</summary>
     public void Clear()
     {
@@ -295,6 +377,8 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         Text = "";
         _fullText = "";
         ShowDetailsLink = false;
+        QuoteText = null;
+        IsVoiceFailure = false;
         Kind = SpriteBubbleKind.Hidden;
     }
 
@@ -315,6 +399,7 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
 
     private void AppendText(string delta)
     {
+        QuoteText = null;   // 回答開始了，引用的語音就不再需要
         if (_startNewSegment)
         {
             _fullText = "";
@@ -368,6 +453,9 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         Kind = SpriteBubbleKind.Hidden;
         Dismissed?.Invoke();
     }
+
+    /// <summary>語音引用最多幾個字形叢集（小字，兩行內）。</summary>
+    private const int QuoteMaxClusters = 48;
 
     private static string Title(string displayName, string? target) =>
         string.IsNullOrEmpty(target) ? displayName : $"{displayName} · {target}";

@@ -211,7 +211,6 @@
   <data name="Composer_RespondingHint" xml:space="preserve"><value>回應結束後才能送出，期間不能更改上下文</value></data>
   <data name="Composer_AddBlocked" xml:space="preserve"><value>回應中，暫時無法加入</value></data>
   <data name="Composer_Mic" xml:space="preserve"><value>語音輸入</value></data>
-  <data name="Composer_MicSoon" xml:space="preserve"><value>語音輸入即將推出</value></data>
   <data name="Context_DropHint" xml:space="preserve"><value>放開以加入到這則對話的上下文</value></data>
   <data name="Context_NotEmbedded" xml:space="preserve"><value>沒有放入內容</value></data>
   <data name="Settings_CategoryPersona" xml:space="preserve"><value>人格與主動性</value></data>
@@ -372,4 +371,82 @@
   <data name="SpriteSettings_SectionLook" xml:space="preserve"><value>大小與語氣</value></data>
   <data name="SpriteSettings_Issue_Fatal" xml:space="preserve"><value>載入失敗</value></data>
   <data name="SpriteSettings_Issue_Warning" xml:space="preserve"><value>警告</value></data>
+  <data name="Settings_CategorySpeech" xml:space="preserve"><value>語音</value></data>
+  <data name="Settings_CategorySpeechSub" xml:space="preserve"><value>Whisper 語音辨識</value></data>
+  <data name="Settings_HeaderSpeechTitle" xml:space="preserve"><value>Whisper 語音辨識</value></data>
+  <data name="Settings_HeaderSpeechDescription" xml:space="preserve"><value>語音輸入會把錄音送到公司的 Whisper 服務轉成文字，放進輸入框或直接送出。</value></data>
+  <data name="Speech_SectionService" xml:space="preserve"><value>服務</value></data>
+  <data name="Speech_SectionToken" xml:space="preserve"><value>Token</value></data>
+  <data name="Speech_Endpoint" xml:space="preserve"><value>服務端點</value></data>
+  <data name="Speech_EndpointHint" xml:space="preserve"><value>完整網址，必須是 https，例如 https://&lt;host&gt;/…（只有 localhost 可以用 http）。</value></data>
+  <data name="Speech_EndpointWatermark" xml:space="preserve"><value>https://&lt;host&gt;/…</value></data>
+  <data name="Speech_EndpointRequired" xml:space="preserve"><value>請先輸入服務端點</value></data>
+  <data name="Speech_NoteCertificate" xml:space="preserve"><value>憑證不受信任時，請把公司的內部 CA 安裝到系統。</value></data>
+  <data name="Speech_NotePrivacy" xml:space="preserve"><value>語音會連同錄音與對話 ID（session_id）送到你設定的服務。</value></data>
+  <data name="Speech_Language" xml:space="preserve"><value>語言</value></data>
+  <data name="Speech_LanguageHint" xml:space="preserve"><value>留空由服務端判斷。</value></data>
+  <data name="Speech_LanguageWatermark" xml:space="preserve"><value>例如 zh</value></data>
+  <data name="Speech_LangAuto" xml:space="preserve"><value>留空（服務判斷）</value></data>
+  <data name="Speech_LangZh" xml:space="preserve"><value>中文 zh</value></data>
+  <data name="Speech_LangEn" xml:space="preserve"><value>英文 en</value></data>
+  <data name="Speech_LangJa" xml:space="preserve"><value>日文 ja</value></data>
+  <data name="Speech_Timeout" xml:space="preserve"><value>逾時秒數</value></data>
+  <data name="Speech_TimeoutHint" xml:space="preserve"><value>超過這個秒數沒有回應就放棄，可填 5 到 600。</value></data>
+  <data name="Speech_TimeoutInvalid" xml:space="preserve"><value>請輸入 5 到 600 之間的整數秒數。</value></data>
+  <data name="Speech_Token" xml:space="preserve"><value>Token</value></data>
+  <data name="Speech_TokenNote" xml:space="preserve"><value>Token 需具備 WHISPER_API 權限；只存在這台裝置。</value></data>
+  <data name="Speech_TokenNotSet" xml:space="preserve"><value>尚未設定 Token</value></data>
+  <data name="Speech_TokenSet" xml:space="preserve"><value>已設定</value></data>
+  <data name="Speech_TokenSetHint" xml:space="preserve"><value>已設定 · 結尾 {0}</value></data>
+  <data name="Speech_TokenReplace" xml:space="preserve"><value>更換</value></data>
+  <data name="Speech_TokenClear" xml:space="preserve"><value>清除</value></data>
+  <data name="Speech_TokenCancelReplace" xml:space="preserve"><value>取消更換</value></data>
+  <data name="Speech_TokenShow" xml:space="preserve"><value>顯示</value></data>
+  <data name="Speech_TokenPlaceholder" xml:space="preserve"><value>貼上 Whisper Token</value></data>
+  <data name="Speech_TokenHostChanged" xml:space="preserve"><value>端點主機已變更，請重新輸入 Token</value></data>
+  <data name="Speech_TokenUnreadable" xml:space="preserve"><value>語音 Token 無法讀取，請重新輸入。</value></data>
+  <data name="Speech_TokenClearConfirm" xml:space="preserve"><value>要清除語音 Token 嗎？清除後語音輸入會停用，直到重新輸入。</value></data>
+  <data name="Speech_TestNeedsToken" xml:space="preserve"><value>請先輸入 Token 才能測試連線。</value></data>
+  <data name="Speech_Test" xml:space="preserve"><value>測試連線</value></data>
+  <data name="Speech_Testing" xml:space="preserve"><value>測試中…</value></data>
+  <data name="Speech_TestOk" xml:space="preserve"><value>連線成功，服務接受了這組端點與 Token。</value></data>
+  <data name="Speech_TestFailed" xml:space="preserve"><value>連線失敗</value></data>
+  <data name="Speech_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Speech_Revert" xml:space="preserve"><value>還原</value></data>
+  <data name="Speech_Saved" xml:space="preserve"><value>已儲存。</value></data>
+  <data name="Voice_NotConfigured" xml:space="preserve"><value>尚未設定語音服務，請到設定裡的語音頁</value></data>
+  <data name="Voice_EndpointInvalid" xml:space="preserve"><value>語音服務端點有誤，請到設定裡的語音頁修正</value></data>
+  <data name="Voice_TokenMissing" xml:space="preserve"><value>語音服務尚未設定 Token</value></data>
+  <data name="Voice_RespondingBlocked" xml:space="preserve"><value>回應中，暫時無法語音輸入</value></data>
+  <data name="Voice_BusyReason" xml:space="preserve"><value>已在錄音或轉寫中</value></data>
+  <data name="Voice_FailedBlocked" xml:space="preserve"><value>上一段錄音還沒處理，請先重試或放棄</value></data>
+  <data name="Voice_TooShort" xml:space="preserve"><value>錄音時間太短，已忽略</value></data>
+  <data name="Voice_Silent" xml:space="preserve"><value>沒有收到聲音，請確認麥克風權限</value></data>
+  <data name="Voice_NoSpeech" xml:space="preserve"><value>沒有聽到內容</value></data>
+  <data name="Voice_TranscribeUnexpected" xml:space="preserve"><value>語音辨識發生未預期的錯誤</value></data>
+  <data name="Voice_CaptureUnexpected" xml:space="preserve"><value>語音輸入發生未預期的錯誤</value></data>
+  <data name="Voice_StatusRecording" xml:space="preserve"><value>收音中 {0}</value></data>
+  <data name="Voice_StatusTranscribing" xml:space="preserve"><value>正在辨識語音…（錄音長度 {0}）</value></data>
+  <data name="Voice_Time" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="Voice_FailedTitle" xml:space="preserve"><value>語音轉寫失敗</value></data>
+  <data name="Voice_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Voice_CancelTip" xml:space="preserve"><value>取消錄音，丟掉這段內容</value></data>
+  <data name="Voice_CancelTranscribeTip" xml:space="preserve"><value>取消辨識，丟掉這段錄音</value></data>
+  <data name="Voice_StopEdit" xml:space="preserve"><value>停止並編輯</value></data>
+  <data name="Voice_StopEditTip" xml:space="preserve"><value>停止錄音，文字放進輸入框，可修改後再送出</value></data>
+  <data name="Voice_StopSend" xml:space="preserve"><value>停止並送出</value></data>
+  <data name="Voice_StopSendTip" xml:space="preserve"><value>停止錄音，轉寫完成後直接送出</value></data>
+  <data name="Voice_Retry" xml:space="preserve"><value>重試轉寫</value></data>
+  <data name="Voice_RetryTip" xml:space="preserve"><value>重新送出這段錄音去轉寫</value></data>
+  <data name="Voice_Discard" xml:space="preserve"><value>放棄</value></data>
+  <data name="Voice_DiscardTip" xml:space="preserve"><value>放棄這段錄音</value></data>
+  <data name="Voice_ChipLabel" xml:space="preserve"><value>語音轉寫</value></data>
+  <data name="Voice_NoticeEditOnly" xml:space="preserve"><value>回應中或對話已改變，語音結果已放進輸入框，請確認後再送出</value></data>
+  <data name="Voice_OtherWindow" xml:space="preserve"><value>另一個視窗正在語音輸入</value></data>
+  <data name="Sprite_VoiceHidden" xml:space="preserve"><value>小精靈暫時隱藏中，請先顯示小精靈再語音輸入</value></data>
+  <data name="Sprite_VoiceLabel" xml:space="preserve"><value>語音</value></data>
+  <data name="Sprite_VoiceTranscribing" xml:space="preserve"><value>正在辨識語音…</value></data>
+  <data name="Sprite_VoiceFailedFormat" xml:space="preserve"><value>語音轉寫失敗：{0}</value></data>
+  <data name="Voice_NoticeHasDraft" xml:space="preserve"><value>輸入框已有文字，語音結果已附加在後面，請確認後再送出</value></data>
+  <data name="Composer_VoiceBlocked" xml:space="preserve"><value>語音輸入中，暫時無法加入</value></data>
 </root>

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -6,6 +7,7 @@ using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Speech;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -61,7 +63,8 @@ public partial class WorkbenchViewModel : ObservableObject
         IToolApprovalResponder? approvals = null,
         ContextBarViewModel? contextBar = null,
         IChatSession? session = null,
-        IAppModeCoordinator? modes = null)
+        IAppModeCoordinator? modes = null,
+        IVoiceInputController? voice = null)
     {
         _store = store;
         _catalog = catalog;
@@ -75,6 +78,9 @@ public partial class WorkbenchViewModel : ObservableObject
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
         _session = session ?? new ChatSession(conversations, store, NullLogger<ChatSession>.Instance);
         _modes = modes;
+        Voice = voice ?? NoVoiceInputController.Instance;
+        Voice.PropertyChanged += OnVoicePropertyChanged;
+        Voice.Transcribed += OnVoiceTranscribed;
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
@@ -211,9 +217,16 @@ public partial class WorkbenchViewModel : ObservableObject
 
     public bool HasModeCoordinator => _modes is not null;
 
-    partial void OnIsRespondingChanged(bool value) => Context.IsLocked = value;
+    partial void OnIsRespondingChanged(bool value) => RaiseVoiceProperties();
 
-    partial void OnInputTextChanged(string value) => Context.UpdateDraft(value);
+    partial void OnInputTextChanged(string value)
+    {
+        Context.UpdateDraft(value);
+        // 使用者改了語音轉寫的文字（或清空）就拿掉「語音轉寫」標籤；提示也在下一次輸入時消失
+        if (IsVoiceDraft && value != _voiceDraftText)
+            IsVoiceDraft = false;
+        VoiceNotice = null;
+    }
 
     /// <summary>回應中，膠囊與小精靈按鈕停用並顯示「回應中，暫時無法切換」（ui-spec 2.2）。</summary>
     public bool ShowSwitchBlockedHint => IsResponding;
@@ -227,9 +240,12 @@ public partial class WorkbenchViewModel : ObservableObject
     public string SpriteModeTip => IsResponding ? Strings.Workbench_SwitchBlocked : Strings.Workbench_SpriteMode;
 
     /// <summary>「加入檔案」「加入資料夾」的 Tooltip：回應中停用，改說明為什麼（取代原本佔版面的提示文字）。</summary>
-    public string AddFileTip => IsResponding ? Strings.Composer_AddBlocked : Strings.Context_AddFile;
+    public string AddFileTip => AddBlockedTip ?? Strings.Context_AddFile;
 
-    public string AddFolderTip => IsResponding ? Strings.Composer_AddBlocked : Strings.Context_AddFolder;
+    public string AddFolderTip => AddBlockedTip ?? Strings.Context_AddFolder;
+
+    /// <summary>加入按鈕停用時的原因（回應中、語音進行中）；可以加入時是 null。</summary>
+    private string? AddBlockedTip => IsResponding ? Strings.Composer_AddBlocked : IsVoiceActive ? Strings.Composer_VoiceBlocked : null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
@@ -299,7 +315,7 @@ public partial class WorkbenchViewModel : ObservableObject
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
     }
 
-    private bool CanSend() => !IsResponding && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
+    private bool CanSend() => !IsResponding && !IsVoiceActive && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
 
     [RelayCommand(CanExecute = nameof(CanRetry))]
     private Task RetryAsync()
@@ -440,6 +456,156 @@ public partial class WorkbenchViewModel : ObservableObject
         }
         RegenerateCommand.NotifyCanExecuteChanged();
     }
+
+    // ---- 語音輸入（6D）：控制器不碰畫面，這裡把它的狀態翻成輸入區要顯示的東西 ----
+
+    /// <summary>語音輸入控制器（工作台與小精靈共用的單例）。</summary>
+    public IVoiceInputController Voice { get; }
+
+    public VoiceInputState VoiceState => Voice.State;
+
+    /// <summary>錄音、轉寫、失敗時收音面板取代輸入框（ui-spec 6.3）。</summary>
+    public bool IsVoiceActive => Voice.State != VoiceInputState.Idle;
+
+    public bool IsVoiceRecording => Voice.State == VoiceInputState.Recording;
+
+    public bool IsVoiceTranscribing => Voice.State == VoiceInputState.Transcribing;
+
+    public bool IsVoiceFailed => Voice.State == VoiceInputState.Failed;
+
+    /// <summary>麥克風鈕能不能按（沒有原因就能）。</summary>
+    public bool VoiceCanStart => Voice.CanStart;
+
+    /// <summary>麥克風鈕的 Tooltip：能用時是按鈕名稱，不能用時是原因（ShowOnDisabled）。</summary>
+    public string MicTip => Voice.DisabledReasonFor(VoiceOrigin.Workbench) ?? Strings.Composer_Mic;
+
+    /// <summary>送出鈕與提示文字：語音進行中隱藏（版面不動，不會誤送）。</summary>
+    public bool ShowSendButton => !IsResponding && !IsVoiceActive;
+
+    public bool ShowSendHint => ShowSendButton;
+
+    /// <summary>收音面板的計時：「01:12 / 01:30」。</summary>
+    public string VoiceTimeText => string.Format(CultureInfo.CurrentCulture, Strings.Voice_Time, FormatClock(Voice.Elapsed), FormatClock(RecordingLimits.MaxDuration));
+
+    /// <summary>目前狀態的文字（收音中 00:12、正在辨識語音…、失敗標題）；也當作收音面板的無障礙名稱。</summary>
+    public string VoiceStatusText => Voice.State switch
+    {
+        VoiceInputState.Recording => string.Format(CultureInfo.CurrentCulture, Strings.Voice_StatusRecording, FormatClock(Voice.Elapsed)),
+        VoiceInputState.Transcribing => string.Format(CultureInfo.CurrentCulture, Strings.Voice_StatusTranscribing, FormatClock(Voice.RecordedDuration ?? TimeSpan.Zero)),
+        VoiceInputState.Failed => Strings.Voice_FailedTitle,
+        _ => "",
+    };
+
+    public double VoiceLevel => Voice.Level;
+
+    public string VoiceFailureText => Voice.LastFailureMessage ?? "";
+
+    /// <summary>一次性的語音提示（太短、沒聽到內容、對話已改變）；下次輸入或開始錄音時消失。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasVoiceNotice))]
+    private string? _voiceNotice;
+
+    public bool HasVoiceNotice => VoiceNotice is not null;
+
+    /// <summary>輸入框的文字是語音轉寫來的：上方顯示「語音轉寫」標籤，使用者改動或清空後拿掉。</summary>
+    [ObservableProperty]
+    private bool _isVoiceDraft;
+
+    private string? _voiceDraftText;
+
+    /// <summary>要求把焦點移到輸入框（語音轉寫放進輸入框之後）。由 ChatComposer 處理。</summary>
+    public event EventHandler? FocusInputRequested;
+
+    [RelayCommand(CanExecute = nameof(CanStartVoice))]
+    private Task StartVoiceAsync() => Voice.StartAsync(VoiceOrigin.Workbench);
+
+    private bool CanStartVoice() => Voice.CanStart;
+
+    /// <summary>「停止並編輯」。</summary>
+    [RelayCommand]
+    private Task VoiceStopEditAsync() => Voice.StopAsync(VoiceStopAction.Edit);
+
+    /// <summary>「停止並送出」。</summary>
+    [RelayCommand]
+    private Task VoiceStopSendAsync() => Voice.StopAsync(VoiceStopAction.Send);
+
+    [RelayCommand]
+    private void VoiceCancel() => Voice.Cancel();
+
+    [RelayCommand]
+    private Task VoiceRetryAsync() => Voice.RetryAsync();
+
+    [RelayCommand]
+    private void VoiceDiscard() => Voice.Discard();
+
+    private void OnVoicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // 提示只顯示在開始錄音的那一邊（小精靈的提示顯示在氣泡）
+        if (e.PropertyName is null or "" or nameof(IVoiceInputController.Notice))
+            VoiceNotice = Voice.Origin == VoiceOrigin.Sprite ? null : Voice.Notice;
+        RaiseVoiceProperties();
+    }
+
+    /// <summary>控制器或回應狀態變了：通知輸入區相關的屬性與命令。加入檔案／資料夾（Context）在回應中與語音進行中都鎖住。</summary>
+    private void RaiseVoiceProperties()
+    {
+        Context.IsLocked = IsResponding || IsVoiceActive;
+        OnPropertyChanged(nameof(VoiceState));
+        OnPropertyChanged(nameof(IsVoiceActive));
+        OnPropertyChanged(nameof(IsVoiceRecording));
+        OnPropertyChanged(nameof(IsVoiceTranscribing));
+        OnPropertyChanged(nameof(IsVoiceFailed));
+        OnPropertyChanged(nameof(VoiceCanStart));
+        OnPropertyChanged(nameof(MicTip));
+        OnPropertyChanged(nameof(ShowSendButton));
+        OnPropertyChanged(nameof(ShowSendHint));
+        OnPropertyChanged(nameof(VoiceTimeText));
+        OnPropertyChanged(nameof(VoiceStatusText));
+        OnPropertyChanged(nameof(VoiceLevel));
+        OnPropertyChanged(nameof(VoiceFailureText));
+        OnPropertyChanged(nameof(AddFileTip));
+        OnPropertyChanged(nameof(AddFolderTip));
+        StartVoiceCommand.NotifyCanExecuteChanged();
+        SendCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// 轉寫完成。送出：同一則對話、沒有在回應、輸入框是空的，就走現有的送出路徑（<see cref="SendCommand"/>）；
+    /// 其他情況（對話已改變、回應中、輸入框已有草稿）一律放進輸入框並提示，不自動送出（計畫 6D）。
+    /// </summary>
+    private void OnVoiceTranscribed(object? sender, VoiceTranscribedArgs args)
+    {
+        if (args.Origin != VoiceOrigin.Workbench)
+            return;   // 小精靈開始的錄音由小精靈處理
+
+        var sameConversation = args.ConversationId is not null && args.ConversationId == CurrentConversationId;
+        if (args.Action == VoiceStopAction.Send && sameConversation && !IsResponding && string.IsNullOrWhiteSpace(InputText))
+        {
+            InputText = args.Text;
+            SendCommand.Execute(null);
+            return;
+        }
+
+        string? notice = null;
+        if (!sameConversation || IsResponding)
+            notice = Strings.Voice_NoticeEditOnly;
+        else if (args.Action == VoiceStopAction.Send)
+            notice = Strings.Voice_NoticeHasDraft;
+        AppendVoiceDraft(args.Text, notice);
+    }
+
+    /// <summary>把語音文字接在輸入框的草稿後面（以換行分隔），標上「語音轉寫」，並把焦點移到輸入框。</summary>
+    private void AppendVoiceDraft(string text, string? notice)
+    {
+        var draft = InputText;
+        InputText = draft.Trim().Length == 0 ? text : draft.TrimEnd('\r', '\n') + "\n" + text;
+        _voiceDraftText = InputText;
+        IsVoiceDraft = true;
+        VoiceNotice = notice;   // 最後設：上面設定文字時會清掉舊的提示
+        FocusInputRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static string FormatClock(TimeSpan time) => $"{(int)time.TotalMinutes:00}:{time.Seconds:00}";
 
     // ---- 複製 ----
 

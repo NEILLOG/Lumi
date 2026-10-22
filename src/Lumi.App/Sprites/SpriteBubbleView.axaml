@@ -53,9 +53,18 @@
   <StackPanel x:Name="Root">
     <Border x:Name="BubbleBorder" Classes="bubble" Classes.approval="{Binding IsApproval}" Classes.error="{Binding IsError}">
       <Panel>
-        <!-- 思考或呼叫工具：只有一行狀態 -->
-        <TextBlock x:Name="StatusLine" IsVisible="{Binding IsStatus}" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" MaxLines="1"
-                   Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCard}" />
+        <!-- 思考或呼叫工具：一行狀態；語音送出時上方先以小字引用轉寫結果（ui-spec 8.4） -->
+        <StackPanel x:Name="StatusArea" IsVisible="{Binding IsStatus}" Spacing="4">
+          <ctl:EmojiTextBlock x:Name="QuoteLine" IsVisible="{Binding HasQuote}" Text="{Binding QuoteText}" TextWrapping="Wrap" MaxLines="2"
+                              TextTrimming="CharacterEllipsis" Foreground="{DynamicResource LumiTextMutedBrush}"
+                              FontSize="{DynamicResource LumiFontSizeCaption}" />
+          <TextBlock x:Name="StatusLine" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" MaxLines="1"
+                     Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCard}" />
+        </StackPanel>
+
+        <!-- 語音提示（太短、沒有聲音、沒聽到內容）：一句，會自動淡出 -->
+        <ctl:EmojiTextBlock x:Name="NoticeLine" IsVisible="{Binding IsNotice}" Text="{Binding NoticeText}" TextWrapping="Wrap"
+                            FontSize="{DynamicResource LumiFontSizeCard}" />
 
         <!-- 回答（串流中與完成）：最多兩句，不用 Markdown -->
         <StackPanel x:Name="AnswerArea" IsVisible="{Binding IsAnswer}" Spacing="6">
@@ -102,18 +111,24 @@
           </StackPanel>
         </StackPanel>
 
-        <!-- 錯誤：一句說明，加上重試與在工作台查看（金鑰問題帶「開啟設定」） -->
+        <!-- 錯誤：一句說明，加上重試與在工作台查看（金鑰問題帶「開啟設定」）；語音轉寫失敗改為「重試轉寫」「放棄這段錄音」 -->
         <StackPanel x:Name="ErrorArea" IsVisible="{Binding IsError}" Spacing="8">
           <ctl:EmojiTextBlock x:Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
                               FontSize="{DynamicResource LumiFontSizeCard}" />
-          <WrapPanel>
+          <WrapPanel IsVisible="{Binding !IsVoiceFailure}">
             <Button x:Name="RetryButton" Classes="small primary" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{x:Static res:Strings.Sprite_Retry}"
                     Command="{Binding RetryCommand}" />
             <Button x:Name="SettingsButton" Classes="small secondary" Margin="0,0,6,6" IsVisible="{Binding CanOpenSettings}"
                     Content="{x:Static res:Strings.Sprite_OpenSettings}" Command="{Binding OpenSettingsCommand}" />
           </WrapPanel>
+          <WrapPanel x:Name="VoiceErrorButtons" IsVisible="{Binding IsVoiceFailure}">
+            <Button x:Name="VoiceRetryButton" Classes="small primary" Margin="0,0,6,6" Content="{x:Static res:Strings.Voice_Retry}"
+                    Command="{Binding VoiceRetryCommand}" />
+            <Button x:Name="VoiceDiscardButton" Classes="small tertiary" Margin="0,0,6,6" Content="{x:Static res:Strings.Voice_DiscardTip}"
+                    Command="{Binding VoiceDiscardCommand}" />
+          </WrapPanel>
           <Button x:Name="ErrorViewLink" Classes="link" Command="{Binding ViewInWorkbenchCommand}" HorizontalAlignment="Left"
-                  Content="{x:Static res:Strings.Sprite_ViewErrorInWorkbench}" />
+                  Content="{x:Static res:Strings.Sprite_ViewErrorInWorkbench}" IsVisible="{Binding !IsVoiceFailure}" />
         </StackPanel>
       </Panel>
     </Border>

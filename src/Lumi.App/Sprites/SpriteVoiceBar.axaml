@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sp="using:Lumi.App.Sprites"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Sprites.SpriteVoiceBar"
+             x:DataType="sp:SpriteVoiceBarViewModel">
+  <!--
+    小精靈的收音列（ui-spec 8.4）：取代輸入列（麥克風、輸入框、送出）放在同一個 300×48 的框內，尺寸不變。
+    收音中：紅點、計時、波形、三個圓形圖示鈕（取消 tertiary、停止並編輯 secondary、停止並送出 primary）。
+    轉寫中：轉圈＋「正在辨識語音…」＋取消。失敗：警示圖示＋一句錯誤（完整文字在 Tooltip）＋重試（primary）、放棄（tertiary）。
+    每個按鈕都是純圖示，所以有 ToolTip.Tip 與 AutomationProperties.Name。Sprites/ 目錄不受間距尺度規則約束，但仍用 token 與常用尺度值。
+  -->
+  <UserControl.Styles>
+    <!-- 轉圈：和工作台收音面板、工具卡片執行中的圖示同一個動畫 -->
+    <Style Selector="ctl|LumiIcon.spin">
+      <Style.Animations>
+        <Animation Duration="0:0:1" IterationCount="INFINITE">
+          <KeyFrame Cue="0%">
+            <Setter Property="RotateTransform.Angle" Value="0" />
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="RotateTransform.Angle" Value="360" />
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="StackPanel.voice-actions">
+      <Setter Property="Orientation" Value="Horizontal" />
+      <Setter Property="Spacing" Value="4" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <!-- 收音中 -->
+    <Grid x:Name="RecordingRow" IsVisible="{Binding IsRecording}" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8"
+          VerticalAlignment="Center" AutomationProperties.Name="{Binding RecordingName}">
+      <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{DynamicResource LumiDangerDotBrush}" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding TimeText}" FontFamily="{DynamicResource LumiMonoFont}" Classes="muted" VerticalAlignment="Center" />
+      <ctl:LevelWaveform Grid.Column="2" Level="{Binding Level}" Height="24" MinWidth="40" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="3" Classes="voice-actions" VerticalAlignment="Center">
+        <Button x:Name="CancelRecordingButton" Classes="round tertiary" Command="{Binding CancelCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_CancelTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Cancel}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+        </Button>
+        <Button x:Name="StopEditButton" Classes="round secondary" Command="{Binding StopEditCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_StopEditTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_StopEdit}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconSquare}" Size="12" />
+        </Button>
+        <Button x:Name="StopSendButton" Classes="round primary" Command="{Binding StopSendCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_StopSendTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_StopSend}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconArrowUp}" Size="16" />
+        </Button>
+      </StackPanel>
+    </Grid>
+
+    <!-- 轉寫中 -->
+    <Grid x:Name="TranscribingRow" IsVisible="{Binding IsTranscribing}" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8"
+          VerticalAlignment="Center" AutomationProperties.Name="{Binding TranscribingText}">
+      <ctl:LumiIcon Grid.Column="0" Classes="spin" Data="{StaticResource LumiIconLoader}" Size="16" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding TranscribingText}" TextTrimming="CharacterEllipsis" MaxLines="1" VerticalAlignment="Center" />
+      <Button x:Name="CancelTranscribingButton" Grid.Column="2" Classes="round tertiary" Command="{Binding CancelCommand}"
+              ToolTip.Tip="{x:Static res:Strings.Voice_CancelTranscribeTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Cancel}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+      </Button>
+    </Grid>
+
+    <!-- 失敗：保留錄音，重試或放棄 -->
+    <Grid x:Name="FailedRow" IsVisible="{Binding IsFailed}" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8"
+          VerticalAlignment="Center">
+      <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}"
+                    VerticalAlignment="Center" />
+      <TextBlock x:Name="FailureLine" Grid.Column="1" Text="{Binding FailureText}" Foreground="{DynamicResource LumiDangerBrush}"
+                 TextTrimming="CharacterEllipsis" MaxLines="1" VerticalAlignment="Center" ToolTip.Tip="{Binding FailureText}" />
+      <Button x:Name="RetryVoiceButton" Grid.Column="2" Classes="round primary" Command="{Binding RetryCommand}"
+              ToolTip.Tip="{x:Static res:Strings.Voice_RetryTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Retry}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconRefresh}" Size="16" />
+      </Button>
+      <Button x:Name="DiscardVoiceButton" Grid.Column="3" Classes="round tertiary" Command="{Binding DiscardCommand}"
+              ToolTip.Tip="{x:Static res:Strings.Voice_DiscardTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_DiscardTip}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+      </Button>
+    </Grid>
+  </Panel>
+</UserControl>

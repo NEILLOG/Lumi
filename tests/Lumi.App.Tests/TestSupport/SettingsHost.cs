@@ -47,7 +47,8 @@ internal sealed class SettingsHost : IDisposable
         General = new GeneralViewModel(Catalog, dispatcher);
         SpriteCatalog = spriteCatalog;
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
-        Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Catalog, Confirm, WindowService);
+        Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
+        Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Speech, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
@@ -62,6 +63,8 @@ internal sealed class SettingsHost : IDisposable
     public PersonaViewModel Persona { get; }
     public GeneralViewModel General { get; }
     public SpriteSettingsViewModel Sprite { get; }
+    public SpeechViewModel Speech { get; }
+    public FakeSpeechConnectionTester SpeechTester { get; } = new();
     public Lumi.Sprites.Abstractions.ISpriteCatalog SpriteCatalog { get; }
     public SettingsViewModel Settings { get; }
 

@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.VoicePanel"
+             x:DataType="vm:WorkbenchViewModel">
+
+  <!--
+    收音面板（ui-spec 6.3）：取代輸入框，只在 錄音中／轉寫中／失敗 時顯示（ChatComposer 控制 IsVisible）。
+    三種狀態各一列；按鈕樣式與下層工具列相同（composer-tool、collapsible 由 ChatComposer 的 RWD 規則處理）。
+    面板最低高度跟輸入框一樣（Normal 64，short 起 48），切換狀態時版面不跳動。
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.voice-panel">
+      <Setter Property="MinHeight" Value="64" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Window.short Border.voice-panel, Window.veryshort Border.voice-panel">
+      <Setter Property="MinHeight" Value="48" />
+    </Style>
+    <!-- 失敗：Danger 淡底＋Danger 框，和連線測試失敗的樣式一致（不能只靠顏色，列裡有圖示與文字） -->
+    <Style Selector="Border.voice-error">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <!-- 轉圈：和工具卡片執行中的圖示同一個動畫 -->
+    <Style Selector="ctl|LumiIcon.spin">
+      <Style.Animations>
+        <Animation Duration="0:0:1" IterationCount="INFINITE">
+          <KeyFrame Cue="0%">
+            <Setter Property="RotateTransform.Angle" Value="0" />
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="RotateTransform.Angle" Value="360" />
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+  </UserControl.Styles>
+
+  <Border x:Name="PanelRoot" Classes="voice-panel" AutomationProperties.Name="{Binding VoiceStatusText}">
+    <Panel>
+      <!-- 錄音中：紅點（Danger 圓點 token）、計時、波形、三個動作 -->
+      <Grid x:Name="RecordingRow" IsVisible="{Binding IsVoiceRecording}" ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="12"
+            VerticalAlignment="Center">
+        <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{DynamicResource LumiDangerDotBrush}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding VoiceTimeText}" Classes="muted" FontFamily="{DynamicResource LumiMonoFont}" VerticalAlignment="Center" />
+        <ctl:LevelWaveform Grid.Column="2" Level="{Binding VoiceLevel}" Height="32" MinWidth="48" VerticalAlignment="Center" />
+        <Button x:Name="VoiceCancelButton" Grid.Column="3" Classes="tertiary composer-tool collapsible" Command="{Binding VoiceCancelCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_CancelTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Cancel}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="16" />
+            <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Voice_Cancel}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="VoiceStopEditButton" Grid.Column="4" Classes="secondary composer-tool collapsible" Command="{Binding VoiceStopEditCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_StopEditTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_StopEdit}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconSquare}" Size="14" />
+            <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Voice_StopEdit}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="VoiceStopSendButton" Grid.Column="5" Classes="primary composer-tool collapsible" Command="{Binding VoiceStopSendCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_StopSendTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_StopSend}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconArrowUp}" Size="16" />
+            <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Voice_StopSend}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </Grid>
+
+      <!-- 轉寫中：轉圈加錄音長度（同一句話說明狀態），可取消 -->
+      <Grid x:Name="TranscribingRow" IsVisible="{Binding IsVoiceTranscribing}" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12"
+            VerticalAlignment="Center">
+        <ctl:LumiIcon Grid.Column="0" Classes="spin" Data="{StaticResource LumiIconLoader}" Size="16" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding VoiceStatusText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        <Button x:Name="VoiceCancelTranscribeButton" Grid.Column="2" Classes="tertiary composer-tool collapsible" Command="{Binding VoiceCancelCommand}"
+                ToolTip.Tip="{x:Static res:Strings.Voice_CancelTranscribeTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Cancel}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="16" />
+            <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Voice_Cancel}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </Grid>
+
+      <!-- 失敗：錯誤文字（圖示＋文字，不只靠顏色）；保留錄音，可重試或放棄 -->
+      <Border x:Name="FailedRow" Classes="voice-error" IsVisible="{Binding IsVoiceFailed}" VerticalAlignment="Center">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}"
+                        VerticalAlignment="Top" />
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Text="{x:Static res:Strings.Voice_FailedTitle}" FontWeight="SemiBold" Foreground="{DynamicResource LumiDangerBrush}" />
+            <TextBlock Text="{Binding VoiceFailureText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button x:Name="VoiceRetryButton" Classes="primary composer-tool" Command="{Binding VoiceRetryCommand}"
+                    ToolTip.Tip="{x:Static res:Strings.Voice_RetryTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Retry}"
+                    Content="{x:Static res:Strings.Voice_Retry}" />
+            <Button x:Name="VoiceDiscardButton" Classes="tertiary composer-tool" Command="{Binding VoiceDiscardCommand}"
+                    ToolTip.Tip="{x:Static res:Strings.Voice_DiscardTip}" AutomationProperties.Name="{x:Static res:Strings.Voice_Discard}"
+                    Content="{x:Static res:Strings.Voice_Discard}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Panel>
+  </Border>
+</UserControl>

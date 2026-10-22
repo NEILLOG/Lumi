@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Lumi.Core.IO;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
+using Lumi.Core.Speech;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -143,6 +144,54 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default) =>
         MutateAsync(s => s with { Sprite = sprite.Normalize() }, ct);
 
+    public async Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default)
+    {
+        var normalized = settings.Normalize();
+        string? endpointHost = null;
+        if (normalized.Endpoint.Length > 0)
+        {
+            var check = SpeechEndpointRules.Validate(normalized.Endpoint);
+            if (!check.IsValid)
+                throw new ArgumentException(check.Reason, nameof(settings));
+            endpointHost = check.Uri!.Host;
+        }
+
+        // 呼叫端傳進來的 hint／主機不採信，只看這裡算出來的結果
+        var current = _current.Speech;
+        string? hint = null;
+        string? tokenHost = null;
+        if (newToken is not null)
+        {
+            if (endpointHost is null)
+                throw new ArgumentException("請先輸入服務端點，再儲存 Token。", nameof(settings));
+            await _secrets.SetAsync(SpeechSecrets.WhisperToken, newToken, ct).ConfigureAwait(false);
+            hint = ConnectionSecrets.Hint(newToken);
+            tokenHost = endpointHost;
+        }
+        else if (current.TokenHost is not null && string.Equals(current.TokenHost, endpointHost, StringComparison.OrdinalIgnoreCase))
+        {
+            hint = current.TokenHint;
+            tokenHost = current.TokenHost;
+        }
+        else if (current.TokenHost is not null || current.TokenHint is not null)
+        {
+            // 端點主機變了（或端點被清空）：舊 Token 不能再送到新主機，直接刪掉
+            await _secrets.DeleteAsync(SpeechSecrets.WhisperToken, ct).ConfigureAwait(false);
+        }
+
+        var saved = normalized with { TokenHint = hint, TokenHost = tokenHost };
+        await MutateAsync(s => s with { Speech = saved }, ct).ConfigureAwait(false);
+    }
+
+    public Task<bool> HasSpeechTokenAsync(CancellationToken ct = default) =>
+        _secrets.ExistsAsync(SpeechSecrets.WhisperToken, ct);
+
+    public async Task ClearSpeechTokenAsync(CancellationToken ct = default)
+    {
+        await _secrets.DeleteAsync(SpeechSecrets.WhisperToken, ct).ConfigureAwait(false);
+        await MutateAsync(s => s with { Speech = s.Speech with { TokenHint = null, TokenHost = null } }, ct).ConfigureAwait(false);
+    }
+
     public ResolvedModel? Resolve(string? modelSettingsId)
     {
         var settings = _current;
@@ -176,6 +225,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             WorkbenchModelId = Fix(settings.WorkbenchModelId),
             SpriteModelId = Fix(settings.SpriteModelId),
             ThemeId = ThemePalettes.Normalize(settings.ThemeId),
+            Speech = settings.Speech.Normalize(),
         };
     }
 
@@ -239,6 +289,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Persona = file.Persona?.Normalize() ?? PersonaSettings.Default,
             Sprite = file.Sprite?.Normalize() ?? SpriteSettings.Default,   // M7 加的欄位，同樣舊檔沒有時用預設
             ThemeId = ThemePalettes.Normalize(file.ThemeId),               // 主題色票（UA）：缺欄位或不認得就是 sage
+            Speech = file.Speech?.Normalize() ?? SpeechSettings.Default,   // M6 加的欄位，舊檔沒有時用預設
         });
         return (settings, false, null);
     }
@@ -257,7 +308,7 @@ public sealed class JsonModelCatalog : IModelCatalog
 
     private static byte[] Serialize(AppSettings settings) => JsonSerializer.SerializeToUtf8Bytes(
         new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme,
-            settings.Persona, settings.Sprite, settings.ThemeId),
+            settings.Persona, settings.Sprite, settings.ThemeId, settings.Speech),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -308,5 +359,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         ThemePreference Theme,
         PersonaSettings? Persona = null,
         SpriteSettings? Sprite = null,
-        string? ThemeId = null);
+        string? ThemeId = null,
+        SpeechSettings? Speech = null);
 }

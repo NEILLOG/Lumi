@@ -1,5 +1,6 @@
 using Lumi.Core.Platform;
 using Lumi.Core.Secrets;
+using Lumi.Core.Speech;
 using Lumi.Platform.Overlay;
 using Lumi.Platform.Secrets;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,6 +62,21 @@ public class PlatformServiceCollectionTests
 
         Assert.False(overlay.IsSupported);
         Assert.False(overlay.ClickThroughActive);
+    }
+
+    [SkippableFact]
+    public void AddLumiPlatform_registers_the_audio_recorder_as_a_singleton_for_this_os()
+    {
+        Skip.IfNot(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS(), "只支援 Windows 與 macOS");
+        var services = new ServiceCollection();
+        services.AddLumiPlatform(o => o.KeychainService = "io.github.neillog.lumi.tests");
+
+        using var provider = services.BuildServiceProvider(validateScopes: true);
+        var recorder = provider.GetRequiredService<IAudioRecorder>();
+
+        Assert.Same(recorder, provider.GetRequiredService<IAudioRecorder>());   // 一次只錄一個，所以單例
+        Assert.Equal(OperatingSystem.IsMacOS() ? "MacAudioQueueRecorder" : "WindowsWaveInRecorder", recorder.GetType().Name);
+        Assert.False(recorder.IsRecording);   // 只建立，不開麥克風
     }
 
     [Fact]

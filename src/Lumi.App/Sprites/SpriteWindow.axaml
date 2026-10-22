@@ -32,9 +32,10 @@
     <!-- 角色：視窗大小固定，角色放在它的位置上 -->
     <Border x:Name="SpriteHost" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Cursor="Hand" />
 
-    <!-- 精簡輸入列：靠近才浮現 -->
-    <Border x:Name="InputBar" HorizontalAlignment="Left" VerticalAlignment="Top" Width="300" Height="48"
-            CornerRadius="24" Padding="16,0,6,0" Opacity="0" IsHitTestVisible="False" RenderTransform="translateY(12px)"
+    <!-- 精簡輸入列：靠近才浮現。版面（M6 6E，300×48 不變）：外框內縮 1、左右 Padding 6；麥克風 36 圓鈕在最左（x=7）；
+         文字欄左右各留 8（x=51 起，語音草稿時前面多一個「語音」標籤）；送出鈕 36 在最右（x=257）。收音時整列換成收音列（SpriteVoiceBar）。 -->
+    <Border x:Name="InputBar" x:DataType="sp:SpriteVoiceBarViewModel" HorizontalAlignment="Left" VerticalAlignment="Top" Width="300" Height="48"
+            CornerRadius="24" Padding="6,0" Opacity="0" IsHitTestVisible="False" RenderTransform="translateY(12px)"
             Background="{DynamicResource LumiSurfaceBrush}" BorderBrush="{DynamicResource LumiBorderStrongBrush}"
             BorderThickness="1" BoxShadow="{StaticResource LumiSpriteShadow}">
       <Border.Transitions>
@@ -43,18 +44,35 @@
           <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" />
         </Transitions>
       </Border.Transitions>
-      <Grid ColumnDefinitions="*,Auto">
-        <!-- 輸入列自己畫外框：TextBox 用 embedded（沒有框線、底色與 Focus 光暈），MinHeight 0、Padding 0 維持原本的高度與位置 -->
-        <TextBox x:Name="Input" Classes="embedded" Watermark="{x:Static res:Strings.Sprite_InputPlaceholder}" VerticalAlignment="Center"
-                 Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
-                 AcceptsReturn="False" />
-        <Button x:Name="SendButton" Grid.Column="1" Classes="round send"
-                ToolTip.Tip="{x:Static res:Strings.Sprite_Send}" AutomationProperties.Name="{x:Static res:Strings.Sprite_Send}">
-          <Panel>
-            <ctl:LumiIcon x:Name="SendIcon" Data="{StaticResource LumiIconArrowUp}" Size="18" />
-            <ctl:LumiIcon x:Name="StopIcon" IsVisible="False" Data="{StaticResource LumiIconSquare}" Size="14" />
-          </Panel>
-        </Button>
+      <Grid>
+        <Grid x:Name="InputRow" ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding !IsVoiceActive}">
+          <Button x:Name="MicButton" Grid.Column="0" Classes="round tertiary" VerticalAlignment="Center" Command="{Binding StartVoiceCommand}"
+                  IsEnabled="{Binding MicEnabled}" ToolTip.Tip="{Binding MicTip}" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{x:Static res:Strings.Composer_Mic}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconMic}" Size="16" />
+          </Button>
+          <Grid x:Name="TextCell" Grid.Column="1" Margin="8,0,8,0" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+            <!-- 語音草稿的標籤（沿用工作台的「語音轉寫」概念，這裡只有「語音」兩字）：使用者改動文字後拿掉 -->
+            <Border x:Name="VoiceChip" Grid.Column="0" Classes="voice-chip" IsVisible="{Binding IsVoiceDraft}" Margin="0,0,6,0"
+                    VerticalAlignment="Center" Padding="6,1" CornerRadius="8" Background="{DynamicResource LumiAccentSoftBrush}"
+                    AutomationProperties.Name="{x:Static res:Strings.Sprite_VoiceLabel}">
+              <TextBlock Text="{x:Static res:Strings.Sprite_VoiceLabel}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                         Foreground="{DynamicResource LumiTextOnSoftBrush}" VerticalAlignment="Center" />
+            </Border>
+            <!-- 輸入列自己畫外框：TextBox 用 embedded（沒有框線、底色與 Focus 光暈），MinHeight 0、Padding 0 維持原本的高度 -->
+            <TextBox x:Name="Input" Grid.Column="1" Classes="embedded" Watermark="{x:Static res:Strings.Sprite_InputPlaceholder}" VerticalAlignment="Center"
+                     Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
+                     AcceptsReturn="False" />
+          </Grid>
+          <Button x:Name="SendButton" Grid.Column="2" Classes="round send" VerticalAlignment="Center"
+                  ToolTip.Tip="{x:Static res:Strings.Sprite_Send}" AutomationProperties.Name="{x:Static res:Strings.Sprite_Send}">
+            <Panel>
+              <ctl:LumiIcon x:Name="SendIcon" Data="{StaticResource LumiIconArrowUp}" Size="18" />
+              <ctl:LumiIcon x:Name="StopIcon" IsVisible="False" Data="{StaticResource LumiIconSquare}" Size="14" />
+            </Panel>
+          </Button>
+        </Grid>
+        <sp:SpriteVoiceBar x:Name="VoiceBar" IsVisible="{Binding IsVoiceActive}" VerticalAlignment="Center" />
       </Grid>
     </Border>
 

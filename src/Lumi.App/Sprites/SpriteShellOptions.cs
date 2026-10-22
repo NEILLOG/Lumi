@@ -38,6 +38,9 @@ public sealed class SpriteShellOptions
     /// </summary>
     public int BubbleMaxClusters { get; init; } = 120;
 
+    /// <summary>語音提示（太短、沒有聲音、沒聽到內容）的氣泡停留多久就淡出（游標停在上面時暫停計時）。</summary>
+    public TimeSpan NoticeLinger { get; init; } = TimeSpan.FromSeconds(4);
+
     /// <summary>「暫時隱藏」多久。</summary>
     public TimeSpan TemporaryHide { get; init; } = TimeSpan.FromMinutes(30);
 

@@ -223,6 +223,11 @@ public class SettingsAccessibilityTests
         ["general"] = ["BackToChatButton", "CategoryGeneral", "item:PaletteBox", "ThemeBox"],
         ["sprite"] = ["BackToChatButton", "CategorySprite", "item:SpriteList", "SpriteSizeBox", "SpriteVoiceBox", "item:SpriteStateList"],
         ["sprite-issues"] = ["BackToChatButton", "CategorySprite", "item:SpriteList", "SpriteReloadButton", "SpriteOpenFolderButton", "SpriteSizeBox", "SpriteVoiceBox", "item:SpriteStateList"],
+        // 沒有儲存的變更時「還原」「儲存」停用（不在 Tab 鏈上）；停用的原因寫在旁邊的 Caption
+        ["speech"] = ["BackToChatButton", "CategorySpeech", "SpeechEndpointBox", "SpeechLanguageBox", "SpeechLangAutoButton", "SpeechLangZhButton",
+            "SpeechTimeoutBox", "SpeechTokenBox", "SpeechRevealTokenButton"],
+        ["speech-token-stored"] = ["BackToChatButton", "CategorySpeech", "SpeechEndpointBox", "SpeechLanguageBox", "SpeechTimeoutBox",
+            "SpeechReplaceTokenButton", "SpeechClearTokenButton", "SpeechTestButton"],
     };
 
     public static TheoryData<string, double> OrderedPageWidths()
@@ -330,7 +335,7 @@ public class SettingsAccessibilityTests
         Assert.Equal(forward.AsEnumerable().Reverse().Select(Label), backward.Select(Label));
     }
 
-    private static string CategoryName(int index) => index switch { 0 => "Connections", 1 => "Persona", 2 => "General", _ => "Sprite" };
+    private static string CategoryName(int index) => index switch { 0 => "Connections", 1 => "Persona", 2 => "General", 3 => "Sprite", _ => "Speech" };
 
     private static bool IsInMenu(InputElement e, Window window) => e.GetVisualAncestors().Contains(window.FindByName<Border>("Menu"));
 
@@ -351,7 +356,13 @@ public class SettingsAccessibilityTests
         PressKey(rig, Key.Down);
         PressKey(rig, Key.Down);
         Assert.Equal(3, settings.CategoryIndex);
+        PressKey(rig, Key.Down);   // 小精靈之後是「語音」（最後一個可用的分類）
+        Assert.Equal(4, settings.CategoryIndex);
+        Assert.Equal("CategorySpeech", FocusedName(rig));
         PressKey(rig, Key.Down);   // 最後一個之後不會跑進停用的「設定首頁」「資料與隱私」
+        Assert.Equal(4, settings.CategoryIndex);
+        Assert.Equal("CategorySpeech", FocusedName(rig));
+        PressKey(rig, Key.Up);
         Assert.Equal(3, settings.CategoryIndex);
         Assert.Equal("CategorySprite", FocusedName(rig));
         PressKey(rig, Key.Up);

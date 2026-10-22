@@ -7,6 +7,8 @@ using Lumi.App.ViewModels;
 using Lumi.App.Views;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Secrets;
+using Lumi.Core.Speech;
 using Lumi.Sprites.Assets;
 using Lumi.Sprites.Orb;
 using CommunityToolkit.Mvvm.Input;
@@ -26,6 +28,7 @@ internal sealed class SettingsRig : IDisposable
         "connections-test-ok", "connections-test-fail",
         "models-list", "models-form", "models-advanced",
         "persona", "persona-dirty", "general", "sprite", "sprite-issues",
+        "speech", "speech-token-stored", "speech-test-ok", "speech-test-fail",
     ];
 
     private readonly CorgiPack? _pack;
@@ -122,6 +125,24 @@ internal sealed class SettingsRig : IDisposable
             case "sprite":
             case "sprite-issues":
                 settings.CategoryIndex = 3;
+                break;
+            case "speech":
+                settings.CategoryIndex = 4;
+                break;
+            case "speech-token-stored":
+                await Host.Catalog.SetSpeechAsync(new SpeechSettings("https://speech.example.com/v1", "zh", 120), new SecretValue("wh-token-5678"));
+                settings.CategoryIndex = 4;
+                break;
+            case "speech-test-ok":
+            case "speech-test-fail":
+                settings.CategoryIndex = 4;
+                Host.Speech.Endpoint = "https://speech.example.com/v1";
+                Host.Speech.NewToken = "wh-token-5678";
+                Settle();
+                Host.SpeechTester.Failure = state == "speech-test-fail"
+                    ? new SpeechFailure(SpeechFailureKind.InvalidToken, "Token 無效，或沒有 WHISPER_API 權限。", false)
+                    : null;
+                await ((IAsyncRelayCommand)Host.Speech.TestCommand).ExecuteAsync(null);
                 break;
             default:
                 throw new ArgumentException(state, nameof(state));
