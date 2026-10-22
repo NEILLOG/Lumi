@@ -357,7 +357,15 @@
     <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
 
-  <!-- 每個動作區最多一個 primary（ui-guide.html 第 6 節） -->
+  <!--
+    按鈕層級（ui-guide.html 第 6 節）。每個動作區最多一個 primary。
+    狀態樣式（UE-3）：Fluent 的 Button:pointerover／:pressed／:disabled 規則設在模板內的 ContentPresenter#PART_ContentPresenter，
+    優先於我們設在 Button 本身的 Background／Foreground／BorderBrush（TemplateBinding），Hover 時會變成 Fluent 的半透明黑底＋黑字。
+    所以每個層級都要用 `/template/ ContentPresenter#PART_ContentPresenter` 的選擇器明確寫出 Hover／Pressed／Disabled。
+    選擇器的 class 與偽類比 Fluent 多，所以一定蓋得過；Pressed 時 :pointerover 也成立，因此 Pressed 要寫在 Hover 之後；
+    Disabled 放最後。前景色設在 ContentPresenter 上，Content 裡的 TextBlock 與 LumiIcon 會繼承。
+    Focus（鍵盤）：見檔案最後的「焦點框」。
+  -->
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
@@ -381,6 +389,141 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
     <Setter Property="CornerRadius" Value="10" />
+  </Style>
+
+  <!-- primary（含停止鈕 stop）：Hover／Pressed 底色往背景色靠，文字色不變；Disabled＝SurfaceAlt 底＋Muted 文字 -->
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.stop:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.stop:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonPressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter, Button.stop:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <!-- secondary 與 ToggleButton.secondary（未選取）：Hover＝SurfaceAlt 底；Pressed＝Soft 底；Disabled＝透明底＋Border 色框＋Muted 文字 -->
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+  </Style>
+
+  <!-- tertiary：Hover＝SurfaceAlt 底；Pressed＝Soft 底；Disabled＝Muted 文字（平常就是 Muted，所以再降到 0.6 透明度才看得出來） -->
+  <Style Selector="Button.tertiary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.tertiary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.tertiary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
+
+  <!-- danger：Hover＝Danger 淡底（紅框紅字不變）；Pressed＝淡底＋紅框加深；Disabled＝Muted 文字與 Border 色框 -->
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBrush}" />
+  </Style>
+  <Style Selector="Button.danger:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+  </Style>
+
+  <!--
+    送出／停止：圓形圖示按鈕（對話輸入區與小精靈輸入列共用）。送出用 Accent 底（不算 Primary 文字按鈕），停止用 Primary 底（上面 Button.stop 的狀態）。
+    送出：Hover／Pressed＝AccentHover；Disabled（輸入為空）＝Soft 底＋Muted 圖示。小精靈輸入列回應中時會把 send class 換成 stop。
+  -->
+  <Style Selector="Button.round">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.send">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+  </Style>
+  <Style Selector="Button.send:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.send:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.send:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.stop">
+    <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
+  </Style>
+
+  <!--
+    焦點框（鍵盤 Tab／方向鍵才出現，滑鼠點擊不會）：所有按鈕一致，Accent 2px、畫在按鈕自己的外緣內側（疊在邊框上，不佔版面；圓角同按鈕）。
+    Fluent 預設的焦點框是黑色 2px＋白色 1px 的直角雙框，和圓角按鈕對不上，所以整個換掉。
+    自己畫焦點外觀的按鈕（dashed 的虛線框變 Accent、分段切換與進階區段標題的邊框變 Accent）把 FocusAdorner 設成 null，避免疊成雙框。
+  -->
+  <Style Selector="Button, ToggleButton">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border BorderThickness="2" CornerRadius="10" BorderBrush="{DynamicResource LumiAccentBrush}" IsHitTestVisible="False" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.round">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border BorderThickness="2" CornerRadius="18" BorderBrush="{DynamicResource LumiAccentBrush}" IsHitTestVisible="False" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.chip-remove">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border BorderThickness="2" CornerRadius="10" BorderBrush="{DynamicResource LumiAccentBrush}" IsHitTestVisible="False" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.dashed, Border.segmented RadioButton, Expander.advanced /template/ ToggleButton#ExpanderHeader">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
 
   <!-- 卡片：只用來代表一個物件（ui-guide.html 第 7 節）。不要把整份表單或每個欄位包成卡片 -->
@@ -468,14 +611,23 @@
   <Style Selector="Border.segmented RadioButton:pointerover /template/ Border#PART_Segment">
     <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
   </Style>
+  <Style Selector="Border.segmented RadioButton:pressed /template/ Border#PART_Segment">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.segmented RadioButton:disabled /template/ Border#PART_Segment">
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
   <Style Selector="Border.segmented RadioButton:focus-visible /template/ Border#PART_Segment">
     <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
   </Style>
   <Style Selector="Border.segmented RadioButton:checked">
     <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
   </Style>
-  <Style Selector="Border.segmented RadioButton:checked /template/ Border#PART_Segment, Border.segmented RadioButton:checked:pointerover /template/ Border#PART_Segment">
+  <Style Selector="Border.segmented RadioButton:checked /template/ Border#PART_Segment, Border.segmented RadioButton:checked:pointerover /template/ Border#PART_Segment, Border.segmented RadioButton:checked:pressed /template/ Border#PART_Segment">
     <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.segmented RadioButton:checked:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
 
   <!--
@@ -589,10 +741,15 @@
     <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     <Setter Property="CornerRadius" Value="10" />
   </Style>
-  <Style Selector="ToggleButton.secondary:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="ToggleButton.secondary:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.secondary:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.secondary:checked:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
 
   <!--

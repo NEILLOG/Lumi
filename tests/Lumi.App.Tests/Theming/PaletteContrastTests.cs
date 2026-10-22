@@ -22,6 +22,8 @@ public sealed class PaletteContrastTests
         new object[] { "TextOnSoft", "AccentSoft" },
         new object[] { "AccentText", "AccentSoft" }, new object[] { "AccentText", "Surface" }, new object[] { "AccentText", "Background" },
         new object[] { "UserBubbleText", "UserBubble" }, new object[] { "PrimaryButtonText", "PrimaryButton" },
+        // UE-3：primary 按鈕 Hover／Pressed 底上的文字
+        new object[] { "PrimaryButtonText", "PrimaryButtonHover" }, new object[] { "PrimaryButtonText", "PrimaryButtonPressed" },
     };
 
     /// <summary>語意色（Tokens.axaml，不隨主題變）在它會出現的底色上的文字。</summary>
@@ -50,6 +52,34 @@ public sealed class PaletteContrastTests
         {
             var ratio = Contrast(theme.Colors[variant], "OnAccent", "Accent");
             Assert.True(ratio >= 3.0, $"{theme.Id} {variant}：OnAccent 在 Accent 上只有 {ratio:0.00}:1");
+        }
+    }
+
+    [Fact]
+    public void AccentIcon_OnAccentHover_MeetsNonTextThreshold_InEveryTheme()
+    {
+        // UE-3：送出鈕 Hover／Pressed 換成 AccentHover 底，圖示（OnAccent）一樣是非文字元件 3:1
+        foreach (var (theme, variant) in AllPalettes())
+        {
+            var ratio = Contrast(theme.Colors[variant], "OnAccent", "AccentHover");
+            Assert.True(ratio >= 3.0, $"{theme.Id} {variant}：OnAccent 在 AccentHover 上只有 {ratio:0.00}:1");
+        }
+    }
+
+    [Fact]
+    public void PrimaryButtonStates_ExistInEveryPalette_AndStayBetweenRestAndBackground()
+    {
+        // Hover／Pressed 是 PrimaryButton 與 Background 以 0.12／0.24 混合的結果：一步一步離開原色、靠近背景
+        foreach (var (theme, variant) in AllPalettes())
+        {
+            var colors = theme.Colors[variant];
+            var rest = Wcag.Luminance(colors["PrimaryButton"]);
+            var hover = Wcag.Luminance(colors["PrimaryButtonHover"]);
+            var pressed = Wcag.Luminance(colors["PrimaryButtonPressed"]);
+            var background = Wcag.Luminance(colors["Background"]);
+            Assert.True(Math.Abs(hover - rest) > 0.005, $"{theme.Id} {variant}：Hover 和原色看不出差別");
+            Assert.True(Math.Abs(pressed - rest) > Math.Abs(hover - rest), $"{theme.Id} {variant}：Pressed 應比 Hover 離原色更遠");
+            Assert.True(Math.Abs(pressed - background) < Math.Abs(rest - background), $"{theme.Id} {variant}：Pressed 應比原色更靠近背景");
         }
     }
 

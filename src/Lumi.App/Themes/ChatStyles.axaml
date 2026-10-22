@@ -10,6 +10,23 @@
     <Setter Property="Padding" Value="12,4" />
     <Setter Property="CornerRadius" Value="8" />
   </Style>
+  <!-- chrome：無框按鈕，平常用 Text 色；狀態比照 tertiary（Fluent 的 Hover 規則設在模板內，要明確覆寫，見 Controls.axaml） -->
+  <Style Selector="Button.chrome:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.chrome:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.chrome:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Opacity" Value="0.6" />
+  </Style>
   <Style Selector="Button.small">
     <Setter Property="Padding" Value="8,4" />
     <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />

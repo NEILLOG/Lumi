@@ -36,9 +36,13 @@
       <Setter Property="Foreground" Value="{DynamicResource LumiInfoBrush}" />
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
     </Style>
-    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{DynamicResource LumiInfoBrush}" />
+    </Style>
+    <Style Selector="Button.link:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
     </Style>
     <Style Selector="Button.small">
       <Setter Property="Padding" Value="12,5" />

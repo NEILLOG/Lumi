@@ -15,18 +15,6 @@
         ShowActivated="False"
         WindowStartupLocation="Manual">
 
-  <Window.Styles>
-    <!-- 送出：圓形圖示按鈕，Accent 底（不算 Primary 文字按鈕）；回應中變成停止，用 Primary 底（SetResponding 切換 stop class） -->
-    <Style Selector="Button#SendButton">
-      <Setter Property="Background" Value="{DynamicResource LumiAccentBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
-    </Style>
-    <Style Selector="Button#SendButton.stop">
-      <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
-    </Style>
-  </Window.Styles>
-
   <Panel>
     <!-- 氣泡：固定預留的區域，內容貼著底部（尖端對準角色的氣泡錨點）。沒有按鈕的氣泡點擊會穿透 -->
     <Grid x:Name="BubbleArea" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsHitTestVisible="False">
@@ -60,9 +48,8 @@
         <TextBox x:Name="Input" Classes="embedded" Watermark="{x:Static res:Strings.Sprite_InputPlaceholder}" VerticalAlignment="Center"
                  Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
                  AcceptsReturn="False" />
-        <Button x:Name="SendButton" Grid.Column="1" Width="36" Height="36" CornerRadius="18" Padding="0"
-                ToolTip.Tip="{x:Static res:Strings.Sprite_Send}" AutomationProperties.Name="{x:Static res:Strings.Sprite_Send}"
-                HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+        <Button x:Name="SendButton" Grid.Column="1" Classes="round send"
+                ToolTip.Tip="{x:Static res:Strings.Sprite_Send}" AutomationProperties.Name="{x:Static res:Strings.Sprite_Send}">
           <Panel>
             <ctl:LumiIcon x:Name="SendIcon" Data="{StaticResource LumiIconArrowUp}" Size="18" />
             <ctl:LumiIcon x:Name="StopIcon" IsVisible="False" Data="{StaticResource LumiIconSquare}" Size="14" />

@@ -28,6 +28,8 @@
       <Color x:Key="LumiAssistantBubbleColor">#F0EEEA</Color>
       <Color x:Key="LumiPrimaryButtonColor">#27272B</Color>
       <Color x:Key="LumiPrimaryButtonTextColor">#FFFFFF</Color>
+      <Color x:Key="LumiPrimaryButtonHoverColor">#404043</Color>
+      <Color x:Key="LumiPrimaryButtonPressedColor">#59585B</Color>
 
       <SolidColorBrush x:Key="LumiBackgroundBrush" Color="{StaticResource LumiBackgroundColor}" />
       <SolidColorBrush x:Key="LumiSurfaceBrush" Color="{StaticResource LumiSurfaceColor}" />
@@ -49,6 +51,8 @@
       <SolidColorBrush x:Key="LumiAssistantBubbleBrush" Color="{StaticResource LumiAssistantBubbleColor}" />
       <SolidColorBrush x:Key="LumiPrimaryButtonBrush" Color="{StaticResource LumiPrimaryButtonColor}" />
       <SolidColorBrush x:Key="LumiPrimaryButtonTextBrush" Color="{StaticResource LumiPrimaryButtonTextColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonHoverBrush" Color="{StaticResource LumiPrimaryButtonHoverColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonPressedBrush" Color="{StaticResource LumiPrimaryButtonPressedColor}" />
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="LumiBackgroundColor">#1C1917</Color>
@@ -71,6 +75,8 @@
       <Color x:Key="LumiAssistantBubbleColor">#302A27</Color>
       <Color x:Key="LumiPrimaryButtonColor">#EEEDEC</Color>
       <Color x:Key="LumiPrimaryButtonTextColor">#1C1917</Color>
+      <Color x:Key="LumiPrimaryButtonHoverColor">#D5D4D2</Color>
+      <Color x:Key="LumiPrimaryButtonPressedColor">#BCBAB9</Color>
 
       <SolidColorBrush x:Key="LumiBackgroundBrush" Color="{StaticResource LumiBackgroundColor}" />
       <SolidColorBrush x:Key="LumiSurfaceBrush" Color="{StaticResource LumiSurfaceColor}" />
@@ -92,6 +98,8 @@
       <SolidColorBrush x:Key="LumiAssistantBubbleBrush" Color="{StaticResource LumiAssistantBubbleColor}" />
       <SolidColorBrush x:Key="LumiPrimaryButtonBrush" Color="{StaticResource LumiPrimaryButtonColor}" />
       <SolidColorBrush x:Key="LumiPrimaryButtonTextBrush" Color="{StaticResource LumiPrimaryButtonTextColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonHoverBrush" Color="{StaticResource LumiPrimaryButtonHoverColor}" />
+      <SolidColorBrush x:Key="LumiPrimaryButtonPressedBrush" Color="{StaticResource LumiPrimaryButtonPressedColor}" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

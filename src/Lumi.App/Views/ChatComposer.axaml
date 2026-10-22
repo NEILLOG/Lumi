@@ -51,23 +51,7 @@
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <!-- 送出／停止：圓形圖示按鈕。送出用 Accent 底（不算 Primary 文字按鈕），停止用 Primary 底 -->
-    <Style Selector="Button.round">
-      <Setter Property="Width" Value="36" />
-      <Setter Property="Height" Value="36" />
-      <Setter Property="CornerRadius" Value="18" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.send">
-      <Setter Property="Background" Value="{DynamicResource LumiAccentBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource LumiOnAccentBrush}" />
-    </Style>
-    <Style Selector="Button.stop">
-      <Setter Property="Background" Value="{DynamicResource LumiPrimaryButtonBrush}" />
-      <Setter Property="Foreground" Value="{DynamicResource LumiPrimaryButtonTextBrush}" />
-    </Style>
+    <!-- 送出／停止圓鈕（Button.round／send／stop）在 Themes/Controls.axaml，小精靈輸入列共用 -->
 
     <!--
       RWD（根節點 class；放在最後才蓋得過上面的預設）。

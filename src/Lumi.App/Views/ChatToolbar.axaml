@@ -24,6 +24,11 @@
     <!-- 模型膠囊：圓角膠囊形的 secondary，文字過長時省略，不推走其他按鈕 -->
     <Style Selector="Button.capsule">
       <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="FocusAdorner">
+        <FocusAdornerTemplate>
+          <Border BorderThickness="2" CornerRadius="16" BorderBrush="{DynamicResource LumiAccentBrush}" IsHitTestVisible="False" />
+        </FocusAdornerTemplate>
+      </Setter>
       <Setter Property="MinWidth" Value="120" />
       <Setter Property="MaxWidth" Value="360" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />

@@ -30,12 +30,11 @@
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     </Style>
-    <Style Selector="Button.groupheader:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <!-- 整列標題是按鈕：Hover／Pressed 不換底，強制展開時的停用也不變灰；Fluent 的狀態規則會把前景改成黑色，所以明確寫回 Text -->
+    <Style Selector="Button.groupheader:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.groupheader:pressed /template/ ContentPresenter#PART_ContentPresenter, Button.groupheader:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
-    </Style>
-    <Style Selector="Button.groupheader:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
     </Style>
   </UserControl.Styles>
 
