@@ -28,12 +28,12 @@ public class ButtonStateStyleTests
 
     public ButtonStateStyleTests(ITestOutputHelper output) => _output = output;
 
-    private enum State { Normal, Hover, Pressed, Disabled }
+    internal enum State { Normal, Hover, Pressed, Disabled }
 
     /// <summary>預期的外觀。token 名稱（LumiXxxBrush）或 "Transparent"；null＝不檢查。</summary>
-    private sealed record Look(string? Bg, string? Fg, string? Border = null, double? Opacity = null);
+    internal sealed record Look(string? Bg, string? Fg, string? Border = null, double? Opacity = null);
 
-    private sealed record Layer(Look Normal, Look Hover, Look Pressed, Look Disabled)
+    internal sealed record Layer(Look Normal, Look Hover, Look Pressed, Look Disabled)
     {
         public Look For(State state) => state switch
         {
@@ -44,21 +44,21 @@ public class ButtonStateStyleTests
         };
     }
 
-    private enum Kind { Button, Toggle, Radio }
+    internal enum Kind { Button, Toggle, Radio }
 
-    private enum Parts { Presenter, Dashed, Segment }
+    internal enum Parts { Presenter, Dashed, Segment }
 
-    private sealed record Case(string Name, string Host, Kind Kind, string Classes, Layer Layer, Parts Parts = Parts.Presenter, bool Checked = false);
+    internal sealed record Case(string Name, string Host, Kind Kind, string Classes, Layer Layer, Parts Parts = Parts.Presenter, bool Checked = false);
 
     // ---- 各層級的預期外觀（plan/12 的「共用元件樣式」＋ UE-3 規格） ----
 
-    private static readonly Layer Primary = new(
+    internal static readonly Layer Primary = new(
         new Look("LumiPrimaryButtonBrush", "LumiPrimaryButtonTextBrush", "Transparent"),
         new Look("LumiPrimaryButtonHoverBrush", "LumiPrimaryButtonTextBrush", "Transparent"),
         new Look("LumiPrimaryButtonPressedBrush", "LumiPrimaryButtonTextBrush", "Transparent"),
         new Look("LumiSurfaceAltBrush", "LumiTextMutedBrush", "Transparent"));
 
-    private static readonly Layer Secondary = new(
+    internal static readonly Layer Secondary = new(
         new Look("LumiSurfaceBrush", "LumiTextBrush", "LumiBorderStrongBrush"),
         new Look("LumiSurfaceAltBrush", "LumiTextBrush", "LumiBorderStrongBrush"),
         new Look("LumiAccentSoftBrush", "LumiTextBrush", "LumiBorderStrongBrush"),
@@ -70,7 +70,7 @@ public class ButtonStateStyleTests
         new Look("LumiAccentSoftBrush", "LumiTextMutedBrush", "Transparent"),
         new Look("Transparent", "LumiTextMutedBrush", "Transparent", Opacity: 0.6));
 
-    private static readonly Layer Danger = new(
+    internal static readonly Layer Danger = new(
         new Look("LumiSurfaceBrush", "LumiDangerBrush", "LumiDangerBorderBrush"),
         new Look("LumiDangerBackgroundBrush", "LumiDangerBrush", "LumiDangerBorderBrush"),
         new Look("LumiDangerBackgroundBrush", "LumiDangerBrush", "LumiDangerBrush"),
@@ -111,7 +111,7 @@ public class ButtonStateStyleTests
         new Look("LumiAccentSoftBrush", "LumiTextMutedBrush", "Transparent", Opacity: 0.6));
 
     /// <summary>ToggleButton.secondary 選取後：Soft 底＋Accent 邊框＋OnSoft 文字；停用時退回 secondary 的停用外觀。</summary>
-    private static readonly Layer SecondaryChecked = new(
+    internal static readonly Layer SecondaryChecked = new(
         new Look("LumiAccentSoftBrush", "LumiTextOnSoftBrush", "LumiAccentBorderBrush"),
         new Look("LumiAccentSoftBrush", "LumiTextOnSoftBrush", "LumiAccentBorderBrush"),
         new Look("LumiAccentSoftBrush", "LumiTextOnSoftBrush", "LumiAccentBorderBrush"),
@@ -246,7 +246,7 @@ public class ButtonStateStyleTests
         return (window, button);
     }
 
-    private static void Apply(ContentControl button, State state)
+    internal static void Apply(ContentControl button, State state)
     {
         button.IsEnabled = state != State.Disabled;
         var classes = (IPseudoClasses)button.Classes;
@@ -254,12 +254,12 @@ public class ButtonStateStyleTests
         classes.Set(":pressed", state == State.Pressed);
     }
 
-    private sealed record Actual(IBrush? Bg, IBrush? Fg, IBrush? Border, double Opacity, IBrush? TextFg, IBrush? IconFg);
+    private sealed record Actual(IBrush? Bg, IBrush? Fg, IBrush? Border, double Opacity, IBrush? TextFg, IBrush? IconFg, bool HasIcon = true);
 
     private static Actual Read(Case c, ContentControl button)
     {
         var text = button.GetVisualDescendants().OfType<TextBlock>().First();
-        var icon = button.GetVisualDescendants().OfType<LumiIcon>().First();
+        var icon = button.GetVisualDescendants().OfType<LumiIcon>().FirstOrDefault();
         var buttonOpacity = button.Opacity;
         switch (c.Parts)
         {
@@ -267,30 +267,30 @@ public class ButtonStateStyleTests
             {
                 var rect = button.GetVisualDescendants().OfType<Rectangle>().Single(r => r.Name == "PART_Dash");
                 var content = button.GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Name == "DashContent");
-                return new Actual(rect.Fill, content.Foreground, null, buttonOpacity * content.Opacity, text.Foreground, icon.Foreground);
+                return new Actual(rect.Fill, content.Foreground, null, buttonOpacity * content.Opacity, text.Foreground, icon?.Foreground, icon is not null);
             }
             case Parts.Segment:
             {
                 var segment = button.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "PART_Segment");
                 var content = button.GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Name == "SegmentContent");
-                return new Actual(segment.Background, content.Foreground, segment.BorderBrush, buttonOpacity * segment.Opacity * content.Opacity, text.Foreground, icon.Foreground);
+                return new Actual(segment.Background, content.Foreground, segment.BorderBrush, buttonOpacity * segment.Opacity * content.Opacity, text.Foreground, icon?.Foreground, icon is not null);
             }
             default:
             {
                 var presenter = button.GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Name == "PART_ContentPresenter");
-                return new Actual(presenter.Background, presenter.Foreground, presenter.BorderBrush, buttonOpacity * presenter.Opacity, text.Foreground, icon.Foreground);
+                return new Actual(presenter.Background, presenter.Foreground, presenter.BorderBrush, buttonOpacity * presenter.Opacity, text.Foreground, icon?.Foreground, icon is not null);
             }
         }
     }
 
-    private static string Describe(IBrush? brush) => brush switch
+    internal static string Describe(IBrush? brush) => brush switch
     {
         null => "null",
         ISolidColorBrush solid => solid.Color.ToString() + (solid.Opacity < 1 ? $"@{solid.Opacity:0.##}" : ""),
         _ => brush.GetType().Name,
     };
 
-    private static Color Resolve(Window window, string token)
+    internal static Color Resolve(Window window, string token)
     {
         if (token == "Transparent")
             return Colors.Transparent;
@@ -298,15 +298,27 @@ public class ButtonStateStyleTests
         return Assert.IsAssignableFrom<ISolidColorBrush>(value).Color;
     }
 
-    private static bool Matches(IBrush? actual, Color expected) =>
+    internal static bool Matches(IBrush? actual, Color expected) =>
         actual is null ? expected.A == 0 : actual is ISolidColorBrush solid && solid.Color == expected && solid.Opacity == 1;
 
     /// <summary>檢查一個按鈕在四個狀態下的外觀，回傳所有不符的項目（空＝全部正確）。</summary>
     private static List<string> Check(Case c, bool dark)
     {
         var (window, button) = Build(c, dark);
-        var problems = new List<string>();
         try
+        {
+            return CheckButton(c, window, button, dark);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>檢查已經顯示在 <paramref name="window"/> 裡的按鈕（例如 ConfirmDialog 的確認鈕）在四個狀態與鍵盤焦點下的外觀。</summary>
+    internal static List<string> CheckButton(Case c, Window window, ContentControl button, bool dark)
+    {
+        var problems = new List<string>();
         {
             foreach (var state in Enum.GetValues<State>())
             {
@@ -328,17 +340,14 @@ public class ButtonStateStyleTests
                 Compare("Foreground", expected.Fg, actual.Fg);
                 Compare("BorderBrush", expected.Border, actual.Border);
                 Compare("TextBlock.Foreground", expected.Fg, actual.TextFg);
-                Compare("LumiIcon.Foreground", expected.Fg, actual.IconFg);
+                if (actual.HasIcon)
+                    Compare("LumiIcon.Foreground", expected.Fg, actual.IconFg);
                 if (expected.Opacity is { } opacity && Math.Abs(actual.Opacity - opacity) > 0.001)
                     problems.Add($"{c.Name} {(dark ? "dark" : "light")} {state}：Opacity 應為 {opacity} 實際 {actual.Opacity}");
                 if (expected.Opacity is null && Math.Abs(actual.Opacity - 1) > 0.001)
                     problems.Add($"{c.Name} {(dark ? "dark" : "light")} {state}：Opacity 應為 1 實際 {actual.Opacity}");
             }
             problems.AddRange(CheckFocus(c, window, button, dark));
-        }
-        finally
-        {
-            window.Close();
         }
         return problems;
     }

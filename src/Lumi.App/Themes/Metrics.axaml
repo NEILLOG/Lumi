@@ -12,4 +12,6 @@
   <CornerRadius x:Key="LumiRadiusInput">10</CornerRadius>
   <CornerRadius x:Key="LumiRadiusCard">14</CornerRadius>
   <CornerRadius x:Key="LumiRadiusPanel">16</CornerRadius>
+  <!-- 浮出層（Flyout、MenuFlyout）外框 -->
+  <CornerRadius x:Key="LumiRadiusFlyout">12</CornerRadius>
 </ResourceDictionary>

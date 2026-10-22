@@ -10,7 +10,12 @@ public partial class ConfirmDialog : Window
         InitializeComponent();
         MessageText.Text = message;
         ConfirmButton.Content = confirmText;
-        ConfirmButton.Classes.Add(destructive ? "danger" : "primary");
+        // XAML 預設是 primary；破壞性動作換成 danger（兩者互斥，確認區永遠只有一個 primary 或 danger）
+        if (destructive)
+        {
+            ConfirmButton.Classes.Remove("primary");
+            ConfirmButton.Classes.Add("danger");
+        }
         ConfirmButton.Click += (_, _) => Close(true);
         CancelButton.Click += (_, _) => Close(false);
     }
