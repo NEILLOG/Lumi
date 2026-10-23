@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\src\Lumi.Core\Lumi.Core.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Providers\Lumi.Providers.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Speech\Lumi.Speech.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.Documents\Lumi.Documents.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Infrastructure\Lumi.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Platform\Lumi.Platform.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Tools\Lumi.Tools.csproj" />

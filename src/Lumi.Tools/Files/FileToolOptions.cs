@@ -32,6 +32,11 @@ public sealed class FileToolOptions
     /// <summary>搜尋結果每一行最多顯示的字元數。</summary>
     public int SearchMaxLineChars { get; set; } = 200;
 
+    // ---- 寫入（M10 的 10A） ----
+
+    /// <summary>單次寫入（write_file、overwrite_file）的文字上限（字元數）；較長的內容請分次追加。</summary>
+    public int MaxWriteChars { get; set; } = 500_000;
+
     // ---- 送出時嵌進訊息的上下文（M4 的 4B） ----
 
     /// <summary>單一文字檔超過這麼多位元組就不嵌進訊息（只放進範圍，模型用 <c>read_file</c> 讀）。</summary>

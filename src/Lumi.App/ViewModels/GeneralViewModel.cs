@@ -1,7 +1,9 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Models;
+using Lumi.Core.Notes;
 
 namespace Lumi.App.ViewModels;
 
@@ -53,21 +55,103 @@ public sealed record PaletteOption(string Id)
 public partial class GeneralViewModel : ObservableObject
 {
     private readonly IModelCatalog _catalog;
+    private readonly IFilePickerService? _files;
     private ThemeOption _selectedTheme;
     private PaletteOption _selectedPalette;
 
-    public GeneralViewModel(IModelCatalog catalog, IUiDispatcher dispatcher)
+    /// <summary>已經存進設定的筆記資料夾（原文）。輸入框的文字不一定是這個值（還在編輯中）。</summary>
+    private string _notesFolderSaved;
+
+    /// <param name="files">選擇資料夾用；沒有（測試）時「選擇資料夾」什麼也不做。</param>
+    public GeneralViewModel(IModelCatalog catalog, IUiDispatcher dispatcher, IFilePickerService? files = null)
     {
         _catalog = catalog;
+        _files = files;
         _selectedTheme = ThemeOption.All.First(o => o.Preference == catalog.Current.Theme);
         _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(catalog.Current.ThemeId));
+        _notesFolderSaved = catalog.Current.Notes.Folder;
+        _notesFolderInput = _notesFolderSaved;
         catalog.Changed += (_, settings) => dispatcher.Post(() =>
         {
             _selectedTheme = ThemeOption.All.First(o => o.Preference == settings.Theme);
             OnPropertyChanged(nameof(SelectedTheme));
             _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(settings.ThemeId));
             OnPropertyChanged(nameof(SelectedPalette));
+            // 別處改了資料夾才覆寫輸入框；只是改了主題時不要把正在編輯的文字蓋掉
+            if (settings.Notes.Folder != _notesFolderSaved)
+                SetSavedNotesFolder(settings.Notes.Folder);
         });
+    }
+
+    /// <summary>筆記資料夾的預設位置（輸入框的浮水印，讓使用者看見空白時會用哪裡）。</summary>
+    public string NotesFolderDefault => NoteFolderRules.DefaultFolder;
+
+    /// <summary>目前設定的是自訂資料夾（沒有就是預設，「恢復預設」停用）。</summary>
+    public bool IsNotesFolderCustomized => _notesFolderSaved.Length > 0;
+
+    [ObservableProperty]
+    private string _notesFolderInput;
+
+    [ObservableProperty]
+    private string? _notesFolderError;
+
+    private void SetSavedNotesFolder(string folder)
+    {
+        _notesFolderSaved = folder;
+        NotesFolderInput = folder;
+        OnPropertyChanged(nameof(IsNotesFolderCustomized));
+    }
+
+    /// <summary>
+    /// 套用輸入框的資料夾（Enter 或離開欄位時）。不合法時留著原文、說明原因，讓使用者改，不默默退回。
+    /// 立即生效，沒有儲存鈕。
+    /// </summary>
+    [RelayCommand]
+    public async Task CommitNotesFolderAsync()
+    {
+        if (NotesFolderInput.Trim() == _notesFolderSaved)
+        {
+            NotesFolderError = null;
+            return;
+        }
+        await ApplyNotesFolderAsync(NotesFolderInput);
+    }
+
+    [RelayCommand]
+    public async Task ChooseNotesFolderAsync()
+    {
+        if (_files is null)
+            return;
+        var folder = await _files.PickFolderAsync();
+        if (folder is not null)
+            await ApplyNotesFolderAsync(folder);
+    }
+
+    [RelayCommand]
+    public Task ResetNotesFolderAsync() => ApplyNotesFolderAsync("");
+
+    public async Task ApplyNotesFolderAsync(string folder)
+    {
+        folder = folder.Trim();
+        NotesFolderError = null;
+        var problem = NoteFolderRules.Validate(folder);
+        if (problem is not null)
+        {
+            NotesFolderInput = folder;
+            NotesFolderError = problem;
+            return;
+        }
+
+        try
+        {
+            await _catalog.SetNotesFolderAsync(folder);
+            SetSavedNotesFolder(folder.Trim());
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            NotesFolderInput = folder;
+            NotesFolderError = ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed;
+        }
     }
 
     public IReadOnlyList<ThemeOption> Themes => ThemeOption.All;

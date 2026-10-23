@@ -84,7 +84,8 @@ public partial class SpriteWindow : Window
         IAppModeCoordinator? coordinator = null,
         IChatSession? session = null,
         ISettingsWindowService? settingsWindow = null,
-        IVoiceInputController? voice = null)
+        IVoiceInputController? voice = null,
+        NotificationCenter? notifications = null)
     {
         _catalog = catalog;
         _overlay = overlay;
@@ -118,6 +119,8 @@ public partial class SpriteWindow : Window
         _voiceBar.PropertyChanged += (_, _) => OnVoiceStateMaybeChanged();
         _mapper.Changed += SetState;
         _bubble.Dismissed += _mapper.Acknowledge;   // 錯誤的氣泡被關掉：角色離開 Error
+        if (notifications is not null)
+            _bubble.BindReminders(notifications.Items);   // 提醒卡片綁定通知清單（M10 10E）
         // 設定頁換了角色或尺寸、或角色資料夾重新載入了：立即生效（在 UI 執行緒上重建角色，位置以角色中心為準不跳動）
         _settings.Changed += (_, _) => PostRebuild();
         if (_catalog is IReloadableSpriteCatalog reloadable)
@@ -413,8 +416,17 @@ public partial class SpriteWindow : Window
         return new Rect(target.TranslatePoint(new Point(0, 0), this) ?? default, target.Bounds.Size);
     }
 
+    /// <summary>提醒卡片的關閉鈕所在的矩形（視窗座標）。</summary>
+    private Rect ReminderButtonRect()
+    {
+        var button = Bubble.FindControl<Button>("ReminderDismissButton")!;
+        return new Rect(button.TranslatePoint(new Point(0, 0), this) ?? default, button.Bounds.Size);
+    }
+
     private bool IsInteractiveAt(Point p)
     {
+        if (_bubble.HasReminder && ReminderButtonRect().Contains(p))
+            return true;   // 提醒的關閉鈕；卡片的其他部分穿透
         if (_bubble.IsVisible && _bubble.IsInteractive && BubbleRect().Contains(p))
             return true;   // 有按鈕的氣泡（確認、連結、重試）；沒有按鈕的氣泡維持穿透
         if (_view.HitTest(new Point(p.X - _layout.SpriteOrigin.X, p.Y - _layout.SpriteOrigin.Y)))
@@ -453,8 +465,9 @@ public partial class SpriteWindow : Window
         if (!showInput && Input.IsFocused)
             Focus();
 
-        BubbleArea.IsHitTestVisible = _bubble.IsVisible && _bubble.IsInteractive;
-        SetShown(Bubble, ref _bubbleShown, _bubble.IsVisible, 8, interactive: false);
+        // 提醒卡片（只有關閉鈕可以點）與回應氣泡共用同一個容器；兩者都沒有就整個隱藏
+        BubbleArea.IsHitTestVisible = _bubble.HasReminder || (_bubble.IsVisible && _bubble.IsInteractive);
+        SetShown(Bubble, ref _bubbleShown, _bubble.IsVisible || _bubble.HasReminder, 8, interactive: false);
     }
 
     private void SetShown(Control control, ref bool current, bool show, double hiddenOffset, bool interactive)

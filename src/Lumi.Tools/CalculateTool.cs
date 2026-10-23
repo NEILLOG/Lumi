@@ -15,7 +15,7 @@ public sealed class CalculateTool : ToolBase<CalculateArgs>
         "計算數學運算式並回傳精確的數字結果。任何需要算術的時候都用它，不要心算；只接受運算式本身，不要放單位或文字。",
         ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(5));
 
-    protected override ToolPreview Describe(CalculateArgs args) => new(args.Expression?.Trim(), null);
+    protected override ToolPreview Describe(CalculateArgs args, ToolContext context) => new(args.Expression?.Trim(), null);
 
     protected override Task<ToolResult> InvokeAsync(CalculateArgs args, ToolContext context, CancellationToken ct)
     {

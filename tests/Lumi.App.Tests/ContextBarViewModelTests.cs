@@ -243,6 +243,7 @@ public class ContextBarViewModelTests
     [InlineData(ContextItemProblem.Missing, "找不到")]
     [InlineData(ContextItemProblem.NotText, "不是文字檔")]
     [InlineData(ContextItemProblem.TooLarge, "太大，由模型按需讀取")]
+    [InlineData(ContextItemProblem.DocumentByTool, "由模型用 read_document 讀取")]
     [InlineData(ContextItemProblem.UnsupportedImage, "不支援的圖片格式")]
     [InlineData(ContextItemProblem.ImageTooLarge, "圖片太大")]
     public async Task ProblemChips_ExplainWhy_AndAreStillAdded(ContextItemProblem problem, string expected)

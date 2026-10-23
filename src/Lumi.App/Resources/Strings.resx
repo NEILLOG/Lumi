@@ -200,6 +200,7 @@
   <data name="Context_Missing" xml:space="preserve"><value>找不到</value></data>
   <data name="Context_NotText" xml:space="preserve"><value>不是文字檔</value></data>
   <data name="Context_TooLarge" xml:space="preserve"><value>太大，由模型按需讀取</value></data>
+  <data name="Context_DocumentByTool" xml:space="preserve"><value>由模型用 read_document 讀取</value></data>
   <data name="Context_ImageUnsupported" xml:space="preserve"><value>不支援的圖片格式</value></data>
   <data name="Context_ImageTooLarge" xml:space="preserve"><value>圖片太大</value></data>
   <data name="Context_FolderEntries" xml:space="preserve"><value>{0} 個項目</value></data>
@@ -478,4 +479,14 @@
   <data name="StartupFailure_CopyDetails" xml:space="preserve"><value>複製詳細資訊</value></data>
   <data name="StartupFailure_Exit" xml:space="preserve"><value>結束</value></data>
   <data name="StartupFailure_Copied" xml:space="preserve"><value>已複製到剪貼簿。</value></data>
+  <data name="NotesFolder_Title" xml:space="preserve"><value>筆記資料夾</value></data>
+  <data name="NotesFolder_Note" xml:space="preserve"><value>每天的筆記存成一個 Markdown 檔（yyyy-MM-dd.md），只追加、不改寫。可以直接指向 Obsidian 的 vault：Lumi 只讀寫日期檔，其他檔案不動。</value></data>
+  <data name="NotesFolder_Label" xml:space="preserve"><value>資料夾位置</value></data>
+  <data name="NotesFolder_Hint" xml:space="preserve"><value>留空就用預設位置。要用完整路徑，可以含環境變數（例如 $HOME/Notes）。按 Enter 或離開欄位後套用。</value></data>
+  <data name="NotesFolder_Choose" xml:space="preserve"><value>選擇資料夾</value></data>
+  <data name="NotesFolder_Reset" xml:space="preserve"><value>恢復預設</value></data>
+  <data name="Notifications_Dismiss" xml:space="preserve"><value>關閉</value></data>
+  <data name="Notifications_DismissNamed" xml:space="preserve"><value>關閉：{0}</value></data>
+  <data name="Notifications_DismissAll" xml:space="preserve"><value>全部關閉</value></data>
+  <data name="Notifications_MoreCount" xml:space="preserve"><value>還有 {0} 則</value></data>
 </root>

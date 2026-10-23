@@ -20,10 +20,10 @@ public abstract class ToolBase<TArgs> : ITool where TArgs : class
     protected abstract Task<ToolResult> InvokeAsync(TArgs args, ToolContext context, CancellationToken ct);
 
     /// <summary>卡片標題的「對象」與確認區的影響說明；預設沒有。</summary>
-    protected virtual ToolPreview Describe(TArgs args) => ToolPreview.None;
+    protected virtual ToolPreview Describe(TArgs args, ToolContext context) => ToolPreview.None;
 
-    public ToolPreview Preview(string argumentsJson) =>
-        TryParse(argumentsJson, out var args, out _) ? Describe(args) : ToolPreview.None;
+    public ToolPreview Preview(string argumentsJson, ToolContext context) =>
+        TryParse(argumentsJson, out var args, out _) ? Describe(args, context) : ToolPreview.None;
 
     public Task<ToolResult> ExecuteAsync(string argumentsJson, ToolContext context, CancellationToken ct)
     {

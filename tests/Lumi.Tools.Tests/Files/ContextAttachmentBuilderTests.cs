@@ -120,6 +120,23 @@ public sealed class ContextAttachmentBuilderTests : IDisposable
         Assert.Contains("不是文字檔", block.Note);
     }
 
+    [Theory]
+    [InlineData("report.docx")]
+    [InlineData("sheet.xlsx")]
+    [InlineData("macro.xlsm")]
+    [InlineData("deck.pptx")]
+    [InlineData("paper.pdf")]
+    public async Task OfficeOrPdf_IsNotEmbedded_EvenWhenSmall_AndPointsToReadDocument(string name)
+    {
+        var file = _tree.Write(name, "很小的內容");
+
+        var block = Assert.IsType<ContextBlock>(Assert.Single((await Builder().BuildAsync([Item(ContextKind.File, file)])).Blocks));
+
+        Assert.False(block.Embedded);
+        Assert.Null(block.Content);
+        Assert.Equal("由模型用 read_document 讀取", block.Note);
+    }
+
     [Fact]
     public async Task InvalidUtf8_IsNotEmbedded_InsteadOfGarbled()
     {

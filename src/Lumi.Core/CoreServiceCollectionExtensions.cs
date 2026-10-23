@@ -2,6 +2,7 @@ using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
+using Lumi.Core.Reminders;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -40,6 +41,12 @@ public static class CoreServiceCollectionExtensions
         services.AddLumiPromptLayer<PersonaPromptLayer>();
         services.AddLumiPromptLayer<ModeFormatPromptLayer>();
         services.AddLumiPromptLayer<SpriteVoicePromptLayer>();
+
+        // 提醒與排程（M10 10D）：服務本體；IScheduledItemStore 由 Lumi.Infrastructure 註冊，通知由 App 取代 NullNotificationSink
+        services.TryAddSingleton(new ReminderOptions());
+        services.TryAddSingleton<INotificationSink, NullNotificationSink>();
+        services.AddSingleton<ReminderService>();
+        services.AddSingleton<IReminderService>(sp => sp.GetRequiredService<ReminderService>());
         return services;
     }
 

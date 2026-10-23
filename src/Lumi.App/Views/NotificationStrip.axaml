@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.NotificationStrip"
+             x:DataType="vm:NotificationStripViewModel"
+             IsVisible="{Binding IsVisible}">
+  <!--
+    工作台頂端的提醒通知列（ui-spec 第 13 節）：每則一張橫條卡片（鈴鐺、標題、內容最多 3 行、關閉鈕）。
+    錯過彙總用中性樣式（底色 SurfaceAlt、圖示灰）。超過 3 則時尾端顯示「還有 N 則」與「全部關閉」。
+    左右邊界與輸入區一致（Wide 64、Compact 24、Narrow 16）。只用 token；按鈕層級：關閉鈕 tertiary、全部關閉 tertiary。
+  -->
+  <UserControl.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <Style Selector="StackPanel.notice-stack">
+      <Setter Property="Margin" Value="64,8,64,0" />
+      <Setter Property="Spacing" Value="8" />
+    </Style>
+    <Style Selector="Border.notice">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="Border.notice.missed">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="Border.notice-icon">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.notice-icon ctl|LumiIcon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiAccentTextBrush}" />
+    </Style>
+    <Style Selector="Border.notice-icon.missed">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.notice-icon.missed ctl|LumiIcon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <Style Selector="Button.notice-close">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <!-- RWD（ui-spec 9.4）：Compact 24、Narrow 16；放在最後才蓋得過預設值 -->
+    <Style Selector="Window.compact StackPanel.notice-stack">
+      <Setter Property="Margin" Value="24,8,24,0" />
+    </Style>
+    <Style Selector="Window.narrow StackPanel.notice-stack">
+      <Setter Property="Margin" Value="16,8,16,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Classes="notice-stack">
+    <ItemsControl ItemsSource="{Binding Shown}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:NotificationItemViewModel">
+          <Border Classes="notice" Classes.missed="{Binding IsMissedSummary}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Border Grid.Column="0" Classes="notice-icon" Classes.missed="{Binding IsMissedSummary}" VerticalAlignment="Top">
+                <ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <StackPanel Grid.Column="1" Margin="12,0,8,0" Spacing="4">
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}"
+                           TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                <ctl:EmojiTextBlock Text="{Binding Message}" FontSize="{DynamicResource LumiFontSizeCard}" TextWrapping="Wrap" MaxLines="3"
+                                    TextTrimming="CharacterEllipsis" Foreground="{DynamicResource LumiTextMutedBrush}" />
+              </StackPanel>
+              <!-- 關閉鈕：純圖示，必須有 Tooltip 與可存取名稱（ui-spec 10.1）；Tab 可以到達 -->
+              <Button Grid.Column="2" Classes="tertiary notice-close" VerticalAlignment="Top" Command="{Binding DismissCommand}"
+                      ToolTip.Tip="{Binding DismissLabel}" AutomationProperties.Name="{Binding DismissLabel}">
+                <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+              </Button>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <!-- 超過上限：還有幾則，以及一次全部關閉 -->
+    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasHidden}">
+      <TextBlock Grid.Column="0" Text="{Binding HiddenText}" VerticalAlignment="Center" TextWrapping="Wrap"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+      <Button Grid.Column="1" Classes="tertiary" Padding="8,4" FontSize="{DynamicResource LumiFontSizeCaption}"
+              Content="{x:Static res:Strings.Notifications_DismissAll}" Command="{Binding DismissAllCommand}" />
+    </Grid>
+  </StackPanel>
+</UserControl>

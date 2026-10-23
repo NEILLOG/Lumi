@@ -161,6 +161,37 @@ public sealed class SqliteConversationStoreTests : IDisposable
         Assert.True(SqliteSchema.LatestVersion >= 4);
 
     [Fact]
+    public void SchemaVersion_IsAtLeast5_BecauseOfScheduledItems() =>
+        Assert.True(SqliteSchema.LatestVersion >= 5);
+
+    [Fact]
+    public async Task UpgradeFromVersion4_AddsScheduledItems_AndKeepsConversations()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("M9 的資料");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("M9 的訊息")));
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            // 模擬 migration 5 之前建立的資料庫：沒有 scheduled_items，版本是 4
+            command.CommandText = "DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var messages = await NewStore().GetMessagesAsync(conversation.Id);   // 升版後既有對話讀得回來
+
+        Assert.Equal("M9 的訊息", Assert.IsType<TextBlock>(Assert.Single(messages).Content[0]).Text);
+        using var check = new SqliteConnection($"Data Source={DatabasePath}");
+        check.Open();
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
+        using var table = check.CreateCommand();
+        table.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'scheduled_items';";
+        Assert.Equal(1L, Convert.ToInt64(table.ExecuteScalar()));
+    }
+
+    [Fact]
     public async Task UpgradeFromVersion3_AddsSearchText_AndBackfillFillsOldMessages()
     {
         var store = NewStore();
@@ -171,7 +202,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 4 之前建立的資料庫：沒有 search_text 與 app_meta，版本是 3
-            command.CommandText = "ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";
+            command.CommandText = "DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -200,7 +231,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -256,7 +287,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

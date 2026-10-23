@@ -49,7 +49,7 @@ public partial class ToolRuleTests
     public void Every_builtin_tool_is_registered_by_AddLumiTools()
     {
         var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
-        Lumi.Tools.ToolsServiceCollectionExtensions.AddLumiTools(services, o => o.EnableDemoTools = true);   // 示範工具預設關；這裡要檢查所有工具
+        Lumi.Tools.ToolsServiceCollectionExtensions.AddLumiTools(services);
         var registered = services.Where(d => d.ServiceType == typeof(ITool)).Select(d => d.ImplementationType).ToHashSet();
 
         var all = ConcreteTools(typeof(Lumi.Tools.ToolsServiceCollectionExtensions).Assembly).ToList();
@@ -62,9 +62,6 @@ public partial class ToolRuleTests
 
     [GeneratedRegex(@"\b(?:File|Directory|FileInfo|DirectoryInfo|FileStream)\.|new\s+(?:FileInfo|DirectoryInfo|FileStream)\(|TextFiles\.Open\(")]
     private static partial Regex FileSystemAccess();
-
-    /// <summary>示範用的筆記工具有自己的資料夾規則（M10 有真正的寫入類工具後移除），不走範圍。</summary>
-    private static readonly string[] DemoToolFiles = ["SaveNoteTool.cs", "DeleteNoteTool.cs"];
 
     private static IEnumerable<string> ToolSourceFiles() =>
         Directory.EnumerateFiles(Path.Combine(RepoPaths.Root, "src", "Lumi.Tools"), "*Tool.cs", SearchOption.AllDirectories)
@@ -83,11 +80,24 @@ public partial class ToolRuleTests
     public void Tools_that_touch_the_filesystem_resolve_paths_through_context_Scope()
     {
         var offenders = ToolSourceFiles()
-            .Where(f => !DemoToolFiles.Contains(Path.GetFileName(f)))
             .Select(f => (File: f, Text: File.ReadAllText(f)))
             .Where(x => FileSystemAccess().IsMatch(x.Text) && !x.Text.Contains("context.Scope", StringComparison.Ordinal))
             .Select(x => Path.GetRelativePath(RepoPaths.Root, x.File));
 
         Assert.Empty(offenders);
+    }
+
+    [Theory]
+    [InlineData("WriteFileTool.cs")]
+    [InlineData("OverwriteFileTool.cs")]
+    [InlineData("CopyFileTool.cs")]
+    [InlineData("MoveFileTool.cs")]
+    [InlineData("CreateFolderTool.cs")]
+    public void WriteTools_ResolvePathsThroughContextScope(string file)
+    {
+        // 寫入類工具一律經過範圍；這裡點名檢查，免得之後有人重新命名或拆檔時漏掉
+        var text = File.ReadAllText(ToolSourceFiles().Single(f => f.EndsWith(file, StringComparison.Ordinal)));
+
+        Assert.Contains("context.Scope.Resolve(", text);
     }
 }

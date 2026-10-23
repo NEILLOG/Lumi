@@ -67,4 +67,6 @@
   <StreamGeometry x:Key="LumiIconPencil">M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z M15 5L19 9</StreamGeometry>
   <!-- 刪除（lucide: trash-2） -->
   <StreamGeometry x:Key="LumiIconTrash">M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2 M10 11V17 M14 11V17</StreamGeometry>
+  <!-- 提醒通知（lucide: bell） -->
+  <StreamGeometry x:Key="LumiIconBell">M6 8A6 6 0 0 1 18 8C18 15 21 17 21 17H3C3 17 6 15 6 8Z M10.3 21A1.94 1.94 0 0 0 13.7 21</StreamGeometry>
 </ResourceDictionary>

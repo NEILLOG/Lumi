@@ -22,7 +22,7 @@ public sealed class LambdaTool : ToolBase<EchoArgs>
 
     public int Runs { get; private set; }
 
-    protected override ToolPreview Describe(EchoArgs args) => new(args.Text, $"會處理「{args.Text}」");
+    protected override ToolPreview Describe(EchoArgs args, ToolContext context) => new(args.Text, $"會處理「{args.Text}」");
 
     protected override Task<ToolResult> InvokeAsync(EchoArgs args, ToolContext context, CancellationToken ct)
     {

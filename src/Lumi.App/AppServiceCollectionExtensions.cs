@@ -2,6 +2,7 @@ using Lumi.App.Services;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
+using Lumi.Core.Reminders;
 using Lumi.Core.Tools;
 using Lumi.Infrastructure;
 using Lumi.Sprites.Abstractions;
@@ -9,6 +10,7 @@ using Lumi.Sprites.Assets;
 using Lumi.Sprites.Orb;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Lumi.App;
 
@@ -43,6 +45,15 @@ public static class AppServiceCollectionExtensions
 
         services.AddHostedService<AttachmentCleanupService>();
         services.AddHostedService<SearchTextBackfillService>();   // 舊訊息的搜尋文字，背景補一次
+        services.AddHostedService<ReminderHostedService>();       // 提醒的背景迴圈（M10 10D）：到點觸發、錯過的檢查、睡眠喚醒
+        // 提醒的送達（M10 10E）：取代 Core 的 NullNotificationSink；工作台的通知列與小精靈的提醒卡片綁同一個執行個體。
+        // 視窗與協調者用委派延遲取得，避免「工具 → 提醒服務 → 通知 → 協調者 → 對話 → 工具」的循環相依
+        services.AddSingleton<NotificationCenter>(sp => new NotificationCenter(
+            sp.GetRequiredService<IUiDispatcher>(),
+            () => sp.GetRequiredService<IWindowHost>(),
+            () => sp.GetRequiredService<IAppModeCoordinator>(),
+            sp.GetRequiredService<ILogger<NotificationCenter>>()));
+        services.Replace(ServiceDescriptor.Singleton<INotificationSink>(sp => sp.GetRequiredService<NotificationCenter>()));
 
         // 輸入框上方的上下文列：選擇器與剪貼簿圖片由畫面層實作
         services.AddSingleton<IFilePickerService, FilePickerService>();

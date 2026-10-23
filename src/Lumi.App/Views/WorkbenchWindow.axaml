@@ -66,18 +66,21 @@
         <views:HistoryDrawer x:Name="HistoryDrawerView" DataContext="{Binding History}" IsVisible="{Binding IsOpen}" />
       </SplitView.Pane>
 
-      <Grid RowDefinitions="Auto,*,Auto">
+      <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!-- 提醒通知列：沒有通知時不佔空間（ui-spec 第 13 節） -->
+        <views:NotificationStrip x:Name="NotificationStripView" Grid.Row="0" DataContext="{Binding Notifications}" />
+
         <!-- 查看中：小精靈回應中開啟的工作台，輸入與切換都停用，結束後自動解除（ui-spec 2.2） -->
-        <Border x:Name="ViewOnlyBanner" Grid.Row="0" IsVisible="{Binding IsViewOnly}" Padding="16,8"
+        <Border x:Name="ViewOnlyBanner" Grid.Row="1" IsVisible="{Binding IsViewOnly}" Padding="16,8"
                 Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}" BorderThickness="0,0,0,1">
           <TextBlock Text="{x:Static res:Strings.Workbench_ViewOnlyBanner}" Foreground="{DynamicResource LumiAccentTextBrush}" />
         </Border>
 
         <!-- 訊息流（MessageScroller、RetryOtherModelButton 在它裡面） -->
-        <views:ConversationView x:Name="Conversation" Grid.Row="1" />
+        <views:ConversationView x:Name="Conversation" Grid.Row="2" />
 
         <!-- 輸入區（InputArea、InputBox、ContextBar、AddFileButton… 在它裡面） -->
-        <views:ChatComposer x:Name="Composer" Grid.Row="2" />
+        <views:ChatComposer x:Name="Composer" Grid.Row="3" />
       </Grid>
     </SplitView>
   </Grid>

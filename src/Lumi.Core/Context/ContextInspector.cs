@@ -13,6 +13,9 @@ public enum ContextItemProblem
     /// <summary>文字檔太大，不嵌進訊息；仍在範圍內，模型用 <c>read_file</c> 分段讀。</summary>
     TooLarge,
 
+    /// <summary>Office／PDF 檔：不嵌進訊息，模型用 <c>read_document</c> 讀取；等級與「太大」相同，不是錯誤。</summary>
+    DocumentByTool,
+
     UnsupportedImage,
 
     ImageTooLarge,

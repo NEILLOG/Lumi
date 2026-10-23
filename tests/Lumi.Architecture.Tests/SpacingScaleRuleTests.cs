@@ -26,6 +26,7 @@ public class SpacingScaleRuleTests
         // 工作台對話區 Wide 的左右 Padding／Composer 外框左右 Margin 是 64（計畫「頁面 Padding」），RWD 再覆寫成 24／16
         ("Views/ConversationView.axaml", "64,24", "對話區 Wide 左右 Padding 64（plan/12 設計 token：頁面 Padding）"),
         ("Views/ChatComposer.axaml", "64,8,64,16", "Composer 外框左右 Margin 64，與對話區左右 Padding 對齊"),
+        ("Views/NotificationStrip.axaml", "64,8,64,0", "工作台通知列 Wide 的左右 Margin 64，與 Composer 外框對齊（RWD 在 Compact／Narrow 覆寫成 24／16）"),
         // 輸入框、下拉選單的 Focus 光暈：3px 的外框用 -3 的負 Margin 畫在控制項外面
         ("Themes/Controls.axaml", "-3", "Focus 光暈是 3px 外框，用 -3 負 Margin 畫在輸入框外圈（plan/12 共用元件樣式）"),
         // ComboBox 的下拉箭頭覆蓋層：上下右各縮 1px 對齊 1px 的邊框

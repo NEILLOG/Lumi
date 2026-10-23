@@ -67,6 +67,17 @@ internal sealed class FakeModelCatalog : IModelCatalog
         return Task.CompletedTask;
     }
 
+    /// <summary>每次 <see cref="SetNotesFolderAsync"/> 收到的資料夾（原文）。</summary>
+    public List<string> NotesFolderSaves { get; } = [];
+
+    public Task SetNotesFolderAsync(string folder, CancellationToken ct = default)
+    {
+        NotesFolderSaves.Add(folder);
+        Current = Current with { Notes = new Lumi.Core.Models.NotesSettings(folder.Trim()) };
+        Raise();
+        return Task.CompletedTask;
+    }
+
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
     {
         Current = Current with { Sprite = sprite.Normalize() };

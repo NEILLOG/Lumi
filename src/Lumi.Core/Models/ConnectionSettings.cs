@@ -65,6 +65,9 @@ public sealed record AppSettings(
 
     /// <summary>工作台視窗的位置與大小（M9 9D）。沒有或讀不進來時是 null，視窗就照預設大小置中。</summary>
     public WindowSettings? WorkbenchWindow { get; init; }
+
+    /// <summary>筆記設定（M10 10B）：資料夾。舊檔沒有時是預設（空字串）。</summary>
+    public NotesSettings Notes { get; init; } = NotesSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

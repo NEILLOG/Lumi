@@ -67,7 +67,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         IVoiceInputController? voice = null,
         ConversationDeletionService? deletion = null,
         IConfirmService? confirm = null,
-        ILogger<HistoryViewModel>? historyLogger = null)
+        ILogger<HistoryViewModel>? historyLogger = null,
+        NotificationCenter? notifications = null)
     {
         _store = store;
         _catalog = catalog;
@@ -96,6 +97,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         };
         // 錯誤列的「換模型重試」：選完模型接著重送
         RetrySwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, RetryAfterModelSwitchAsync);
+        Notifications = notifications is null
+            ? new NotificationStripViewModel(new ObservableCollection<NotificationItemViewModel>(), () => { })
+            : new NotificationStripViewModel(notifications.Items, notifications.DismissAll);
         SyncSessionUsage();
 
         _session.ConversationChanged += OnConversationChanged;
@@ -133,6 +137,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     public ModelSwitcherViewModel ModelSwitcher { get; }
 
     public ModelSwitcherViewModel RetrySwitcher { get; }
+
+    /// <summary>工作台頂端的提醒通知列（M10 10E）；沒有送達器時是空的。</summary>
+    public NotificationStripViewModel Notifications { get; }
 
     private ResolvedModel? WorkbenchModel => _catalog.Resolve(_catalog.Current.WorkbenchModelId);
 

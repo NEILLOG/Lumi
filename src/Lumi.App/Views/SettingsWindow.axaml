@@ -476,6 +476,29 @@
               </ctl:FormField>
             </StackPanel>
 
+            <Border Classes="divider" />
+
+            <!-- 筆記資料夾（M10 10B）：路徑欄位＋選擇資料夾（secondary）＋恢復預設（tertiary）。Enter 或離開欄位時套用，沒有儲存鈕（SettingsWindow.axaml.cs） -->
+            <StackPanel x:Name="NotesFolderSection" Spacing="16" MaxWidth="560" HorizontalAlignment="Left">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.NotesFolder_Title}" />
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.NotesFolder_Note}" TextWrapping="Wrap" />
+              <ctl:FormField x:Name="NotesFolderField" Label="{x:Static res:Strings.NotesFolder_Label}" Requirement="Optional"
+                             Hint="{x:Static res:Strings.NotesFolder_Hint}" Error="{Binding NotesFolderError}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBox x:Name="NotesFolderBox" Grid.Column="0" Text="{Binding NotesFolderInput}" Watermark="{Binding NotesFolderDefault}"
+                           Classes.error="{Binding NotesFolderError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           AutomationProperties.Name="{x:Static res:Strings.NotesFolder_Label}" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="NotesFolderChooseButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                            Content="{x:Static res:Strings.NotesFolder_Choose}" Command="{Binding ChooseNotesFolderCommand}" />
+                    <Button x:Name="NotesFolderResetButton" Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                            Content="{x:Static res:Strings.NotesFolder_Reset}" Command="{Binding ResetNotesFolderCommand}"
+                            IsEnabled="{Binding IsNotesFolderCustomized}" />
+                  </StackPanel>
+                </Grid>
+              </ctl:FormField>
+            </StackPanel>
+
             <TextBlock x:Name="GeneralError" Classes="error" Margin="0,16,0,0" Text="{Binding Error}"
                        IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
           </StackPanel>

@@ -282,7 +282,7 @@ public sealed class FileToolsTests : IDisposable
     [Fact]
     public void ReadFile_PreviewShowsThePath()
     {
-        Assert.Equal("src/a.cs", new ReadFileTool(_options).Preview(Json(new { path = " src/a.cs " })).Target);
+        Assert.Equal("src/a.cs", new ReadFileTool(_options).Preview(Json(new { path = " src/a.cs " }), Context()).Target);
     }
 
     [Fact]
@@ -368,6 +368,22 @@ public sealed class FileToolsTests : IDisposable
         Assert.Contains(".env  (3 B)（機密，不會讀取）", result.Content);
         Assert.Contains("deploy.pem  (1 B)（機密，不會讀取）", result.Content);
         Assert.Contains(".env.example  (2 B)\n", result.Content + "\n");
+    }
+
+    [Fact]
+    public async Task ListDir_OfficeAndPdfFiles_SayToUseReadDocument_OthersDoNot()
+    {
+        _tree.Write("report.docx", "x");
+        _tree.Write("Data.XLSX", "x");
+        _tree.Write("notes.txt", "x");
+        _tree.Write("legacy.doc", "x");
+
+        var result = await List(new { });
+
+        Assert.Contains("  Data.XLSX  (1 B)（可用 read_document 讀取）\n", result.Content + "\n");
+        Assert.Contains("  report.docx  (1 B)（可用 read_document 讀取）\n", result.Content + "\n");
+        Assert.Contains("  notes.txt  (1 B)\n", result.Content + "\n");
+        Assert.Contains("  legacy.doc  (1 B)\n", result.Content + "\n");
     }
 
     [Fact]

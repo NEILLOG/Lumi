@@ -45,6 +45,31 @@ public class ConversationScopeTests
     }
 
     [Fact]
+    public async Task NoScope_WriteToolsThatNeedAScope_AreOmittedFromTheRequest()
+    {
+        // 寫入類檔案工具也需要範圍：沒有範圍時請求不帶它們的定義；有範圍時才帶上
+        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"), SequenceChatProvider.Answer("好"));
+        var (service, _, _, id) = Create(provider, new FakeTool(), new ScopedWriteTool());
+        await Collect(service.SendAsync(id, "嗨"));
+
+        var (withScope, _, scopeContext, scopedId) = Create(provider, new FakeTool(), new ScopedWriteTool());
+        await scopeContext.AddAsync(scopedId, ContextKind.Folder, "/proj", "proj");
+        await Collect(withScope.SendAsync(scopedId, "嗨"));
+
+        Assert.Equal(["echo"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_write"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
+    }
+
+    private sealed class ScopedWriteTool : ToolBase<EchoArgs>
+    {
+        public override ToolDescriptor Descriptor { get; } = new(
+            "scoped_write", "寫範圍內的檔案", "測試用：寫入類、需要範圍。", ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(5), RequiresScope: true);
+
+        protected override Task<ToolResult> InvokeAsync(EchoArgs args, ToolContext context, CancellationToken ct) =>
+            Task.FromResult(ToolResult.Ok("寫入完成"));
+    }
+
+    [Fact]
     public async Task NoScope_AndOnlyScopedTools_RequestCarriesNoTools()
     {
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"));

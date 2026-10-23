@@ -92,6 +92,41 @@ public sealed class ContextInspectorTests : IDisposable
         Assert.Equal(ContextItemProblem.NotText, (await Inspector().InspectAsync(ContextKind.File, path)).Problem);
     }
 
+    [Theory]
+    [InlineData("report.docx")]
+    [InlineData("sheet.XLSX")]
+    [InlineData("macro.xlsm")]
+    [InlineData("deck.pptx")]
+    [InlineData("paper.PDF")]
+    public async Task File_OfficeOrPdf_IsDocumentByTool_NotNotText(string name)
+    {
+        var path = _tree.Write(name, "small");
+
+        var status = await Inspector().InspectAsync(ContextKind.File, path);
+
+        Assert.Equal(ContextItemProblem.DocumentByTool, status.Problem);
+        Assert.True(status.HasProblem);
+        Assert.Equal(5, status.SizeBytes);
+    }
+
+    [Theory]
+    [InlineData("legacy.doc")]
+    [InlineData("legacy.xls")]
+    [InlineData("legacy.ppt")]
+    [InlineData("data.docm")]
+    public async Task File_LegacyOrUnlistedOfficeFormat_StaysNotText(string name)
+    {
+        // 舊格式 read_document 不支援，所以不能標成「用 read_document 讀取」
+        var path = _tree.Path_(name);
+        File.WriteAllBytes(path, [0xD0, 0xCF, 0x11, 0xE0, 0, 0]);
+
+        Assert.Equal(ContextItemProblem.NotText, (await Inspector().InspectAsync(ContextKind.File, path)).Problem);
+    }
+
+    [Fact]
+    public async Task File_OfficeNameThatIsMissing_IsMissing() =>
+        Assert.Equal(ContextItemProblem.Missing, (await Inspector().InspectAsync(ContextKind.File, _tree.Path_("gone.docx"))).Problem);
+
     [Fact]
     public async Task File_Missing_IsMissing() =>
         Assert.Equal(ContextItemProblem.Missing, (await Inspector().InspectAsync(ContextKind.File, _tree.Path_("gone.txt"))).Problem);

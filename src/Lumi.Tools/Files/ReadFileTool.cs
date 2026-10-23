@@ -17,7 +17,7 @@ public sealed class ReadFileTool(FileToolOptions options) : ToolBase<ReadFileArg
         "讀取使用者加入的資料夾或檔案範圍內的一個文字檔，每行附行號。只能讀範圍內的文字檔；內容很長時用 offset 與 limit 分段讀。",
         ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(15), RequiresScope: true);
 
-    protected override ToolPreview Describe(ReadFileArgs args) =>
+    protected override ToolPreview Describe(ReadFileArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Path) ? null : args.Path.Trim(), null);
 
     protected override Task<ToolResult> InvokeAsync(ReadFileArgs args, ToolContext context, CancellationToken ct) =>

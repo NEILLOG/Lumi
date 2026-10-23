@@ -237,7 +237,7 @@ public sealed class ConversationService
                 }
 
                 var descriptor = tool.Descriptor;
-                var preview = tool.Preview(use.InputJson);
+                var preview = tool.Preview(use.InputJson, context);
 
                 if (!stopped && !descriptor.Modes.Allows(mode))
                 {

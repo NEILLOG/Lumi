@@ -35,7 +35,7 @@ public sealed class FakeTool : ToolBase<EchoArgs>
             : Task.FromResult(ToolResult.Ok(string.Concat(Enumerable.Repeat(args.Text, args.Times)), $"回聲 {args.Times} 次"));
     }
 
-    protected override ToolPreview Describe(EchoArgs args) => new(args.Text, $"將回聲 {args.Times} 次");
+    protected override ToolPreview Describe(EchoArgs args, ToolContext context) => new(args.Text, $"將回聲 {args.Times} 次");
 }
 
 public sealed class ScriptedApprovalService : IToolApprovalService

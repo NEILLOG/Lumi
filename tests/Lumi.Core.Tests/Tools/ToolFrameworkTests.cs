@@ -136,8 +136,36 @@ public class ToolFrameworkTests
     {
         var tool = new FakeTool();
 
-        Assert.Equal(new ToolPreview("嗨", "將回聲 2 次"), tool.Preview("""{"text":"嗨","times":2}"""));
-        Assert.Equal(ToolPreview.None, tool.Preview("{ broken"));
+        Assert.Equal(new ToolPreview("嗨", "將回聲 2 次"), tool.Preview("""{"text":"嗨","times":2}""", Context));
+        Assert.Equal(ToolPreview.None, tool.Preview("{ broken", Context));
+    }
+
+    /// <summary>記錄 Describe 收到的 context，用來確認 Preview 有把它傳下去。</summary>
+    private sealed class ContextSpyTool : ToolBase<EchoArgs>
+    {
+        public override ToolDescriptor Descriptor { get; } = new("spy", "偵測", "測試", ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(1));
+
+        public ToolContext? Seen { get; private set; }
+
+        protected override Task<ToolResult> InvokeAsync(EchoArgs args, ToolContext context, CancellationToken ct) => Task.FromResult(ToolResult.Ok("ok"));
+
+        protected override ToolPreview Describe(EchoArgs args, ToolContext context)
+        {
+            Seen = context;
+            return new(args.Text, null);
+        }
+    }
+
+    [Fact]
+    public void Preview_PassesTheSameContextToDescribe()
+    {
+        var tool = new ContextSpyTool();
+        var context = new ToolContext("c-preview", ChatMode.Sprite, TimeProvider.System, EmptyFileScope.Instance);
+
+        var preview = tool.Preview("""{"text":"嗨"}""", context);
+
+        Assert.Equal("嗨", preview.Target);
+        Assert.Same(context, tool.Seen);
     }
 
     // ---- 登錄 ----

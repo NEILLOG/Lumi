@@ -215,6 +215,7 @@ public static class Strings
     public static string Context_Missing => Get(nameof(Context_Missing));
     public static string Context_NotText => Get(nameof(Context_NotText));
     public static string Context_TooLarge => Get(nameof(Context_TooLarge));
+    public static string Context_DocumentByTool => Get(nameof(Context_DocumentByTool));
     public static string Context_ImageUnsupported => Get(nameof(Context_ImageUnsupported));
     public static string Context_ImageTooLarge => Get(nameof(Context_ImageTooLarge));
     public static string Context_FolderEntries => Get(nameof(Context_FolderEntries));
@@ -375,6 +376,12 @@ public static class Strings
     public static string General_PaletteNote => Get(nameof(General_PaletteNote));
     public static string General_PaletteAutomationFormat => Get(nameof(General_PaletteAutomationFormat));
     public static string General_PaletteAutomationActiveFormat => Get(nameof(General_PaletteAutomationActiveFormat));
+    public static string NotesFolder_Title => Get(nameof(NotesFolder_Title));
+    public static string NotesFolder_Note => Get(nameof(NotesFolder_Note));
+    public static string NotesFolder_Label => Get(nameof(NotesFolder_Label));
+    public static string NotesFolder_Hint => Get(nameof(NotesFolder_Hint));
+    public static string NotesFolder_Choose => Get(nameof(NotesFolder_Choose));
+    public static string NotesFolder_Reset => Get(nameof(NotesFolder_Reset));
     public static string Theme_PaletteDesc_sage => Get(nameof(Theme_PaletteDesc_sage));
     public static string Theme_PaletteDesc_teal => Get(nameof(Theme_PaletteDesc_teal));
     public static string Theme_PaletteDesc_mist_blue => Get(nameof(Theme_PaletteDesc_mist_blue));
@@ -464,4 +471,9 @@ public static class Strings
     public static string Sprite_VoiceFailedFormat => Get(nameof(Sprite_VoiceFailedFormat));
     public static string Voice_NoticeHasDraft => Get(nameof(Voice_NoticeHasDraft));
     public static string Composer_VoiceBlocked => Get(nameof(Composer_VoiceBlocked));
+
+    public static string Notifications_Dismiss => Get(nameof(Notifications_Dismiss));
+    public static string Notifications_DismissNamed => Get(nameof(Notifications_DismissNamed));
+    public static string Notifications_DismissAll => Get(nameof(Notifications_DismissAll));
+    public static string Notifications_MoreCount => Get(nameof(Notifications_MoreCount));
 }

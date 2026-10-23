@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lumi.Core.IO;
 using Lumi.Core.Models;
+using Lumi.Core.Notes;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
 using Microsoft.Extensions.Logging;
@@ -147,6 +148,15 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetWorkbenchWindowAsync(WindowSettings window, CancellationToken ct = default) =>
         MutateAsync(s => s with { WorkbenchWindow = window.Normalize() }, ct, notify: false);
 
+    public Task SetNotesFolderAsync(string folder, CancellationToken ct = default)
+    {
+        var normalized = new NotesSettings(folder).Normalize();
+        var problem = NoteFolderRules.Validate(normalized.Folder);
+        if (problem is not null)
+            throw new ArgumentException(problem, nameof(folder));
+        return MutateAsync(s => s with { Notes = normalized }, ct);
+    }
+
     public async Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default)
     {
         var normalized = settings.Normalize();
@@ -230,6 +240,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             ThemeId = ThemePalettes.Normalize(settings.ThemeId),
             Speech = settings.Speech.Normalize(),
             WorkbenchWindow = settings.WorkbenchWindow?.Normalize(),
+            Notes = settings.Notes.Normalize(),
         };
     }
 
@@ -307,6 +318,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             ThemeId = ThemePalettes.Normalize(file.ThemeId),               // 主題色票（UA）：缺欄位或不認得就是 sage
             WorkbenchWindow = ReadWorkbenchWindow(file.WorkbenchWindow),   // M9 9D 加的欄位，讀不進來只影響視窗位置
             Speech = file.Speech?.Normalize() ?? SpeechSettings.Default,   // M6 加的欄位，舊檔沒有時用預設
+            Notes = ReadNotes(file.Notes),                                 // M10 10B 加的欄位，格式錯誤時當作預設
         });
         return (settings, false, null);
     }
@@ -329,6 +341,25 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
     }
 
+    /// <summary>
+    /// 筆記設定（M10 10B）：資料夾不合法不在這裡處理（<c>NoteFolderRules</c> 在讀取時退回預設並記 log），
+    /// 格式錯了就當作沒有，不能因此把整個設定檔當成損毀。
+    /// </summary>
+    private NotesSettings ReadNotes(JsonElement? element)
+    {
+        if (element is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return NotesSettings.Default;
+        try
+        {
+            return el.Deserialize<NotesSettings>(JsonOptions)?.Normalize() ?? NotesSettings.Default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "筆記設定格式錯誤，改用預設資料夾");
+            return NotesSettings.Default;
+        }
+    }
+
     private (AppSettings, bool, string?) RecoverFromBrokenFile()
     {
         var brokenPath = $"{_path}.broken-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
@@ -344,7 +375,8 @@ public sealed class JsonModelCatalog : IModelCatalog
     private static byte[] Serialize(AppSettings settings) => JsonSerializer.SerializeToUtf8Bytes(
         new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme,
             settings.Persona, settings.Sprite, settings.ThemeId, settings.Speech,
-            settings.WorkbenchWindow is null ? null : JsonSerializer.SerializeToElement(settings.WorkbenchWindow.Normalize(), JsonOptions)),
+            settings.WorkbenchWindow is null ? null : JsonSerializer.SerializeToElement(settings.WorkbenchWindow.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Notes.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -397,5 +429,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         SpriteSettings? Sprite = null,
         string? ThemeId = null,
         SpeechSettings? Speech = null,
-        JsonElement? WorkbenchWindow = null);   // 原樣保留成 JsonElement，格式錯誤時不影響整個檔案的讀取
+        JsonElement? WorkbenchWindow = null,    // 原樣保留成 JsonElement，格式錯誤時不影響整個檔案的讀取
+        JsonElement? Notes = null);
 }

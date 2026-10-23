@@ -4,6 +4,7 @@ using Avalonia.Media.Fonts;
 using Lumi.App.Services;
 using Lumi.App.Views;
 using Lumi.Core;
+using Lumi.Documents;
 using Lumi.Infrastructure;
 using Lumi.Infrastructure.Logging;
 using Lumi.Platform;
@@ -63,14 +64,9 @@ internal static class Program
         });
         builder.Services.AddLumiProviders();
         builder.Services.AddLumiSpeech();
+        builder.Services.AddLumiDocuments();   // 文件讀取（M10 10C）：read_document 用
         builder.Services.AddLumiInfrastructure();
-        builder.Services.AddLumiTools(options =>
-        {
-            // appsettings／環境變數：Lumi:Tools:EnableDemoTools（M4 有真正的檔案工具後移除示範工具）
-            if (bool.TryParse(builder.Configuration["Lumi:Tools:EnableDemoTools"], out var enableDemoTools))
-                options.EnableDemoTools = enableDemoTools;
-            options.NotesDirectory = builder.Configuration["Lumi:Tools:NotesDirectory"];
-        });
+        builder.Services.AddLumiTools();
         builder.Services.AddLumiApp();
         // 開發用開關：Lumi:Developer:ShowSpriteHud（小精靈殼的診斷 HUD 與開發選單）
         builder.Services.AddSingleton(new DeveloperOptions

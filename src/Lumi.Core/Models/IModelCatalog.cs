@@ -65,6 +65,12 @@ public interface IModelCatalog
     /// <summary>刪除語音 Token，並清空 hint 與綁定的主機。</summary>
     Task ClearSpeechTokenAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// 筆記資料夾（M10 10B）。空字串＝預設；不合法（非完整路徑、非法字元、環境變數不存在）丟 <see cref="ArgumentException"/>，訊息可直接顯示。
+    /// 存了就通知 <see cref="Changed"/>，設定頁與筆記工具下一次讀取就用新的位置。
+    /// </summary>
+    Task SetNotesFolderAsync(string folder, CancellationToken ct = default);
+
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);
 }

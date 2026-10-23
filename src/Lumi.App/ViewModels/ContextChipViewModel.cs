@@ -51,6 +51,7 @@ public partial class ContextChipViewModel : ObservableObject
         ContextItemProblem.Missing => Strings.Context_Missing,
         ContextItemProblem.NotText => Strings.Context_NotText,
         ContextItemProblem.TooLarge => Strings.Context_TooLarge,
+        ContextItemProblem.DocumentByTool => Strings.Context_DocumentByTool,
         ContextItemProblem.UnsupportedImage => Strings.Context_ImageUnsupported,
         ContextItemProblem.ImageTooLarge => Strings.Context_ImageTooLarge,
         _ when Kind == ContextKind.Folder && Status.EntryCount is { } count => string.Format(

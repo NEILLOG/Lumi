@@ -15,7 +15,7 @@ public sealed class ListDirTool(FileToolOptions options) : ToolBase<ListDirArgs>
         "列出使用者加入的資料夾範圍內的檔案與子資料夾（名稱與大小）。想知道有哪些檔案、專案結構是什麼，先用它；再用 read_file 讀內容。",
         ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(15), RequiresScope: true);
 
-    protected override ToolPreview Describe(ListDirArgs args) =>
+    protected override ToolPreview Describe(ListDirArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Path) ? null : args.Path.Trim(), args.Depth is > 1 ? $"往下 {args.Depth} 層" : null);
 
     protected override Task<ToolResult> InvokeAsync(ListDirArgs args, ToolContext context, CancellationToken ct) =>
@@ -138,6 +138,8 @@ public sealed class ListDirTool(FileToolOptions options) : ToolBase<ListDirArgs>
                 listing.Text.Append(indent).Append(child.Name).Append("  (").Append(TextFiles.FormatSize(SafeLength(file))).Append(')');
                 if (ScopeRules.IsSecretFileName(child.Name))
                     listing.Text.Append("（機密，不會讀取）");
+                else if (DocumentExtensions.IsDocument(child.Name))
+                    listing.Text.Append("（可用 read_document 讀取）");
                 listing.Text.Append('\n');
             }
         }

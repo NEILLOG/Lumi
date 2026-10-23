@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Documents</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.Documents.Tests" />
+  </ItemGroup>
+
+  <!-- 文件套件只能出現在這個專案（架構測試 DocumentLibraryRuleTests 守住） -->
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="PdfPig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
+  </ItemGroup>
+
+</Project>

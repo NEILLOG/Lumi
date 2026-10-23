@@ -62,6 +62,10 @@ public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmen
         if (!File.Exists(item.Path))
             return Missing(item, "找不到這個檔案（可能已被移動或刪除）");
 
+        // Office／PDF 不嵌入（即使很小），由模型用 read_document 讀取
+        if (DocumentExtensions.IsDocument(item.Path))
+            return Missing(item, DocumentExtensions.ReadByToolNote);
+
         var size = new FileInfo(item.Path).Length;
         if (size > options.EmbedMaxFileBytes)
             return Missing(item, $"太大（{TextFiles.FormatSize(size)}），沒有放進訊息；可以用 read_file 分段讀取");

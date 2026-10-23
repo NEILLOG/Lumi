@@ -24,6 +24,9 @@ public partial class SettingsWindow : Window
         // 分段切換（連線／模型設定）是單選群組：Tab 只停在已選的那一段，方向鍵換段
         TabSwitchPanel.AddHandler(KeyDownEvent, OnSegmentKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         UpdateSegmentTabStop();
+        // 筆記資料夾（M10 10B）：沒有儲存鈕，Enter 或離開欄位時套用
+        NotesFolderBox.KeyDown += OnNotesFolderKeyDown;
+        NotesFolderBox.LostFocus += (_, _) => viewModel.General.CommitNotesFolderCommand.Execute(null);
         viewModel.Connections.FocusApiKeyRequested += () =>
             Dispatcher.UIThread.Post(() => ConnectionsPanel.FocusKeyBox(), DispatcherPriority.Loaded);
 
@@ -90,6 +93,14 @@ public partial class SettingsWindow : Window
     }
 
     internal SpritePreviewHost? Preview => _preview;
+
+    private void OnNotesFolderKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Enter or Key.Return))
+            return;
+        ViewModel.General.CommitNotesFolderCommand.Execute(null);
+        e.Handled = true;
+    }
 
     private void OnPaletteKeyDown(object? sender, KeyEventArgs e)
     {

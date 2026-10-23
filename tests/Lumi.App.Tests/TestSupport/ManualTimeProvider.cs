@@ -28,6 +28,16 @@ internal sealed class ManualTimeProvider : TimeProvider
             _now = now;
     }
 
+    /// <summary>目前排著、尚未觸發也未取消的計時器數量（用來確認「沒有項目時不排計時器」）。</summary>
+    public int ActiveTimerCount
+    {
+        get
+        {
+            lock (_lock)
+                return _timers.Count;
+        }
+    }
+
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
         var timer = new ManualTimer(this, callback, state);

@@ -63,7 +63,7 @@ public interface ITool
     /// <summary>由引數型別自動產生的 JSON Schema（頂層一律是 object）。</summary>
     JsonNode InputSchema { get; }
 
-    ToolPreview Preview(string argumentsJson);
+    ToolPreview Preview(string argumentsJson, ToolContext context);
 
     /// <summary>引數是模型給的原始 JSON。引數不正確時回 <see cref="ToolResult.Error"/>，不丟例外。</summary>
     Task<ToolResult> ExecuteAsync(string argumentsJson, ToolContext context, CancellationToken ct);

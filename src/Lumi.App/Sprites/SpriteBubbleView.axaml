@@ -51,7 +51,33 @@
   </UserControl.Styles>
 
   <StackPanel x:Name="Root">
-    <Border x:Name="BubbleBorder" Classes="bubble" Classes.approval="{Binding IsApproval}" Classes.error="{Binding IsError}">
+    <!--
+      提醒（M10 10E）：獨立的卡片，在回應氣泡上方；不自動消失，按關閉才收起（只有關閉鈕可以點，卡片其他部分穿透）。
+      最新一則；還有其他則時標示「還有 N 則」，關掉一則後顯示下一則。內文超過氣泡上限就截斷（完整內容在工作台的通知列）。
+    -->
+    <Border x:Name="ReminderCard" Classes="bubble" IsVisible="{Binding HasReminder}" Margin="0,0,0,6">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="14" Foreground="{DynamicResource LumiAccentTextBrush}" VerticalAlignment="Center" />
+            <TextBlock x:Name="ReminderTitle" Text="{Binding Reminder.Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1"
+                       FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button x:Name="ReminderDismissButton" Grid.Column="1" Classes="tertiary" Width="24" Height="24" Padding="0"
+                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                  Command="{Binding Reminder.DismissCommand}" ToolTip.Tip="{Binding Reminder.DismissLabel}"
+                  AutomationProperties.Name="{Binding Reminder.DismissLabel}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="12" />
+          </Button>
+        </Grid>
+        <ctl:EmojiTextBlock x:Name="ReminderBody" Text="{Binding ReminderText}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis"
+                            LineHeight="22" FontSize="{DynamicResource LumiFontSizeCard}" />
+        <TextBlock x:Name="ReminderMore" IsVisible="{Binding HasReminderMore}" Text="{Binding ReminderMoreText}"
+                   FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+      </StackPanel>
+    </Border>
+
+    <Border x:Name="BubbleBorder" Classes="bubble" Classes.approval="{Binding IsApproval}" Classes.error="{Binding IsError}" IsVisible="{Binding IsVisible}">
       <Panel>
         <!-- 思考或呼叫工具：一行狀態；語音送出時上方先以小字引用轉寫結果（ui-spec 8.4） -->
         <StackPanel x:Name="StatusArea" IsVisible="{Binding IsStatus}" Spacing="4">
@@ -132,6 +158,6 @@
         </StackPanel>
       </Panel>
     </Border>
-    <Path Data="M0,0 L14,0 L7,8 Z" Fill="{DynamicResource LumiSurfaceBrush}" HorizontalAlignment="Center" />
+    <Path Data="M0,0 L14,0 L7,8 Z" Fill="{DynamicResource LumiSurfaceBrush}" HorizontalAlignment="Center" IsVisible="{Binding HasTail}" />
   </StackPanel>
 </UserControl>

@@ -21,7 +21,7 @@ internal static class Ev
 
     public static ApprovalRequired Approval(string callId = "c1", string display = "寫入檔案", string? target = "notes/a.md",
         ToolPermission permission = ToolPermission.Write, string? detail = null) =>
-        new(new ToolApprovalRequest(callId, "save_note", display, permission, new ToolPreview(target, detail), "{}"));
+        new(new ToolApprovalRequest(callId, "write_file", display, permission, new ToolPreview(target, detail), "{}"));
 
     public static ToolCallCompleted ToolDone(string callId = "c1", bool error = false) =>
         new(callId, new ToolResultBlock(callId, "ok", error, "讀取檔案", null, "完成", 10, ToolApproval.NotRequired));

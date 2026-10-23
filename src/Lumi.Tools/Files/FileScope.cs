@@ -227,6 +227,15 @@ public sealed class FileScope : IFileScope
             FileSystemInfo? info = Directory.Exists(next) ? new DirectoryInfo(next) : File.Exists(next) ? new FileInfo(next) : null;
             if (info is null)
             {
+                // 懸空的符號連結（目標不存在）：File.Exists 回 false，但它確實指向某處。照目標展開，
+                // 否則之後寫入新檔會跟著連結跑到範圍外（寫入是新檔的情境，這裡不能當成一般的不存在路徑）
+                if (new FileInfo(next).LinkTarget is { } dangling)
+                {
+                    var danglingTarget = Path.IsPathRooted(dangling) ? dangling : Path.Combine(Path.GetDirectoryName(next) ?? current, dangling);
+                    var rebuilt = Path.Combine(new[] { danglingTarget }.Concat(segments.Skip(i + 1)).ToArray());
+                    return ResolveReal(Path.GetFullPath(rebuilt), depth + 1);
+                }
+
                 // 路徑不存在：後面的部分原樣接上（之後讀取自然會失敗；範圍檢查用的還是已展開的前綴）
                 return Path.Combine(new[] { next }.Concat(segments.Skip(i + 1)).ToArray());
             }

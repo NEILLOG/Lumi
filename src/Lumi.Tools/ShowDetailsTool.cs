@@ -26,7 +26,7 @@ public sealed class ShowDetailsTool : ToolBase<ShowDetailsArgs>
         + "只在小精靈模式使用；呼叫之後，回答只用一句話說重點，不要重複內容。",
         ToolPermission.ReadOnly, ToolModes.Sprite, TimeSpan.FromSeconds(5));
 
-    protected override ToolPreview Describe(ShowDetailsArgs args) => new(args.Title?.Trim(), null);
+    protected override ToolPreview Describe(ShowDetailsArgs args, ToolContext context) => new(args.Title?.Trim(), null);
 
     protected override Task<ToolResult> InvokeAsync(ShowDetailsArgs args, ToolContext context, CancellationToken ct)
     {

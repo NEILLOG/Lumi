@@ -67,6 +67,28 @@ internal static class SqliteSchema
           value TEXT NOT NULL
         );
         """,
+
+        // 5：提醒與排程（M10 10D）。時間欄位一律存 UTC（固定格式，字串排序就是時間排序）；
+        // trigger_json／action_json 是多型 JSON（判別欄位 type），欄位名稱與舊版 schedules.json 相同。
+        // 列舉存數字（與舊版相同）；created_by 存 "Agent"／"User"。
+        """
+        CREATE TABLE scheduled_items (
+          id            TEXT PRIMARY KEY,
+          kind          INTEGER NOT NULL,
+          title         TEXT NOT NULL,
+          message       TEXT NOT NULL,
+          trigger_json  TEXT NOT NULL,
+          time_zone_id  TEXT NOT NULL,
+          action_json   TEXT NOT NULL,
+          status        INTEGER NOT NULL,
+          enabled       INTEGER NOT NULL,
+          next_fire_at  TEXT,
+          last_fire_at  TEXT,
+          created_by    TEXT NOT NULL,
+          created_at    TEXT NOT NULL
+        );
+        CREATE INDEX ix_scheduled_items_due ON scheduled_items(status, enabled, next_fire_at);
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

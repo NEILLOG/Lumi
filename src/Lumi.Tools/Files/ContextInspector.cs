@@ -54,6 +54,9 @@ public sealed class ContextInspector(FileToolOptions options) : IContextInspecto
             return new ContextItemStatus(Directory.Exists(path) ? ContextItemProblem.NotText : ContextItemProblem.Missing);
 
         var size = new FileInfo(path).Length;
+        if (DocumentExtensions.IsDocument(path))
+            return new ContextItemStatus(ContextItemProblem.DocumentByTool, size);
+
         using var reader = TextFiles.Open(path, out _);
         if (reader is null)
             return new ContextItemStatus(ContextItemProblem.NotText, size);

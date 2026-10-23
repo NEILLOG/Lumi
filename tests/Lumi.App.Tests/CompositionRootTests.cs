@@ -4,6 +4,7 @@ using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Tools;
+using Lumi.Documents;
 using Lumi.Infrastructure;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
@@ -47,7 +48,8 @@ public sealed class CompositionRootTests : IDisposable
         builder.Services.AddLumiInfrastructure(o => o.DatabasePath = Path.Combine(_directory, "lumi.db"));
         builder.Services.Configure<Lumi.Infrastructure.Attachments.AttachmentOptions>(o => o.Directory = Path.Combine(_directory, "attachments"));
         builder.Services.Configure<ModelCatalogOptions>(o => o.SettingsPath = Path.Combine(_directory, "settings.json"));
-        builder.Services.AddLumiTools(o => o.NotesDirectory = Path.Combine(_directory, "notes"));
+        builder.Services.AddLumiTools();
+        builder.Services.AddLumiDocuments();
         builder.Services.AddLumiApp();
         // 角色資料夾：測試用暫存資料夾，不要碰到使用者真正的 sprites/
         builder.Services.Replace(ServiceDescriptor.Singleton(new Lumi.Sprites.Assets.AssetSpriteOptions { Directory = Path.Combine(_directory, "sprites") }));
@@ -70,9 +72,12 @@ public sealed class CompositionRootTests : IDisposable
         // 權限確認：App 的實作取代 Core 預設的「一律拒絕」，而且按鈕與對話迴圈用的是同一個執行個體
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
-        // 示範用的筆記工具預設關；檔案工具（需要使用者加入範圍）預設開
-        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search", "show_details"],
+        // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
+        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "get_current_time", "list_dir", "list_reminders", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
+        // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
+        Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
+        Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱
         // M5：四個 prompt 層都組進去了
         Assert.Equal([1, 2, 3, 4], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
         Assert.IsType<Lumi.Core.Prompts.PromptComposer>(services.GetRequiredService<Lumi.Core.Prompts.IPromptComposer>());

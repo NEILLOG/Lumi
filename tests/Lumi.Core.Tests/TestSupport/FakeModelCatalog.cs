@@ -61,6 +61,7 @@ internal sealed class FakeModelCatalog : IModelCatalog
         return Task.CompletedTask;
     }
 
+    public Task SetNotesFolderAsync(string folder, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
     {
         Current = Current with { Sprite = sprite.Normalize() };

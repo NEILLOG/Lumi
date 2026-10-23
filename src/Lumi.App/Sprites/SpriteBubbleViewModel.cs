@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -98,10 +100,34 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     public event Action? Dismissed;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsStatus), nameof(IsAnswer), nameof(IsApproval), nameof(IsError), nameof(IsNotice), nameof(IsInteractive))]
+    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsStatus), nameof(IsAnswer), nameof(IsApproval), nameof(IsError), nameof(IsNotice), nameof(IsInteractive), nameof(HasTail))]
     private SpriteBubbleKind _kind = SpriteBubbleKind.Hidden;
 
     public bool IsVisible => Kind != SpriteBubbleKind.Hidden;
+
+    /// <summary>
+    /// 提醒（M10 10E）：獨立的區塊，綁定通知清單的最新一則（<see cref="BindReminders"/>）。不自動消失，按關閉才收起，
+    /// 不受回應氣泡的淡出與 <see cref="Clear"/> 影響。與回應氣泡可以同時存在（提醒在上方）。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasReminder), nameof(HasTail))]
+    private NotificationItemViewModel? _reminder;
+
+    /// <summary>提醒的內文（超過氣泡上限就截斷，同回應氣泡的規則；完整內容在工作台的通知列）。</summary>
+    [ObservableProperty]
+    private string _reminderText = "";
+
+    /// <summary>還有幾則沒顯示（「還有 N 則」）；只有一則時是 null。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasReminderMore))]
+    private string? _reminderMoreText;
+
+    public bool HasReminder => Reminder is not null;
+
+    public bool HasReminderMore => ReminderMoreText is not null;
+
+    /// <summary>尖端（三角形）跟著底下最後一個可見的區塊：回應氣泡，或只有提醒時的提醒卡片。</summary>
+    public bool HasTail => IsVisible || HasReminder;
 
     public bool IsStatus => Kind == SpriteBubbleKind.Status;
 
@@ -156,6 +182,29 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     private bool _canOpenSettings;
 
     public bool IsTruncated { get; private set; }
+
+    /// <summary>綁定通知清單（小精靈與工作台共用同一份）：清單第一則就是最新的提醒。</summary>
+    public void BindReminders(ObservableCollection<NotificationItemViewModel> items)
+    {
+        items.CollectionChanged += OnRemindersChanged;
+        RefreshReminder(items);
+    }
+
+    private void OnRemindersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (sender is ObservableCollection<NotificationItemViewModel> items)
+            RefreshReminder(items);
+    }
+
+    private void RefreshReminder(ObservableCollection<NotificationItemViewModel> items)
+    {
+        var newest = items.Count > 0 ? items[0] : null;
+        Reminder = newest;
+        ReminderText = newest is null ? "" : Truncate(newest.Message, _options.BubbleMaxClusters).Text;
+        ReminderMoreText = items.Count > 1
+            ? string.Format(CultureInfo.CurrentCulture, Strings.Notifications_MoreCount, items.Count - 1)
+            : null;
+    }
 
     // ---- 對話事件 ----
 

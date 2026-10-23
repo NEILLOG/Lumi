@@ -1,5 +1,8 @@
 using Lumi.Core.Context;
+using Lumi.Core.Notes;
 using Lumi.Core.Tools;
+using Lumi.Tools.Notes;
+using Lumi.Tools.Reminders;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -26,12 +29,28 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<ListDirTool>();
         services.AddLumiTool<ReadFileTool>();
         services.AddLumiTool<SearchTool>();
+        services.AddLumiTool<ReadDocumentTool>();
         services.AddLumiTool<ShowDetailsTool>();
-        if (options.EnableDemoTools)
-        {
-            services.AddLumiTool<SaveNoteTool>();
-            services.AddLumiTool<DeleteNoteTool>();
-        }
+        services.AddLumiTool<WriteFileTool>();
+        services.AddLumiTool<OverwriteFileTool>();
+        services.AddLumiTool<CopyFileTool>();
+        services.AddLumiTool<MoveFileTool>();
+        services.AddLumiTool<CreateFolderTool>();
+
+        // 筆記與對話搜尋（M10 10B）：資料夾由 INoteFolderProvider 提供（設定實作取代 Core 的預設）
+        services.AddSingleton(new NoteOptions());
+        services.AddSingleton<INoteStore, NoteStore>();
+        services.TryAddSingleton<INoteFolderProvider, DefaultNoteFolderProvider>();
+        services.AddLumiTool<AddNoteTool>();
+        services.AddLumiTool<ReadNotesTool>();
+        services.AddLumiTool<ConversationSearchTool>();
+
+        // 提醒與排程（M10 10E）：IReminderService 與 ReminderOptions 由 Lumi.Core 註冊
+        services.AddLumiTool<CreateReminderTool>();
+        services.AddLumiTool<StartTimerTool>();
+        services.AddLumiTool<ListRemindersTool>();
+        services.AddLumiTool<CancelReminderTool>();
+        services.AddLumiTool<SetReminderEnabledTool>();
         return services;
     }
 }

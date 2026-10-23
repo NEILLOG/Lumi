@@ -15,7 +15,7 @@ public sealed class GetCurrentTimeTool : ToolBase<GetCurrentTimeArgs>
         "取得目前的日期與時間。你不知道現在幾點、今天幾號或星期幾的時候一定要呼叫它，不要憑印象回答。",
         ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(5));
 
-    protected override ToolPreview Describe(GetCurrentTimeArgs args) =>
+    protected override ToolPreview Describe(GetCurrentTimeArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Timezone) ? null : args.Timezone.Trim(), null);
 
     protected override Task<ToolResult> InvokeAsync(GetCurrentTimeArgs args, ToolContext context, CancellationToken ct)

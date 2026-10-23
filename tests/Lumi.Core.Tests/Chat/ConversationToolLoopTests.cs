@@ -120,6 +120,24 @@ public class ConversationToolLoopTests
     }
 
     [Fact]
+    public async Task WorkbenchOnlyWriteTool_CalledInSpriteMode_ReturnsErrorWithoutRunningOrAsking()
+    {
+        // 寫入類檔案工具只限工作台（確認卡片要顯示路徑與影響）：小精靈模式呼叫收到模式不符的錯誤，不詢問、不執行
+        var provider = new SequenceChatProvider(SequenceChatProvider.ToolCalls(Use("t1", "only_bench")), SequenceChatProvider.Answer("好"));
+        var tool = new FakeTool("only_bench", ToolPermission.Write, ToolModes.Workbench);
+        var approvals = new ScriptedApprovalService();
+        var rig = await Rig.CreateAsync(provider, [tool], approvals);
+
+        var events = await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨", mode: ChatMode.Sprite));
+
+        Assert.Empty(events.OfType<ApprovalRequired>());
+        Assert.Empty(tool.Calls);
+        var done = Assert.Single(events.OfType<ToolCallCompleted>());
+        Assert.True(done.Result.IsError);
+        Assert.Contains("目前模式", done.Result.Content);
+    }
+
+    [Fact]
     public async Task MultipleToolCalls_RunSequentially_ResultsInOneToolMessage()
     {
         var provider = new SequenceChatProvider(

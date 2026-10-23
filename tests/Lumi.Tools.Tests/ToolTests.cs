@@ -1,5 +1,9 @@
+using Lumi.Core.Documents;
 using Lumi.Core.Chat;
 using Lumi.Core.Tools;
+using Lumi.Tools.Tests.Files;
+using Lumi.Tools.Tests.Notes;
+using Lumi.Tools.Tests.Reminders;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lumi.Tools.Tests;
@@ -14,10 +18,7 @@ internal sealed class FixedTimeProvider(DateTimeOffset now, TimeZoneInfo? local 
 public sealed class ToolTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "lumi-tools-" + Guid.NewGuid().ToString("N"));
-    private readonly ToolsOptions _options;
     private readonly ToolContext _context = new("c1", ChatMode.Workbench, TimeProvider.System, EmptyFileScope.Instance);
-
-    public ToolTests() => _options = new ToolsOptions { NotesDirectory = Path.Combine(_dir, "notes") };
 
     public void Dispose()
     {
@@ -57,7 +58,7 @@ public sealed class ToolTests : IDisposable
 
     [Fact]
     public void Calculate_PreviewShowsExpression() =>
-        Assert.Equal("1+1", new CalculateTool().Preview("""{"expression":" 1+1 "}""").Target);
+        Assert.Equal("1+1", new CalculateTool().Preview("""{"expression":" 1+1 "}""", _context).Target);
 
     [Fact]
     public async Task Calculate_FloatingPointNoise_IsTrimmed()
@@ -103,147 +104,27 @@ public sealed class ToolTests : IDisposable
         Assert.Contains("Mars/Olympus", result.Content);
     }
 
-    // ---- save_note / delete_note ----
-
-    [Fact]
-    public async Task SaveNote_WritesFile_AddsDefaultExtension()
-    {
-        var result = await new SaveNoteTool(_options).ExecuteAsync(Json(new { name = "購物清單", content = "牛奶" }), _context, default);
-
-        Assert.False(result.IsError);
-        Assert.Equal("牛奶", await File.ReadAllTextAsync(Path.Combine(_options.NotesDirectory!, "購物清單.md")));
-        Assert.Equal("已儲存 購物清單.md", result.Summary);
-    }
-
-    [Fact]
-    public async Task SaveNote_DoesNotOverwrite()
-    {
-        var tool = new SaveNoteTool(_options);
-        await tool.ExecuteAsync(Json(new { name = "a.txt", content = "原本" }), _context, default);
-
-        var second = await tool.ExecuteAsync(Json(new { name = "a.txt", content = "新的" }), _context, default);
-
-        Assert.True(second.IsError);
-        Assert.Equal("原本", await File.ReadAllTextAsync(Path.Combine(_options.NotesDirectory!, "a.txt")));
-    }
-
-    [Theory]
-    [InlineData("../evil")]
-    [InlineData("..\\evil")]
-    [InlineData("sub/dir")]
-    [InlineData("/etc/passwd")]
-    [InlineData("C:\\x")]
-    [InlineData(".hidden")]
-    [InlineData("a.exe")]
-    [InlineData("a.txt.exe")]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData("a\0b")]
-    [InlineData("con:")]
-    public async Task SaveNote_RejectsBadNames(string name)
-    {
-        var result = await new SaveNoteTool(_options).ExecuteAsync(Json(new { name, content = "x" }), _context, default);
-
-        Assert.True(result.IsError);
-        Assert.False(Directory.Exists(_options.NotesDirectory!) && Directory.GetFileSystemEntries(_options.NotesDirectory!).Length > 0);
-        Assert.False(File.Exists(Path.Combine(_dir, "evil")));
-    }
-
-    [Fact]
-    public async Task SaveNote_RejectsTooLongContent()
-    {
-        var result = await new SaveNoteTool(_options).ExecuteAsync(
-            Json(new { name = "big", content = new string('x', NoteFiles.MaxContentChars + 1) }), _context, default);
-
-        Assert.True(result.IsError);
-    }
-
-    [Fact]
-    public void SaveNote_Descriptor_IsWriteAndWorkbenchOnly()
-    {
-        var d = new SaveNoteTool(_options).Descriptor;
-        Assert.Equal(ToolPermission.Write, d.Permission);
-        Assert.Equal(ToolModes.Workbench, d.Modes);
-    }
-
-    [Fact]
-    public void SaveNote_Preview_ShowsNormalizedNameAndSize()
-    {
-        var preview = new SaveNoteTool(_options).Preview(Json(new { name = "idea", content = "12345" }));
-
-        Assert.Equal("idea.md", preview.Target);
-        Assert.Contains("5 字", preview.Detail);
-    }
-
-    [Fact]
-    public async Task DeleteNote_DeletesOnlyThatFile()
-    {
-        var save = new SaveNoteTool(_options);
-        await save.ExecuteAsync(Json(new { name = "a", content = "1" }), _context, default);
-        await save.ExecuteAsync(Json(new { name = "b", content = "2" }), _context, default);
-
-        var result = await new DeleteNoteTool(_options).ExecuteAsync(Json(new { name = "a.md" }), _context, default);
-
-        Assert.False(result.IsError);
-        Assert.False(File.Exists(Path.Combine(_options.NotesDirectory!, "a.md")));
-        Assert.True(File.Exists(Path.Combine(_options.NotesDirectory!, "b.md")));
-    }
-
-    [Fact]
-    public async Task DeleteNote_Missing_IsErrorResult()
-    {
-        var result = await new DeleteNoteTool(_options).ExecuteAsync(Json(new { name = "nothing" }), _context, default);
-
-        Assert.True(result.IsError);
-    }
-
-    [Theory]
-    [InlineData("../outside.md")]
-    [InlineData("..")]
-    [InlineData("sub/a.md")]
-    public async Task DeleteNote_CannotEscapeNotesDirectory(string name)
-    {
-        Directory.CreateDirectory(_options.NotesDirectory!);
-        var outside = Path.Combine(_dir, "outside.md");
-        await File.WriteAllTextAsync(outside, "別動我");
-
-        var result = await new DeleteNoteTool(_options).ExecuteAsync(Json(new { name }), _context, default);
-
-        Assert.True(result.IsError);
-        Assert.True(File.Exists(outside));
-    }
-
-    [Fact]
-    public void DeleteNote_Descriptor_IsDestructive() =>
-        Assert.Equal(ToolPermission.Destructive, new DeleteNoteTool(_options).Descriptor.Permission);
-
     // ---- 註冊 ----
 
     [Fact]
     public void AddLumiTools_RegistersAllTools_AndPassesRegistryValidation()
     {
         var services = new ServiceCollection();
-        services.AddLumiTools(o => { o.NotesDirectory = _options.NotesDirectory; o.EnableDemoTools = true; });
+        // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
+        services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
+        ReminderRig.RegisterFor(services);
+        services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
-        Assert.Equal(["calculate", "delete_note", "get_current_time", "list_dir", "read_file", "save_note", "search", "show_details"],
+        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "get_current_time", "list_dir",
+                "list_reminders", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
             registry.GetAll().Select(t => t.Descriptor.Name));
-        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search", "show_details"],
+        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "create_reminder", "get_current_time", "list_dir", "list_reminders", "read_document", "read_file",
+                "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer"],
             registry.GetAll().Where(t => t.Descriptor.Modes.Allows(ChatMode.Sprite)).Select(t => t.Descriptor.Name));
-    }
-
-    [Fact]
-    public void DemoTools_AreOffByDefault()
-    {
-        var services = new ServiceCollection();
-        services.AddLumiTools();
-        using var provider = services.BuildServiceProvider();
-
-        var names = provider.GetServices<ITool>().Select(t => t.Descriptor.Name).Order().ToList();
-
-        Assert.Equal(["calculate", "get_current_time", "list_dir", "read_file", "search", "show_details"], names);
     }
 
     // ---- show_details ----
@@ -275,7 +156,7 @@ public sealed class ToolTests : IDisposable
         Assert.Contains("工作台", result.Content);
         Assert.Contains("一句話", result.Content);
         Assert.Equal($"{markdown.Length} 字", result.Summary);   // 字數，不是複述內容
-        Assert.Equal("C# 讀檔範例", tool.Preview(json).Target);   // 卡片標題：整理完整內容 · C# 讀檔範例
+        Assert.Equal("C# 讀檔範例", tool.Preview(json, _spriteContext).Target);   // 卡片標題：整理完整內容 · C# 讀檔範例
     }
 
     [Theory]
@@ -305,23 +186,38 @@ public sealed class ToolTests : IDisposable
     }
 
     [Fact]
-    public void FileTools_RequireScope_AndAreReadOnly()
+    public void FileTools_RequireScope_WithTheirPermissions()
     {
         var services = new ServiceCollection();
+        // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
+        services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
+        ReminderRig.RegisterFor(services);
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
         var fileTools = provider.GetServices<ITool>().Where(t => t.Descriptor.RequiresScope).ToList();
 
-        Assert.Equal(["list_dir", "read_file", "search"], fileTools.Select(t => t.Descriptor.Name).Order());
-        Assert.All(fileTools, t => Assert.Equal(ToolPermission.ReadOnly, t.Descriptor.Permission));
+        Assert.Equal(["copy_file", "create_folder", "list_dir", "move_file", "overwrite_file", "read_document", "read_file", "search", "write_file"],
+            fileTools.Select(t => t.Descriptor.Name).Order());
+        Assert.All(fileTools.Where(t => t.Descriptor.Name is "list_dir" or "read_file" or "search"),
+            t => Assert.Equal(ToolPermission.ReadOnly, t.Descriptor.Permission));
+        Assert.Equal(ToolPermission.Destructive, fileTools.Single(t => t.Descriptor.Name == "overwrite_file").Descriptor.Permission);
+        Assert.All(fileTools.Where(t => t.Descriptor.Name is "write_file" or "copy_file" or "move_file" or "create_folder"),
+            t => Assert.Equal(ToolPermission.Write, t.Descriptor.Permission));
     }
 
     [Fact]
     public void AddLumiTools_ReplacesTheEmptyScopeFactory()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
+        ReminderRig.RegisterFor(services);
         services.AddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
+        // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
+        services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
+        ReminderRig.RegisterFor(services);
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
@@ -332,7 +228,11 @@ public sealed class ToolTests : IDisposable
     public void EveryTool_HasSchemaWithDescriptions()
     {
         var services = new ServiceCollection();
-        services.AddLumiTools(o => o.EnableDemoTools = true);
+        // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
+        services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
+        ReminderRig.RegisterFor(services);
+        services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
         foreach (var tool in provider.GetServices<ITool>())
