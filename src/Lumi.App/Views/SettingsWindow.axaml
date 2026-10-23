@@ -203,7 +203,7 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 外觀與操作、3 小精靈、4 語音） -->
+            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 記憶、3 外觀與操作、4 小精靈、5 語音） -->
             <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}"
                      AutomationProperties.Name="{x:Static res:Strings.Settings_CategoriesName}">
               <ListBoxItem x:Name="CategoryConnections" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
@@ -221,6 +221,15 @@
                   <StackPanel Grid.Column="1">
                     <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryPersona}" />
                     <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryPersonaSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategoryMemory" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryMemory}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBrain}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryMemory}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryMemorySub}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </Grid>
               </ListBoxItem>
@@ -408,6 +417,26 @@
         </ctl:FractionWidthLimiter>
        </StackPanel>
       </ScrollViewer>
+
+      <!-- ===== 記憶：頁首（新增記憶，唯一的 Primary）→ 面板（開關、用量、新增表單、清單、全部清除）。面板自己捲動 ===== -->
+      <Grid x:Name="MemoryPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowMemory}" Margin="32">
+        <views:SettingsPageHeader x:Name="MemoryHeader" Grid.Row="0"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategoryMemory}"
+                                  Title="{x:Static res:Strings.Settings_HeaderMemoryTitle}"
+                                  Description="{x:Static res:Strings.Settings_HeaderMemoryDescription}">
+          <views:SettingsPageHeader.Actions>
+            <Button x:Name="NewMemoryButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Command="{Binding Memory.NewCommand}" AutomationProperties.Name="{x:Static res:Strings.Memory_New}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Memory_New}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </views:SettingsPageHeader.Actions>
+        </views:SettingsPageHeader>
+
+        <views:MemoryPanel x:Name="MemoryPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Memory}" />
+      </Grid>
 
       <!-- ===== 外觀與操作：主題色票（五張可選取的小卡片）→ 分隔線 → 明暗 ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowGeneral}">

@@ -61,6 +61,12 @@ internal sealed class FakeModelCatalog : IModelCatalog
         return Task.CompletedTask;
     }
 
+    public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default)
+    {
+        Current = Current with { Memory = new MemorySettings(enabled) };
+        Raise();
+        return Task.CompletedTask;
+    }
     public Task SetNotesFolderAsync(string folder, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
     {

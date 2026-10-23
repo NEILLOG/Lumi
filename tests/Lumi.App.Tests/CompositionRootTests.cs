@@ -73,13 +73,21 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
-        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "get_current_time", "list_dir", "list_reminders", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
+        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "get_current_time", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
+        // 長期記憶（M14）：SQLite 版取代 Core 預設的記憶體版；第 5 層、清理服務都要能解析
+        Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMemoryStore>(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>());
+        Assert.Contains(services.GetServices<Lumi.Core.Prompts.IPromptLayer>(), l => l is Lumi.Core.Prompts.MemoryPromptLayer);
+        // ConversationService 的 memoryStore 是可選參數：沒被注入就會靜默失效（第 5 層永遠沒有記憶），所以直接檢查欄位
+        var injected = typeof(ConversationService).GetField("_memoryStore", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(services.GetRequiredService<ConversationService>());
+        Assert.Same(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>(), injected);
+        Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is Lumi.App.Services.MemoryCleanupService);
         // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱
-        // M5：四個 prompt 層都組進去了
-        Assert.Equal([1, 2, 3, 4], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
+        // M5：四個 prompt 層、M14 的第 5 層（記憶）都組進去了
+        Assert.Equal([1, 2, 3, 4, 5], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
         Assert.IsType<Lumi.Core.Prompts.PromptComposer>(services.GetRequiredService<Lumi.Core.Prompts.IPromptComposer>());
         Assert.IsType<FileScopeFactory>(services.GetRequiredService<IFileScopeFactory>());
         Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IConversationContextStore>());

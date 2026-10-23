@@ -29,6 +29,7 @@ internal sealed class FakeSpeechCatalog(SpeechSettings speech) : IModelCatalog
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetWorkbenchWindowAsync(WindowSettings window, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetNotesFolderAsync(string folder, CancellationToken ct = default) => throw new NotSupportedException();
     public ResolvedModel? Resolve(string? modelSettingsId) => null;
 }

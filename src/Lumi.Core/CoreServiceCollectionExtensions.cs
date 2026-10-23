@@ -1,5 +1,6 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.Memory;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Reminders;
@@ -41,6 +42,11 @@ public static class CoreServiceCollectionExtensions
         services.AddLumiPromptLayer<PersonaPromptLayer>();
         services.AddLumiPromptLayer<ModeFormatPromptLayer>();
         services.AddLumiPromptLayer<SpriteVoicePromptLayer>();
+        services.AddLumiPromptLayer<MemoryPromptLayer>();   // 第 5 層：長期記憶（M14）
+
+        // 長期記憶（M14）：預設是記憶體版（測試與沒有資料庫時）；Lumi.Infrastructure 取代成 SQLite 版
+        services.TryAddSingleton(new MemoryOptions());
+        services.TryAddSingleton<IMemoryStore, InMemoryMemoryStore>();
 
         // 提醒與排程（M10 10D）：服務本體；IScheduledItemStore 由 Lumi.Infrastructure 註冊，通知由 App 取代 NullNotificationSink
         services.TryAddSingleton(new ReminderOptions());

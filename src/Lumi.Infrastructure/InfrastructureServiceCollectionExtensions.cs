@@ -1,3 +1,4 @@
+using Lumi.Core.Memory;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Models;
@@ -30,6 +31,10 @@ public static class InfrastructureServiceCollectionExtensions
         // 提醒與排程（M10 10D）：同一個資料庫，共用上面的連線與 schema 初始化
         services.AddSingleton<SqliteScheduledItemStore>();
         services.AddSingleton<IScheduledItemStore>(sp => sp.GetRequiredService<SqliteScheduledItemStore>());
+
+        // 長期記憶（M14）：同一個資料庫；取代 Core 預設的記憶體版
+        services.AddSingleton<SqliteMemoryStore>();
+        services.Replace(ServiceDescriptor.Singleton<IMemoryStore>(sp => sp.GetRequiredService<SqliteMemoryStore>()));
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();

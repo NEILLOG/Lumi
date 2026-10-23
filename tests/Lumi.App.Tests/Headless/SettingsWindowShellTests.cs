@@ -124,17 +124,18 @@ public class SettingsWindowShellTests
     }
 
     [AvaloniaFact]
-    public void Menu_ListsTheFiveCategories_WithPlainNamesAndSubtitles()
+    public void Menu_ListsTheSixCategories_WithPlainNamesAndSubtitles()
     {
         using var host = new SettingsHost();
         var window = Show(host);
 
         var list = window.FindByName<ListBox>("CategoryList");
-        Assert.Equal(5, list.ItemCount);
+        Assert.Equal(6, list.ItemCount);
         var expected = new[]
         {
             ("CategoryConnections", "AI 連線", "供應商、金鑰與模型"),
             ("CategoryPersona", "人格與主動性", "回答風格與主動程度"),
+            ("CategoryMemory", "記憶", "Lumi 記得的事"),
             ("CategoryGeneral", "外觀與操作", "主題、色票與明暗"),
             ("CategorySprite", "小精靈", "角色、尺寸與語氣"),
             ("CategorySpeech", "語音", "Whisper 語音辨識"),
@@ -178,9 +179,9 @@ public class SettingsWindowShellTests
         Assert.NotEqual(soft, (PresenterOf(general).Background as ISolidColorBrush)?.Color);
 
         // 點另一個分類 → ViewModel 的 CategoryIndex 跟著變，選取樣式也移過去
-        list.SelectedIndex = 2;
+        list.SelectedIndex = 3;
         window.UpdateLayout();
-        Assert.Equal(2, host.Settings.CategoryIndex);
+        Assert.Equal(3, host.Settings.CategoryIndex);
         Assert.True(host.Settings.ShowGeneral);
         Assert.Equal(soft, ColorOf(PresenterOf(general).Background));
         Assert.NotEqual(soft, (PresenterOf(connections).Background as ISolidColorBrush)?.Color);
@@ -188,7 +189,7 @@ public class SettingsWindowShellTests
         // ViewModel 導覽也會反映到 Menu
         await host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Sprite));
         window.UpdateLayout();
-        Assert.Equal(3, list.SelectedIndex);
+        Assert.Equal(4, list.SelectedIndex);
         window.Close();
     }
 

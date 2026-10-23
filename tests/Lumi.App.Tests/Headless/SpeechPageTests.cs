@@ -23,13 +23,13 @@ public class SpeechPageTests
         root.GetVisualDescendants().OfType<TextBlock>().Any(t => t.IsEffectivelyVisible && t.Text == text);
 
     [AvaloniaFact]
-    public async Task TheSpeechCategory_IsTheFifthMenuItem_WithItsName()
+    public async Task TheSpeechCategory_IsTheSixthMenuItem_WithItsName()
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
         var list = rig.Window.FindByName<ListBox>("CategoryList");
 
-        Assert.Equal(5, list.ItemCount);
-        var item = Assert.IsType<ListBoxItem>(list.Items[4]);
+        Assert.Equal(6, list.ItemCount);
+        var item = Assert.IsType<ListBoxItem>(list.Items[5]);
         Assert.Equal("CategorySpeech", item.Name);
         Assert.Equal("語音", AutomationProperties.GetName(item));
         Assert.Equal(["語音", "Whisper 語音辨識"], item.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToArray());
@@ -40,7 +40,7 @@ public class SpeechPageTests
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
 
-        rig.Window.FindByName<ListBox>("CategoryList").SelectedIndex = 4;
+        rig.Window.FindByName<ListBox>("CategoryList").SelectedIndex = 5;
         rig.Settle();
 
         Assert.True(rig.Host.Settings.ShowSpeech);

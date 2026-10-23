@@ -489,4 +489,49 @@
   <data name="Notifications_DismissNamed" xml:space="preserve"><value>關閉：{0}</value></data>
   <data name="Notifications_DismissAll" xml:space="preserve"><value>全部關閉</value></data>
   <data name="Notifications_MoreCount" xml:space="preserve"><value>還有 {0} 則</value></data>
+  <data name="Settings_CategoryMemory" xml:space="preserve"><value>記憶</value></data>
+  <data name="Settings_CategoryMemorySub" xml:space="preserve"><value>Lumi 記得的事</value></data>
+  <data name="Settings_HeaderMemoryTitle" xml:space="preserve"><value>Lumi 記得的事</value></data>
+  <data name="Settings_HeaderMemoryDescription" xml:space="preserve"><value>Lumi 會記住你長期不變的事，之後的對話都會帶著這些背景。你可以隨時看見、修改或刪除。</value></data>
+  <data name="Memory_New" xml:space="preserve"><value>新增記憶</value></data>
+  <data name="Memory_Enabled" xml:space="preserve"><value>啟用長期記憶</value></data>
+  <data name="Memory_StoredHere" xml:space="preserve"><value>記憶存在這台裝置。</value></data>
+  <data name="Memory_SentToProvider" xml:space="preserve"><value>記憶會隨每則訊息送到你目前使用的模型供應商。</value></data>
+  <data name="Memory_DisabledNote" xml:space="preserve"><value>已關閉：記憶不會送出，Lumi 也不會新增記憶。</value></data>
+  <data name="Memory_Usage" xml:space="preserve"><value>{0}／{1} 則 · {2}／{3} 字</value></data>
+  <data name="Memory_NearLimit" xml:space="preserve"><value>接近上限</value></data>
+  <data name="Memory_Empty" xml:space="preserve"><value>還沒有記憶。試著對 Lumi 說：『記住我偏好用繁體中文』。</value></data>
+  <data name="Memory_SourceExplicit" xml:space="preserve"><value>你要求的</value></data>
+  <data name="Memory_SourceSuggested" xml:space="preserve"><value>Lumi 建議的</value></data>
+  <data name="Memory_SourceManual" xml:space="preserve"><value>手動新增</value></data>
+  <data name="Memory_Expired" xml:space="preserve"><value>已過期</value></data>
+  <data name="Memory_ValidUntil" xml:space="preserve"><value>有效至 {0}</value></data>
+  <data name="Memory_Edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="Memory_Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="Memory_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Memory_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Memory_FormNewTitle" xml:space="preserve"><value>新增記憶</value></data>
+  <data name="Memory_FormEditTitle" xml:space="preserve"><value>編輯 {0}</value></data>
+  <data name="Memory_ContentLabel" xml:space="preserve"><value>內容</value></data>
+  <data name="Memory_ContentHint" xml:space="preserve"><value>寫成一句話，例如「我是後端工程師」。</value></data>
+  <data name="Memory_Counter" xml:space="preserve"><value>{0}／{1}</value></data>
+  <data name="Memory_CategoryLabel" xml:space="preserve"><value>分類</value></data>
+  <data name="Memory_ExpiresLabel" xml:space="preserve"><value>到期日</value></data>
+  <data name="Memory_ExpiresHint" xml:space="preserve"><value>留空表示永久。格式 yyyy-MM-dd，例如 2026-12-31。</value></data>
+  <data name="Memory_ExpiresWatermark" xml:space="preserve"><value>yyyy-MM-dd</value></data>
+  <data name="Memory_ClearAllDisabled" xml:space="preserve"><value>沒有記憶可以清除。</value></data>
+  <data name="Memory_ExpiresError" xml:space="preserve"><value>到期日請用 yyyy-MM-dd 格式（例如 2026-12-31），或留空表示永久。</value></data>
+  <data name="Memory_ContentEmpty" xml:space="preserve"><value>請先輸入內容。</value></data>
+  <data name="Memory_ContentBlocked" xml:space="preserve"><value>內容超過上限，縮短後才能儲存。</value></data>
+  <data name="Memory_ExpiresBlocked" xml:space="preserve"><value>到期日格式不正確，修正後才能儲存。</value></data>
+  <data name="Memory_Duplicate" xml:space="preserve"><value>已經有相同的記憶（{0}）。</value></data>
+  <data name="Memory_Saved" xml:space="preserve"><value>已儲存。</value></data>
+  <data name="Memory_Gone" xml:space="preserve"><value>這則記憶已經不存在，已關閉編輯。</value></data>
+  <data name="Memory_Forgotten" xml:space="preserve"><value>已忘掉這則記憶。</value></data>
+  <data name="Memory_Forget" xml:space="preserve"><value>忘掉</value></data>
+  <data name="Memory_DeleteQuestion" xml:space="preserve"><value>忘掉這則記憶？</value></data>
+  <data name="Memory_ClearAll" xml:space="preserve"><value>全部清除</value></data>
+  <data name="Memory_ClearAllQuestion" xml:space="preserve"><value>忘掉全部 {0} 則記憶？清除後無法復原。</value></data>
+  <data name="Memory_Cleared" xml:space="preserve"><value>已清除 {0} 則記憶。</value></data>
+  <data name="Memory_LoadFailed" xml:space="preserve"><value>讀取記憶失敗，請再試一次。</value></data>
 </root>

@@ -27,6 +27,7 @@ public static class ToolModesExtensions
 /// <param name="Modes">能在哪些模式執行。定義一律送出，模式不符時在執行時回錯誤（M5 的 Q1）。</param>
 /// <param name="Timeout">每個工具都要有逾時。</param>
 /// <param name="RequiresScope">需要使用者加入的檔案或資料夾才有意義：範圍是空的時，請求不帶這個工具的定義。</param>
+/// <param name="RequiresMemory">長期記憶的工具（M14）：記憶在設定裡關閉時，請求不帶這個工具的定義。只依使用者的設定、不依模式。</param>
 public sealed record ToolDescriptor(
     string Name,
     string DisplayName,
@@ -34,7 +35,8 @@ public sealed record ToolDescriptor(
     ToolPermission Permission,
     ToolModes Modes,
     TimeSpan Timeout,
-    bool RequiresScope = false);
+    bool RequiresScope = false,
+    bool RequiresMemory = false);
 
 /// <summary>顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。</summary>
 public sealed record ToolPreview(string? Target, string? Detail)

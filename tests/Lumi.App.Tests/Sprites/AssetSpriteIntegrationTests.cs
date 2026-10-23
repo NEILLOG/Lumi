@@ -405,7 +405,7 @@ public class AssetSpriteIntegrationTests
         var window = new SettingsWindow(host.Settings);
         window.Show();
 
-        host.Settings.CategoryIndex = 3;
+        host.Settings.CategoryIndex = 4;
         window.UpdateLayout();
 
         Assert.Equal(2, window.FindControl<ListBox>("SpriteList")!.ItemCount);

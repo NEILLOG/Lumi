@@ -34,6 +34,7 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<ConnectionsViewModel>();
         services.AddTransient<ModelsViewModel>();
         services.AddTransient<PersonaViewModel>();
+        services.AddTransient<MemoryViewModel>();   // 記憶（M14 14D）
         services.AddTransient<GeneralViewModel>();
         services.AddTransient<SpriteSettingsViewModel>();
         services.AddTransient<SpeechViewModel>();
@@ -44,6 +45,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IToolApprovalResponder>(sp => sp.GetRequiredService<ToolApprovalService>());
 
         services.AddHostedService<AttachmentCleanupService>();
+        services.AddHostedService<MemoryCleanupService>();        // 啟動時清掉到期超過 30 天的記憶（M14）
         services.AddHostedService<SearchTextBackfillService>();   // 舊訊息的搜尋文字，背景補一次
         services.AddHostedService<ReminderHostedService>();       // 提醒的背景迴圈（M10 10D）：到點觸發、錯過的檢查、睡眠喚醒
         // 提醒的送達（M10 10E）：取代 Core 的 NullNotificationSink；工作台的通知列與小精靈的提醒卡片綁同一個執行個體。

@@ -1,0 +1,221 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.MemoryPanel"
+             x:DataType="vm:MemoryViewModel">
+
+  <!--
+    記憶面板（M14 14D）：頁首與「新增記憶」在 SettingsWindow。這裡是開關與說明 → 用量 → 新增表單（清單上方）→ 依分類分組的清單 → 底部（訊息、全部清除）。
+    表單只有一份（MemoryFormViewModel），新增掛在清單上方，編輯掛在那一列裡，同時只會顯示一個。
+    窄視窗（Window.narrow）時每列的動作按鈕移到內容下方（規則在下面的 Styles）。
+  -->
+  <UserControl.Styles>
+    <!-- 清單的一列：分隔線分開，不是卡片（卡片只代表一個物件，這裡不再包一層） -->
+    <Style Selector="Border.memory-row">
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="Padding" Value="0,12" />
+    </Style>
+    <!-- 列內表單與新增表單：Surface Alt 底、1px 邊框、卡片圓角（容器，不是卡片） -->
+    <Style Selector="Border.memory-form">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <!-- Warning 淡底：「接近上限」與「已過期」，文字一定寫出來（不只靠顏色） -->
+    <Style Selector="Border.warn-badge">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.warn-badge TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <Style Selector="TextBlock.usage">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.usage.warn">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+    </Style>
+    <!-- 分類群組的標題：項目標題（14／700）緊鄰清單 -->
+    <Style Selector="TextBlock.group-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.item-text">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <!-- RWD：窄視窗時動作按鈕移到內容下方（第 1 格之後的第 2 列，靠左） -->
+    <Style Selector="StackPanel.memory-actions">
+      <Setter Property="(Grid.Row)" Value="0" />
+      <Setter Property="(Grid.Column)" Value="1" />
+    </Style>
+    <Style Selector="Window.narrow StackPanel.memory-actions">
+      <Setter Property="(Grid.Row)" Value="1" />
+      <Setter Property="(Grid.Column)" Value="0" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- 表單（新增與編輯共用）：欄位用 FormField，標籤在上、說明在下、錯誤有文字 -->
+    <DataTemplate x:Key="MemoryFormTemplate" x:DataType="vm:MemoryFormViewModel">
+      <Border Classes="memory-form">
+        <StackPanel>
+          <TextBlock Classes="group-title" Text="{Binding Title}" />
+          <StackPanel Spacing="16" Margin="0,16,0,0">
+            <ctl:FormField Label="{x:Static res:Strings.Memory_ContentLabel}" Requirement="Required"
+                           Hint="{x:Static res:Strings.Memory_ContentHint}" Error="{Binding ContentError}">
+              <StackPanel Spacing="4">
+                <TextBox Text="{Binding Content}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" MaxHeight="160"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" Classes.error="{Binding HasContentError}"
+                         AutomationProperties.Name="{x:Static res:Strings.Memory_ContentLabel}" />
+                <TextBlock Classes="muted" Text="{Binding ContentCounter}" HorizontalAlignment="Right" />
+              </StackPanel>
+            </ctl:FormField>
+
+            <ctl:FormField Label="{x:Static res:Strings.Memory_CategoryLabel}" Requirement="Required">
+              <ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="{x:Static res:Strings.Memory_CategoryLabel}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MemoryCategoryOption"><TextBlock Text="{Binding Text}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </ctl:FormField>
+
+            <ctl:FormField Label="{x:Static res:Strings.Memory_ExpiresLabel}" Requirement="Optional"
+                           Hint="{x:Static res:Strings.Memory_ExpiresHint}" Error="{Binding ExpiresError}">
+              <TextBox Text="{Binding Expires}" Watermark="{x:Static res:Strings.Memory_ExpiresWatermark}" Width="160" HorizontalAlignment="Left"
+                       Classes.error="{Binding HasExpiresError}"
+                       AutomationProperties.Name="{x:Static res:Strings.Memory_ExpiresLabel}" />
+            </ctl:FormField>
+
+            <TextBlock Classes="error" Text="{Binding FormError}" IsVisible="{Binding HasFormError}" />
+
+            <!-- 動作列：說明（停用原因）在左；取消（secondary）、儲存（primary，這一區唯一的 Primary）在右 -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <TextBlock Grid.Column="0" Classes="muted" Text="{Binding SaveBlockedReason}" TextWrapping="Wrap" VerticalAlignment="Center"
+                         IsVisible="{Binding SaveBlockedReason, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Memory_Cancel}" Command="{Binding CancelCommand}" />
+                <Button Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Memory_Save}" Command="{Binding SaveCommand}" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- 清單的一列：內容（可換行，經過 EmojiText）→ 徽章與說明 → 編輯、刪除；編輯中的表單接在下面 -->
+    <DataTemplate x:Key="MemoryRowTemplate" x:DataType="vm:MemoryItemViewModel">
+      <Border Classes="memory-row">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="0">
+          <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+            <ctl:EmojiTextBlock Classes="item-text" Text="{Binding Content}" TextWrapping="Wrap" />
+            <WrapPanel>
+              <Border Classes="badge" Margin="0,0,8,4">
+                <TextBlock Text="{Binding SourceText}" />
+              </Border>
+              <Border Classes="warn-badge" Margin="0,0,8,4" IsVisible="{Binding IsExpired}">
+                <TextBlock Text="{x:Static res:Strings.Memory_Expired}" />
+              </Border>
+              <TextBlock Classes="muted" Margin="0,0,8,4" Text="{Binding ValidUntilText}"
+                         IsVisible="{Binding ValidUntilText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <TextBlock Classes="muted" Margin="0,0,0,4" Text="{Binding IdText}" />
+            </WrapPanel>
+          </StackPanel>
+
+          <StackPanel Classes="memory-actions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Content="{x:Static res:Strings.Memory_Edit}" Command="{Binding EditCommand}" />
+            <Button Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Content="{x:Static res:Strings.Memory_Delete}" Command="{Binding DeleteCommand}" />
+          </StackPanel>
+
+          <ContentControl Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                          Content="{Binding EditForm}" ContentTemplate="{StaticResource MemoryFormTemplate}"
+                          IsVisible="{Binding EditForm, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
+      <StackPanel>
+
+        <!-- 開關：立即套用（沒有儲存鈕）。關閉時旁邊的說明寫出原因 -->
+        <StackPanel x:Name="MemorySwitchSection" Spacing="8">
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <CheckBox x:Name="MemoryEnabledBox" Content="{x:Static res:Strings.Memory_Enabled}" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                      VerticalAlignment="Center" />
+            <TextBlock x:Name="MemoryDisabledNote" Classes="muted" Text="{Binding EnabledNote}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       IsVisible="{Binding EnabledNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.Memory_StoredHere}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.Memory_SentToProvider}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Classes="divider" />
+
+        <!-- 用量：達 90% 時文字換 Warning 色，並另外寫出「接近上限」 -->
+        <StackPanel x:Name="MemoryUsageSection" Orientation="Horizontal" Spacing="8">
+          <TextBlock x:Name="MemoryUsageText" Classes="usage" Classes.warn="{Binding IsNearLimit}" Text="{Binding UsageText}"
+                     VerticalAlignment="Center" />
+          <Border x:Name="MemoryNearLimitBadge" Classes="warn-badge" IsVisible="{Binding IsNearLimit}">
+            <TextBlock Text="{x:Static res:Strings.Memory_NearLimit}" />
+          </Border>
+        </StackPanel>
+
+        <!-- 新增表單：掛在清單上方（沒有開啟時不佔位） -->
+        <ContentControl x:Name="MemoryNewForm" Margin="0,16,0,0" Content="{Binding NewForm}"
+                        ContentTemplate="{StaticResource MemoryFormTemplate}"
+                        IsVisible="{Binding NewForm, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+        <!-- 空狀態：沒有任何記憶時，示範怎麼說 -->
+        <TextBlock x:Name="MemoryEmptyText" Classes="muted" Margin="0,16,0,0" Text="{x:Static res:Strings.Memory_Empty}"
+                   TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeBody}" IsVisible="{Binding !HasItems}" />
+
+        <!-- 清單：依分類分組，空的分類不出現 -->
+        <ItemsControl x:Name="MemoryGroups" Margin="0,8,0,0" ItemsSource="{Binding Groups}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MemoryGroupViewModel">
+              <StackPanel Margin="0,16,0,0">
+                <TextBlock Classes="group-title" Text="{Binding Title}" />
+                <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource MemoryRowTemplate}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Classes="divider" />
+
+        <!-- 底部：訊息與停用原因在左，全部清除（danger，先確認）在右；沒有記憶時停用，原因寫在旁邊（Caption） -->
+        <Grid x:Name="MemoryActions" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+          <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+            <TextBlock x:Name="MemoryMessage" Classes="muted" Classes.error="{Binding MessageIsError}"
+                       IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
+            <TextBlock x:Name="MemoryClearAllReason" Classes="muted" Text="{x:Static res:Strings.Memory_ClearAllDisabled}"
+                       TextWrapping="Wrap" IsVisible="{Binding !HasItems}" />
+          </StackPanel>
+          <Button x:Name="MemoryClearAllButton" Grid.Column="1" Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  Content="{x:Static res:Strings.Memory_ClearAll}" Command="{Binding ClearAllCommand}" VerticalAlignment="Center"
+                  AutomationProperties.Name="{x:Static res:Strings.Memory_ClearAll}" />
+        </Grid>
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </ScrollViewer>
+</UserControl>

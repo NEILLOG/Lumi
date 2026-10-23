@@ -89,6 +89,21 @@ internal static class SqliteSchema
         );
         CREATE INDEX ix_scheduled_items_due ON scheduled_items(status, enabled, next_fire_at);
         """,
+
+        // 6：長期記憶（M14 14A）。id 用 AUTOINCREMENT，刪除後不重用（顯示與工具參數用 m<id>）。
+        // source_conversation_id 只供參考，刻意不設外鍵：刪除對話不刪記憶。時間存 UTC 固定格式，到期日存 yyyy-MM-dd。
+        """
+        CREATE TABLE memories (
+          id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+          content                TEXT NOT NULL,
+          category               INTEGER NOT NULL,
+          source                 INTEGER NOT NULL,
+          source_conversation_id TEXT,
+          created_at             TEXT NOT NULL,
+          updated_at             TEXT NOT NULL,
+          expires_at             TEXT
+        );
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

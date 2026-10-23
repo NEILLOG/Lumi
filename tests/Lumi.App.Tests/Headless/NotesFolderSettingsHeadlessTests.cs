@@ -16,7 +16,7 @@ namespace Lumi.App.Tests.Headless;
 /// <summary>M10 10B：設定頁「一般」的「筆記資料夾」列——欄位出現、浮水印是預設位置、Enter 套用、錯誤文字、恢復預設的命令。</summary>
 public class NotesFolderSettingsHeadlessTests
 {
-    private const int GeneralIndex = 2;
+    private const int GeneralIndex = 3;
 
     private static string Folder(string name) => Path.Combine(Path.GetTempPath(), "lumi-notes-headless", name);
 

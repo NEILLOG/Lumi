@@ -68,6 +68,9 @@ public sealed record AppSettings(
 
     /// <summary>筆記設定（M10 10B）：資料夾。舊檔沒有時是預設（空字串）。</summary>
     public NotesSettings Notes { get; init; } = NotesSettings.Default;
+
+    /// <summary>長期記憶設定（M14）：開關。舊檔沒有時是預設（開）。</summary>
+    public MemorySettings Memory { get; init; } = MemorySettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

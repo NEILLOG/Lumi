@@ -1,6 +1,7 @@
 using Lumi.Core.Context;
 using Lumi.Core.Notes;
 using Lumi.Core.Tools;
+using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
 using Lumi.Tools.Reminders;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,6 +52,11 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<ListRemindersTool>();
         services.AddLumiTool<CancelReminderTool>();
         services.AddLumiTool<SetReminderEnabledTool>();
+
+        // 長期記憶（M14 14C）：IMemoryStore 與 MemoryOptions 由組裝根與 Lumi.Core 註冊；記憶關閉時定義不送（RequiresMemory）
+        services.AddLumiTool<MemorySaveTool>();
+        services.AddLumiTool<MemoryUpdateTool>();
+        services.AddLumiTool<MemoryDeleteTool>();
         return services;
     }
 }

@@ -1,4 +1,5 @@
 using Lumi.Core.Chat;
+using Lumi.Core.Memory;
 using Lumi.Core.Models;
 
 namespace Lumi.Core.Prompts;
@@ -10,11 +11,12 @@ namespace Lumi.Core.Prompts;
 public enum PromptPlacement { System, TurnSuffix }
 
 /// <summary>組 prompt 時看得到的資訊。不帶對話內容：層只依設定與模式產生文字。</summary>
-public sealed record PromptContext(ChatMode Mode, PersonaSettings Persona);
+/// <param name="Memory">長期記憶（M14，第 5 層）；null＝記憶已關閉，這一層不出現。</param>
+public sealed record PromptContext(ChatMode Mode, PersonaSettings Persona, MemoryPromptContext? Memory = null);
 
 public interface IPromptLayer
 {
-    /// <summary>1 基底、2 人設、3 模式格式、4 角色語氣。不能重複。</summary>
+    /// <summary>1 基底、2 人設、3 模式格式、4 角色語氣、5 記憶（System）。不能重複。</summary>
     int Order { get; }
 
     PromptPlacement Placement { get; }

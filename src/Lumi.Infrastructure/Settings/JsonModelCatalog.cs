@@ -157,6 +157,9 @@ public sealed class JsonModelCatalog : IModelCatalog
         return MutateAsync(s => s with { Notes = normalized }, ct);
     }
 
+    public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Memory = new MemorySettings(enabled).Normalize() }, ct);
+
     public async Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default)
     {
         var normalized = settings.Normalize();
@@ -241,6 +244,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Speech = settings.Speech.Normalize(),
             WorkbenchWindow = settings.WorkbenchWindow?.Normalize(),
             Notes = settings.Notes.Normalize(),
+            Memory = settings.Memory.Normalize(),
         };
     }
 
@@ -319,6 +323,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             WorkbenchWindow = ReadWorkbenchWindow(file.WorkbenchWindow),   // M9 9D 加的欄位，讀不進來只影響視窗位置
             Speech = file.Speech?.Normalize() ?? SpeechSettings.Default,   // M6 加的欄位，舊檔沒有時用預設
             Notes = ReadNotes(file.Notes),                                 // M10 10B 加的欄位，格式錯誤時當作預設
+            Memory = ReadMemory(file.Memory),                              // M14 加的欄位，缺少或格式錯誤時當作預設（開）
         });
         return (settings, false, null);
     }
@@ -360,6 +365,22 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
     }
 
+    /// <summary>長期記憶設定（M14）：格式錯了就當作預設，不能因此把整個設定檔當成損毀。</summary>
+    private MemorySettings ReadMemory(JsonElement? element)
+    {
+        if (element is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return MemorySettings.Default;
+        try
+        {
+            return el.Deserialize<MemorySettings>(JsonOptions)?.Normalize() ?? MemorySettings.Default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "記憶設定格式錯誤，改用預設值");
+            return MemorySettings.Default;
+        }
+    }
+
     private (AppSettings, bool, string?) RecoverFromBrokenFile()
     {
         var brokenPath = $"{_path}.broken-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
@@ -376,7 +397,8 @@ public sealed class JsonModelCatalog : IModelCatalog
         new SettingsFile(CurrentVersion, settings.Connections, settings.Models, settings.WorkbenchModelId, settings.SpriteModelId, settings.Theme,
             settings.Persona, settings.Sprite, settings.ThemeId, settings.Speech,
             settings.WorkbenchWindow is null ? null : JsonSerializer.SerializeToElement(settings.WorkbenchWindow.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.Notes.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.Notes.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Memory.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -430,5 +452,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         string? ThemeId = null,
         SpeechSettings? Speech = null,
         JsonElement? WorkbenchWindow = null,    // 原樣保留成 JsonElement，格式錯誤時不影響整個檔案的讀取
-        JsonElement? Notes = null);
+        JsonElement? Notes = null,
+        JsonElement? Memory = null);
 }

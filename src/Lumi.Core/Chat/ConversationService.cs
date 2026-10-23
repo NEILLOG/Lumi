@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Lumi.Core.Context;
+using Lumi.Core.Memory;
 using Lumi.Core.Models;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
@@ -42,6 +43,7 @@ public sealed class ConversationService
     private readonly IPromptComposer _composer;
     private readonly PromptOptions _promptOptions;
     private readonly INetworkStatus _network;
+    private readonly IMemoryStore? _memoryStore;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -66,7 +68,8 @@ public sealed class ConversationService
         IContextAttachmentBuilder? attachmentBuilder = null,
         IPromptComposer? composer = null,
         PromptOptions? promptOptions = null,
-        INetworkStatus? network = null)
+        INetworkStatus? network = null,
+        IMemoryStore? memoryStore = null)
     {
         _provider = provider;
         _store = store;
@@ -83,6 +86,7 @@ public sealed class ConversationService
         _composer = composer ?? new NullPromptComposer();
         _promptOptions = promptOptions ?? new PromptOptions();
         _network = network ?? new AlwaysOnlineNetworkStatus();
+        _memoryStore = memoryStore;
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -196,7 +200,10 @@ public sealed class ConversationService
         {
             // 每一輪重新取得對話目前的範圍（使用者加入的檔案與資料夾）；沒有範圍時不送需要範圍的工具（省 token，也避免模型亂試）
             var scope = _scopeFactory.Create(await _contextStore.GetAsync(conversationId, ct).ConfigureAwait(false));
-            var tools = availableTools.Where(t => !t.Descriptor.RequiresScope || scope.HasRoots).ToList();
+            var memoryEnabled = _catalog.Current.Memory.Enabled;
+            var tools = availableTools
+                .Where(t => (!t.Descriptor.RequiresScope || scope.HasRoots) && (!t.Descriptor.RequiresMemory || memoryEnabled))
+                .ToList();
             var context = new ToolContext(conversationId, mode, _time, scope);
 
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
@@ -204,8 +211,9 @@ public sealed class ConversationService
             if (requestMessages.Count == 0 || requestMessages[^1].Role is not (ChatRole.User or ChatRole.Tool))
                 throw new InvalidOperationException("最後一則訊息必須是使用者訊息或工具結果才能要求回應。");
 
-            // 每次呼叫供應商前重組：兩次請求之間設定可能被改了
-            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona));
+            // 每次呼叫供應商前重組：兩次請求之間設定或記憶可能被改了（同一輪模型剛存的記憶，下一次呼叫就帶上）
+            var memory = await LoadMemoryAsync(ct).ConfigureAwait(false);
+            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory));
             var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null, prompt.System, prompt.TurnSuffix, maxOutputTokens);
             Completed? completed = null;
             var failed = false;
@@ -345,6 +353,15 @@ public sealed class ConversationService
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
             $"工具呼叫已達到 {_options.MaxIterations} 次上限，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+    }
+
+    /// <summary>長期記憶（第 5 層）：記憶關閉或沒有記憶儲存時為 null；只取有效的記憶。</summary>
+    private async Task<MemoryPromptContext?> LoadMemoryAsync(CancellationToken ct)
+    {
+        if (!_catalog.Current.Memory.Enabled || _memoryStore is null)
+            return null;
+        var today = DateOnly.FromDateTime(_time.GetLocalNow().DateTime);
+        return new MemoryPromptContext(await _memoryStore.ListActiveAsync(today, ct).ConfigureAwait(false));
     }
 
     /// <summary>工作台用工作台預設模型（M2 的 Q3）；小精靈用小精靈預設模型，沒有設定或找不到時退回工作台的（M5 的 Q4）。</summary>

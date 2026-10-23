@@ -2,6 +2,7 @@ using Lumi.Core.Documents;
 using Lumi.Core.Chat;
 using Lumi.Core.Tools;
 using Lumi.Tools.Tests.Files;
+using Lumi.Tools.Tests.Memory;
 using Lumi.Tools.Tests.Notes;
 using Lumi.Tools.Tests.Reminders;
 using Microsoft.Extensions.DependencyInjection;
@@ -114,15 +115,16 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         ReminderRig.RegisterFor(services);
+        MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
         Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "get_current_time", "list_dir",
-                "list_reminders", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
+                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
             registry.GetAll().Select(t => t.Descriptor.Name));
-        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "create_reminder", "get_current_time", "list_dir", "list_reminders", "read_document", "read_file",
+        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "create_reminder", "get_current_time", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "read_document", "read_file",
                 "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer"],
             registry.GetAll().Where(t => t.Descriptor.Modes.Allows(ChatMode.Sprite)).Select(t => t.Descriptor.Name));
     }
@@ -193,6 +195,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         ReminderRig.RegisterFor(services);
+        MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
@@ -213,11 +216,13 @@ public sealed class ToolTests : IDisposable
         var services = new ServiceCollection();
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         ReminderRig.RegisterFor(services);
+        MemoryRegistration.RegisterFor(services);
         services.AddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
         // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         ReminderRig.RegisterFor(services);
+        MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
@@ -232,6 +237,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         ReminderRig.RegisterFor(services);
+        MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 

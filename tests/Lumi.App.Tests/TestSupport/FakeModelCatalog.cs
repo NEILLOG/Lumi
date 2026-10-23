@@ -67,6 +67,17 @@ internal sealed class FakeModelCatalog : IModelCatalog
         return Task.CompletedTask;
     }
 
+    /// <summary>每次 <see cref="SetMemoryEnabledAsync"/> 收到的值。</summary>
+    public List<bool> MemoryEnabledSaves { get; } = [];
+
+    public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default)
+    {
+        MemoryEnabledSaves.Add(enabled);
+        Current = Current with { Memory = new Lumi.Core.Models.MemorySettings(enabled) };
+        Raise();
+        return Task.CompletedTask;
+    }
+
     /// <summary>每次 <see cref="SetNotesFolderAsync"/> 收到的資料夾（原文）。</summary>
     public List<string> NotesFolderSaves { get; } = [];
 

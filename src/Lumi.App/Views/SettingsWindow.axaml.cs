@@ -57,6 +57,8 @@ public partial class SettingsWindow : Window
             _preview.SetState(initial.State);
         Opened += (_, _) => UpdatePreviewRunning();
         Closed += (_, _) => _preview.Dispose();
+        // 記憶：取消對 store 變動的訂閱（設定視窗關了就丟掉，下次開啟重新建立）
+        Closed += (_, _) => viewModel.Memory.Dispose();
     }
 
     private IReadOnlyList<RadioButton> Segments => [TabConnections, TabModels];

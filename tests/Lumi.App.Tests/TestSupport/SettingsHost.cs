@@ -44,11 +44,12 @@ internal sealed class SettingsHost : IDisposable
         Connections = new ConnectionsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Persona = new PersonaViewModel(Catalog, dispatcher);
+        Memory = new MemoryViewModel(MemoryStore, Catalog, Confirm, dispatcher, new FakeTimeProvider());
         General = new GeneralViewModel(Catalog, dispatcher);
         SpriteCatalog = spriteCatalog;
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
         Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, Persona, General, Sprite, Speech, Catalog, Confirm, WindowService);
+        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, General, Sprite, Speech, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
@@ -61,6 +62,8 @@ internal sealed class SettingsHost : IDisposable
     public ConnectionsViewModel Connections { get; }
     public ModelsViewModel Models { get; }
     public PersonaViewModel Persona { get; }
+    public FakeMemoryStore MemoryStore { get; } = new();
+    public MemoryViewModel Memory { get; }
     public GeneralViewModel General { get; }
     public SpriteSettingsViewModel Sprite { get; }
     public SpeechViewModel Speech { get; }
@@ -70,6 +73,7 @@ internal sealed class SettingsHost : IDisposable
 
     public void Dispose()
     {
+        Memory.Dispose();
         if (Directory.Exists(_directory))
             Directory.Delete(_directory, recursive: true);
     }

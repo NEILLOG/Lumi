@@ -175,7 +175,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 5 之前建立的資料庫：沒有 scheduled_items，版本是 4
-            command.CommandText = "DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";
+            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -202,7 +202,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 4 之前建立的資料庫：沒有 search_text 與 app_meta，版本是 3
-            command.CommandText = "DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5 的表也要拿掉
+            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -231,7 +231,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -287,7 +287,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
