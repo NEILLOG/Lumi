@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        x:Class="Lumi.App.Views.StartupFailureWindow"
+        Title="{x:Static res:Strings.StartupFailure_Title}"
+        Width="480" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterScreen">
+  <!-- 啟動失敗說明：不依賴 DI，只用 token。按鈕層級：結束 = primary（唯一），複製 = secondary -->
+  <StackPanel Margin="24" Spacing="16">
+    <TextBlock x:Name="TitleText" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold"
+               Text="{x:Static res:Strings.StartupFailure_Title}" />
+    <TextBlock x:Name="ReasonText" TextWrapping="Wrap" />
+    <StackPanel Spacing="4">
+      <TextBlock Text="{x:Static res:Strings.StartupFailure_LogLabel}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+      <SelectableTextBlock x:Name="LogPathText" TextWrapping="Wrap" Classes="mono" />
+    </StackPanel>
+    <TextBlock x:Name="CopiedText" IsVisible="False"
+               FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}"
+               Text="{x:Static res:Strings.StartupFailure_Copied}" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="CopyButton" Classes="secondary" Padding="16,8" Content="{x:Static res:Strings.StartupFailure_CopyDetails}" />
+      <Button x:Name="ExitButton" Classes="primary" Padding="16,8" IsDefault="True" Content="{x:Static res:Strings.StartupFailure_Exit}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

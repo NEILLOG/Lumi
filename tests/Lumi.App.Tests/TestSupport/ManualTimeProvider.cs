@@ -8,11 +8,25 @@ internal sealed class ManualTimeProvider : TimeProvider
 {
     private readonly object _lock = new();
     private readonly List<ManualTimer> _timers = [];
-    private DateTimeOffset _now = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
+    private readonly TimeZoneInfo _zone;
+    private DateTimeOffset _now;
+
+    public ManualTimeProvider(DateTimeOffset? start = null, TimeZoneInfo? zone = null)
+    {
+        _now = start ?? new DateTimeOffset(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
+        _zone = zone ?? TimeZoneInfo.Utc;
+    }
 
     public override DateTimeOffset GetUtcNow() => _now;
 
-    public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+    public override TimeZoneInfo LocalTimeZone => _zone;
+
+    /// <summary>直接設定時間（不觸發計時器），用來測午夜等邊界。</summary>
+    public void Set(DateTimeOffset now)
+    {
+        lock (_lock)
+            _now = now;
+    }
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {

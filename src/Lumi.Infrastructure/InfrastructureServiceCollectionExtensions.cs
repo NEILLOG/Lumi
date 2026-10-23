@@ -23,6 +23,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IConversationStore>(sp => sp.GetRequiredService<SqliteConversationStore>());
         services.Replace(ServiceDescriptor.Singleton<IConversationContextStore>(sp => sp.GetRequiredService<SqliteConversationStore>()));
         services.AddSingleton<IAttachmentReferences>(sp => sp.GetRequiredService<SqliteConversationStore>());
+        services.AddSingleton<SearchTextBackfill>();   // 啟動後的背景補寫（App 的 SearchTextBackfillService 呼叫）
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();

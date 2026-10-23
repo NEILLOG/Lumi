@@ -16,6 +16,9 @@ public partial class ConfirmDialog : Window
             ConfirmButton.Classes.Remove("primary");
             ConfirmButton.Classes.Add("danger");
         }
+        // 破壞性動作的預設焦點在「取消」（plan/09：刪除前的確認，回車不會直接刪除）
+        if (destructive)
+            Opened += (_, _) => CancelButton.Focus();
         ConfirmButton.Click += (_, _) => Close(true);
         CancelButton.Click += (_, _) => Close(false);
     }

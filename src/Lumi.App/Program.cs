@@ -1,27 +1,59 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Fonts;
+using Lumi.App.Services;
+using Lumi.App.Views;
 using Lumi.Core;
 using Lumi.Infrastructure;
+using Lumi.Infrastructure.Logging;
 using Lumi.Platform;
 using Lumi.Providers;
 using Lumi.Speech;
 using Lumi.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Lumi.App;
 
 internal static class Program
 {
     [STAThread]
-    public static void Main(string[] args)
+    public static int Main(string[] args)
+    {
+        IHost host;
+        try
+        {
+            host = BuildHost(args);
+            host.Start();
+        }
+        catch (Exception ex)
+        {
+            // DI 組裝或啟動失敗：沒有 DI 可用，直接顯示說明視窗（M9 9C）
+            return RunStartupFailure(ex, args);
+        }
+
+        using (host)
+        {
+            try
+            {
+                return BuildAvaloniaApp(() => new App(host.Services)).StartWithClassicDesktopLifetime(args);
+            }
+            finally
+            {
+                host.StopAsync().GetAwaiter().GetResult();
+            }
+        }
+    }
+
+    private static IHost BuildHost(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
         {
             Args = args,
             ContentRootPath = AppContext.BaseDirectory,
         });
+        builder.Logging.AddLumiFileLog();   // 記錄檔寫進使用者資料夾的 logs/（M9 9C）
         builder.Services.AddLumiCore();
         builder.Services.AddLumiPlatform(configureOverlay: options =>
         {
@@ -45,21 +77,21 @@ internal static class Program
         {
             ShowSpriteHud = bool.TryParse(builder.Configuration["Lumi:Developer:ShowSpriteHud"], out var showHud) && showHud,
         });
-
-        using var host = builder.Build();
-        host.Start();
-        try
-        {
-            BuildAvaloniaApp(host.Services).StartWithClassicDesktopLifetime(args);
-        }
-        finally
-        {
-            host.StopAsync().GetAwaiter().GetResult();
-        }
+        return builder.Build();
     }
 
-    private static AppBuilder BuildAvaloniaApp(IServiceProvider services) =>
-        AppBuilder.Configure(() => new App(services))
+    private static int RunStartupFailure(Exception exception, string[] args)
+    {
+        var environment = StartupEnvironment.Current();
+        var report = StartupFailureReport.Create(exception, environment);
+        // 記錄檔直接建立（沒有 DI）；寫入失敗時記錄器自己吞掉，不影響說明視窗
+        new LumiFileLoggerProvider(LumiPaths.LogDirectory).CreateLogger("Lumi.Startup")
+            .LogCritical(exception, "啟動失敗（DI 組裝或主機啟動階段）");
+        return BuildAvaloniaApp(() => new App(report)).StartWithClassicDesktopLifetime(args);
+    }
+
+    private static AppBuilder BuildAvaloniaApp(Func<App> create) =>
+        AppBuilder.Configure(create)
             .UsePlatformDetect()
             .With(new FontManagerOptions { DefaultFamilyName = "fonts:Lumi#IBM Plex Sans" })
             .ConfigureFonts(fonts => fonts.AddFontCollection(new EmbeddedFontCollection(

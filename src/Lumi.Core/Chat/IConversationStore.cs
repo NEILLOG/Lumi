@@ -11,7 +11,25 @@ public interface IConversationStore
     Task<Conversation?> GetLatestAsync(CancellationToken ct = default);
 
     /// <summary>有訊息的對話，依更新時間由新到舊。沒有任何訊息的對話不列出。</summary>
-    Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default);
+    Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default) => ListAsync(limit, null, ct);
+
+    /// <summary>
+    /// 有訊息的對話，依 (更新時間, id) 由新到舊，取 <paramref name="before"/> 之後的 <paramref name="limit"/> 則。
+    /// <paramref name="before"/> 是上一頁最後一則（游標）；null 表示第一頁。
+    /// </summary>
+    Task<IReadOnlyList<Conversation>> ListAsync(int limit, ConversationCursor? before, CancellationToken ct = default);
+
+    /// <summary>
+    /// 刪除整個對話：訊息、上下文項目隨外鍵一併刪除。不存在時回 false。
+    /// 附件檔案不在這裡處理（由 <c>ConversationDeletionService</c> 在刪除之後清理）。
+    /// </summary>
+    Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 比對標題與訊息的文字內容（不分大小寫）；每筆附命中片段。查詢字串去頭尾空白，空白回空清單。
+    /// 結果依更新時間由新到舊，最多 <paramref name="limit"/> 筆。
+    /// </summary>
+    Task<IReadOnlyList<ConversationSearchHit>> SearchAsync(string query, int limit, CancellationToken ct = default);
 
     /// <summary>依送出順序排列。</summary>
     Task<IReadOnlyList<ChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct = default);

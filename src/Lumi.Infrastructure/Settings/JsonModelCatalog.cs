@@ -261,9 +261,20 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
 
         SettingsFile? file;
+        byte[] bytes;
         try
         {
-            file = JsonSerializer.Deserialize<SettingsFile>(File.ReadAllBytes(_path), JsonOptions);
+            bytes = File.ReadAllBytes(_path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 讀不進來不是損毀：不改名、不覆寫，讓使用者自己處理（M9 9C 的啟動失敗說明）
+            throw new SettingsFileUnreadableException(_path, ex);
+        }
+
+        try
+        {
+            file = JsonSerializer.Deserialize<SettingsFile>(bytes, JsonOptions);
         }
         catch (JsonException ex)
         {

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Lumi.Core.Context;
 using Lumi.Core.Models;
+using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,7 @@ public sealed class ConversationService
     private readonly IContextAttachmentBuilder _attachmentBuilder;
     private readonly IPromptComposer _composer;
     private readonly PromptOptions _promptOptions;
+    private readonly INetworkStatus _network;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -63,7 +65,8 @@ public sealed class ConversationService
         IFileScopeFactory? scopeFactory = null,
         IContextAttachmentBuilder? attachmentBuilder = null,
         IPromptComposer? composer = null,
-        PromptOptions? promptOptions = null)
+        PromptOptions? promptOptions = null,
+        INetworkStatus? network = null)
     {
         _provider = provider;
         _store = store;
@@ -79,6 +82,7 @@ public sealed class ConversationService
         _attachmentBuilder = attachmentBuilder ?? new NullContextAttachmentBuilder();
         _composer = composer ?? new NullPromptComposer();
         _promptOptions = promptOptions ?? new PromptOptions();
+        _network = network ?? new AlwaysOnlineNetworkStatus();
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -206,7 +210,7 @@ public sealed class ConversationService
             Completed? completed = null;
             var failed = false;
 
-            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model.Model.ModelId, ct).ConfigureAwait(false))
+            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model, ct).ConfigureAwait(false))
             {
                 if (chatEvent is Completed c) completed = c;
                 if (chatEvent is Failed) failed = true;
@@ -352,13 +356,17 @@ public sealed class ConversationService
             : _catalog.Resolve(settings.WorkbenchModelId);
     }
 
+    private ChatFailure DecorateFailure(ChatFailure failure, ResolvedModel model) =>
+        ChatFailureText.Decorate(failure, _network.HasUsableNetworkInterface(), ChatFailureText.IsLocalTarget(model.Connection.BaseUrl));
+
     private static ToolResultBlock StoppedResult(ToolUseBlock use, ToolDescriptor descriptor, ToolPreview preview, ToolApproval approval) =>
         new(use.Id, StoppedMessage, true, descriptor.DisplayName, preview.Target, "已停止", 0, approval);
 
     /// <summary>呼叫一次供應商：轉發事件、完成時存助理訊息、取消時把已收到的文字存成「已停止」。</summary>
     private async IAsyncEnumerable<ChatEvent> StreamOnceAsync(
-        string conversationId, ChatRequest request, string modelId, [EnumeratorCancellation] CancellationToken ct)
+        string conversationId, ChatRequest request, ResolvedModel model, [EnumeratorCancellation] CancellationToken ct)
     {
+        var modelId = model.Model.ModelId;
         var receivedText = new StringBuilder();
 
         await using var enumerator = _provider.StreamAsync(request, ct).GetAsyncEnumerator(ct);
@@ -396,10 +404,10 @@ public sealed class ConversationService
                     // 先存檔再通知，UI 收到 Completed 時資料庫已經是最新狀態
                     await _store.AppendMessageAsync(conversationId, completed.Message, CancellationToken.None).ConfigureAwait(false);
                     break;
-                // Failed：不存（Q15）
+                // Failed：不存（Q15）；失敗文字的補充（離線、RetryAfter）在這裡一處套用，錯誤列與小精靈氣泡共用
             }
 
-            yield return chatEvent;
+            yield return chatEvent is Failed failed ? new Failed(DecorateFailure(failed.Failure, model)) : chatEvent;
         }
     }
 

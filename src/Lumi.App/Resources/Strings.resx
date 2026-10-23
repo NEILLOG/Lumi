@@ -449,4 +449,33 @@
   <data name="Sprite_VoiceFailedFormat" xml:space="preserve"><value>語音轉寫失敗：{0}</value></data>
   <data name="Voice_NoticeHasDraft" xml:space="preserve"><value>輸入框已有文字，語音結果已附加在後面，請確認後再送出</value></data>
   <data name="Composer_VoiceBlocked" xml:space="preserve"><value>語音輸入中，暫時無法加入</value></data>
+  <data name="History_SearchPlaceholder" xml:space="preserve"><value>搜尋標題與內容</value></data>
+  <data name="History_SearchName" xml:space="preserve"><value>搜尋對話</value></data>
+  <data name="History_ClearSearch" xml:space="preserve"><value>清除搜尋</value></data>
+  <data name="History_GroupToday" xml:space="preserve"><value>今天</value></data>
+  <data name="History_GroupYesterday" xml:space="preserve"><value>昨天</value></data>
+  <data name="History_GroupLast7" xml:space="preserve"><value>過去 7 天</value></data>
+  <data name="History_GroupLast30" xml:space="preserve"><value>過去 30 天</value></data>
+  <data name="History_GroupOlder" xml:space="preserve"><value>更早</value></data>
+  <data name="History_ResultsFormat" xml:space="preserve"><value>{0} 筆結果</value></data>
+  <data name="History_ResultsCappedFormat" xml:space="preserve"><value>只顯示前 {0} 筆，請縮小搜尋條件</value></data>
+  <data name="History_NoResultsFormat" xml:space="preserve"><value>沒有符合『{0}』的對話</value></data>
+  <data name="History_LoadMore" xml:space="preserve"><value>載入更多</value></data>
+  <data name="History_Rename" xml:space="preserve"><value>改名</value></data>
+  <data name="History_Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="History_ItemMore" xml:space="preserve"><value>更多操作：改名、刪除</value></data>
+  <data name="History_RenameName" xml:space="preserve"><value>對話標題</value></data>
+  <data name="History_DeleteConfirmFormat" xml:space="preserve"><value>要刪除「{0}」嗎？這則對話的訊息、加入的檔案清單與圖片附件會一併刪除，無法復原。</value></data>
+  <data name="History_DeleteBlocked" xml:space="preserve"><value>回應中，暫時無法刪除</value></data>
+  <data name="StartupFailure_Title" xml:space="preserve"><value>Lumi 無法啟動</value></data>
+  <data name="StartupFailure_Reason_DatabaseLocked" xml:space="preserve"><value>資料庫正被其他程序使用中，Lumi 可能已經在執行。請先關閉已開啟的 Lumi（也檢查工作列的圖示）再試。</value></data>
+  <data name="StartupFailure_Reason_AccessDenied" xml:space="preserve"><value>沒有權限讀寫 Lumi 的資料資料夾，請檢查該資料夾的權限後再試。</value></data>
+  <data name="StartupFailure_Reason_DiskFull" xml:space="preserve"><value>磁碟空間不足，無法寫入資料庫，請釋放空間後再試。</value></data>
+  <data name="StartupFailure_Reason_DatabaseTooNew" xml:space="preserve"><value>資料庫是較新版本的 Lumi 建立的，這個版本無法開啟，請更新 Lumi 後再試。</value></data>
+  <data name="StartupFailure_Reason_SettingsUnreadable" xml:space="preserve"><value>設定檔無法讀取，請確認檔案沒有被其他程式鎖住。</value></data>
+  <data name="StartupFailure_Reason_Other" xml:space="preserve"><value>發生未預期的錯誤，Lumi 無法啟動。</value></data>
+  <data name="StartupFailure_LogLabel" xml:space="preserve"><value>記錄檔資料夾</value></data>
+  <data name="StartupFailure_CopyDetails" xml:space="preserve"><value>複製詳細資訊</value></data>
+  <data name="StartupFailure_Exit" xml:space="preserve"><value>結束</value></data>
+  <data name="StartupFailure_Copied" xml:space="preserve"><value>已複製到剪貼簿。</value></data>
 </root>

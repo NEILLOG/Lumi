@@ -56,6 +56,17 @@ internal static class SqliteSchema
         );
         CREATE INDEX ix_conversation_context_conversation ON conversation_context(conversation_id, added_at);
         """,
+
+        // 4：搜尋用的文字（M9 9A）。messages.search_text 是訊息的文字區塊（SearchTextExtractor），只給搜尋用；
+        // 舊訊息是 '' ，由 SearchTextBackfill 在啟動後補上。app_meta 是小的 key-value 表，目前只記「已補完」旗標。
+        """
+        ALTER TABLE messages ADD COLUMN search_text TEXT NOT NULL DEFAULT '';
+
+        CREATE TABLE app_meta (
+          key   TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        );
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;
@@ -68,8 +79,7 @@ internal static class SqliteSchema
         using var transaction = connection.BeginTransaction();
         var current = ReadVersion(connection, transaction);
         if (current > LatestVersion)
-            throw new InvalidOperationException(
-                $"資料庫是較新版本的 Lumi 建立的（schema {current}，這個版本只認得到 {LatestVersion}），為了避免寫壞資料，不開啟。");
+            throw new DatabaseTooNewException(current, LatestVersion);
 
         for (var version = current; version < LatestVersion; version++)
             Execute(connection, Migrations[version], transaction);

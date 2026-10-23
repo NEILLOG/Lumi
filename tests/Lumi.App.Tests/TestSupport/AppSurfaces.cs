@@ -46,6 +46,7 @@ internal sealed class AppSurfaces : IDisposable
         surfaces.AddFlyouts();
         surfaces.AddToolViews();
         surfaces.AddConfirmDialogs();
+        surfaces.AddStartupFailure();
         surfaces.AddSpriteWindow();
         if (includeSettings)
         {
@@ -166,6 +167,19 @@ internal sealed class AppSurfaces : IDisposable
             dialog.UpdateLayout();
             Windows.Add((name, dialog));
         }
+    }
+
+    private void AddStartupFailure()
+    {
+        // M9 9C：啟動失敗說明視窗（不依賴 DI；這裡用固定的假報告）
+        var report = new Lumi.App.Services.StartupFailureReport(
+            Lumi.Infrastructure.Startup.StartupFailureKind.DatabaseLocked,
+            Lumi.App.Services.StartupFailureReport.ReasonFor(Lumi.Infrastructure.Startup.StartupFailureKind.DatabaseLocked),
+            "/tmp/lumi/logs", "Lumi 啟動失敗");
+        var window = new StartupFailureWindow(report);
+        window.Show();
+        window.UpdateLayout();
+        Windows.Add(("startup-failure", window));
     }
 
     private void AddSpriteWindow()

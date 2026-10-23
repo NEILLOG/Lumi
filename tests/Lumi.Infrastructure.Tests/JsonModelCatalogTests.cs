@@ -252,6 +252,21 @@ public sealed class JsonModelCatalogTests : IDisposable
     }
 
     [Fact]
+    public void SettingsFileThatCannotBeRead_ThrowsSettingsFileUnreadable_AndIsNotRenamed()
+    {
+        // 另一個程序（或另一個 Lumi）正在獨占設定檔：讀不進來，不等於損毀，不能改名或覆寫
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(SettingsPath, """{ "version": 1, "connections": [], "models": [], "theme": "system" }""");
+        using var locked = new FileStream(SettingsPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        var ex = Assert.Throws<SettingsFileUnreadableException>(() => NewCatalog());
+
+        Assert.Equal(SettingsPath, ex.FilePath);
+        Assert.IsAssignableFrom<IOException>(ex.InnerException);
+        Assert.Empty(Directory.GetFiles(_directory, "settings.json.broken-*"));
+    }
+
+    [Fact]
     public async Task NewerVersion_IsReadOnly_AndFileIsNotTouched()
     {
         Directory.CreateDirectory(_directory);

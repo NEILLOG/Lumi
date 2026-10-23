@@ -1,5 +1,6 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public static class CoreServiceCollectionExtensions
     {
         services.AddSingleton<ConversationService>();
         services.AddSingleton<IChatSession, ChatSession>();   // 工作台與小精靈共用的目前對話與回應流程
+        services.AddSingleton<ConversationDeletionService>(); // 刪除對話：資料庫 → 權限記憶 → 附件（需要 AttachmentCleaner，由 Lumi.Infrastructure 註冊）
 
         // 工具：登錄、權限記憶（只在記憶體）、迴圈設定。沒有畫面可以詢問時預設一律拒絕（TryAdd：App 註冊自己的會取代它）
         services.AddSingleton<IToolRegistry, ToolRegistry>();
@@ -28,6 +30,7 @@ public static class CoreServiceCollectionExtensions
         services.TryAddSingleton<IAttachmentStore, NullAttachmentStore>();
         services.TryAddSingleton<IContextInspector, NullContextInspector>();
         services.TryAddSingleton<ITokenEstimator, HeuristicTokenEstimator>();
+        services.TryAddSingleton<INetworkStatus, SystemNetworkStatus>();   // 失敗後補「看起來沒有網路連線」（M9 9C）；測試可換成假的
 
         // Prompt 分層（agent.md 第 9 節）：四個內建層；角色語氣到 M7 才有角色提供
         services.AddSingleton<IPromptComposer, PromptComposer>();

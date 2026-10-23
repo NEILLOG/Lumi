@@ -58,4 +58,11 @@ public sealed class ToolPermissionMemory
             set.Add(permission);
         }
     }
+
+    /// <summary>刪除對話時一併清掉它的記憶（對話不存在了，記憶也沒有用處）。</summary>
+    public void Clear(string conversationId)
+    {
+        lock (_lock)
+            _allowed.Remove(conversationId);
+    }
 }

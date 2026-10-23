@@ -19,7 +19,7 @@ namespace Lumi.App.ViewModels;
 /// 收到事件就更新訊息列表。命令都在 UI 執行緒上執行，會話的事件也在呼叫者的同步內容上發出，
 /// 所以直接更新畫面，不需要另外轉送（agent.md 第 12 節）。
 /// </summary>
-public partial class WorkbenchViewModel : ObservableObject
+public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 {
     private readonly IConversationStore _store;
     private readonly IModelCatalog _catalog;
@@ -64,7 +64,10 @@ public partial class WorkbenchViewModel : ObservableObject
         ContextBarViewModel? contextBar = null,
         IChatSession? session = null,
         IAppModeCoordinator? modes = null,
-        IVoiceInputController? voice = null)
+        IVoiceInputController? voice = null,
+        ConversationDeletionService? deletion = null,
+        IConfirmService? confirm = null,
+        ILogger<HistoryViewModel>? historyLogger = null)
     {
         _store = store;
         _catalog = catalog;
@@ -84,7 +87,7 @@ public partial class WorkbenchViewModel : ObservableObject
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
-        History = new HistoryViewModel(store, OpenConversationAsync, time);
+        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
         ModelSwitcher.PropertyChanged += (_, e) =>
         {
@@ -217,7 +220,11 @@ public partial class WorkbenchViewModel : ObservableObject
 
     public bool HasModeCoordinator => _modes is not null;
 
-    partial void OnIsRespondingChanged(bool value) => RaiseVoiceProperties();
+    partial void OnIsRespondingChanged(bool value)
+    {
+        RaiseVoiceProperties();
+        History.HostStateChanged();
+    }
 
     partial void OnInputTextChanged(string value)
     {
@@ -355,6 +362,12 @@ public partial class WorkbenchViewModel : ObservableObject
         if (Messages.Count == 0 && CurrentConversationId is not null)
             return;
 
+        await CreateNewConversationAsync();
+    }
+
+    /// <summary>建立一則空白對話並切過去（不列在歷史裡，直到有訊息為止）。</summary>
+    private async Task CreateNewConversationAsync()
+    {
         var conversation = await NavigateAsync(() => _session.NewConversationAsync(Strings.Workbench_NewConversationTitle));
         await LoadAsync(conversation);
         await History.RefreshAsync(CurrentConversationId);
@@ -369,6 +382,35 @@ public partial class WorkbenchViewModel : ObservableObject
         await NavigateAsync(() => _session.OpenConversationAsync(conversation));
         await LoadAsync(conversation);
         await History.RefreshAsync(CurrentConversationId);
+    }
+
+    // ---- 歷史抽屜的宿主（IHistoryHost）----
+
+    string? IHistoryHost.CurrentConversationId => CurrentConversationId;
+
+    bool IHistoryHost.IsResponding => IsResponding;
+
+    Task IHistoryHost.OpenAsync(Conversation conversation) => OpenConversationAsync(conversation);
+
+    /// <summary>
+    /// 目前開著的對話被刪了：先切到下一則（沒有就開新的空白對話），草稿跟著清掉。
+    /// 切換之後 session 已經不指向被刪的對話，不會再對它送出或存檔。
+    /// </summary>
+    async Task IHistoryHost.ConversationDeletedAsync(string conversationId, Conversation? next)
+    {
+        if (conversationId != CurrentConversationId)
+            return;
+        if (next is not null)
+            await OpenConversationAsync(next);
+        else
+            await CreateNewConversationAsync();
+        InputText = "";
+    }
+
+    void IHistoryHost.TitleChanged(string conversationId, string title)
+    {
+        if (conversationId == CurrentConversationId)
+            Title = title;
     }
 
     private async Task<Conversation> NavigateAsync(Func<Task<Conversation>> navigate)

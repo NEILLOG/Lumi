@@ -26,12 +26,51 @@ internal sealed class InMemoryConversationStore : IConversationStore
             return Task.FromResult(_conversations.Values.OrderByDescending(c => c.UpdatedAt).FirstOrDefault());
     }
 
-    public Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default)
+    public Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default) => ListAsync(limit, null, ct);
+
+    public Task<IReadOnlyList<Conversation>> ListAsync(int limit, ConversationCursor? before, CancellationToken ct = default)
     {
         lock (_lock)
             return Task.FromResult<IReadOnlyList<Conversation>>(_conversations.Values
                 .Where(c => _messages[c.Id].Count > 0)
-                .OrderByDescending(c => c.UpdatedAt).Take(limit).ToList());
+                .Where(c => before is null || c.UpdatedAt < before.UpdatedAt
+                            || (c.UpdatedAt == before.UpdatedAt && string.CompareOrdinal(c.Id, before.Id) < 0))
+                .OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id, StringComparer.Ordinal)
+                .Take(limit).ToList());
+    }
+
+    public Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            var existed = _conversations.Remove(conversationId);
+            _messages.Remove(conversationId);
+            return Task.FromResult(existed);
+        }
+    }
+
+    public Task<IReadOnlyList<ConversationSearchHit>> SearchAsync(string query, int limit, CancellationToken ct = default)
+    {
+        var text = query.Trim();
+        var hits = new List<ConversationSearchHit>();
+        if (text.Length == 0 || limit <= 0)
+            return Task.FromResult<IReadOnlyList<ConversationSearchHit>>(hits);
+
+        lock (_lock)
+        {
+            foreach (var conversation in _conversations.Values.Where(c => _messages[c.Id].Count > 0).OrderByDescending(c => c.UpdatedAt))
+            {
+                var matched = _messages[conversation.Id]
+                    .Select(m => SearchTextExtractor.Extract(m.Content))
+                    .FirstOrDefault(t => t.Contains(text, StringComparison.OrdinalIgnoreCase));
+                if (matched is null && !conversation.Title.Contains(text, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                hits.Add(new ConversationSearchHit(conversation, matched is null ? "" : SearchSnippet.Create(matched, text)));
+                if (hits.Count >= limit)
+                    break;
+            }
+        }
+        return Task.FromResult<IReadOnlyList<ConversationSearchHit>>(hits);
     }
 
     public Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default)

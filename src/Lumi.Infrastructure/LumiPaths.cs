@@ -5,6 +5,9 @@ public static class LumiPaths
 {
     public static string DataDirectory { get; } = ResolveDataDirectory();
 
+    /// <summary>記錄檔（<c>lumi-yyyy-MM-dd.log</c>）的資料夾，放在使用者資料夾下的 <c>logs</c>。</summary>
+    public static string LogDirectory => Path.Combine(DataDirectory, "logs");
+
     private static string ResolveDataDirectory()
     {
         if (OperatingSystem.IsWindows())

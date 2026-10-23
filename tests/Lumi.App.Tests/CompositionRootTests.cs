@@ -65,6 +65,8 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<RoutingChatProvider>(services.GetRequiredService<IChatProvider>());
         Assert.IsType<RoutingConnectionTester>(services.GetRequiredService<IConnectionTester>());
         Assert.NotNull(services.GetRequiredService<ConversationService>());
+        // 9A：刪除對話的入口（資料庫、權限記憶、附件清理都要能解析）
+        Assert.NotNull(services.GetRequiredService<ConversationDeletionService>());
         // 權限確認：App 的實作取代 Core 預設的「一律拒絕」，而且按鈕與對話迴圈用的是同一個執行個體
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());

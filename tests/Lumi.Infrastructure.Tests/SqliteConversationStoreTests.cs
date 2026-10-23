@@ -1,6 +1,7 @@
 using Lumi.Core.Chat;
 using Lumi.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Lumi.Infrastructure.Tests;
@@ -156,6 +157,40 @@ public sealed class SqliteConversationStoreTests : IDisposable
         Assert.True(SqliteSchema.LatestVersion >= 3);
 
     [Fact]
+    public void SchemaVersion_IsAtLeast4_BecauseOfSearchText() =>
+        Assert.True(SqliteSchema.LatestVersion >= 4);
+
+    [Fact]
+    public async Task UpgradeFromVersion3_AddsSearchText_AndBackfillFillsOldMessages()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("M9 之前的資料");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("舊的搜尋字眼")));
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            // 模擬 migration 4 之前建立的資料庫：沒有 search_text 與 app_meta，版本是 3
+            command.CommandText = "ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var reopened = NewStore();
+        var messages = await reopened.GetMessagesAsync(conversation.Id);   // 升版後舊訊息讀得回來
+        Assert.Equal("舊的搜尋字眼", Assert.IsType<TextBlock>(Assert.Single(messages).Content[0]).Text);
+        Assert.Empty(await reopened.SearchAsync("搜尋字眼", 10));   // 補寫之前內文搜不到，只能靠標題
+
+        var filled = await new SearchTextBackfill(reopened, NullLogger<SearchTextBackfill>.Instance).RunAsync();
+
+        Assert.Equal(1, filled);
+        Assert.Single(await reopened.SearchAsync("搜尋字眼", 10));
+        using var check = new SqliteConnection($"Data Source={DatabasePath}");
+        check.Open();
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
+    }
+
+    [Fact]
     public async Task UpgradeFromVersion2_AddsTheContextTable_AndKeepsMessages()
     {
         var store = NewStore();
@@ -165,7 +200,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE conversation_context; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫
+            command.CommandText = "DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -221,7 +256,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE conversation_context; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫
+            command.CommandText = "DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -258,8 +293,10 @@ public sealed class SqliteConversationStoreTests : IDisposable
         }
         SqliteConnection.ClearAllPools();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => NewStore().GetLatestAsync());
+        var ex = await Assert.ThrowsAsync<DatabaseTooNewException>(() => NewStore().GetLatestAsync());
         Assert.Contains("較新版本", ex.Message);
+        Assert.Equal(SqliteSchema.LatestVersion + 1, ex.DatabaseVersion);
+        Assert.Equal(SqliteSchema.LatestVersion, ex.LatestVersion);
     }
 
     [Fact]

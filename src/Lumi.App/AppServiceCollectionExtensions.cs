@@ -22,6 +22,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<ConnectionStatusCache>();
         services.AddSingleton<ThemeService>();
+        services.AddSingleton<UnhandledExceptionLogger>();   // 全域未處理例外寫進 log（M9 9C）
 
         // 設定視窗只會有一個：由 SettingsWindowService 開啟、關閉後丟掉，下次開啟重新建立（狀態一律從目錄重讀）
         services.AddSingleton<ISettingsWindowService, SettingsWindowService>();
@@ -41,6 +42,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IToolApprovalResponder>(sp => sp.GetRequiredService<ToolApprovalService>());
 
         services.AddHostedService<AttachmentCleanupService>();
+        services.AddHostedService<SearchTextBackfillService>();   // 舊訊息的搜尋文字，背景補一次
 
         // 輸入框上方的上下文列：選擇器與剪貼簿圖片由畫面層實作
         services.AddSingleton<IFilePickerService, FilePickerService>();

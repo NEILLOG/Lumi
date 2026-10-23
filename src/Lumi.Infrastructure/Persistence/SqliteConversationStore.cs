@@ -63,15 +63,27 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         return new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
     }
 
-    public async Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default)
+    public Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default) => ListAsync(limit, null, ct);
+
+    public async Task<IReadOnlyList<Conversation>> ListAsync(int limit, ConversationCursor? before, CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        command.CommandText = """
+        // 游標條件與 ORDER BY 一致：更新時間較早，或更新時間相同而 id 較小。相同 updated_at 的對話靠 id 分出先後，分頁不重複也不漏
+        var cursor = before is null
+            ? ""
+            : "AND (c.updated_at < $beforeUpdated OR (c.updated_at = $beforeUpdated AND c.id < $beforeId))";
+        command.CommandText = $"""
             SELECT c.id, c.title, c.created_at, c.updated_at FROM conversations c
             WHERE EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
-            ORDER BY c.updated_at DESC, c.rowid DESC LIMIT $limit;
+            {cursor}
+            ORDER BY c.updated_at DESC, c.id DESC LIMIT $limit;
             """;
+        if (before is not null)
+        {
+            command.Parameters.AddWithValue("$beforeUpdated", FormatTime(before.UpdatedAt));
+            command.Parameters.AddWithValue("$beforeId", before.Id);
+        }
         command.Parameters.AddWithValue("$limit", limit);
 
         var list = new List<Conversation>();
@@ -80,6 +92,57 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
             list.Add(new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3))));
         return list;
     }
+
+    public async Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        // 訊息與上下文項目靠外鍵 ON DELETE CASCADE 一併刪除（OpenAsync 已開啟外鍵）
+        command.CommandText = "DELETE FROM conversations WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", conversationId);
+        return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
+    }
+
+    public async Task<IReadOnlyList<ConversationSearchHit>> SearchAsync(string query, int limit, CancellationToken ct = default)
+    {
+        var text = query.Trim();
+        if (text.Length == 0 || limit <= 0)
+            return [];
+
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        // LIKE 的 % 與 _ 以及跳脫字元本身都先跳脫，ESCAPE '\' 指定跳脫字元。LIKE 對 ASCII 不分大小寫；
+        // 中文沒有大小寫，1～2 字也能命中（不像 FTS trigram 要求至少 3 個字元）。
+        // 片段取第一則命中的訊息（依送出順序）；只有標題命中時 hit 是 NULL。
+        command.CommandText = """
+            SELECT c.id, c.title, c.created_at, c.updated_at,
+              (SELECT m.search_text FROM messages m
+               WHERE m.conversation_id = c.id AND m.search_text LIKE $pattern ESCAPE '\'
+               ORDER BY m.seq LIMIT 1) AS hit
+            FROM conversations c
+            WHERE EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
+              AND (c.title LIKE $pattern ESCAPE '\'
+                   OR EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id AND m.search_text LIKE $pattern ESCAPE '\'))
+            ORDER BY c.updated_at DESC, c.id DESC LIMIT $limit;
+            """;
+        command.Parameters.AddWithValue("$pattern", "%" + EscapeLike(text) + "%");
+        command.Parameters.AddWithValue("$limit", limit);
+
+        var hits = new List<ConversationSearchHit>();
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var conversation = new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
+            var snippet = reader.IsDBNull(4) ? string.Empty : SearchSnippet.Create(reader.GetString(4), text);
+            hits.Add(new ConversationSearchHit(conversation, snippet));
+        }
+        return hits;
+    }
+
+    private static string EscapeLike(string text) => text
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal);
 
     public async Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default)
     {
@@ -135,9 +198,9 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
             insert.Transaction = transaction;
             insert.CommandText = """
                 INSERT INTO messages (id, conversation_id, seq, role, status, model_id, content_json,
-                                      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at)
+                                      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at, search_text)
                 SELECT $id, $conversation, COALESCE(MAX(seq), 0) + 1, $role, $status, $model, $content,
-                       $input, $output, $cacheCreation, $cacheRead, $created
+                       $input, $output, $cacheCreation, $cacheRead, $created, $search
                 FROM messages WHERE conversation_id = $conversation;
                 """;
             insert.Parameters.AddWithValue("$id", message.Id);
@@ -151,6 +214,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
             insert.Parameters.AddWithValue("$cacheCreation", (object?)message.Usage?.CacheCreationInputTokens ?? DBNull.Value);
             insert.Parameters.AddWithValue("$cacheRead", (object?)message.Usage?.CacheReadInputTokens ?? DBNull.Value);
             insert.Parameters.AddWithValue("$created", FormatTime(message.CreatedAt));
+            insert.Parameters.AddWithValue("$search", SearchTextExtractor.Extract(message.Content));
             await insert.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
@@ -325,7 +389,8 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         _ => throw new InvalidDataException($"未知的上下文種類：{text}"),
     };
 
-    private async Task<SqliteConnection> OpenAsync(CancellationToken ct)
+    // internal：SearchTextBackfill 與測試要用同一套初始化（先跑 migration）與外鍵設定
+    internal async Task<SqliteConnection> OpenAsync(CancellationToken ct)
     {
         await _initialization.Value.WaitAsync(ct).ConfigureAwait(false);
         var connection = new SqliteConnection(_connectionString);

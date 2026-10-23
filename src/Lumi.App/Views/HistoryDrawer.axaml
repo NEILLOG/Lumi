@@ -1,0 +1,140 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.HistoryDrawer"
+             x:DataType="vm:HistoryViewModel">
+
+  <UserControl.Styles>
+    <!-- 列右側的「…」：平常透明但保留版面（不跳動），游標停在列上或鍵盤聚焦到列才顯示 -->
+    <Style Selector="Button.row-more">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Button.row-more, ListBoxItem:focus-within Button.row-more">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <!-- 搜尋命中的字：加粗（顏色不變，避免和選取列的 TextOnSoft 文字打架） -->
+    <Style Selector="TextBlock.hit">
+      <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+    <!-- 搜尋框右側的清除鈕：32 高、透明底，和輸入框的內距一致 -->
+    <Style Selector="Button.clear-search">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- 由上而下：標題、搜尋框、清單（填滿）、載入更多。收起時整個隱藏（由 WorkbenchWindow 控制），裡面的項目不會被 Tab 聚焦 -->
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Padding="16,12" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,1">
+      <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Bold" />
+    </Border>
+
+    <!-- 搜尋：Lucide 搜尋圖示在左，有輸入時右側出現清除鈕；Esc 清除。輸入後 250 ms 才查（HistoryOptions） -->
+    <Grid DockPanel.Dock="Top" Margin="8,8,8,0" ColumnDefinitions="*" RowDefinitions="Auto">
+      <TextBox x:Name="SearchBox"
+               Text="{Binding SearchText, Mode=TwoWay}"
+               Watermark="{x:Static res:Strings.History_SearchPlaceholder}"
+               AutomationProperties.Name="{x:Static res:Strings.History_SearchName}"
+               KeyDown="OnSearchKeyDown">
+        <TextBox.InnerLeftContent>
+          <ctl:LumiIcon Data="{StaticResource LumiIconSearch}" Size="16" Margin="12,0,8,0"
+                        Foreground="{DynamicResource LumiTextMutedBrush}" />
+        </TextBox.InnerLeftContent>
+        <TextBox.InnerRightContent>
+          <Button x:Name="ClearSearchButton" Classes="tertiary clear-search" Margin="0,0,4,0"
+                  IsVisible="{Binding IsSearchMode}"
+                  ToolTip.Tip="{x:Static res:Strings.History_ClearSearch}"
+                  AutomationProperties.Name="{x:Static res:Strings.History_ClearSearch}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="16" />
+          </Button>
+        </TextBox.InnerRightContent>
+      </TextBox>
+    </Grid>
+
+    <!-- 載入更多：不做無限捲動（焦點不會跳動）；搜尋模式沒有下一頁 -->
+    <Border DockPanel.Dock="Bottom" Padding="8" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0"
+            IsVisible="{Binding HasMore}">
+      <Button Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Content="{x:Static res:Strings.History_LoadMore}" Command="{Binding LoadMoreCommand}" />
+    </Border>
+
+    <Border BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
+      <Panel>
+        <!-- 空狀態：沒有對話紀錄，或搜尋沒有結果 -->
+        <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Workbench_HistoryEmpty}" Classes="muted"
+                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
+        <TextBlock IsVisible="{Binding ShowNoResults}" Text="{Binding NoResultsText}" Classes="muted"
+                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
+
+        <ListBox Classes="history-list" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedItem}"
+                 Background="Transparent" Margin="8"
+                 KeyDown="OnListKeyDown" ContextRequested="OnListContextRequested" LostFocus="OnListLostFocus"
+                 ContainerPrepared="OnContainerPrepared">
+          <ListBox.DataTemplates>
+            <!-- 群組標題（不能選取；ListBoxItem 在 OnContainerPrepared 停用） -->
+            <DataTemplate x:DataType="vm:HistoryGroupHeader">
+              <TextBlock Text="{Binding Title}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" Margin="4,8,0,4" />
+            </DataTemplate>
+
+            <DataTemplate x:DataType="vm:ConversationListItem">
+              <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                  <!-- 標題：命中字加粗；改名中換成輸入框 -->
+                  <ItemsControl ItemsSource="{Binding TitleSegments}" IsVisible="{Binding !IsEditing}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.DataTemplates>
+                      <DataTemplate x:DataType="vm:TitlePart">
+                        <TextBlock Text="{Binding Text}" Classes.hit="{Binding Hit}" TextWrapping="Wrap" />
+                      </DataTemplate>
+                    </ItemsControl.DataTemplates>
+                  </ItemsControl>
+                  <TextBox Text="{Binding EditText, Mode=TwoWay}" IsVisible="{Binding IsEditing}" MaxLength="{Binding TitleMaxLength}"
+                           AutomationProperties.Name="{x:Static res:Strings.History_RenameName}" />
+                  <!-- 命中片段：一行，省略號截斷 -->
+                  <TextBlock Text="{Binding Snippet}" IsVisible="{Binding HasSnippet}" Classes="muted"
+                             FontSize="{DynamicResource LumiFontSizeCaption}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1" Text="{Binding TimeText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}"
+                           VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !IsEditing}" />
+
+                <Button Grid.Column="2" Classes="tertiary row-more" Margin="4,0,0,0" IsTabStop="False"
+                        IsVisible="{Binding !IsEditing}"
+                        ToolTip.Tip="{x:Static res:Strings.History_ItemMore}"
+                        AutomationProperties.Name="{x:Static res:Strings.History_ItemMore}">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+                  <Button.Flyout>
+                    <!-- 選單項目的命令與參數在開啟時由 code-behind 設定（Flyout 的內容不繼承列的 DataContext，綁定解析不到） -->
+                    <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="OnRowMenuOpening">
+                      <MenuItem Tag="rename" Header="{x:Static res:Strings.History_Rename}">
+                        <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconPencil}" Size="16" /></MenuItem.Icon>
+                      </MenuItem>
+                      <MenuItem Tag="delete" Header="{x:Static res:Strings.History_Delete}">
+                        <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
+                      </MenuItem>
+                    </MenuFlyout>
+                  </Button.Flyout>
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ListBox.DataTemplates>
+        </ListBox>
+      </Panel>
+    </Border>
+  </DockPanel>
+</UserControl>

@@ -62,28 +62,8 @@
     <SplitView Grid.Row="2" IsPaneOpen="{Binding History.IsOpen}" PanePlacement="Left" OpenPaneLength="260"
                PaneBackground="{DynamicResource LumiChromeBrush}">
       <SplitView.Pane>
-        <!-- 收起時整個隱藏，抽屜裡的清單才不會被 Tab 聚焦到 -->
-        <DockPanel DataContext="{Binding History}" x:DataType="vm:HistoryViewModel" IsVisible="{Binding IsOpen}">
-          <Border DockPanel.Dock="Top" Padding="16,12" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,1">
-            <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Bold" />
-          </Border>
-          <Border BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
-            <Panel>
-              <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Workbench_HistoryEmpty}" Classes="muted"
-                         HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
-              <ListBox Classes="history-list" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Background="Transparent" Margin="8">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:ConversationListItem">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <TextBlock Grid.Column="0" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Grid.Column="1" Text="{Binding TimeText}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Panel>
-          </Border>
-        </DockPanel>
+        <!-- 收起時整個隱藏，抽屜裡的清單才不會被 Tab 聚焦到（搜尋、清單、載入更多都在 HistoryDrawer 裡） -->
+        <views:HistoryDrawer x:Name="HistoryDrawerView" DataContext="{Binding History}" IsVisible="{Binding IsOpen}" />
       </SplitView.Pane>
 
       <Grid RowDefinitions="Auto,*,Auto">
