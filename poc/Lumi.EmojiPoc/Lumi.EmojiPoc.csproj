@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Lumi.EmojiPoc</RootNamespace>
+    <AssemblyName>Lumi.EmojiPoc</AssemblyName>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      直接連結 Lumi.App 的 EmojiText、EmojiTextBlock 與驗證字串，不引用 Lumi.App（它是 Exe，
+      且 POC 不應改變 Lumi.App 的相依與架構測試）。這三個檔案只依賴 Avalonia，不依賴 Lumi.App 的其他部分。
+    -->
+    <Compile Include="..\..\src\Lumi.App\Controls\EmojiText.cs" Link="Shared\EmojiText.cs" />
+    <Compile Include="..\..\src\Lumi.App\Controls\EmojiTextBlock.cs" Link="Shared\EmojiTextBlock.cs" />
+    <Compile Include="..\..\src\Lumi.App\Controls\EmojiSamples.cs" Link="Shared\EmojiSamples.cs" />
+  </ItemGroup>
+
+</Project>

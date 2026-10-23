@@ -47,6 +47,12 @@ public interface IModelCatalog
     Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default);
 
     /// <summary>
+    /// 工作台視窗的位置與大小（M9 9D）。存在 <c>settings.json</c>，和小精靈設定同一個檔案；不通知 <see cref="Changed"/>
+    /// （拖曳時會頻繁寫入，不要讓設定頁等訂閱者跟著重載）。<see cref="AppSettings.WorkbenchWindow"/> 是讀取的值。
+    /// </summary>
+    Task SetWorkbenchWindowAsync(WindowSettings window, CancellationToken ct = default);
+
+    /// <summary>
     /// 語音服務設定（M6）。Token 只寫進 <see cref="ISecretStore"/>：端點的 Host 與 <see cref="SpeechSettings.TokenHost"/> 不同時視為沒有 Token，
     /// 沒帶新 Token 就刪除舊的，避免舊 Token 被送到新主機。<paramref name="newToken"/> 有值時以端點 Host 綁定並更新 hint。
     /// 端點不是有效網址時丟 <see cref="ArgumentException"/>；留空（尚未設定）允許。

@@ -4,6 +4,8 @@ using Avalonia.VisualTree;
 using Lumi.App.Services;
 using Lumi.App.ViewModels;
 using Lumi.App.Views.Responsive;
+using Lumi.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Lumi.App.Views;
 
@@ -11,13 +13,18 @@ namespace Lumi.App.Views;
 public partial class WorkbenchWindow : Window
 {
     private readonly WorkbenchViewModel _viewModel;
+    private readonly WorkbenchWindowMemory? _memory;
 
-    public WorkbenchWindow(WorkbenchViewModel viewModel, IAppModeCoordinator? modes = null)
+    /// <param name="settings">有值時記住視窗的位置與大小（M9 9D）；測試不傳就維持預設置中。</param>
+    public WorkbenchWindow(WorkbenchViewModel viewModel, IAppModeCoordinator? modes = null, IModelCatalog? settings = null,
+        TimeProvider? time = null, ILogger<WorkbenchWindow>? logger = null)
     {
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
         ResponsiveClasses.Track(this);
+        if (settings is not null)
+            _memory = new WorkbenchWindowMemory(this, settings, time ?? TimeProvider.System, logger);
 
         // Enter 送出、貼上截圖、拖放在 ChatComposer；自動捲到底在 ConversationView
         // 選了模型就關掉彈出選單
@@ -28,6 +35,7 @@ public partial class WorkbenchWindow : Window
         // 工作台模式下關閉視窗＝結束程式；小精靈模式下只是關掉工作台（改成隱藏，之後還能從小精靈或托盤再開）
         Closing += (_, e) =>
         {
+            _memory?.OnClosing();   // 先寫最後的位置（小精靈模式下這只是隱藏，位置仍是正確的）
             if (modes is null || e.CloseReason is WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown)
                 return;
             if (!modes.WorkbenchMayClose())
@@ -48,6 +56,7 @@ public partial class WorkbenchWindow : Window
 
     private async void OnOpened(object? sender, EventArgs e)
     {
+        _memory?.RestoreOnOpen();
         await _viewModel.InitializeAsync();
         Conversation.ScrollToEnd();
         Composer.FocusInput();

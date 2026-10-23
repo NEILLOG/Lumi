@@ -51,6 +51,16 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetThemeIdAsync(string themeId, CancellationToken ct = default) => throw new NotSupportedException();
 
+    /// <summary>每次寫入的視窗位置（沒有 <see cref="Changed"/> 通知，和正式實作一樣）。</summary>
+    public List<WindowSettings> WindowSaves { get; } = [];
+
+    public Task SetWorkbenchWindowAsync(WindowSettings window, CancellationToken ct = default)
+    {
+        WindowSaves.Add(window);
+        Current = Current with { WorkbenchWindow = window.Normalize() };
+        return Task.CompletedTask;
+    }
+
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default)
     {
         Current = Current with { Sprite = sprite.Normalize() };

@@ -62,6 +62,9 @@ public sealed record AppSettings(
 
     /// <summary>語音服務的端點、語言、逾時與 Token 的 hint／綁定主機（M6）。舊檔沒有時用預設值，Token 本身不在這裡。</summary>
     public SpeechSettings Speech { get; init; } = SpeechSettings.Default;
+
+    /// <summary>工作台視窗的位置與大小（M9 9D）。沒有或讀不進來時是 null，視窗就照預設大小置中。</summary>
+    public WindowSettings? WorkbenchWindow { get; init; }
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

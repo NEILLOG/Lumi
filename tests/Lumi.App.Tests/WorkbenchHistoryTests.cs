@@ -28,6 +28,8 @@ public class WorkbenchHistoryTests
     /// <summary>建一則有訊息的對話（歷史只列有訊息的）。後建立的更新時間較新，排在清單前面。</summary>
     private static async Task<Conversation> SeedAsync(InMemoryConversationStore store, string title)
     {
+        // 清單依更新時間排序：相鄰兩次播種的時間戳不能相同，否則排序順序不固定
+        await Task.Delay(5);
         var conversation = await store.CreateAsync(title);
         await store.AppendMessageAsync(conversation.Id,
             new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock(title)], DateTimeOffset.UtcNow));
