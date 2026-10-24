@@ -257,6 +257,18 @@ public class AnthropicChatProviderTests
     }
 
     [Fact]
+    public async Task HttpErrors_LogTheServerMessage_ButNotTheKey()
+    {
+        var handler = FakeAnthropicHttpHandler.ForError(HttpStatusCode.BadRequest, Fixtures.HttpError("400"));
+        var (provider, _, logger) = CreateProvider(handler);
+
+        await CollectAsync(provider, SimpleRequest());
+
+        Assert.Contains(logger.Messages, m => m.Contains("claude-opus-5-5") && m.Contains("invalid_request_error"));   // 記錄檔查得到 400 的原因
+        Assert.DoesNotContain(logger.Messages, m => m.Contains(FakeApiKey));
+    }
+
+    [Fact]
     public async Task ApiKey_IsSentAsHeader_ButNeverLogged()
     {
         var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
@@ -298,6 +310,22 @@ public class AnthropicChatProviderTests
         Assert.Contains("claude-opus-4-8", body);
         Assert.True(handler.LastRequest!.Headers.TryGetValues("anthropic-beta", out var betas));
         Assert.Contains(betas!, b => b.Contains("server-side-fallback"));
+    }
+
+    [Theory]
+    [InlineData("claude-haiku-5-5")]
+    [InlineData("claude-sonnet-5-5")]
+    [InlineData("claude-opus-4-8")]
+    public async Task ServerFallbacks_AreNotSent_ForModelsThatDoNotSupportThem(string modelId)
+    {
+        var handler = FakeAnthropicHttpHandler.ForSse(Fixtures.Sse("basic-text"), 64);
+        var (provider, _, _) = CreateProvider(handler, options: new AnthropicProviderOptions { UseServerFallbacks = true });
+        var model = new ResolvedModel(new ModelSettings("m1", Connection.Id, modelId, modelId, 1024, 1_000_000, true), Connection);
+
+        await CollectAsync(provider, SimpleRequest() with { Model = model });
+
+        Assert.DoesNotContain("fallbacks", handler.LastRequestBody!);
+        Assert.False(handler.LastRequest!.Headers.TryGetValues("anthropic-beta", out var betas) && betas.Any(b => b.Contains("server-side-fallback")));
     }
 
     [Fact]

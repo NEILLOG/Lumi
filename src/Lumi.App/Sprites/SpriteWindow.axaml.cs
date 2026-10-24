@@ -467,7 +467,8 @@ public partial class SpriteWindow : Window
 
         // 提醒卡片（只有關閉鈕可以點）與回應氣泡共用同一個容器；兩者都沒有就整個隱藏
         BubbleArea.IsHitTestVisible = _bubble.HasReminder || (_bubble.IsVisible && _bubble.IsInteractive);
-        SetShown(Bubble, ref _bubbleShown, _bubble.IsVisible || _bubble.HasReminder, 8, interactive: false);
+        // 氣泡本身要能接收點擊，否則裡面的按鈕（重試、在工作台查看…）都按不到；要不要攔截滑鼠由 BubbleArea 決定
+        SetShown(Bubble, ref _bubbleShown, _bubble.IsVisible || _bubble.HasReminder, 8, interactive: true);
     }
 
     private void SetShown(Control control, ref bool current, bool show, double hiddenOffset, bool interactive)
@@ -477,7 +478,7 @@ public partial class SpriteWindow : Window
         current = show;
         control.Opacity = show ? 1 : 0;
         control.RenderTransform = TransformOperations.Parse(show ? "translateY(0px)" : $"translateY({hiddenOffset.ToString(CultureInfo.InvariantCulture)}px)");
-        control.IsHitTestVisible = show && interactive;   // 氣泡永遠不攔截滑鼠
+        control.IsHitTestVisible = show && interactive;
         _fastUntil = _time.GetUtcNow() + TimeSpan.FromMilliseconds(400);
     }
 

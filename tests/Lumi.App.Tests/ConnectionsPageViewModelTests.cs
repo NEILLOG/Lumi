@@ -43,9 +43,9 @@ public sealed class ConnectionsPageViewModelTests
     [Fact]
     public void ModelListItem_CardSubtitle_IsTheExactModelIdWithTheDefaultLabel()
     {
-        var both = new ModelListItem("m1", "OpenAI", "我的小模型", "gpt-5-mini", true, true, ProviderFormat.OpenAICompatible, ConnectionStatus.Ok);
-        Assert.Equal("gpt-5-mini · 工作台預設 · 小精靈預設", both.CardSubtitle);
-        var plain = new ModelListItem("m2", "Anthropic", "Sonnet", "claude-sonnet-4-5", false, false, ProviderFormat.Anthropic);
+        var both = new ModelListItem("m1", "OpenAI", "我的小模型", "gpt-5-mini", true, ProviderFormat.OpenAICompatible, ConnectionStatus.Ok);
+        Assert.Equal("gpt-5-mini · 預設", both.CardSubtitle);
+        var plain = new ModelListItem("m2", "Anthropic", "Sonnet", "claude-sonnet-4-5", false, ProviderFormat.Anthropic);
         Assert.Equal("claude-sonnet-4-5", plain.CardSubtitle);   // 不改寫真實的 model ID
         Assert.Equal("A", plain.Initial);
         Assert.Equal("尚未確認", plain.StatusText);
@@ -56,7 +56,7 @@ public sealed class ConnectionsPageViewModelTests
     [Fact]
     public void ModelListItem_Status_RaisesPropertyChanged()
     {
-        var item = new ModelListItem("m1", "OpenAI", "x", "gpt", false, false);
+        var item = new ModelListItem("m1", "OpenAI", "x", "gpt", false);
         var changed = new List<string?>();
         item.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
         item.Status = ConnectionStatus.Ok;
@@ -148,7 +148,7 @@ public sealed class ConnectionsPageViewModelTests
         var item = vm.Items[0];
         Assert.Equal(ConnectionStatus.Unknown, item.Status);
         Assert.Equal("A", item.Initial);   // 預設連線是 Anthropic
-        Assert.Equal("claude-opus-5-5 · 工作台預設 · 小精靈預設", item.CardSubtitle);
+        Assert.Equal("claude-opus-5-5 · 預設", item.CardSubtitle);
 
         await vm.SelectAsync(item);
         Assert.Equal(item.DisplayName, vm.HeaderTitle);

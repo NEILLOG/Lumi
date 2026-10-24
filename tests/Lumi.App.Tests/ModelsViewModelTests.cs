@@ -33,13 +33,13 @@ public sealed class ModelsViewModelTests
         var ollama = await AddOllamaAsync(host);
         var model = new ModelSettings(ModelSettings.NewId(), ollama, "llama3", "Llama 3", 4096, 128_000, false);
         await host.Catalog.SaveModelAsync(model);
-        await host.Catalog.SetSpriteModelAsync(model.Id);
+        await host.Catalog.SetSpriteModelAsync(model.Id);   // 舊設定檔留下的小精靈模型：不再顯示
 
         var items = host.Models.Items;
 
         Assert.Equal(["Anthropic", "Ollama"], items.Select(i => i.ConnectionName));          // 依連線名稱排序
         Assert.Equal(Strings.Models_BadgeWorkbench, items[0].Badges);
-        Assert.Equal(Strings.Models_BadgeSprite, items[1].Badges);
+        Assert.Equal("", items[1].Badges);
         Assert.Equal("Ollama · llama3", items[1].Subtitle);
         Assert.Equal(2, host.Models.DefaultOptions.Count);
     }
@@ -57,11 +57,9 @@ public sealed class ModelsViewModelTests
         // 測試的執行緒和它同時動清單會互相干擾
         vm.WorkbenchOption = vm.DefaultOptions.Single(o => o.Id == model.Id);
         await SettingsHost.WaitUntil(() => vm.WorkbenchOption?.Id == model.Id && host.Catalog.Current.WorkbenchModelId == model.Id);
-        vm.SpriteOption = vm.DefaultOptions.Single(o => o.Id == model.Id);
-        await SettingsHost.WaitUntil(() => vm.SpriteOption?.Id == model.Id && host.Catalog.Current.SpriteModelId == model.Id);
 
         Assert.Equal(model.Id, vm.WorkbenchOption!.Id);
-        Assert.Contains("工作台預設", vm.Items.Single(i => i.Id == model.Id).Badges);
+        Assert.Equal(Strings.Models_BadgeWorkbench, vm.Items.Single(i => i.Id == model.Id).Badges);
     }
 
     [Fact]

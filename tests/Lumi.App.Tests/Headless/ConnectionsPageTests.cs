@@ -33,7 +33,7 @@ public class ConnectionsPageTests
             Window.UpdateLayout();
         }
 
-        /// <summary>預設目錄已有一個 Anthropic 連線＋一個模型；再加一個 Ollama 連線與模型（工作台預設仍是原本那個，小精靈預設改成 Ollama 的）。</summary>
+        /// <summary>預設目錄已有一個 Anthropic 連線＋一個模型；再加一個 Ollama 連線與模型（預設仍是原本那個；舊的小精靈模型設定指向 Ollama 的，畫面不再顯示）。</summary>
         public async Task AddOllamaAsync()
         {
             await Host.Catalog.SaveConnectionAsync(new ConnectionSettings(OllamaId, "Ollama", ProviderFormat.OpenAICompatible, "http://localhost:11434/v1"), null);
@@ -314,12 +314,12 @@ public class ConnectionsPageTests
         Assert.Equal(2, cards.Count);
 
         var llama = cards.Single(c => TextsIn(c).Contains("Llama 3"));
-        Assert.Contains("llama3 · 小精靈預設", TextsIn(llama));
+        Assert.Contains("llama3", TextsIn(llama));   // 不是預設：只有 model ID
         Assert.Equal("O", llama.GetVisualDescendants().OfType<ProviderMark>().Single().Text);
         Assert.Contains("連線正常", TextsIn(llama));
 
         var claude = cards.Single(c => TextsIn(c).Contains("Claude Opus 5.5"));
-        Assert.Contains("claude-opus-5-5 · 工作台預設", TextsIn(claude));
+        Assert.Contains("claude-opus-5-5 · 預設", TextsIn(claude));
         Assert.Contains("尚未確認", TextsIn(claude));
 
         // 測試連線的結果更新卡片的狀態，但不重建清單、不清掉表單
@@ -724,9 +724,8 @@ public class ConnectionsPageTests
         var panel = rig.Models;
 
         var workbench = panel.FindByName<FormField>("WorkbenchDefaultField");
-        var sprite = panel.FindByName<FormField>("SpriteDefaultField");
-        Assert.Equal("工作台預設模型", workbench.Label);
-        Assert.Equal("小精靈預設模型", sprite.Label);
+        Assert.Equal("預設模型", workbench.Label);
+        Assert.Null(panel.FindControl<FormField>("SpriteDefaultField"));   // 小精靈不另外選模型
         Assert.Same(rig.Host.Models.DefaultOptions, panel.FindByName<ComboBox>("WorkbenchDefaultBox").ItemsSource);
         Assert.Equal(Strings.Models_WorkbenchDefaultHint, workbench.Hint);
         var label = workbench.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "PART_Label");

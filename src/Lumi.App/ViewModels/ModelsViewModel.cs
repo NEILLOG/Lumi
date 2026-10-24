@@ -63,30 +63,21 @@ public partial class ModelsViewModel : ObservableObject
     // ---- 預設模型下拉：改了立即生效 ----
 
     private ModelOption? _workbenchOption;
-    private ModelOption? _spriteOption;
 
+    /// <summary>預設模型：工作台與小精靈共用（小精靈不另外選模型）。</summary>
     public ModelOption? WorkbenchOption
     {
         get => _workbenchOption;
-        set => _ = SetDefaultAsync(value, sprite: false);
+        set => _ = SetDefaultAsync(value);
     }
 
-    public ModelOption? SpriteOption
-    {
-        get => _spriteOption;
-        set => _ = SetDefaultAsync(value, sprite: true);
-    }
-
-    private async Task SetDefaultAsync(ModelOption? option, bool sprite)
+    private async Task SetDefaultAsync(ModelOption? option)
     {
         if (_refreshing || option is null)
             return;
         try
         {
-            if (sprite)
-                await _catalog.SetSpriteModelAsync(option.Id);
-            else
-                await _catalog.SetWorkbenchModelAsync(option.Id);
+            await _catalog.SetWorkbenchModelAsync(option.Id);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
@@ -333,7 +324,7 @@ public partial class ModelsViewModel : ObservableObject
                          .ThenBy(m => m.DisplayName, StringComparer.CurrentCulture))
             {
                 Items.Add(new ModelListItem(m.Id, connectionNames.GetValueOrDefault(m.ConnectionId, ""), m.DisplayName, m.ModelId,
-                    m.Id == settings.WorkbenchModelId, m.Id == settings.SpriteModelId,
+                    m.Id == settings.WorkbenchModelId,
                     connectionFormats.GetValueOrDefault(m.ConnectionId, ProviderFormat.OpenAICompatible), _status.Get(m.ConnectionId).Status));
             }
 
@@ -341,9 +332,7 @@ public partial class ModelsViewModel : ObservableObject
             foreach (var item in Items)
                 DefaultOptions.Add(new ModelOption(item.Id, $"{item.DisplayName} · {item.ConnectionName}"));
             _workbenchOption = DefaultOptions.FirstOrDefault(o => o.Id == settings.WorkbenchModelId);
-            _spriteOption = DefaultOptions.FirstOrDefault(o => o.Id == settings.SpriteModelId);
             OnPropertyChanged(nameof(WorkbenchOption));
-            OnPropertyChanged(nameof(SpriteOption));
 
             // 重建清單時，下拉會把所選連線寫成 null：換成新清單裡同一個連線（不重新載入表單）
             if (editingConnectionId is not null && SelectedConnection?.Id != editingConnectionId)

@@ -40,8 +40,8 @@ public interface IAppModeCoordinator
     bool EnterSpriteMode();
 
     /// <summary>
-    /// 小精靈的右鍵選單、氣泡連結、托盤的「開啟工作台」。回應中＝工作台以「查看中」開啟（唯讀）；
-    /// 沒在回應＝兩個視窗同時開著，模式不變。
+    /// 小精靈的右鍵選單、氣泡連結、托盤的「開啟工作台」：隱藏小精靈、切換到工作台模式（兩個視窗不同時存在）。
+    /// 回應中不能切換，工作台先以「查看中」開啟（唯讀），回應結束再切換成工作台模式。
     /// </summary>
     void OpenWorkbench(string? scrollToCallId = null);
 
@@ -49,7 +49,7 @@ public interface IAppModeCoordinator
     void WorkbenchWillSend();
 
     /// <summary>
-    /// 工作台視窗要關閉：工作台模式下＝結束程式（回 true，視窗照常關）；小精靈模式下只是關掉工作台（回 false，由視窗改成隱藏）。
+    /// 工作台視窗要關閉：工作台模式下＝結束程式（回 true，視窗照常關）；小精靈模式下（查看中）關掉工作台、回到小精靈（回 false，由視窗改成隱藏）。
     /// </summary>
     bool WorkbenchMayClose();
 
@@ -63,9 +63,9 @@ public interface IAppModeCoordinator
 }
 
 /// <summary>
-/// 把「哪個視窗顯示」的規則集中在一處（M7 的 Q1）：<b>兩種模式互斥</b>——工作台模式時小精靈隱藏；
-/// 小精靈模式時工作台隱藏，但可以從小精靈打開；回應中不能切換模式。
-/// 「查看中」不是這裡的狀態：它就是「回應中且作用中的模式是小精靈」，由工作台自己推導。
+/// 把「哪個視窗顯示」的規則集中在一處（M7 的 Q1）：<b>兩種模式互斥，兩個視窗也不同時存在</b>——工作台模式時小精靈隱藏；
+/// 小精靈模式時工作台隱藏，從小精靈打開工作台就切換到工作台模式；回應中不能切換模式。
+/// 「查看中」不是這裡的狀態：它就是「回應中且作用中的模式是小精靈」，由工作台自己推導；回應結束時這裡把模式切換過去。
 /// </summary>
 public sealed class AppModeCoordinator : IAppModeCoordinator
 {
@@ -76,6 +76,7 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
     private readonly TimeProvider _time;
     private readonly ILogger<AppModeCoordinator> _logger;
     private CancellationTokenSource? _hideTimer;
+    private bool _switchToWorkbenchWhenIdle;   // 回應中從小精靈打開工作台（查看中）：回應結束再切換
 
     public AppModeCoordinator(
         IChatSession session, IWindowHost windows, IModelCatalog settings, SpriteShellOptions options, TimeProvider time,
@@ -89,6 +90,7 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
         _logger = logger;
         _session.ModeChanged += (_, mode) => _ = SaveModeAsync(mode);
         _session.EventReceived += OnEvent;
+        _session.RunFinished += OnRunFinished;
     }
 
     public ChatMode ActiveMode => _session.ActiveMode;
@@ -116,6 +118,12 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
 
     public void OpenWorkbench(string? scrollToCallId = null)
     {
+        if (_session.ActiveMode == ChatMode.Sprite)
+        {
+            _switchToWorkbenchWhenIdle = !_session.TrySetMode(ChatMode.Workbench);
+            CancelTemporaryHide();
+            _windows.HideSprite();
+        }
         _windows.ShowWorkbench();
         if (scrollToCallId is not null)
             _windows.ScrollWorkbenchToCall(scrollToCallId);
@@ -137,6 +145,9 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
             _windows.Exit();
             return true;
         }
+        // 只有查看中才會在小精靈模式下看到工作台：關掉就回到小精靈，回應結束後也不再切換
+        _switchToWorkbenchWhenIdle = false;
+        _windows.ShowSprite();
         return false;
     }
 
@@ -144,7 +155,9 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
     {
         if (_session.ActiveMode == ChatMode.Sprite)
         {
+            _switchToWorkbenchWhenIdle = false;
             CancelTemporaryHide();
+            _windows.HideWorkbench();
             _windows.ShowSprite();
         }
         else
@@ -195,6 +208,15 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
             CancelTemporaryHide();
             _windows.ShowSprite();
         }
+    }
+
+    private void OnRunFinished(object? sender, RunFinishedArgs args)
+    {
+        if (!_switchToWorkbenchWhenIdle)
+            return;
+        _switchToWorkbenchWhenIdle = false;
+        if (_windows.IsWorkbenchVisible)
+            _session.TrySetMode(ChatMode.Workbench);
     }
 
     private async Task SaveModeAsync(ChatMode mode)

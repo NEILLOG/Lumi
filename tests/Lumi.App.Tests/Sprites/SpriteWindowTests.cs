@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using Lumi.App.Sprites;
 using Lumi.App.Tests.TestSupport;
 using Lumi.Core.Models;
@@ -336,9 +337,38 @@ public class SpriteWindowTests
 
         rig.PollAt(onAllow);
         Assert.False(rig.Overlay.ClickThroughActive);   // 在按鈕上：可以點
+        Assert.Same(allow, ButtonAt(rig.Window, onAllow));   // 滑鼠真的點得到按鈕
 
         rig.PollAt(new Point(2, rig.Layout.WindowSize.Height - 2));   // 視窗角落
         Assert.True(rig.Overlay.ClickThroughActive);
+        rig.Window.Close();
+    }
+
+    /// <summary>滑鼠在這一點會按到的按鈕（先渲染一幀，headless 的命中測試才是最新的）。</summary>
+    private static Button? ButtonAt(Window window, Point point)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        return (window.InputHitTest(point) as Visual)?.FindAncestorOfType<Button>(includeSelf: true);
+    }
+
+    [AvaloniaFact]
+    public void AnErrorBubble_ItsViewInWorkbenchLinkCanBeClicked()
+    {
+        var rig = new Rig();
+        rig.Window.Show();
+        var bubble = rig.Window.BubbleViewModel;
+        bubble.OnRunStarted();
+        bubble.OnRunFinished(Ev.Finished(Ev.Failure(Lumi.Core.Chat.ChatFailureKind.BadRequest, "請求格式不正確。", retryable: false)));
+        rig.PollAt(Far);
+        rig.Window.UpdateLayout();
+
+        var link = rig.Window.FindControl<SpriteBubbleView>("Bubble")!.FindControl<Button>("ErrorViewLink")!;
+        var onLink = link.TranslatePoint(new Point(link.Bounds.Width / 2, link.Bounds.Height / 2), rig.Window)!.Value;
+        rig.PollAt(onLink);
+
+        Assert.False(rig.Overlay.ClickThroughActive);
+        Assert.Same(link, ButtonAt(rig.Window, onLink));   // 滑鼠真的點得到連結
         rig.Window.Close();
     }
 

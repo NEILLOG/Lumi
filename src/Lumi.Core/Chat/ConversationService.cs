@@ -160,7 +160,7 @@ public sealed class ConversationService
                 throw new InvalidOperationException("最後一則必須是助理訊息才能重新產生。");
 
             // 沒有可用的模型時，不要先把舊的回答刪掉
-            if (ResolveModel(mode) is null)
+            if (ResolveModel() is null)
             {
                 yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
                 yield break;
@@ -182,7 +182,7 @@ public sealed class ConversationService
     private async IAsyncEnumerable<ChatEvent> RunTurnAsync(
         string conversationId, ChatMode mode, [EnumeratorCancellation] CancellationToken ct)
     {
-        var model = ResolveModel(mode);
+        var model = ResolveModel();
         if (model is null)
         {
             yield return new Failed(new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
@@ -364,14 +364,11 @@ public sealed class ConversationService
         return new MemoryPromptContext(await _memoryStore.ListActiveAsync(today, ct).ConfigureAwait(false));
     }
 
-    /// <summary>工作台用工作台預設模型（M2 的 Q3）；小精靈用小精靈預設模型，沒有設定或找不到時退回工作台的（M5 的 Q4）。</summary>
-    private ResolvedModel? ResolveModel(ChatMode mode)
-    {
-        var settings = _catalog.Current;
-        return mode == ChatMode.Sprite
-            ? _catalog.Resolve(settings.SpriteModelId) ?? _catalog.Resolve(settings.WorkbenchModelId)
-            : _catalog.Resolve(settings.WorkbenchModelId);
-    }
+    /// <summary>
+    /// 兩種模式都用同一個預設模型（<see cref="AppSettings.WorkbenchModelId"/>）：小精靈不另外選模型，
+    /// 設定檔裡舊的 <see cref="AppSettings.SpriteModelId"/> 不再使用。
+    /// </summary>
+    private ResolvedModel? ResolveModel() => _catalog.Resolve(_catalog.Current.WorkbenchModelId);
 
     private ChatFailure DecorateFailure(ChatFailure failure, ResolvedModel model) =>
         ChatFailureText.Decorate(failure, _network.HasUsableNetworkInterface(), ChatFailureText.IsLocalTarget(model.Connection.BaseUrl));

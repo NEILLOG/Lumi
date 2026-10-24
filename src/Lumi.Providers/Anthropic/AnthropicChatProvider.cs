@@ -103,6 +103,9 @@ public sealed class AnthropicChatProvider : IChatProvider
                 }
                 catch (Exception ex)
                 {
+                    // 畫面上只有一句分類過的說明；伺服器回的錯誤內容（例如 400 是哪個欄位不對）只留在記錄檔
+                    _logger.LogWarning(ex, "Anthropic 請求失敗（模型 {Model}）：{ResponseBody}",
+                        request.Model.Model.ModelId, (ex as AnthropicApiException)?.ResponseBody);
                     failure = AnthropicErrorMapper.ToChatFailure(ex);
                     done = true;
                 }

@@ -89,7 +89,6 @@ public static class Strings
     public static string Confirm_DeleteModel => Get(nameof(Confirm_DeleteModel));
     public static string Confirm_Cancel => Get(nameof(Confirm_Cancel));
     public static string Models_WorkbenchDefault => Get(nameof(Models_WorkbenchDefault));
-    public static string Models_SpriteDefault => Get(nameof(Models_SpriteDefault));
     public static string Models_New => Get(nameof(Models_New));
     public static string Models_NeedConnection => Get(nameof(Models_NeedConnection));
     public static string Models_Connection => Get(nameof(Models_Connection));
@@ -103,7 +102,6 @@ public static class Strings
     public static string Models_ListCount => Get(nameof(Models_ListCount));
     public static string Models_ListUnavailable => Get(nameof(Models_ListUnavailable));
     public static string Models_BadgeWorkbench => Get(nameof(Models_BadgeWorkbench));
-    public static string Models_BadgeSprite => Get(nameof(Models_BadgeSprite));
     public static string Models_IdRequired => Get(nameof(Models_IdRequired));
     public static string Models_NameRequired => Get(nameof(Models_NameRequired));
     public static string Models_NumberInvalid => Get(nameof(Models_NumberInvalid));
@@ -364,7 +362,6 @@ public static class Strings
     public static string Conn_FormatHint => Get(nameof(Conn_FormatHint));
     public static string Conn_BaseUrlHint => Get(nameof(Conn_BaseUrlHint));
     public static string Models_WorkbenchDefaultHint => Get(nameof(Models_WorkbenchDefaultHint));
-    public static string Models_SpriteDefaultHint => Get(nameof(Models_SpriteDefaultHint));
     public static string Models_ConnectionHint => Get(nameof(Models_ConnectionHint));
     public static string Models_DisplayNameHint => Get(nameof(Models_DisplayNameHint));
     public static string Models_MaxOutputHint => Get(nameof(Models_MaxOutputHint));

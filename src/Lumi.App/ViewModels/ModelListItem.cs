@@ -11,7 +11,7 @@ namespace Lumi.App.ViewModels;
 /// </summary>
 public sealed partial class ModelListItem : ObservableObject
 {
-    public ModelListItem(string id, string connectionName, string displayName, string modelId, bool isWorkbenchDefault, bool isSpriteDefault,
+    public ModelListItem(string id, string connectionName, string displayName, string modelId, bool isWorkbenchDefault,
         ProviderFormat format = ProviderFormat.OpenAICompatible, ConnectionStatus status = ConnectionStatus.Unknown)
     {
         Id = id;
@@ -19,7 +19,6 @@ public sealed partial class ModelListItem : ObservableObject
         DisplayName = displayName;
         ModelId = modelId;
         IsWorkbenchDefault = isWorkbenchDefault;
-        IsSpriteDefault = isSpriteDefault;
         Format = format;
         _status = status;
     }
@@ -34,23 +33,15 @@ public sealed partial class ModelListItem : ObservableObject
 
     public bool IsWorkbenchDefault { get; }
 
-    public bool IsSpriteDefault { get; }
-
     public ProviderFormat Format { get; }
 
     public string Subtitle => $"{ConnectionName} · {ModelId}";
 
-    public string Badges => (IsWorkbenchDefault, IsSpriteDefault) switch
-    {
-        (true, true) => $"{Strings.Models_BadgeWorkbench} · {Strings.Models_BadgeSprite}",
-        (true, false) => Strings.Models_BadgeWorkbench,
-        (false, true) => Strings.Models_BadgeSprite,
-        _ => "",
-    };
+    public string Badges => IsWorkbenchDefault ? Strings.Models_BadgeWorkbench : "";
 
-    public bool HasBadges => IsWorkbenchDefault || IsSpriteDefault;
+    public bool HasBadges => IsWorkbenchDefault;
 
-    /// <summary>卡片副標：「gpt-5-mini · 工作台預設」；不是預設就只有確切的 model ID。</summary>
+    /// <summary>卡片副標：「gpt-5-mini · 預設」；不是預設就只有確切的 model ID。</summary>
     public string CardSubtitle => HasBadges ? $"{ModelId} · {Badges}" : ModelId;
 
     /// <summary>卡片的完整說明（Tooltip）：副標被省略時看得到所屬連線與完整內容。</summary>

@@ -82,16 +82,16 @@ public class ConversationPromptTests
     }
 
     [Fact]
-    public async Task SpriteMode_UsesSpriteModel_WithLowerCap()
+    public async Task SpriteMode_UsesTheWorkbenchModel_IgnoringTheOldSpriteModel_WithLowerCap()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"));
 
-        await Collect(Service(provider, store, CatalogWithSpriteModel()).SendAsync(conversation.Id, "嗨", mode: ChatMode.Sprite));
+        await Collect(Service(provider, store, CatalogWithSpriteModel(workbenchMaxOutput: 8000)).SendAsync(conversation.Id, "嗨", mode: ChatMode.Sprite));
 
         var request = Assert.Single(provider.Requests);
-        Assert.Equal(SpriteModel, request.Model.Model);
+        Assert.Equal(FakeModelCatalog.Model.Id, request.Model.Model.Id);   // 小精靈不另外選模型
         Assert.Equal(2048, request.MaxOutputTokens);   // min(8000, 預設 2048)
         Assert.Equal(2048, request.EffectiveMaxOutputTokens);
     }
@@ -110,7 +110,7 @@ public class ConversationPromptTests
     }
 
     [Fact]
-    public async Task SpriteMode_FallsBackToWorkbenchModel_WhenSpriteModelIsMissing()
+    public async Task SpriteMode_UsesTheWorkbenchModel_EvenWithAStaleSpriteModelId()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");

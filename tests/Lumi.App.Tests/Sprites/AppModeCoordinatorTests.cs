@@ -100,16 +100,17 @@ public class AppModeCoordinatorTests
     // ---- 小精靈開啟工作台 ----
 
     [Fact]
-    public void OpeningTheWorkbenchFromTheSprite_WhenIdle_LeavesBothOpen_AndTheModeAlone()
+    public async Task OpeningTheWorkbenchFromTheSprite_WhenIdle_SwitchesToWorkbenchMode_AndHidesTheSprite()
     {
         var rig = new Rig(lastMode: ChatMode.Sprite);
         rig.Coordinator.Start();
 
         rig.Coordinator.OpenWorkbench();
+        await SettingsHost.WaitUntil(() => rig.Settings.Current.Sprite.LastMode == ChatMode.Workbench);
 
         Assert.True(rig.Host.IsWorkbenchVisible);
-        Assert.True(rig.Host.IsSpriteVisible);
-        Assert.Equal(ChatMode.Sprite, rig.Session.ActiveMode);
+        Assert.False(rig.Host.IsSpriteVisible);   // 兩個視窗不同時存在
+        Assert.Equal(ChatMode.Workbench, rig.Session.ActiveMode);
     }
 
     [Fact]
@@ -122,12 +123,33 @@ public class AppModeCoordinatorTests
         rig.Coordinator.OpenWorkbench();
 
         Assert.True(rig.Host.IsWorkbenchVisible);
+        Assert.False(rig.Host.IsSpriteVisible);
         Assert.True(rig.Session.IsResponding);
         Assert.Equal(ChatMode.Sprite, rig.Session.ActiveMode);   // 工作台據此推導「查看中」
         Assert.False(rig.Session.TrySetMode(ChatMode.Workbench));   // 回應中不能切換
         await rig.Session.StopAndWaitAsync();
         await run;
         Assert.False(rig.Session.IsResponding);   // 結束後自動解除
+        Assert.Equal(ChatMode.Workbench, rig.Session.ActiveMode);   // 並切換成工作台模式
+    }
+
+    [Fact]
+    public async Task ClosingTheViewOnlyWorkbench_GoesBackToTheSprite_AndStaysInSpriteMode()
+    {
+        var rig = new Rig(Hanging(), ChatMode.Sprite);
+        rig.Coordinator.Start();
+        var run = await rig.StartHangingRunAsync();
+        rig.Coordinator.OpenWorkbench();
+
+        var close = rig.Coordinator.WorkbenchMayClose();
+        rig.Host.HideWorkbench();   // 視窗改成隱藏
+        await rig.Session.StopAndWaitAsync();
+        await run;
+
+        Assert.False(close);
+        Assert.False(rig.Host.Exited);
+        Assert.True(rig.Host.IsSpriteVisible);
+        Assert.Equal(ChatMode.Sprite, rig.Session.ActiveMode);
     }
 
     [Fact]
@@ -138,7 +160,7 @@ public class AppModeCoordinatorTests
 
         rig.Coordinator.OpenWorkbench("call-7");
 
-        Assert.Equal(["showSprite", "showWorkbench", "scroll:call-7"], rig.Host.Log);
+        Assert.Equal(["showSprite", "hideSprite", "showWorkbench", "scroll:call-7"], rig.Host.Log);
     }
 
     // ---- 在工作台送出 ----
@@ -148,7 +170,7 @@ public class AppModeCoordinatorTests
     {
         var rig = new Rig(lastMode: ChatMode.Sprite);
         rig.Coordinator.Start();
-        rig.Coordinator.OpenWorkbench();   // 兩個視窗同時開著
+        rig.Host.ShowWorkbench();   // 直接打開視窗，不經過協調者（不切換模式）
 
         rig.Coordinator.WorkbenchWillSend();
         await SettingsHost.WaitUntil(() => rig.Settings.Current.Sprite.LastMode == ChatMode.Workbench);
@@ -182,19 +204,6 @@ public class AppModeCoordinatorTests
 
         Assert.True(close);
         Assert.True(rig.Host.Exited);
-    }
-
-    [Fact]
-    public void ClosingTheWorkbench_InSpriteMode_OnlyClosesThatWindow()
-    {
-        var rig = new Rig(lastMode: ChatMode.Sprite);
-        rig.Coordinator.Start();
-        rig.Coordinator.OpenWorkbench();
-
-        var close = rig.Coordinator.WorkbenchMayClose();
-
-        Assert.False(close);   // 視窗改成隱藏，不結束
-        Assert.False(rig.Host.Exited);
     }
 
     // ---- 暫時隱藏與托盤 ----

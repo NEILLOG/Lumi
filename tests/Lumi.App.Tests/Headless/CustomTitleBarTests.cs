@@ -132,7 +132,7 @@ public class CustomTitleBarTests
         var (window, bar) = Show(new Rig(), TitleBarPlatform.Windows);
         var button = bar.SpriteModeButton;
         var divider = bar.FindByName<Border>("Divider");
-        var brand = bar.FindByName<StackPanel>("Brand");
+        var brand = bar.FindByName<Avalonia.Controls.TextBlock>("Brand");
 
         var buttonBounds = BoundsIn(button, window);
         var dividerBounds = BoundsIn(divider, window);
@@ -153,7 +153,7 @@ public class CustomTitleBarTests
     {
         var (window, bar) = Show(new Rig(), TitleBarPlatform.MacOS);
         var button = bar.SpriteModeButton;
-        var brand = bar.FindByName<StackPanel>("Brand");
+        var brand = bar.FindByName<Avalonia.Controls.TextBlock>("Brand");
 
         Assert.False(bar.FindByName<Border>("Divider").IsVisible);
         Assert.True(BoundsIn(brand, window).Left >= 80);                         // 紅綠燈佔左側 80
@@ -167,7 +167,7 @@ public class CustomTitleBarTests
     public void BothPlatforms_ShareTheSameBarHeightAndButtonOrder()
     {
         var (window, bar) = Show(new Rig(), TitleBarPlatform.Windows);
-        var brand = bar.FindByName<StackPanel>("Brand");
+        var brand = bar.FindByName<Avalonia.Controls.TextBlock>("Brand");
         Assert.True(BoundsIn(brand, window).Right < BoundsIn(bar.SpriteModeButton, window).Left);
         bar.Platform = TitleBarPlatform.MacOS;
         window.UpdateLayout();
@@ -252,7 +252,7 @@ public class CustomTitleBarTests
             var y = TitleBarLayout.Height / 2;
             var blank = new[]
             {
-                new Point((BoundsIn(bar.FindByName<StackPanel>("Brand"), window).Right + buttonBounds.Left) / 2, y),
+                new Point((BoundsIn(bar.FindByName<Avalonia.Controls.TextBlock>("Brand"), window).Right + buttonBounds.Left) / 2, y),
                 new Point(buttonBounds.Center.X, 2),
                 new Point(buttonBounds.Center.X, TitleBarLayout.Height - 2),
             };
@@ -272,7 +272,7 @@ public class CustomTitleBarTests
     {
         var rig = new Rig();
         var (window, bar) = Show(rig, TitleBarPlatform.Windows);
-        var brand = BoundsIn(bar.FindByName<StackPanel>("Brand"), window);
+        var brand = BoundsIn(bar.FindByName<Avalonia.Controls.TextBlock>("Brand"), window);
         var blank = new Point((brand.Right + BoundsIn(bar.SpriteModeButton, window).Left) / 2, TitleBarLayout.Height / 2);
 
         window.MouseDown(blank, MouseButton.Left);

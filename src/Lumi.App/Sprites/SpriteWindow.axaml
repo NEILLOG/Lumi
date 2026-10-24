@@ -16,8 +16,9 @@
         WindowStartupLocation="Manual">
 
   <Panel>
-    <!-- 氣泡：固定預留的區域，內容貼著底部（尖端對準角色的氣泡錨點）。沒有按鈕的氣泡點擊會穿透 -->
-    <Grid x:Name="BubbleArea" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsHitTestVisible="False">
+    <!-- 氣泡：固定預留的區域，內容貼著底部（尖端對準角色的氣泡錨點）。沒有按鈕的氣泡點擊會穿透。
+         ZIndex 疊在角色之上：氣泡底部和角色的透明點擊區（含外圍光暈）重疊，不然按鈕會被角色搶走點擊 -->
+    <Grid x:Name="BubbleArea" ZIndex="1" VerticalAlignment="Top" HorizontalAlignment="Stretch" IsHitTestVisible="False">
       <sp:SpriteBubbleView x:Name="Bubble" VerticalAlignment="Bottom" HorizontalAlignment="Center" Opacity="0"
                            RenderTransform="translateY(8px)">
         <sp:SpriteBubbleView.Transitions>

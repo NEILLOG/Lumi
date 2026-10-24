@@ -64,14 +64,8 @@
       <!-- macOS 讓出紅綠燈、Windows 的左邊界 -->
       <Border x:Name="LeftSpacer" Grid.Column="0" Width="16" />
 
-      <StackPanel x:Name="Brand" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <Border Width="24" Height="24" CornerRadius="8" Background="{DynamicResource LumiAccentBrush}">
-          <TextBlock Text="{x:Static res:Strings.TitleBar_LogoMark}" FontWeight="Bold" FontSize="{DynamicResource LumiFontSizeCaption}"
-                     Foreground="{DynamicResource LumiOnAccentBrush}"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" />
-        </Border>
-        <TextBlock Text="{x:Static res:Strings.TitleBar_Brand}" FontWeight="SemiBold" VerticalAlignment="Center" />
-      </StackPanel>
+      <!-- 只顯示軟體名稱，不放 logo -->
+      <TextBlock x:Name="Brand" Grid.Column="1" Text="{x:Static res:Strings.TitleBar_Brand}" FontWeight="SemiBold" VerticalAlignment="Center" />
 
       <!-- Grid.Column=2 是中間的空白，拖曳由 TitleBarSurface 處理 -->
 

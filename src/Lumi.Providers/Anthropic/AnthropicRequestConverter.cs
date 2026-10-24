@@ -19,7 +19,7 @@ internal static class AnthropicRequestConverter
         BetaMessages.BetaOutputConfig? outputConfig = options.Effort is { Length: > 0 } effort
             ? new BetaMessages.BetaOutputConfig { Effort = effort }
             : null;
-        var fallbacks = options.UseServerFallbacks;
+        var fallbacks = options.UseServerFallbacks && SupportsServerFallbacks(model);
 
         // ShowThinking 關掉時完全不送 thinking 參數，讓模型用自己的預設（不支援 adaptive 的舊模型也能用）。
         // 打開時要求 summarized：不設的話 claude-opus-5-5 仍會思考，但內容是空字串，UI 沒東西可顯示。
@@ -70,6 +70,13 @@ internal static class AnthropicRequestConverter
             ? parameters with { Tools = tools.Select(t => (BetaMessages.BetaToolUnion)ToTool(t)).ToList() }
             : parameters;
     }
+
+    /// <summary>
+    /// 陣列形式的 server-side fallback 只有 Opus 5 世代與 Fable 5 世代接受；其他模型（例如 Haiku 5.5 沒有
+    /// server-side fallback）帶了這個參數會整個請求 400，所以不送。
+    /// </summary>
+    internal static bool SupportsServerFallbacks(string modelId) =>
+        modelId.StartsWith("claude-opus-5", StringComparison.Ordinal) || modelId.StartsWith("claude-fable-5", StringComparison.Ordinal);
 
     /// <summary>
     /// 第二個快取斷點放在歷史的最後一個區塊（下一次請求的前綴就是這一次的歷史往後加）；
