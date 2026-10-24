@@ -104,6 +104,14 @@ internal static class SqliteSchema
           expires_at             TEXT
         );
         """,
+
+        // 7：每則使用者／工具結果訊息送出時附的模式指示（ChatMessage.TurnSuffix）。存起來之後原樣送回，
+        // 歷史才是只往後加（Anthropic 的 thinking 區塊簽章綁定它之前的全部內容）。舊訊息是 NULL＝當時沒存，之後也不補。
+        "ALTER TABLE messages ADD COLUMN turn_suffix TEXT;",
+
+        // 8：這則對話第一次送出時的 system prompt。整則對話都送它，中途變動改以訊息附加（SystemPromptUpdate），
+        // 因為 thinking 區塊簽章綁定 system。舊對話是 NULL＝下一次送出時才記。
+        "ALTER TABLE conversations ADD COLUMN system_prompt TEXT;",
     ];
 
     public static int LatestVersion => Migrations.Length;

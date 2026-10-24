@@ -6,6 +6,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
 {
     private readonly Dictionary<string, Conversation> _conversations = [];
     private readonly Dictionary<string, List<ChatMessage>> _messages = [];
+    private readonly Dictionary<string, string> _systemPrompts = [];
     private readonly object _lock = new();
 
     public Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
@@ -99,6 +100,31 @@ internal sealed class InMemoryConversationStore : IConversationStore
         {
             _messages[conversationId].Add(message);
             _conversations[conversationId] = _conversations[conversationId] with { UpdatedAt = DateTimeOffset.UtcNow };
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetSystemPromptAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_systemPrompts.GetValueOrDefault(conversationId));
+    }
+
+    public Task SetSystemPromptAsync(string conversationId, string systemPrompt, CancellationToken ct = default)
+    {
+        lock (_lock)
+            _systemPrompts[conversationId] = systemPrompt;
+        return Task.CompletedTask;
+    }
+
+    public Task SetTurnSuffixAsync(string conversationId, string messageId, string? turnSuffix, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            var list = _messages[conversationId];
+            var index = list.FindIndex(m => m.Id == messageId);
+            if (index >= 0)
+                list[index] = list[index] with { TurnSuffix = turnSuffix };
         }
         return Task.CompletedTask;
     }

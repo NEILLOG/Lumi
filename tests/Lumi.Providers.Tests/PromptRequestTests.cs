@@ -98,6 +98,37 @@ public class PromptRequestTests
     }
 
     [Fact]
+    public async Task Anthropic_AMessageThatWasOnceLast_KeepsItsSuffix_SoThePrefixIsByteForByteTheSameNextTime()
+    {
+        // thinking 簽章綁定它之前的全部內容：第一次它是最後一則（指示在斷點之後），第二次是歷史的一部分，兩次的內容必須一樣
+        var model = ModelFor(AnthropicConnection);
+        var suffix1 = "<lumi_mode>\n工作台\n</lumi_mode>";
+        var suffix2 = "<lumi_mode>\n小精靈\n</lumi_mode>";
+        var user1 = Msg(ChatRole.User, new TextBlock("嗨")) with { TurnSuffix = suffix1 };
+        var assistant = Msg(ChatRole.Assistant, new TextBlock("你好"));
+        var user2 = Msg(ChatRole.User, new TextBlock("再問")) with { TurnSuffix = suffix2 };
+
+        var first = await SentToAnthropic(new ChatRequest(model, [user1], null, "系統", suffix1));
+        var second = await SentToAnthropic(new ChatRequest(model, [user1, assistant, user2], null, "系統", suffix2));
+
+        static JsonNode WithoutCacheControl(JsonNode node)
+        {
+            var copy = JsonNode.Parse(node.ToJsonString())!;
+            foreach (var block in copy.AsArray())
+                block!.AsObject().Remove("cache_control");
+            return copy;
+        }
+        var before = WithoutCacheControl(first["messages"]!.AsArray()[0]!["content"]!);
+        var after = WithoutCacheControl(second["messages"]!.AsArray()[0]!["content"]!);
+        Assert.Equal(before.ToJsonString(), after.ToJsonString());
+        var afterBlocks = after.AsArray();
+        Assert.Equal(suffix1, (string?)afterBlocks[afterBlocks.Count - 1]!["text"]);   // 不是被拿掉，而是留在原位
+        // 最後一則照舊：斷點在指示之前，指示是自己的 text 區塊
+        Assert.Equal(suffix2, (string?)LastMessageContent(second)[^1]!["text"]);
+        Assert.Equal(2, CountCacheControl(second));   // system + 歷史最後
+    }
+
+    [Fact]
     public async Task Anthropic_NoSystem_NoSuffix_SendsNeitherField_AndOnlyTheHistoryBreakpoint()
     {
         var body = await SentToAnthropic(new ChatRequest(ModelFor(AnthropicConnection), EndsWithUser));

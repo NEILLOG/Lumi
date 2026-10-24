@@ -6,7 +6,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lumi.Core.Tests.Chat;
 
-/// <summary>4A：對話迴圈依對話的上下文項目建立範圍；沒有範圍時不送需要範圍的工具。</summary>
+/// <summary>
+/// 4A：對話迴圈依對話的上下文項目建立範圍。工具定義一律照送、不因有沒有範圍而增減
+/// （2026-10-25：工具清單變了，Anthropic 的 thinking 簽章就失效、請求 400）；沒有範圍時執行會被擋下並說明。
+/// </summary>
 public class ConversationScopeTests
 {
     private static readonly FakeModelCatalog Catalog = new();
@@ -34,20 +37,19 @@ public class ConversationScopeTests
     private static ToolUseBlock Use(string id, string name, string text) => new(id, name, $$"""{"text":"{{text}}"}""");
 
     [Fact]
-    public async Task NoScope_RequestOmitsScopedTools_ButKeepsTheOthers()
+    public async Task NoScope_RequestStillCarriesTheScopedToolDefinitions()
     {
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"));
         var (service, _, _, id) = Create(provider, new FakeTool(), new ScopedTool());
 
         await Collect(service.SendAsync(id, "嗨"));
 
-        Assert.Equal(["echo"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
     }
 
     [Fact]
-    public async Task NoScope_WriteToolsThatNeedAScope_AreOmittedFromTheRequest()
+    public async Task WriteToolsThatNeedAScope_AreSentWithAndWithoutAScope_SoTheListNeverChanges()
     {
-        // 寫入類檔案工具也需要範圍：沒有範圍時請求不帶它們的定義；有範圍時才帶上
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"), SequenceChatProvider.Answer("好"));
         var (service, _, _, id) = Create(provider, new FakeTool(), new ScopedWriteTool());
         await Collect(service.SendAsync(id, "嗨"));
@@ -56,7 +58,7 @@ public class ConversationScopeTests
         await scopeContext.AddAsync(scopedId, ContextKind.Folder, "/proj", "proj");
         await Collect(withScope.SendAsync(scopedId, "嗨"));
 
-        Assert.Equal(["echo"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_write"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
         Assert.Equal(["echo", "scoped_write"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
     }
 
@@ -70,14 +72,20 @@ public class ConversationScopeTests
     }
 
     [Fact]
-    public async Task NoScope_AndOnlyScopedTools_RequestCarriesNoTools()
+    public async Task NoScope_CallingAScopedTool_IsRefusedWithAnExplanation_AndTheTurnContinues()
     {
-        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"));
-        var (service, _, _, id) = Create(provider, new ScopedTool());
+        var provider = new SequenceChatProvider(
+            SequenceChatProvider.ToolCalls(Use("t1", "scoped_read", "/proj/a.txt")), SequenceChatProvider.Answer("沒有可讀的檔案"));
+        var tool = new ScopedTool();
+        var (service, _, _, id) = Create(provider, tool);
 
-        await Collect(service.SendAsync(id, "嗨"));
+        var events = await Collect(service.SendAsync(id, "讀"));
 
-        Assert.Null(provider.Requests[0].Tools);
+        Assert.Empty(tool.Resolved);
+        var result = Assert.Single(events.OfType<ToolCallCompleted>()).Result;
+        Assert.True(result.IsError);
+        Assert.Contains("目前沒有加入任何檔案或資料夾", result.Content);
+        Assert.IsType<Completed>(events[^1]);
     }
 
     [Fact]
@@ -130,9 +138,9 @@ public class ConversationScopeTests
     }
 
     [Fact]
-    public async Task ScopeIsReevaluatedEveryIteration()
+    public async Task ScopeIsReevaluatedEveryIteration_ButTheToolListStaysTheSame()
     {
-        // 第一輪還沒有範圍；工具執行時使用者（假裝）加入了資料夾；第二輪請求就該帶上需要範圍的工具
+        // 第一輪還沒有範圍；工具執行時使用者（假裝）加入了資料夾；第二輪的範圍變了，工具清單不變
         var provider = new SequenceChatProvider(
             SequenceChatProvider.ToolCalls(Use("t1", "echo", "x")), SequenceChatProvider.Answer("好"));
         var store = new InMemoryConversationStore();
@@ -151,12 +159,12 @@ public class ConversationScopeTests
 
         await Collect(service.SendAsync(conversation.Id, "x"));
 
-        Assert.Equal(["echo"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
         Assert.Equal(["echo", "scoped_read"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
     }
 
     [Fact]
-    public async Task RemovingTheItem_TakesTheScopeAway_ForTheNextRun()
+    public async Task RemovingTheItem_TakesTheScopeAway_ButNotTheToolDefinitions()
     {
         var provider = new SequenceChatProvider(SequenceChatProvider.Answer("一"), SequenceChatProvider.Answer("二"));
         var (service, _, context, id) = Create(provider, new ScopedTool());
@@ -166,8 +174,8 @@ public class ConversationScopeTests
         await context.RemoveAsync(id, item.Id);
         await Collect(service.SendAsync(id, "第二次"));
 
-        Assert.NotNull(provider.Requests[0].Tools);
-        Assert.Null(provider.Requests[1].Tools);
+        Assert.Equal(["scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["scoped_read"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
     }
 
     [Fact]
@@ -195,12 +203,15 @@ public class ConversationScopeTests
     [Fact]
     public async Task ImagesAreNotPartOfTheScope()
     {
-        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("好"));
-        var (service, _, context, id) = Create(provider, new ScopedTool());
+        var provider = new SequenceChatProvider(
+            SequenceChatProvider.ToolCalls(Use("t1", "scoped_read", "/shot.png")), SequenceChatProvider.Answer("好"));
+        var tool = new ScopedTool();
+        var (service, _, context, id) = Create(provider, tool);
         await context.AddAsync(id, ContextKind.Image, "/shot.png", "shot.png");
 
-        await Collect(service.SendAsync(id, "嗨"));
+        var events = await Collect(service.SendAsync(id, "嗨"));
 
-        Assert.Null(provider.Requests[0].Tools);   // 只有圖片：沒有可讀的範圍
+        Assert.Empty(tool.Resolved);   // 只有圖片：沒有可讀的範圍
+        Assert.True(Assert.Single(events.OfType<ToolCallCompleted>()).Result.IsError);
     }
 }

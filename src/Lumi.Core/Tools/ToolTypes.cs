@@ -27,7 +27,7 @@ public static class ToolModesExtensions
 /// <param name="Modes">能在哪些模式執行。定義一律送出，模式不符時在執行時回錯誤（M5 的 Q1）。</param>
 /// <param name="Timeout">每個工具都要有逾時。</param>
 /// <param name="RequiresScope">需要使用者加入的檔案或資料夾才有意義：範圍是空的時，請求不帶這個工具的定義。</param>
-/// <param name="RequiresMemory">長期記憶的工具（M14）：記憶在設定裡關閉時，請求不帶這個工具的定義。只依使用者的設定、不依模式。</param>
+/// <param name="RequiresMemory">長期記憶的工具（M14）：記憶在設定裡關閉時，工具不能執行（回說明、不詢問權限）；定義仍照送（2026-10-25：工具清單改變會讓 thinking 簽章失效）。只依使用者的設定、不依模式。</param>
 public sealed record ToolDescriptor(
     string Name,
     string DisplayName,

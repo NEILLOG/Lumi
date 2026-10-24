@@ -15,7 +15,8 @@ internal static class AnthropicRequestConverter
         var model = settings.ModelId;
         var maxTokens = request.EffectiveMaxOutputTokens;   // 小精靈模式有較低的上限（M5）
         var messages = ToMessageParams(request.Messages, images ?? ImageAttachments.None);
-        messages = WithCacheBreakpointAndSuffix(messages, request.TurnSuffix);
+        // 最後一則的模式指示掛在快取斷點之後；它之前的每一則都帶著自己存下來的指示（ToMessageParams），歷史才是只往後加
+        messages = WithCacheBreakpointAndSuffix(messages, request.Messages is [.., { } last] && last.TurnSuffix is { Length: > 0 } stored ? stored : request.TurnSuffix);
         BetaMessages.BetaOutputConfig? outputConfig = options.Effort is { Length: > 0 } effort
             ? new BetaMessages.BetaOutputConfig { Effort = effort }
             : null;
@@ -80,7 +81,8 @@ internal static class AnthropicRequestConverter
 
     /// <summary>
     /// 第二個快取斷點放在歷史的最後一個區塊（下一次請求的前綴就是這一次的歷史往後加）；
-    /// 模式指示接在斷點<b>之後</b>，所以它不在快取內容裡，切換模式不會讓前綴改變（M5 的 Q2）。
+    /// 模式指示接在斷點<b>之後</b>。下一次請求時它就成了這一則自己的一部分（ToMessageParams 原樣帶上），
+    /// 所以前綴一個位元組都沒變——thinking 簽章綁定前綴，事後拿掉這段會讓帶著 thinking 的請求被 400（M5 的 Q2，2026-10-25 修改）。
     /// 斷點只能掛在文字、圖片、tool_result 上；歷史的最後一則一定是使用者訊息或工具結果，不會是 thinking。
     /// </summary>
     private static List<BetaMessages.BetaMessageParam> WithCacheBreakpointAndSuffix(List<BetaMessages.BetaMessageParam> messages, string? suffix)
@@ -133,12 +135,17 @@ internal static class AnthropicRequestConverter
     {
         var result = new List<BetaMessages.BetaMessageParam>();
         var previousWasUser = false;
-        foreach (var message in messages)
+        for (var i = 0; i < messages.Count; i++)
         {
+            var message = messages[i];
             var isUser = message.Role is ChatRole.User or ChatRole.Tool;
             var content = message.Content.Where(IsSendable).Select(b => ToContentBlockParam(b, images)).ToList();
             if (content.Count == 0)
                 continue;
+
+            // 存下來的模式指示接在這一則的最後。最後一則例外：它的指示要放在快取斷點之後，由 WithCacheBreakpointAndSuffix 加
+            if (i < messages.Count - 1 && message.TurnSuffix is { Length: > 0 } suffix)
+                content.Add(new BetaMessages.BetaTextBlockParam { Text = suffix });
 
             if (isUser && previousWasUser)
             {

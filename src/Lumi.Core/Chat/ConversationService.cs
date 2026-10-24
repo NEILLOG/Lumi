@@ -27,6 +27,7 @@ public sealed class ConversationService
     private const string StoppedMessage = "使用者已停止。";
     private const string DeniedMessage = "使用者拒絕執行";
     private const string WrongModeMessage = "這個工具在目前模式不能使用。";
+    private const string MemoryOffMessage = "長期記憶已在設定裡關閉，不能新增、修改或刪除記憶。";
 
     private readonly IChatProvider _provider;
     private readonly IConversationStore _store;
@@ -198,12 +199,12 @@ public sealed class ConversationService
 
         for (var iteration = 1; iteration <= _options.MaxIterations; iteration++)
         {
-            // 每一輪重新取得對話目前的範圍（使用者加入的檔案與資料夾）；沒有範圍時不送需要範圍的工具（省 token，也避免模型亂試）
+            // 每一輪重新取得對話目前的範圍（使用者加入的檔案與資料夾）。需要範圍的工具定義一律照送，不因為有沒有範圍而增減：
+            // 工具清單變了，Anthropic 的 thinking 區塊（簽章綁定 tools）就失效、整個請求 400；沒有範圍時執行會回「沒有加入任何檔案或資料夾」
             var scope = _scopeFactory.Create(await _contextStore.GetAsync(conversationId, ct).ConfigureAwait(false));
             var memoryEnabled = _catalog.Current.Memory.Enabled;
-            var tools = availableTools
-                .Where(t => (!t.Descriptor.RequiresScope || scope.HasRoots) && (!t.Descriptor.RequiresMemory || memoryEnabled))
-                .ToList();
+            // 記憶工具也一律照送（同上：開關改變不能讓工具清單改變）；記憶關閉時執行會被擋下
+            var tools = availableTools.ToList();
             var context = new ToolContext(conversationId, mode, _time, scope);
 
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
@@ -214,7 +215,33 @@ public sealed class ConversationService
             // 每次呼叫供應商前重組：兩次請求之間設定或記憶可能被改了（同一輪模型剛存的記憶，下一次呼叫就帶上）
             var memory = await LoadMemoryAsync(ct).ConfigureAwait(false);
             var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory));
-            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null, prompt.System, prompt.TurnSuffix, maxOutputTokens);
+
+            // system 在一則對話內固定：第一次送出時記下來，之後都送它。記憶、人設、記憶開關在中途改變時，
+            // 不改 system，而是把最新的完整內容附在這一則訊息後面（SystemPromptUpdate）——thinking 簽章綁定 system，改了會 400
+            var system = await _store.GetSystemPromptAsync(conversationId, CancellationToken.None).ConfigureAwait(false);
+            if (system is null && prompt.System is not null)
+            {
+                await _store.SetSystemPromptAsync(conversationId, prompt.System, CancellationToken.None).ConfigureAwait(false);
+                system = prompt.System;
+            }
+            system ??= prompt.System;
+
+            var turnSuffix = prompt.TurnSuffix;
+            var earlier = requestMessages.Take(requestMessages.Count - 1).Select(m => m.TurnSuffix);
+            var announced = SystemPromptUpdate.LastIn(earlier) ?? system;   // 模型目前看到的最新版本
+            if (prompt.System is not null && prompt.System != announced)
+                turnSuffix = turnSuffix is null ? SystemPromptUpdate.Wrap(prompt.System) : turnSuffix + "\n\n" + SystemPromptUpdate.Wrap(prompt.System);
+
+            // 這一次的指示跟著這一則（請求的最後一則）存起來，之後每次請求都原樣帶上：歷史只往後加，thinking 簽章才不會失效。
+            // 它還是最後一則，所以重試或重新產生時可以直接改成這次的內容
+            var last = requestMessages[^1];
+            if (last.TurnSuffix != turnSuffix)
+            {
+                await _store.SetTurnSuffixAsync(conversationId, last.Id, turnSuffix, CancellationToken.None).ConfigureAwait(false);
+                requestMessages = [.. requestMessages.Take(requestMessages.Count - 1), last with { TurnSuffix = turnSuffix }];
+            }
+
+            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null, system, turnSuffix, maxOutputTokens);
             Completed? completed = null;
             var failed = false;
 
@@ -246,6 +273,16 @@ public sealed class ConversationService
 
                 var descriptor = tool.Descriptor;
                 var preview = tool.Preview(use.InputJson, context);
+
+                if (!stopped && descriptor.RequiresMemory && !memoryEnabled)
+                {
+                    // 定義有送（為了簽章），但使用者把長期記憶關掉了：不詢問權限、不執行
+                    var memoryOff = new ToolResultBlock(use.Id, MemoryOffMessage, true, descriptor.DisplayName, preview.Target, "長期記憶已關閉", 0, ToolApproval.NotRequired);
+                    yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
+                    yield return new ToolCallCompleted(use.Id, memoryOff);
+                    results.Add(memoryOff);
+                    continue;
+                }
 
                 if (!stopped && !descriptor.Modes.Allows(mode))
                 {
@@ -466,7 +503,7 @@ public sealed class ConversationService
                 .Cast<ContentBlock>()
                 .ToList();
             var source = i + 1 < messages.Count && messages[i + 1].Role == ChatRole.Tool ? messages[i + 1] : null;
-            result.Add(new ChatMessage(source?.Id ?? ChatMessage.NewId(), ChatRole.Tool, ordered, source?.CreatedAt ?? message.CreatedAt));
+            result.Add(new ChatMessage(source?.Id ?? ChatMessage.NewId(), ChatRole.Tool, ordered, source?.CreatedAt ?? message.CreatedAt, TurnSuffix: source?.TurnSuffix));
             i = next - 1;
         }
 
@@ -482,7 +519,8 @@ public sealed class ConversationService
         if (result.Count > 0 && result[^1].Role == message.Role && message.Role != ChatRole.Tool)
         {
             var previous = result[^1];
-            result[^1] = previous with { Content = [.. previous.Content, .. message.Content] };
+            // 合併後的指示以最後一則為準：中間的使用者訊息之間沒有（存檔的）助理訊息，沒有 thinking 區塊綁在它們後面
+            result[^1] = previous with { Content = [.. previous.Content, .. message.Content], TurnSuffix = message.TurnSuffix };
         }
         else
         {

@@ -38,11 +38,16 @@ public class ConversationMemoryTests
     /// <summary>可指定 <see cref="ToolDescriptor.RequiresMemory"/> 的最小工具。</summary>
     private sealed class ProbeTool(string name, bool requiresMemory) : ToolBase<NoArgs>
     {
+        public int Calls { get; private set; }
+
         public override ToolDescriptor Descriptor { get; } =
             new(name, "探測", "測試用。", ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(5), RequiresMemory: requiresMemory);
 
-        protected override Task<ToolResult> InvokeAsync(NoArgs args, ToolContext context, CancellationToken ct) =>
-            Task.FromResult(ToolResult.Ok("ok"));
+        protected override Task<ToolResult> InvokeAsync(NoArgs args, ToolContext context, CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(ToolResult.Ok("ok"));
+        }
     }
 
     private static IEnumerable<string> ToolNames(ChatRequest request) => request.Tools?.Select(t => t.Descriptor.Name) ?? [];
@@ -109,7 +114,7 @@ public class ConversationMemoryTests
     }
 
     [Fact]
-    public async Task MemoryChangedMidTurn_NextProviderCallReflectsIt()
+    public async Task MemoryChangedMidTurn_SystemStaysFrozen_AndTheNewMemoryRidesOnTheNextMessage()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
@@ -132,13 +137,90 @@ public class ConversationMemoryTests
         Assert.Equal(2, provider.Requests.Count);
         Assert.Contains("[m1] [本人] 舊的記憶", provider.Requests[0].System);
         Assert.DoesNotContain("剛剛存的記憶", provider.Requests[0].System);
-        Assert.Contains("[m1] [本人] 舊的記憶", provider.Requests[1].System);
-        Assert.Contains("[m2] [本人] 剛剛存的記憶", provider.Requests[1].System);
+        // thinking 簽章綁定 system：同一則對話裡 system 一個字都不能變，新的記憶改附在下一則（工具結果）訊息後面
+        Assert.Equal(provider.Requests[0].System, provider.Requests[1].System);
+        Assert.DoesNotContain("剛剛存的記憶", provider.Requests[1].System);
+        Assert.DoesNotContain("<lumi_system_update>", provider.Requests[0].TurnSuffix ?? "");
+        var update = SystemPromptUpdate.LastIn([provider.Requests[1].TurnSuffix]);
+        Assert.NotNull(update);
+        Assert.Contains("[m1] [本人] 舊的記憶", update);
+        Assert.Contains("[m2] [本人] 剛剛存的記憶", update);
         Assert.Equal(2, memory.ActiveReads);
+
+        // 更新跟著那則工具結果訊息存檔；之後的請求原樣帶著它，而且不會再重複附加
+        var toolMessage = Assert.Single(provider.Requests[1].Messages, m => m.Role == ChatRole.Tool);
+        Assert.Contains("[m2] [本人] 剛剛存的記憶", toolMessage.TurnSuffix);
     }
 
     [Fact]
-    public async Task MemoryTools_AreOfferedOnlyWhenMemoryIsEnabled()
+    public async Task AnUpdateIsNotRepeated_UntilTheSystemChangesAgain()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("新對話");
+        var memory = new FakeMemoryStore { Items = { Item(1, "舊的記憶") } };
+        var provider = new SequenceChatProvider(
+            SequenceChatProvider.Answer("一"), SequenceChatProvider.Answer("二"), SequenceChatProvider.Answer("三"), SequenceChatProvider.Answer("四"));
+        var service = Service(provider, store, new FakeModelCatalog(), memory);
+
+        await Collect(service.SendAsync(conversation.Id, "一"));
+        memory.Items.Add(Item(2, "新增的記憶"));
+        await Collect(service.SendAsync(conversation.Id, "二"));   // 這一則附上更新
+        await Collect(service.SendAsync(conversation.Id, "三"));   // 沒有變：不再附
+        memory.Items.Add(Item(3, "第二次新增"));
+        await Collect(service.SendAsync(conversation.Id, "四"));   // 又變了：再附一次（最新的完整內容）
+
+        var users = (await store.GetMessagesAsync(conversation.Id)).Where(m => m.Role == ChatRole.User).Select(m => m.TurnSuffix ?? "").ToList();
+        Assert.DoesNotContain("<lumi_system_update>", users[0]);
+        Assert.Contains("新增的記憶", users[1]);
+        Assert.DoesNotContain("<lumi_system_update>", users[2]);
+        Assert.Contains("第二次新增", users[3]);
+        Assert.All(provider.Requests, r => Assert.Equal(provider.Requests[0].System, r.System));
+        // 第四次請求裡，前面每一則還帶著當時的內容
+        Assert.Equal(users, provider.Requests[3].Messages.Where(m => m.Role == ChatRole.User).Select(m => m.TurnSuffix ?? ""));
+    }
+
+    [Fact]
+    public async Task ANewConversation_StartsWithTheCurrentSystem()
+    {
+        var store = new InMemoryConversationStore();
+        var first = await store.CreateAsync("一");
+        var second = await store.CreateAsync("二");
+        var memory = new FakeMemoryStore { Items = { Item(1, "舊的記憶") } };
+        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("一"), SequenceChatProvider.Answer("二"));
+        var service = Service(provider, store, new FakeModelCatalog(), memory);
+
+        await Collect(service.SendAsync(first.Id, "嗨"));
+        memory.Items.Add(Item(2, "新的記憶"));
+        await Collect(service.SendAsync(second.Id, "嗨"));
+
+        Assert.DoesNotContain("新的記憶", provider.Requests[0].System);
+        Assert.Contains("新的記憶", provider.Requests[1].System);   // 新對話從現在的記憶開始，不需要更新區塊
+        Assert.DoesNotContain("<lumi_system_update>", provider.Requests[1].TurnSuffix ?? "");
+    }
+
+    [Fact]
+    public async Task MemoryTools_AreAlwaysOffered_ButRefusedWhenMemoryIsOff()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("新對話");
+        var provider = new SequenceChatProvider(
+            SequenceChatProvider.ToolCalls(new ToolUseBlock("t1", "memory_probe", "{}")), SequenceChatProvider.Answer("好"));
+        var catalog = new FakeModelCatalog();
+        await catalog.SetMemoryEnabledAsync(false);
+        var probe = new ProbeTool("memory_probe", requiresMemory: true);
+
+        var events = await Collect(Service(provider, store, catalog, new FakeMemoryStore(), [probe]).SendAsync(conversation.Id, "記住"));
+
+        Assert.Equal(["memory_probe"], ToolNames(provider.Requests[0]));   // 開關不能讓工具清單改變
+        var result = Assert.Single(events.OfType<ToolCallCompleted>()).Result;
+        Assert.True(result.IsError);
+        Assert.Contains("長期記憶已在設定裡關閉", result.Content);
+        Assert.Equal(0, probe.Calls);
+        Assert.IsType<Completed>(events[^1]);
+    }
+
+    [Fact]
+    public async Task TurningMemoryOffMidConversation_NeverChangesTheToolList_AndTheSystemChangeRidesAsAnUpdate()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
@@ -152,11 +234,13 @@ public class ConversationMemoryTests
         await Collect(service.SendAsync(conversation.Id, "再一次"));
 
         Assert.Equal(["memory_probe", "plain_probe"], ToolNames(provider.Requests[0]));
-        Assert.Equal(["plain_probe"], ToolNames(provider.Requests[1]));
+        Assert.Equal(["memory_probe", "plain_probe"], ToolNames(provider.Requests[1]));
+        Assert.Equal(provider.Requests[0].System, provider.Requests[1].System);
+        Assert.Contains("<lumi_system_update>", provider.Requests[1].TurnSuffix);   // 記憶關閉後 system 該有的樣子，附在新訊息後面
     }
 
     [Fact]
-    public async Task MemoryTools_AreOfferedOnlyWhenMemoryIsEnabled_NoStoreStillFiltersByTheSetting()
+    public async Task MemoryOff_WithoutAStore_StillSendsTheToolDefinitions()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
@@ -167,6 +251,6 @@ public class ConversationMemoryTests
 
         await Collect(Service(provider, store, catalog, memory: null, tools).SendAsync(conversation.Id, "嗨"));
 
-        Assert.Equal(["plain_probe"], ToolNames(Assert.Single(provider.Requests)));
+        Assert.Equal(["memory_probe", "plain_probe"], ToolNames(Assert.Single(provider.Requests)));
     }
 }

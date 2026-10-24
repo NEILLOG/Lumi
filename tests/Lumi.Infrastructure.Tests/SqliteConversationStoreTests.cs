@@ -165,6 +165,91 @@ public sealed class SqliteConversationStoreTests : IDisposable
         Assert.True(SqliteSchema.LatestVersion >= 5);
 
     [Fact]
+    public async Task TurnSuffix_IsStoredWithTheMessage_CanBeUpdated_AndOldMessagesHaveNone()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("模式指示");
+        var user = Message(ChatRole.User, new TextBlock("嗨")) with { TurnSuffix = "<lumi_mode>\nA\n</lumi_mode>" };
+        var plain = Message(ChatRole.User, new TextBlock("沒有指示"));
+        await store.AppendMessageAsync(conversation.Id, user);
+        await store.AppendMessageAsync(conversation.Id, plain);
+
+        await store.SetTurnSuffixAsync(conversation.Id, plain.Id, "<lumi_mode>\nB\n</lumi_mode>");
+        await store.SetTurnSuffixAsync(conversation.Id, "不存在的訊息", "不該出現");   // 找不到就什麼都不做
+
+        var messages = await NewStore().GetMessagesAsync(conversation.Id);   // 重開之後仍在
+        Assert.Equal("<lumi_mode>\nA\n</lumi_mode>", messages[0].TurnSuffix);
+        Assert.Equal("<lumi_mode>\nB\n</lumi_mode>", messages[1].TurnSuffix);
+
+        await store.SetTurnSuffixAsync(conversation.Id, plain.Id, null);
+        Assert.Null((await store.GetMessagesAsync(conversation.Id))[1].TurnSuffix);
+    }
+
+    [Fact]
+    public async Task SystemPrompt_IsRememberedPerConversation_AndOldConversationsHaveNone()
+    {
+        var store = NewStore();
+        var first = await store.CreateAsync("一");
+        var second = await store.CreateAsync("二");
+        Assert.Null(await store.GetSystemPromptAsync(first.Id));   // 還沒送過
+
+        await store.SetSystemPromptAsync(first.Id, "基底\n\n人設");
+
+        Assert.Equal("基底\n\n人設", await NewStore().GetSystemPromptAsync(first.Id));   // 重開之後仍在
+        Assert.Null(await store.GetSystemPromptAsync(second.Id));
+        Assert.Null(await store.GetSystemPromptAsync("不存在"));
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion7_AddsSystemPrompt_AndKeepsConversations()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("M15 之前的資料");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("舊訊息")) with { TurnSuffix = "指示" });
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 7;";
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var reopened = NewStore();
+
+        Assert.Equal("指示", Assert.Single(await reopened.GetMessagesAsync(conversation.Id)).TurnSuffix);
+        Assert.Null(await reopened.GetSystemPromptAsync(conversation.Id));   // 舊對話：下一次送出時才記
+        using var check = new SqliteConnection($"Data Source={DatabasePath}");
+        check.Open();
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion6_AddsTurnSuffix_AndKeepsMessages()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("M14 的資料");
+        await store.AppendMessageAsync(conversation.Id, Message(ChatRole.User, new TextBlock("舊訊息")));
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 6;";   // 模擬 migration 7 之前的資料庫
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var messages = await NewStore().GetMessagesAsync(conversation.Id);
+
+        var message = Assert.Single(messages);
+        Assert.Equal("舊訊息", Assert.IsType<TextBlock>(message.Content[0]).Text);
+        Assert.Null(message.TurnSuffix);   // 舊訊息當時沒存，之後也不補
+        using var check = new SqliteConnection($"Data Source={DatabasePath}");
+        check.Open();
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
+    }
+
+    [Fact]
     public async Task UpgradeFromVersion4_AddsScheduledItems_AndKeepsConversations()
     {
         var store = NewStore();
@@ -175,7 +260,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 5 之前建立的資料庫：沒有 scheduled_items，版本是 4
-            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -202,7 +287,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 4 之前建立的資料庫：沒有 search_text 與 app_meta，版本是 3
-            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -231,7 +316,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -287,7 +372,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

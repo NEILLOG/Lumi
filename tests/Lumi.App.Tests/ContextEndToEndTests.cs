@@ -146,7 +146,7 @@ public sealed class ContextEndToEndTests : IDisposable
     }
 
     [Fact]
-    public async Task RemovingTheFolder_TakesTheToolsAway_ButTheSnapshotStaysInTheHistory()
+    public async Task RemovingTheFolder_KeepsTheToolDefinitions_AndTheSnapshotStaysInTheHistory()
     {
         Write("專案/a.txt", "內容");
         var conversation = await _db.CreateAsync("c");
@@ -158,7 +158,7 @@ public sealed class ContextEndToEndTests : IDisposable
         await _db.RemoveAsync(conversation.Id, item.Id);
         await Run(service.SendAsync(conversation.Id, "還記得嗎"));
 
-        Assert.Null(provider.Requests[1].Tools);   // 範圍沒了：不送檔案工具
+        Assert.Equal(provider.Requests[0].Tools!.Select(t => t.Descriptor.Name), provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));   // 範圍沒了，工具清單不變
         Assert.Contains(provider.Requests[1].Messages[0].Content, b => b is ContextBlock);   // 之前的快照還在歷史裡
     }
 

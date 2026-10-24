@@ -136,7 +136,7 @@ public class ConversationPromptTests
     }
 
     [Fact]
-    public async Task PersonaChange_IsPickedUpOnTheNextRequest()
+    public async Task PersonaChange_IsPickedUpOnTheNextRequest_ThroughAnUpdateBlock()
     {
         var store = new InMemoryConversationStore();
         var conversation = await store.CreateAsync("新對話");
@@ -149,8 +149,11 @@ public class ConversationPromptTests
         await Collect(service.SendAsync(conversation.Id, "再一次"));
 
         Assert.DoesNotContain("叫我 Neil", provider.Requests[0].System);
-        Assert.Contains("專業精簡", provider.Requests[1].System);
-        Assert.Contains("叫我 Neil", provider.Requests[1].System);
+        // system 在一則對話內固定；新的人設改以更新區塊附在下一則訊息後面
+        Assert.Equal(provider.Requests[0].System, provider.Requests[1].System);
+        var update = SystemPromptUpdate.LastIn([provider.Requests[1].TurnSuffix]);
+        Assert.Contains("專業精簡", update);
+        Assert.Contains("叫我 Neil", update);
     }
 
     [Fact]
@@ -166,6 +169,68 @@ public class ConversationPromptTests
         Assert.Equal(2, provider.Requests.Count);
         Assert.All(provider.Requests, r => Assert.StartsWith("<lumi_mode>\n目前模式：小精靈", r.TurnSuffix));
         Assert.Equal(ChatRole.Tool, provider.Requests[1].Messages[^1].Role);
+    }
+
+    [Fact]
+    public async Task TurnSuffix_IsStoredOnTheLastMessage_AndReplayedUnchangedInLaterRequests_EvenAfterAModeSwitch()
+    {
+        // thinking 簽章綁定它之前的全部內容：第一次請求附在最後一則的指示，之後每次請求都要原樣在那一則裡
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("新對話");
+        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("一"), SequenceChatProvider.Answer("二"), SequenceChatProvider.Answer("三"));
+        var service = Service(provider, store, new FakeModelCatalog());
+
+        await Collect(service.SendAsync(conversation.Id, "第一則", mode: ChatMode.Workbench));
+        await Collect(service.SendAsync(conversation.Id, "第二則", mode: ChatMode.Sprite));
+        await Collect(service.SendAsync(conversation.Id, "第三則", mode: ChatMode.Workbench));
+
+        var first = provider.Requests[0].TurnSuffix;
+        var second = provider.Requests[1].TurnSuffix;
+        Assert.NotEqual(first, second);   // 兩種模式的指示不同
+        Assert.StartsWith("<lumi_mode>\n目前模式：工作台", first);
+
+        var stored = (await store.GetMessagesAsync(conversation.Id)).Where(m => m.Role == ChatRole.User).ToList();
+        Assert.Equal([first, second, provider.Requests[2].TurnSuffix], stored.Select(m => m.TurnSuffix));
+
+        // 第三次請求裡，前兩則使用者訊息還帶著當初送出時的指示
+        var users = provider.Requests[2].Messages.Where(m => m.Role == ChatRole.User).ToList();
+        Assert.Equal([first, second, provider.Requests[2].TurnSuffix], users.Select(m => m.TurnSuffix));
+        // 助理訊息本身沒有
+        Assert.All(provider.Requests[2].Messages.Where(m => m.Role == ChatRole.Assistant), m => Assert.Null(m.TurnSuffix));
+    }
+
+    [Fact]
+    public async Task TurnSuffix_InAToolLoop_StaysOnTheUserMessageAndTheToolResultMessage()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("新對話");
+        var provider = new SequenceChatProvider(
+            SequenceChatProvider.ToolCalls(new ToolUseBlock("t1", "echo", """{"text":"嗨"}""")),
+            SequenceChatProvider.ToolCalls(new ToolUseBlock("t2", "echo", """{"text":"再"}""")),
+            SequenceChatProvider.Answer("好"));
+
+        await Collect(Service(provider, store, new FakeModelCatalog(), tools: [new FakeTool()]).SendAsync(conversation.Id, "嗨", mode: ChatMode.Sprite));
+
+        // 第三次請求：使用者訊息、第一個工具結果訊息都還帶著當時的指示（第二個工具結果是最後一則，帶這一次的）
+        var messages = provider.Requests[2].Messages;
+        Assert.All(messages.Where(m => m.Role is ChatRole.User or ChatRole.Tool), m => Assert.StartsWith("<lumi_mode>\n目前模式：小精靈", m.TurnSuffix));
+        Assert.Equal(2, messages.Count(m => m.Role == ChatRole.Tool));
+    }
+
+    [Fact]
+    public async Task Retry_ReplacesTheLastMessagesSuffix_BecauseNothingIsBoundToItYet()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("新對話");
+        var provider = new SequenceChatProvider(
+            [new Failed(new ChatFailure(ChatFailureKind.Network, "斷線", Retryable: true))], SequenceChatProvider.Answer("好"));
+        var service = Service(provider, store, new FakeModelCatalog());
+
+        await Collect(service.SendAsync(conversation.Id, "嗨", mode: ChatMode.Workbench));
+        await Collect(service.RetryAsync(conversation.Id, mode: ChatMode.Sprite));
+
+        var user = Assert.Single(await store.GetMessagesAsync(conversation.Id), m => m.Role == ChatRole.User);
+        Assert.StartsWith("<lumi_mode>\n目前模式：小精靈", user.TurnSuffix);
     }
 
     [Fact]

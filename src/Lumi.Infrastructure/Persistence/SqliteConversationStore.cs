@@ -162,7 +162,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, role, status, model_id, content_json,
-                   input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at
+                   input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at, turn_suffix
             FROM messages WHERE conversation_id = $conversation ORDER BY seq;
             """;
         command.Parameters.AddWithValue("$conversation", conversationId);
@@ -183,7 +183,8 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
                 CreatedAt: ParseTime(reader.GetString(9)),
                 Status: ParseStatus(reader.GetString(2)),
                 ModelId: reader.IsDBNull(3) ? null : reader.GetString(3),
-                Usage: usage));
+                Usage: usage,
+                TurnSuffix: reader.IsDBNull(10) ? null : reader.GetString(10)));
         }
         return messages;
     }
@@ -198,9 +199,9 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
             insert.Transaction = transaction;
             insert.CommandText = """
                 INSERT INTO messages (id, conversation_id, seq, role, status, model_id, content_json,
-                                      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at, search_text)
+                                      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at, search_text, turn_suffix)
                 SELECT $id, $conversation, COALESCE(MAX(seq), 0) + 1, $role, $status, $model, $content,
-                       $input, $output, $cacheCreation, $cacheRead, $created, $search
+                       $input, $output, $cacheCreation, $cacheRead, $created, $search, $suffix
                 FROM messages WHERE conversation_id = $conversation;
                 """;
             insert.Parameters.AddWithValue("$id", message.Id);
@@ -215,6 +216,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
             insert.Parameters.AddWithValue("$cacheRead", (object?)message.Usage?.CacheReadInputTokens ?? DBNull.Value);
             insert.Parameters.AddWithValue("$created", FormatTime(message.CreatedAt));
             insert.Parameters.AddWithValue("$search", SearchTextExtractor.Extract(message.Content));
+            insert.Parameters.AddWithValue("$suffix", (object?)message.TurnSuffix ?? DBNull.Value);
             await insert.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
@@ -228,6 +230,36 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         }
 
         await transaction.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<string?> GetSystemPromptAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT system_prompt FROM conversations WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", conversationId);
+        return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
+    public async Task SetSystemPromptAsync(string conversationId, string systemPrompt, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE conversations SET system_prompt = $system WHERE id = $id;";
+        command.Parameters.AddWithValue("$system", systemPrompt);
+        command.Parameters.AddWithValue("$id", conversationId);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task SetTurnSuffixAsync(string conversationId, string messageId, string? turnSuffix, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE messages SET turn_suffix = $suffix WHERE id = $id AND conversation_id = $conversation;";
+        command.Parameters.AddWithValue("$suffix", (object?)turnSuffix ?? DBNull.Value);
+        command.Parameters.AddWithValue("$id", messageId);
+        command.Parameters.AddWithValue("$conversation", conversationId);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     public async Task RenameAsync(string conversationId, string title, CancellationToken ct = default)

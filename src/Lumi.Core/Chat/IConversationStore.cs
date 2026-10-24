@@ -38,6 +38,21 @@ public interface IConversationStore
     Task AppendMessageAsync(string conversationId, ChatMessage message, CancellationToken ct = default);
 
     /// <summary>
+    /// 記下送出這則訊息時附在後面的模式指示（<see cref="ChatMessage.TurnSuffix"/>）。只在它還是對話最後一則時呼叫
+    /// （之後的訊息已經綁在它上面，不能再改）；訊息不存在就什麼都不做。預設什麼都不做，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task SetTurnSuffixAsync(string conversationId, string messageId, string? turnSuffix, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>
+    /// 這則對話第一次送出時用的 system prompt；之後整則對話都送它（<see cref="Prompts.SystemPromptUpdate"/>）。還沒記過回 null。
+    /// 預設不存（永遠回 null），只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task<string?> GetSystemPromptAsync(string conversationId, CancellationToken ct = default) => Task.FromResult<string?>(null);
+
+    /// <summary>記下這則對話的 system prompt。只在第一次送出時呼叫一次，之後不再改。預設什麼都不做。</summary>
+    Task SetSystemPromptAsync(string conversationId, string systemPrompt, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>
     /// 移除最後一則訊息（「重新產生」用）。從尾端移除不會讓前面任何一則的內容改變，所以不影響 thinking 簽章的一致性；
     /// 對話的更新時間不變，之後再加訊息時順序號接著剩下的最後一則。
     /// </summary>
