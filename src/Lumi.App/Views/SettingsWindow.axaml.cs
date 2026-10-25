@@ -23,6 +23,7 @@ public partial class SettingsWindow : Window
         PaletteBox.AddHandler(KeyDownEvent, OnPaletteKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // 分段切換（連線／模型設定）是單選群組：Tab 只停在已選的那一段，方向鍵換段
         TabSwitchPanel.AddHandler(KeyDownEvent, OnSegmentKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        ToolsTabSwitchPanel.AddHandler(KeyDownEvent, OnSegmentKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);   // 工具：工具清單／MCP 伺服器（M16）
         UpdateSegmentTabStop();
         // 筆記資料夾（M10 10B）：沒有儲存鈕，Enter 或離開欄位時套用
         NotesFolderBox.KeyDown += OnNotesFolderKeyDown;
@@ -49,7 +50,7 @@ public partial class SettingsWindow : Window
         {
             if (e.PropertyName == nameof(SettingsViewModel.ShowSprite))
                 UpdatePreviewRunning();
-            else if (e.PropertyName == nameof(SettingsViewModel.TabIndex))
+            else if (e.PropertyName is nameof(SettingsViewModel.TabIndex) or nameof(SettingsViewModel.ToolsTabIndex))
                 UpdateSegmentTabStop();
         };
         _preview.Show(viewModel.Sprite.PreviewFactory);
@@ -61,20 +62,26 @@ public partial class SettingsWindow : Window
         Closed += (_, _) => viewModel.Memory.Dispose();
     }
 
-    private IReadOnlyList<RadioButton> Segments => [TabConnections, TabModels];
+    private static IReadOnlyList<RadioButton> SegmentsOf(Panel panel) => panel.Children.OfType<RadioButton>().ToList();
 
-    /// <summary>Tab 進入分段切換時落在已選的那一段（沒有選取時落在第一段）。</summary>
+    /// <summary>Tab 進入分段切換時落在已選的那一段（沒有選取時落在第一段）。兩組分段：AI 連線（連線／模型設定）、工具（工具清單／MCP 伺服器）。</summary>
     private void UpdateSegmentTabStop()
     {
-        var current = Segments.FirstOrDefault(s => s.IsChecked == true) ?? Segments[0];
-        KeyboardNavigation.SetTabOnceActiveElement(TabSwitchPanel, current);
+        foreach (var panel in new Panel[] { TabSwitchPanel, ToolsTabSwitchPanel })
+        {
+            var segments = SegmentsOf(panel);
+            var current = segments.FirstOrDefault(s => s.IsChecked == true) ?? segments[0];
+            KeyboardNavigation.SetTabOnceActiveElement(panel, current);
+        }
     }
 
     private void OnSegmentKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.KeyModifiers != KeyModifiers.None || e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down))
             return;
-        var segments = Segments;
+        if (sender is not Panel panel)
+            return;
+        var segments = SegmentsOf(panel);
         var index = segments.ToList().FindIndex(s => s.IsFocused);
         if (index < 0)
             return;

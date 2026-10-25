@@ -126,7 +126,7 @@
         </Border>
 
         <!-- 表單 -->
-        <Border x:Name="DetailCard" Classes="card" Padding="24" IsVisible="{Binding HasEditor}">
+        <Border x:Name="McpDetailCard" Classes="card" Padding="24" IsVisible="{Binding HasEditor}">
           <Grid RowDefinitions="Auto,*,Auto">
             <!-- 標頭：字首方塊、名稱、連線方式（Caption）、狀態 -->
             <Grid x:Name="DetailHeader" Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
@@ -160,9 +160,9 @@
                   <Border Classes="segmented" HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once">
                       <RadioButton x:Name="TransportStdio" GroupName="McpTransport" Content="{x:Static res:Strings.Mcp_TransportStdio}"
-                                   IsChecked="{Binding IsStdio, Mode=TwoWay}" />
+                                   IsChecked="{Binding TransportIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
                       <RadioButton x:Name="TransportHttp" GroupName="McpTransport" Content="{x:Static res:Strings.Mcp_TransportHttp}"
-                                   IsChecked="{Binding IsHttp, Mode=TwoWay}" />
+                                   IsChecked="{Binding TransportIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
                     </StackPanel>
                   </Border>
                 </ctl:FormField>

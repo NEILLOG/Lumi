@@ -519,6 +519,8 @@ public static class Strings
     public static string Memory_ClearAllQuestion => Get(nameof(Memory_ClearAllQuestion));
     public static string Memory_Cleared => Get(nameof(Memory_Cleared));
     public static string Memory_LoadFailed => Get(nameof(Memory_LoadFailed));
+    public static string Tools_TabList => Get(nameof(Tools_TabList));
+    public static string Tools_TabMcp => Get(nameof(Tools_TabMcp));
     public static string Tools_MenuTitle => Get(nameof(Tools_MenuTitle));
     public static string Tools_MenuSubtitle => Get(nameof(Tools_MenuSubtitle));
     public static string Tools_HeaderEyebrow => Get(nameof(Tools_HeaderEyebrow));

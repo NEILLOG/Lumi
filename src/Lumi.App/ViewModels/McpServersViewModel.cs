@@ -27,7 +27,7 @@ public partial class McpServersViewModel : ObservableObject
     /// <summary>所有依表單內容計算的屬性；變更時一併通知畫面。</summary>
     private static readonly string[] ComputedNames =
     [
-        nameof(IsHttp), nameof(NameError), nameof(CommandError), nameof(UrlError), nameof(TransportError), nameof(KeyError),
+        nameof(IsHttp), nameof(TransportIndex), nameof(NameError), nameof(CommandError), nameof(UrlError), nameof(TransportError), nameof(KeyError),
         nameof(TimeoutError), nameof(HasFieldErrors), nameof(AdvancedHasError), nameof(CanSave), nameof(IsDirty),
         nameof(HasEditor), nameof(ShowPlaceholder), nameof(IsNew), nameof(HeaderTitle), nameof(HeaderInitial),
         nameof(HeaderSubtitle), nameof(HasEditorStatus), nameof(EditorStatusText), nameof(EditorIsReady),
@@ -168,10 +168,14 @@ public partial class McpServersViewModel : ObservableObject
     [ObservableProperty]
     private bool _alsoInSprite;
 
-    public bool IsHttp
+    public bool IsHttp => !IsStdio;
+
+    /// <summary>連線方式的分段切換用：0 = 本機指令、1 = 遠端 HTTP。分段的兩個 RadioButton 綁這一個整數（<c>TabIndexConverter</c>），
+    /// 不能各綁一個布林屬性——兩邊互相回寫會無限迴圈。</summary>
+    public int TransportIndex
     {
-        get => !IsStdio;
-        set => IsStdio = !value;
+        get => IsStdio ? 0 : 1;
+        set => IsStdio = value == 0;
     }
 
     // ---- 驗證（規則與文字在 McpServerRules，這裡只接上） ----

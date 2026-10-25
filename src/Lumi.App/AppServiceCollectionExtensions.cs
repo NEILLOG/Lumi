@@ -34,6 +34,7 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<ConnectionsViewModel>();
         services.AddTransient<ModelsViewModel>();
         services.AddTransient<PersonaViewModel>();
+        services.AddTransient<McpServersViewModel>();   // MCP 伺服器（M16 16F）
         services.AddTransient<ToolsViewModel>();    // 工具清單（M15 15D）
         services.AddTransient<MemoryViewModel>();   // 記憶（M14 14D）
         services.AddTransient<GeneralViewModel>();

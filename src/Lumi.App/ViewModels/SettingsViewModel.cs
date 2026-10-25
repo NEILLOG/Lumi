@@ -12,7 +12,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
-        ToolsViewModel tools, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
@@ -20,6 +20,7 @@ public partial class SettingsViewModel : ObservableObject
         Persona = persona;
         Memory = memory;
         Tools = tools;
+        McpServers = mcpServers;
         General = general;
         Sprite = sprite;
         Speech = speech;
@@ -39,6 +40,9 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>「工具」分類（M15）。</summary>
     public ToolsViewModel Tools { get; }
+
+    /// <summary>「工具」分類裡的「MCP 伺服器」分段（M16 16F）。</summary>
+    public McpServersViewModel McpServers { get; }
 
     public GeneralViewModel General { get; }
 
@@ -64,6 +68,14 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>分段切換「模型設定」被選取（頁首的主要動作是「新增模型設定」）。</summary>
     public bool ShowModelsTab => TabIndex == 1;
+
+    /// <summary>「工具」內的分段：0 = 工具清單、1 = MCP 伺服器（M16）。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowToolsListTab), nameof(ShowMcpTab))]
+    private int _toolsTabIndex;
+
+    public bool ShowToolsListTab => ToolsTabIndex == 0;
+
+    public bool ShowMcpTab => ToolsTabIndex == 1;
 
     public bool ShowConnectionsAndModels => CategoryIndex == 0;
 
@@ -91,7 +103,7 @@ public partial class SettingsViewModel : ObservableObject
             await _windows.ReturnToWorkbench();
     }
 
-    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty || Speech.IsDirty;
+    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty || Speech.IsDirty || McpServers.IsDirty;
 
     public async Task NavigateAsync(SettingsNavigation navigation)
     {
@@ -102,6 +114,11 @@ public partial class SettingsViewModel : ObservableObject
                 break;
             case SettingsSection.Tools:
                 CategoryIndex = 3;
+                ToolsTabIndex = 0;
+                break;
+            case SettingsSection.McpServers:
+                CategoryIndex = 3;
+                ToolsTabIndex = 1;
                 break;
             case SettingsSection.General:
                 CategoryIndex = 4;

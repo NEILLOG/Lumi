@@ -448,13 +448,41 @@
       </Grid>
 
       <!-- ===== 工具：頁首（沒有主要動作）→ 面板（說明、群組、恢復預設）。面板自己捲動 ===== -->
-      <Grid x:Name="ToolsPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowTools}" Margin="32">
+      <Grid x:Name="ToolsPage" Grid.Row="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding ShowTools}" Margin="32">
         <views:SettingsPageHeader x:Name="ToolsHeader" Grid.Row="0"
                                   Eyebrow="{x:Static res:Strings.Tools_HeaderEyebrow}"
                                   Title="{x:Static res:Strings.Tools_HeaderTitle}"
-                                  Description="{x:Static res:Strings.Tools_HeaderDescription}" />
+                                  Description="{x:Static res:Strings.Tools_HeaderDescription}">
+          <views:SettingsPageHeader.Actions>
+            <!-- 工具清單分段沒有主要動作；MCP 伺服器分段是「新增伺服器」（這一區唯一的 Primary） -->
+            <Button x:Name="NewMcpServerButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    IsVisible="{Binding ShowMcpTab}" Command="{Binding McpServers.HeaderPrimaryActionCommand}"
+                    AutomationProperties.Name="{x:Static res:Strings.Mcp_AddServer}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Mcp_AddServer}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </views:SettingsPageHeader.Actions>
+        </views:SettingsPageHeader>
 
-        <views:ToolsPanel x:Name="ToolsPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Tools}" />
+        <!-- 分段切換：綁 ToolsTabIndex，0 = 工具清單、1 = MCP 伺服器 -->
+        <Border x:Name="ToolsTabSwitch" Grid.Row="1" Classes="segmented" HorizontalAlignment="Left" Margin="0,24,0,0">
+          <StackPanel x:Name="ToolsTabSwitchPanel" Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once"
+                      AutomationProperties.Name="{x:Static res:Strings.Settings_TabsName}">
+            <RadioButton x:Name="TabToolsList" GroupName="ToolsTabs" Content="{x:Static res:Strings.Tools_TabList}"
+                         IsChecked="{Binding ToolsTabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
+            <RadioButton x:Name="TabToolsMcp" GroupName="ToolsTabs" Content="{x:Static res:Strings.Tools_TabMcp}"
+                         IsChecked="{Binding ToolsTabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
+          </StackPanel>
+        </Border>
+
+        <Panel Grid.Row="2" Margin="0,24,0,0" IsVisible="{Binding ShowToolsListTab}">
+          <views:ToolsPanel x:Name="ToolsPanel" DataContext="{Binding Tools}" />
+        </Panel>
+        <Panel Grid.Row="2" Margin="0,24,0,0" IsVisible="{Binding ShowMcpTab}">
+          <views:McpServersPanel x:Name="McpServersPanel" DataContext="{Binding McpServers}" />
+        </Panel>
       </Grid>
 
       <!-- ===== 外觀與操作：主題色票（五張可選取的小卡片）→ 分隔線 → 明暗 ===== -->

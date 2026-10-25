@@ -531,6 +531,8 @@
   <data name="Memory_ClearAllQuestion" xml:space="preserve"><value>忘掉全部 {0} 則記憶？清除後無法復原。</value></data>
   <data name="Memory_Cleared" xml:space="preserve"><value>已清除 {0} 則記憶。</value></data>
   <data name="Memory_LoadFailed" xml:space="preserve"><value>讀取記憶失敗，請再試一次。</value></data>
+  <data name="Tools_TabList" xml:space="preserve"><value>工具清單</value></data>
+  <data name="Tools_TabMcp" xml:space="preserve"><value>MCP 伺服器</value></data>
   <data name="Tools_MenuTitle" xml:space="preserve"><value>工具</value></data>
   <data name="Tools_MenuSubtitle" xml:space="preserve"><value>能用的工具與確認方式</value></data>
   <data name="Tools_HeaderEyebrow" xml:space="preserve"><value>工具</value></data>

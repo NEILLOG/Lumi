@@ -127,7 +127,7 @@ public sealed class McpServersViewModelTests
     {
         var vm = Create();
         await vm.NewServerCommand.ExecuteAsync(null);
-        vm.IsHttp = true;
+        vm.IsStdio = false;
         vm.Name = "知識庫";
 
         vm.Url = "http://kb.corp/mcp";
