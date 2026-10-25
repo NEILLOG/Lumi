@@ -17,6 +17,7 @@ namespace Lumi.Core.Chat;
 /// 助理要呼叫工具時進入工具迴圈：確認權限、執行、存結果、再次送出，直到不再呼叫工具或達到次數上限。
 /// 事件與 <see cref="IChatProvider"/> 的約定相同，另外一輪可以有多個 <see cref="Completed"/>（每次供應商呼叫一個）；
 /// 取消時丟 <see cref="OperationCanceledException"/>。
+/// 工具清單在一則對話內固定（M15 D1）：第一次送出時記下工具定義的快照，之後這則對話一律送快照。
 /// </summary>
 public sealed class ConversationService
 {
@@ -28,11 +29,11 @@ public sealed class ConversationService
     private const string DeniedMessage = "使用者拒絕執行";
     private const string WrongModeMessage = "這個工具在目前模式不能使用。";
     private const string MemoryOffMessage = "長期記憶已在設定裡關閉，不能新增、修改或刪除記憶。";
+    private const string UnavailableMessage = "這個工具目前無法使用。";
 
     private readonly IChatProvider _provider;
     private readonly IConversationStore _store;
     private readonly IModelCatalog _catalog;
-    private readonly IToolRegistry _registry;
     private readonly IToolApprovalService _approvals;
     private readonly ToolPermissionMemory _memory;
     private readonly ToolLoopOptions _options;
@@ -45,6 +46,7 @@ public sealed class ConversationService
     private readonly PromptOptions _promptOptions;
     private readonly INetworkStatus _network;
     private readonly IMemoryStore? _memoryStore;
+    private readonly IToolCatalog _toolCatalog;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -70,12 +72,12 @@ public sealed class ConversationService
         IPromptComposer? composer = null,
         PromptOptions? promptOptions = null,
         INetworkStatus? network = null,
-        IMemoryStore? memoryStore = null)
+        IMemoryStore? memoryStore = null,
+        IToolCatalog? toolCatalog = null)
     {
         _provider = provider;
         _store = store;
         _catalog = catalog;
-        _registry = registry;
         _approvals = approvals;
         _memory = memory;
         _options = options;
@@ -88,6 +90,7 @@ public sealed class ConversationService
         _promptOptions = promptOptions ?? new PromptOptions();
         _network = network ?? new AlwaysOnlineNetworkStatus();
         _memoryStore = memoryStore;
+        _toolCatalog = toolCatalog ?? new ToolCatalog(registry, catalog);
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -190,9 +193,9 @@ public sealed class ConversationService
             yield break;
         }
 
-        // 模型設定的「使用工具」關掉時，請求完全不帶工具定義。
-        // 其他情況一律帶全部工具，不依模式過濾：切換模式改變工具清單會讓整個快取失效（M5 的 Q1），模式在執行時檢查
-        var availableTools = model.Model.ToolsEnabled ? _registry.GetAll() : [];
+        // 模型設定的「使用工具」關掉時，請求完全不帶工具定義，也不記快照。
+        // 其他情況送的是這則對話的工具快照（M15 D1），不依模式過濾：切換模式改變工具清單會讓整個快取失效（M5 的 Q1），模式在執行時檢查
+        var offered = model.Model.ToolsEnabled ? await ResolveToolSnapshotAsync(conversationId, ct).ConfigureAwait(false) : [];
 
         // 小精靈的輸出上限較低；thinking 參數不因模式改變（改了訊息快取會失效，M5 的 Q4）
         int? maxOutputTokens = mode == ChatMode.Sprite ? Math.Min(model.Model.MaxOutputTokens, _promptOptions.SpriteMaxOutputTokens) : null;
@@ -204,7 +207,6 @@ public sealed class ConversationService
             var scope = _scopeFactory.Create(await _contextStore.GetAsync(conversationId, ct).ConfigureAwait(false));
             var memoryEnabled = _catalog.Current.Memory.Enabled;
             // 記憶工具也一律照送（同上：開關改變不能讓工具清單改變）；記憶關閉時執行會被擋下
-            var tools = availableTools.ToList();
             var context = new ToolContext(conversationId, mode, _time, scope);
 
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
@@ -241,7 +243,7 @@ public sealed class ConversationService
                 requestMessages = [.. requestMessages.Take(requestMessages.Count - 1), last with { TurnSuffix = turnSuffix }];
             }
 
-            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools.Select(ToolDefinition.From).ToList() : null, system, turnSuffix, maxOutputTokens);
+            var request = new ChatRequest(model, requestMessages, offered.Count > 0 ? offered : null, system, turnSuffix, maxOutputTokens);
             Completed? completed = null;
             var failed = false;
 
@@ -261,13 +263,24 @@ public sealed class ConversationService
             var stopped = false;
             foreach (var use in uses)
             {
-                var tool = tools.FirstOrDefault(t => t.Descriptor.Name == use.Name);
-                if (tool is null)
+                // 快照裡沒有的名稱：模型憑空叫的，照舊回「沒有這個工具」
+                if (!offered.Any(d => d.Name == use.Name))
                 {
                     var unknown = new ToolResultBlock(use.Id, $"沒有這個工具：{use.Name}", true, use.Name, null, "沒有這個工具", 0, ToolApproval.NotRequired);
                     yield return new ToolCallStarted(use.Id, use.Name, use.Name, ToolPermission.ReadOnly, null, use.InputJson);
                     yield return new ToolCallCompleted(use.Id, unknown);
                     results.Add(unknown);
+                    continue;
+                }
+
+                // 在快照裡、但現在找不到（程式更新後拿掉了）：回錯誤，不執行（M15 D4）
+                var tool = _toolCatalog.Find(use.Name);
+                if (tool is null)
+                {
+                    var unavailable = new ToolResultBlock(use.Id, UnavailableMessage, true, use.Name, null, "無法使用", 0, ToolApproval.NotRequired);
+                    yield return new ToolCallStarted(use.Id, use.Name, use.Name, ToolPermission.ReadOnly, null, use.InputJson);
+                    yield return new ToolCallCompleted(use.Id, unavailable);
+                    results.Add(unavailable);
                     continue;
                 }
 
@@ -308,7 +321,12 @@ public sealed class ConversationService
                 var denied = false;
                 if (descriptor.Permission != ToolPermission.ReadOnly)
                 {
-                    if (_memory.IsAllowed(conversationId, descriptor.Permission))
+                    if (IsAlwaysAllowed(descriptor))
+                    {
+                        // 設定頁的「永遠允許」：不詢問，也不記在對話裡（設定立即生效，M15 D5）
+                        approval = ToolApproval.AllowedAlways;
+                    }
+                    else if (_memory.IsAllowed(conversationId, descriptor.Permission))
                     {
                         approval = ToolApproval.AllowedForConversation;
                     }
@@ -409,6 +427,29 @@ public sealed class ConversationService
 
     private ChatFailure DecorateFailure(ChatFailure failure, ResolvedModel model) =>
         ChatFailureText.Decorate(failure, _network.HasUsableNetworkInterface(), ChatFailureText.IsLocalTarget(model.Connection.BaseUrl));
+
+    /// <summary>
+    /// 這則對話的工具定義：有快照就原樣使用；沒有就記下來。已經有助理訊息的舊對話補上「全部」工具（和過去送的一樣），
+    /// 還沒有助理訊息的新對話補上「已啟用」的工具（M15 D1、D3）。
+    /// </summary>
+    private async Task<IReadOnlyList<ToolDefinition>> ResolveToolSnapshotAsync(string conversationId, CancellationToken ct)
+    {
+        var saved = ToolSnapshotJson.Deserialize(await _store.GetToolSnapshotAsync(conversationId, ct).ConfigureAwait(false));
+        if (saved is not null)
+            return saved;
+
+        var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+        var tools = history.Any(m => m.Role == ChatRole.Assistant)
+            ? _toolCatalog.GetAll()
+            : await _toolCatalog.GetEnabledForNewConversationAsync(ct).ConfigureAwait(false);
+        var definitions = tools.Select(ToolDefinition.From).ToList();
+        await _store.SetToolSnapshotAsync(conversationId, ToolSnapshotJson.Serialize(definitions), CancellationToken.None).ConfigureAwait(false);
+        return definitions;
+    }
+
+    /// <summary>設定頁的「永遠允許」：名單裡有，而且這個工具允許設定（Write／Network 且 <see cref="ToolDescriptor.CanAlwaysAllow"/>）。</summary>
+    private bool IsAlwaysAllowed(ToolDescriptor descriptor) =>
+        _catalog.Current.Tools.AlwaysAllow.Contains(descriptor.Name, StringComparer.Ordinal) && IToolCatalog.CanAlwaysAllow(descriptor);
 
     private static ToolResultBlock StoppedResult(ToolUseBlock use, ToolDescriptor descriptor, ToolPreview preview, ToolApproval approval) =>
         new(use.Id, StoppedMessage, true, descriptor.DisplayName, preview.Target, "已停止", 0, approval);
