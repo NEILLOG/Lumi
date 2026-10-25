@@ -350,6 +350,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Notes = settings.Notes.Normalize(),
             Memory = settings.Memory.Normalize(),
             Network = settings.Network.Normalize(),
+            Browser = settings.Browser.Normalize(),
         };
     }
 
@@ -437,6 +438,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Tools = ReadTools(file.Tools),                                 // M15 加的欄位，缺少或格式錯誤時當作預設（全部啟用）
             McpServers = ReadMcpServers(file.McpServers),                  // M16 加的欄位，缺少時是空清單；單筆壞掉只跳過那一筆
             Network = ReadNetwork(file.Network),                           // M17 加的欄位，缺少或格式錯誤時用預設（Proxy 跟隨系統）
+            Browser = ReadBrowser(file.Browser),                           // M18 加的欄位，缺少或格式錯誤時用預設（自動、背景執行）
         });
         return (settings, false, null);
     }
@@ -627,6 +629,45 @@ public sealed class JsonModelCatalog : IModelCatalog
             .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal),
     };
 
+    /// <summary>
+    /// 瀏覽器設定（M18）：缺少或不是物件時用預設值（自動、背景執行）。每個欄位各自讀取，型別錯誤或不認得的值只影響那一個欄位。
+    /// </summary>
+    private BrowserSettings ReadBrowser(JsonElement? element)
+    {
+        if (element is not JsonElement el)
+        {
+            _logger.LogInformation("設定檔沒有瀏覽器設定，使用預設值");
+            return BrowserSettings.Default;
+        }
+        if (el.ValueKind != JsonValueKind.Object)
+        {
+            _logger.LogInformation("瀏覽器設定格式錯誤，改用預設值");
+            return BrowserSettings.Default;
+        }
+
+        var d = BrowserSettings.Default;
+        return new BrowserSettings
+        {
+            Choice = ReadBrowserField(el, "choice", d.Choice),
+            ShowWindow = ReadBrowserField(el, "showWindow", d.ShowWindow),
+        }.Normalize();
+    }
+
+    private T ReadBrowserField<T>(JsonElement el, string name, T fallback)
+    {
+        if (!el.TryGetProperty(name, out var value))
+            return fallback;
+        try
+        {
+            return value.Deserialize<T>(JsonOptions) ?? fallback;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "瀏覽器設定的 {Field} 格式錯誤，改用預設值", name);
+            return fallback;
+        }
+    }
+
     private (AppSettings, bool, string?) RecoverFromBrokenFile()
     {
         var brokenPath = $"{_path}.broken-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
@@ -647,7 +688,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             JsonSerializer.SerializeToElement(settings.Memory.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Tools.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.McpServers, JsonOptions),
-            JsonSerializer.SerializeToElement(settings.Network.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.Network.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Browser.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -705,5 +747,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         JsonElement? Memory = null,
         JsonElement? Tools = null,
         JsonElement? McpServers = null,
-        JsonElement? Network = null);
+        JsonElement? Network = null,
+        JsonElement? Browser = null);
 }
