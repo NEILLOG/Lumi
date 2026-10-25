@@ -8,7 +8,7 @@ namespace Lumi.Web.Proxy;
 
 /// <summary>
 /// Lumi 所有 HttpClient 共用的 <see cref="IWebProxy"/>（M17 D2）。設定頁改了網路設定，下一個請求就用新的判斷；
-/// 只有 <see cref="AppSettings.Network"/> 改變才重新建立（改主題等設定不會重新下載 PAC）。
+/// 只有 <see cref="AppSettings.Network"/> 改變才重新建立（改主題等設定不會重新下載 PAC）；驗證方式是「帳號與密碼」時例外，因為密碼不在設定裡。
 /// </summary>
 public sealed class LumiWebProxy : IWebProxy, INetworkProxyInfo, IDisposable
 {
@@ -88,7 +88,8 @@ public sealed class LumiWebProxy : IWebProxy, INetworkProxyInfo, IDisposable
     {
         lock (_gate)
         {
-            if (_disposed || NetworkEquals(_network, settings.Network)) return;
+            // 密碼存在 ISecretStore、不在設定裡：驗證方式是「帳號與密碼」時，任何設定變更都重建，只改密碼才會生效
+            if (_disposed || (NetworkEquals(_network, settings.Network) && settings.Network.Auth != ProxyAuthMode.Account)) return;
             _network = settings.Network;
             _state = BuildAsync(_network);
         }

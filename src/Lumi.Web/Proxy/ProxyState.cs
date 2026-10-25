@@ -52,7 +52,7 @@ internal sealed class ProxyState : IDisposable
         switch (settings.Mode)
         {
             case ProxyMode.Manual:
-                if (NetworkRulesStub.TryParseManualProxy(settings.ManualProxy, out var parsed))
+                if (NetworkRules.TryParseManualProxy(settings.ManualProxy, out var parsed))
                     manual = parsed;
                 else
                     problem = "手動 Proxy 位址不正確，目前直接連線。";
@@ -84,7 +84,7 @@ internal sealed class ProxyState : IDisposable
         switch (mode)
         {
             case ProxyMode.Manual:
-                if (_manualProxy is null || NetworkRulesStub.HostMatches(target.Host, _settings.BypassList))
+                if (_manualProxy is null || NetworkRules.HostMatches(target.Host, _settings.BypassList))
                     return new ProxyDecision(mode, null, Problem);
                 return new ProxyDecision(mode, _manualProxy, null);
 

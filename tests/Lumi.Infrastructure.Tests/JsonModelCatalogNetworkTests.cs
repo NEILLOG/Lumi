@@ -227,7 +227,7 @@ public sealed class JsonModelCatalogNetworkTests : IDisposable
         Assert.Equal(NetworkSettings.MaxTimeoutSeconds, NewCatalog().Current.Network.TimeoutSeconds);
     }
 
-    [Fact(Skip = "待 17A 合併後才能驗證：NetworkRules.Validate 目前是 17D 的暫時佔位（只回 null）")]
+    [Fact]
     public async Task Validation_error_throws_ArgumentException_and_changes_nothing()
     {
         var catalog = NewCatalog();

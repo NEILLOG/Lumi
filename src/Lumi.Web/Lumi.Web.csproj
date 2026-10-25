@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Proxy\PacHelpers.js" LogicalName="Lumi.Web.Proxy.PacHelpers.js" />
     <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
   </ItemGroup>
 

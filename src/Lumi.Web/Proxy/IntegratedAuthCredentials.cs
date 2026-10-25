@@ -1,5 +1,6 @@
 using System.Net;
 using Lumi.Core.Models;
+using Lumi.Core.Web;
 
 namespace Lumi.Web.Proxy;
 
@@ -16,7 +17,7 @@ public sealed class IntegratedAuthCredentials(IModelCatalog catalog) : ICredenti
             && !authType.Equals("Kerberos", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        return NetworkRulesStub.HostMatches(uri.Host, catalog.Current.Network.IntegratedAuthSites)
+        return NetworkRules.HostMatches(uri.Host, catalog.Current.Network.IntegratedAuthSites)
             ? CredentialCache.DefaultNetworkCredentials
             : null;
     }
