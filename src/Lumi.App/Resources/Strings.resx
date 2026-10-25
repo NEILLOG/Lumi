@@ -562,4 +562,57 @@
   <data name="Tools_ResetBlocked" xml:space="preserve"><value>目前已是預設</value></data>
   <data name="Tools_SaveFailed" xml:space="preserve"><value>儲存失敗：{0}</value></data>
   <data name="Tool_ApprovedAlways" xml:space="preserve"><value>已允許（永遠允許）</value></data>
+  <data name="Mcp_ListTitle" xml:space="preserve"><value>我的伺服器 · {0}</value></data>
+  <data name="Mcp_AddServer" xml:space="preserve"><value>新增伺服器</value></data>
+  <data name="Mcp_NewName" xml:space="preserve"><value>新伺服器</value></data>
+  <data name="Mcp_Import" xml:space="preserve"><value>從 JSON 匯入</value></data>
+  <data name="Mcp_TransportLabel" xml:space="preserve"><value>連線方式</value></data>
+  <data name="Mcp_TransportStdio" xml:space="preserve"><value>本機指令</value></data>
+  <data name="Mcp_TransportHttp" xml:space="preserve"><value>遠端 HTTP</value></data>
+  <data name="Mcp_SubtitleStdio" xml:space="preserve"><value>本機指令 · {0}</value></data>
+  <data name="Mcp_SubtitleHttp" xml:space="preserve"><value>遠端 · {0}</value></data>
+  <data name="Mcp_StatusReady" xml:space="preserve"><value>已連線 · {0} 個工具</value></data>
+  <data name="Mcp_StatusConnecting" xml:space="preserve"><value>連線中…</value></data>
+  <data name="Mcp_StatusFailed" xml:space="preserve"><value>連線失敗</value></data>
+  <data name="Mcp_StatusDisabled" xml:space="preserve"><value>已停用</value></data>
+  <data name="Mcp_Empty" xml:space="preserve"><value>還沒有 MCP 伺服器。新增一個，或從 JSON 匯入。</value></data>
+  <data name="Mcp_Select" xml:space="preserve"><value>請先選擇一個伺服器，或新增一個。</value></data>
+  <data name="Mcp_Name" xml:space="preserve"><value>名稱</value></data>
+  <data name="Mcp_Command" xml:space="preserve"><value>指令</value></data>
+  <data name="Mcp_CommandHint" xml:space="preserve"><value>例如 npx、uvx 或程式的完整路徑</value></data>
+  <data name="Mcp_Args" xml:space="preserve"><value>參數</value></data>
+  <data name="Mcp_ArgsHint" xml:space="preserve"><value>一行一個參數</value></data>
+  <data name="Mcp_Env" xml:space="preserve"><value>環境變數</value></data>
+  <data name="Mcp_EnvName" xml:space="preserve"><value>名稱</value></data>
+  <data name="Mcp_ValueWatermark" xml:space="preserve"><value>值</value></data>
+  <data name="Mcp_AddEnv" xml:space="preserve"><value>新增環境變數</value></data>
+  <data name="Mcp_Url" xml:space="preserve"><value>URL</value></data>
+  <data name="Mcp_UrlHint" xml:space="preserve"><value>https 網址；只有本機位址可以用 http</value></data>
+  <data name="Mcp_Headers" xml:space="preserve"><value>標頭</value></data>
+  <data name="Mcp_HeaderName" xml:space="preserve"><value>標頭名稱</value></data>
+  <data name="Mcp_AddHeader" xml:space="preserve"><value>新增標頭</value></data>
+  <data name="Mcp_HeadersHint" xml:space="preserve"><value>例如 Authorization: Bearer …</value></data>
+  <data name="Mcp_SecretSet" xml:space="preserve"><value>已設定</value></data>
+  <data name="Mcp_SecretReplace" xml:space="preserve"><value>更換</value></data>
+  <data name="Mcp_SecretRemove" xml:space="preserve"><value>移除</value></data>
+  <data name="Mcp_SecretCancelReplace" xml:space="preserve"><value>取消更換</value></data>
+  <data name="Mcp_SecretNameDuplicate" xml:space="preserve"><value>名稱重複</value></data>
+  <data name="Mcp_Enabled" xml:space="preserve"><value>啟用</value></data>
+  <data name="Mcp_AlsoInSprite" xml:space="preserve"><value>也在小精靈使用</value></data>
+  <data name="Mcp_Key" xml:space="preserve"><value>代號</value></data>
+  <data name="Mcp_KeyHint" xml:space="preserve"><value>工具名稱會變成 mcp__代號__工具</value></data>
+  <data name="Mcp_WorkingDirectory" xml:space="preserve"><value>工作目錄</value></data>
+  <data name="Mcp_WorkingDirectoryHint" xml:space="preserve"><value>選填，指令執行時所在的資料夾</value></data>
+  <data name="Mcp_Timeout" xml:space="preserve"><value>逾時秒數</value></data>
+  <data name="Mcp_TimeoutHint" xml:space="preserve"><value>5 到 600 之間的整數</value></data>
+  <data name="Mcp_StdioRisk" xml:space="preserve"><value>本機指令會用你的帳號權限在這台電腦執行，只加入你信任的伺服器。</value></data>
+  <data name="Mcp_SecretsNote" xml:space="preserve"><value>環境變數與標頭的值只存在這台裝置。</value></data>
+  <data name="Mcp_ResultsNote" xml:space="preserve"><value>工具的結果會送到你目前使用的模型供應商。</value></data>
+  <data name="Mcp_TestOk" xml:space="preserve"><value>連線成功，找到 {0} 個工具。</value></data>
+  <data name="Mcp_DeleteConfirm" xml:space="preserve"><value>確定要刪除「{0}」嗎？這個伺服器的環境變數與標頭會一併刪除。</value></data>
+  <data name="Mcp_ImportHint" xml:space="preserve"><value>貼上含有 mcpServers 的 JSON（Claude Desktop、Claude Code、VS Code 的格式都可以）。</value></data>
+  <data name="Mcp_ImportParse" xml:space="preserve"><value>解析</value></data>
+  <data name="Mcp_ImportConfirm" xml:space="preserve"><value>匯入 {0} 筆</value></data>
+  <data name="Mcp_ImportRenamed" xml:space="preserve"><value>名稱重複，改為「{0}」</value></data>
+  <data name="Mcp_ImportPartialFailure" xml:space="preserve"><value>已匯入 {0} 筆，第 {1} 筆失敗：{2}</value></data>
 </root>
