@@ -28,14 +28,30 @@ public sealed class DenyAllToolApprovalService : IToolApprovalService
 
 /// <summary>
 /// 「本次對話都允許」的記憶：只存在記憶體，每則對話各自一份；重開程式就消失，不寫進設定檔或資料庫。
+/// 內建工具依權限等級記住（允許一次 <c>Write</c> 工具，同等級的內建工具都允許）；
+/// MCP 工具（群組以 <c>mcp:</c> 開頭）依工具名稱記住，不連帶其他工具（M16 D13）。
 /// <see cref="ToolPermission.Destructive"/> 沒有記住選項，永遠詢問。
 /// </summary>
 public sealed class ToolPermissionMemory
 {
-    private readonly object _lock = new();
-    private readonly Dictionary<string, HashSet<ToolPermission>> _allowed = new(StringComparer.Ordinal);
+    private const string McpGroupPrefix = "mcp:";
 
-    public bool IsAllowed(string conversationId, ToolPermission permission)
+    private readonly object _lock = new();
+    private readonly Dictionary<string, HashSet<string>> _allowed = new(StringComparer.Ordinal);
+
+    public bool IsAllowed(string conversationId, ToolPermission permission) =>
+        IsAllowedKey(conversationId, LevelKey(permission), permission);
+
+    public bool IsAllowed(string conversationId, ToolDescriptor descriptor) =>
+        IsAllowedKey(conversationId, KeyFor(descriptor), descriptor.Permission);
+
+    public void Allow(string conversationId, ToolPermission permission) =>
+        AllowKey(conversationId, LevelKey(permission), permission);
+
+    public void Allow(string conversationId, ToolDescriptor descriptor) =>
+        AllowKey(conversationId, KeyFor(descriptor), descriptor.Permission);
+
+    private bool IsAllowedKey(string conversationId, string key, ToolPermission permission)
     {
         if (permission is ToolPermission.ReadOnly)
             return true;
@@ -43,10 +59,10 @@ public sealed class ToolPermissionMemory
             return false;
 
         lock (_lock)
-            return _allowed.TryGetValue(conversationId, out var set) && set.Contains(permission);
+            return _allowed.TryGetValue(conversationId, out var set) && set.Contains(key);
     }
 
-    public void Allow(string conversationId, ToolPermission permission)
+    private void AllowKey(string conversationId, string key, ToolPermission permission)
     {
         if (permission is ToolPermission.ReadOnly or ToolPermission.Destructive)
             return;
@@ -54,10 +70,17 @@ public sealed class ToolPermissionMemory
         lock (_lock)
         {
             if (!_allowed.TryGetValue(conversationId, out var set))
-                _allowed[conversationId] = set = [];
-            set.Add(permission);
+                _allowed[conversationId] = set = new HashSet<string>(StringComparer.Ordinal);
+            set.Add(key);
         }
     }
+
+    private static string LevelKey(ToolPermission permission) => "level:" + permission;
+
+    private static string KeyFor(ToolDescriptor descriptor) =>
+        descriptor.Group.StartsWith(McpGroupPrefix, StringComparison.Ordinal)
+            ? "tool:" + descriptor.Name
+            : LevelKey(descriptor.Permission);
 
     /// <summary>刪除對話時一併清掉它的記憶（對話不存在了，記憶也沒有用處）。</summary>
     public void Clear(string conversationId)

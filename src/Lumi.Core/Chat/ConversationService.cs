@@ -326,7 +326,7 @@ public sealed class ConversationService
                         // 設定頁的「永遠允許」：不詢問，也不記在對話裡（設定立即生效，M15 D5）
                         approval = ToolApproval.AllowedAlways;
                     }
-                    else if (_memory.IsAllowed(conversationId, descriptor.Permission))
+                    else if (_memory.IsAllowed(conversationId, descriptor))
                     {
                         approval = ToolApproval.AllowedForConversation;
                     }
@@ -356,7 +356,7 @@ public sealed class ConversationService
                         switch (decision)
                         {
                             case ApprovalDecision.AllowForConversation:
-                                _memory.Allow(conversationId, descriptor.Permission);   // Destructive 不會被記住
+                                _memory.Allow(conversationId, descriptor);   // Destructive 不會被記住；MCP 工具依名稱記住（M16 D13）
                                 approval = descriptor.Permission == ToolPermission.Destructive ? ToolApproval.AllowedOnce : ToolApproval.AllowedForConversation;
                                 break;
                             case ApprovalDecision.AllowOnce:
