@@ -6,7 +6,8 @@ namespace Lumi.Browser.Tests.TestSupport;
 
 /// <summary>
 /// 測試用的本機網站（127.0.0.1、隨機 port）。路徑：<c>/</c> 測試頁、<c>/login</c> 設 Cookie、<c>/whoami</c> 回傳 Cookie 標頭、
-/// <c>/dl</c> 下載 <c>a.txt</c>、<c>/slow</c> 等 2 秒才回。
+/// <c>/dl</c> 下載 <c>a.txt</c>、<c>/slow</c> 等 2 秒才回、<c>/tall</c> 很長的頁面（捲動用，最底下有「底部連結」）、
+/// <c>/form</c> 表單（下拉選單「城市」、檔案欄位「附件」、文字框「備註」、按鈕「送出表單」，送出後 <c>#result</c> 顯示結果）。
 /// </summary>
 public sealed class LocalSite : IDisposable
 {
@@ -23,6 +24,37 @@ public sealed class LocalSite : IDisposable
           <button onclick="alert('hi')">跳對話框</button>
           <iframe srcdoc="&lt;button&gt;框內按鈕&lt;/button&gt;"></iframe>
           <table><tr><td>a1</td><td>b1</td></tr><tr><td>a2</td><td>b2</td></tr></table>
+        </body></html>
+        """;
+
+    private const string TallHtml = """
+        <!doctype html>
+        <html lang="zh-TW"><head><meta charset="utf-8"><title>tall</title></head>
+        <body>
+          <h1>很長的頁面</h1>
+          <div style="height:3000px">空白</div>
+          <a href="/">底部連結</a>
+        </body></html>
+        """;
+
+    private const string FormHtml = """
+        <!doctype html>
+        <html lang="zh-TW"><head><meta charset="utf-8"><title>form</title></head>
+        <body>
+          <h1>表單</h1>
+          <label>城市 <select aria-label="城市"><option value="tpe">台北</option><option value="khh">高雄</option></select></label>
+          <label>附件 <input type="file" aria-label="附件"></label>
+          <label>備註 <input type="text" aria-label="備註"></label>
+          <button id="go">送出表單</button>
+          <p id="result"></p>
+          <script>
+            document.getElementById('go').addEventListener('click', function () {
+              var city = document.querySelector('select').value;
+              var note = document.querySelector('input[type=text]').value;
+              var file = document.querySelector('input[type=file]').files[0];
+              document.getElementById('result').textContent = '送出：' + city + '|' + note + '|' + (file ? file.name : '');
+            });
+          </script>
         </body></html>
         """;
 
@@ -105,6 +137,12 @@ public sealed class LocalSite : IDisposable
             {
                 case "/":
                     await WriteAsync(response, "text/html; charset=utf-8", IndexHtml).ConfigureAwait(false);
+                    break;
+                case "/tall":
+                    await WriteAsync(response, "text/html; charset=utf-8", TallHtml).ConfigureAwait(false);
+                    break;
+                case "/form":
+                    await WriteAsync(response, "text/html; charset=utf-8", FormHtml).ConfigureAwait(false);
                     break;
                 case "/login":
                     response.Headers.Add("Set-Cookie", "sid=abc123; Max-Age=3600; Path=/");
