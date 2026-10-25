@@ -327,6 +327,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Speech = file.Speech?.Normalize() ?? SpeechSettings.Default,   // M6 加的欄位，舊檔沒有時用預設
             Notes = ReadNotes(file.Notes),                                 // M10 10B 加的欄位，格式錯誤時當作預設
             Memory = ReadMemory(file.Memory),                              // M14 加的欄位，缺少或格式錯誤時當作預設（開）
+            Tools = ReadTools(file.Tools),                                 // M15 加的欄位，缺少或格式錯誤時當作預設（全部啟用）
         });
         return (settings, false, null);
     }
@@ -384,6 +385,22 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
     }
 
+    /// <summary>工具清單設定（M15）：格式錯了就當作預設（全部啟用、都每次詢問），不能因此把整個設定檔當成損毀。讀到的名單經過 Normalize。</summary>
+    private ToolSettings ReadTools(JsonElement? element)
+    {
+        if (element is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return ToolSettings.Default;
+        try
+        {
+            return el.Deserialize<ToolSettings>(JsonOptions)?.Normalize() ?? ToolSettings.Default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "工具設定格式錯誤，改用預設值");
+            return ToolSettings.Default;
+        }
+    }
+
     private (AppSettings, bool, string?) RecoverFromBrokenFile()
     {
         var brokenPath = $"{_path}.broken-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
@@ -401,7 +418,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             settings.Persona, settings.Sprite, settings.ThemeId, settings.Speech,
             settings.WorkbenchWindow is null ? null : JsonSerializer.SerializeToElement(settings.WorkbenchWindow.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Notes.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.Memory.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.Memory.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Tools.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -456,5 +474,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         SpeechSettings? Speech = null,
         JsonElement? WorkbenchWindow = null,    // 原樣保留成 JsonElement，格式錯誤時不影響整個檔案的讀取
         JsonElement? Notes = null,
-        JsonElement? Memory = null);
+        JsonElement? Memory = null,
+        JsonElement? Tools = null);
 }
