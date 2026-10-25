@@ -36,7 +36,8 @@ public sealed class DenyAllToolApprovalService : IToolApprovalService
 /// <summary>
 /// 「本次對話都允許」的記憶：只存在記憶體，每則對話各自一份；重開程式就消失，不寫進設定檔或資料庫。
 /// 內建工具依權限等級記住（允許一次 <c>Write</c> 工具，同等級的內建工具都允許）；
-/// MCP 工具（群組以 <c>mcp:</c> 開頭）依工具名稱記住，不連帶其他工具（M16 D13）。
+/// MCP 工具（群組以 <c>mcp:</c> 開頭）依工具名稱記住，不連帶其他工具（M16 D13）；
+/// 瀏覽器工具依「群組＋權限等級」記住（M18 D6），允許一次 <c>browser_click</c> 不會連帶允許 <c>write_file</c>。
 /// <see cref="ToolPermission.Destructive"/> 沒有記住選項，永遠詢問。
 /// 這則對話允許過的網站（M17 D4）也記在這裡。
 /// </summary>
@@ -103,10 +104,14 @@ public sealed class ToolPermissionMemory
 
     private static string LevelKey(ToolPermission permission) => "level:" + permission;
 
-    private static string KeyFor(ToolDescriptor descriptor) =>
-        descriptor.Group.StartsWith(McpGroupPrefix, StringComparison.Ordinal)
-            ? "tool:" + descriptor.Name
-            : LevelKey(descriptor.Permission);
+    private static string KeyFor(ToolDescriptor descriptor)
+    {
+        if (descriptor.Group.StartsWith(McpGroupPrefix, StringComparison.Ordinal))
+            return "tool:" + descriptor.Name;
+        if (descriptor.Group == ToolGroups.Browser)
+            return "group:" + ToolGroups.Browser + ":" + descriptor.Permission;
+        return LevelKey(descriptor.Permission);
+    }
 
     /// <summary>刪除對話時一併清掉它的記憶（對話不存在了，記憶也沒有用處）。</summary>
     public void Clear(string conversationId)
