@@ -251,6 +251,25 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<string?> GetToolSnapshotAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT tool_snapshot FROM conversations WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", conversationId);
+        return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
+    public async Task SetToolSnapshotAsync(string conversationId, string snapshotJson, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE conversations SET tool_snapshot = $snapshot WHERE id = $id;";
+        command.Parameters.AddWithValue("$snapshot", snapshotJson);
+        command.Parameters.AddWithValue("$id", conversationId);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task SetTurnSuffixAsync(string conversationId, string messageId, string? turnSuffix, CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
