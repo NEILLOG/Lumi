@@ -132,7 +132,7 @@ public sealed class SqliteMemoryStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 6 之前建立的資料庫：沒有 memories，版本是 5
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE memories; UPDATE schema_version SET version = 5;";
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE memories; UPDATE schema_version SET version = 5;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

@@ -116,6 +116,15 @@ internal static class SqliteSchema
         // 9：這則對話第一次送出時凍結的工具定義（ToolSnapshotJson）。工具清單中途改變會讓 thinking 簽章失效，
         // 所以整則對話都送它（M15）。舊對話是 NULL＝下一次送出時才記。
         "ALTER TABLE conversations ADD COLUMN tool_snapshot TEXT;",
+
+        // 10：MCP 伺服器最近一次列出的工具（M16）。伺服器沒連上時，工具清單頁照樣顯示。
+        """
+        CREATE TABLE mcp_tool_cache (
+          server_id  TEXT PRIMARY KEY,
+          tools_json TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

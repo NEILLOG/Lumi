@@ -72,6 +72,7 @@ public class DocumentLibraryRuleTests
     [InlineData("Lumi.Infrastructure")]
     [InlineData("Lumi.Platform")]
     [InlineData("Lumi.Speech")]
+    [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.App")]
     public void Other_assemblies_do_not_reference_document_libraries(string name)
     {

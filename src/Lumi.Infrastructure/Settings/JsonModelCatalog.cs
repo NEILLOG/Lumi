@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lumi.Core.IO;
 using Lumi.Core.Models;
+using Lumi.Core.Mcp;
 using Lumi.Core.Notes;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
@@ -156,6 +157,16 @@ public sealed class JsonModelCatalog : IModelCatalog
             throw new ArgumentException(problem, nameof(folder));
         return MutateAsync(s => s with { Notes = normalized }, ct);
     }
+
+    // Phase 0 的最簡版本：只更新設定。祕密的讀寫與設定檔欄位由 M16 的 16B 補上
+    public Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default) =>
+        MutateAsync(s => s with { McpServers = Upsert(s.McpServers, server, m => m.Id) }, ct);
+
+    public Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default) =>
+        MutateAsync(s => s with { McpServers = s.McpServers.Where(m => m.Id != serverId).ToList() }, ct);
+
+    public Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default) =>
+        Task.FromResult(McpServerSecrets.Empty);
 
     public Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default) =>
         MutateAsync(s => s with { Tools = tools.Normalize() }, ct);

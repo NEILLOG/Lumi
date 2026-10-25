@@ -1,3 +1,4 @@
+using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
@@ -29,6 +30,9 @@ internal sealed class FakeSpeechCatalog(SpeechSettings speech) : IModelCatalog
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetSpriteAsync(SpriteSettings sprite, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetWorkbenchWindowAsync(WindowSettings window, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default) => throw new NotSupportedException();
+    public Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetNotesFolderAsync(string folder, CancellationToken ct = default) => throw new NotSupportedException();

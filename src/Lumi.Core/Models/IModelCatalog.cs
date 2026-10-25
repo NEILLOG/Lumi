@@ -1,3 +1,4 @@
+using Lumi.Core.Mcp;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
 
@@ -76,6 +77,18 @@ public interface IModelCatalog
 
     /// <summary>工具清單頁的設定（M15）。存了就通知 <see cref="Changed"/>。</summary>
     Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default);
+
+    /// <summary>
+    /// 新增或更新一個 MCP 伺服器（M16）。<paramref name="newSecrets"/> 為 null＝祕密不變；有值就整份寫進 <see cref="ISecretStore"/>，並換新的 <see cref="McpServerSettings.SecretsVersion"/>。
+    /// 代號不合法或重複丟 <see cref="ArgumentException"/>。存了就通知 <see cref="Changed"/>。
+    /// </summary>
+    Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default);
+
+    /// <summary>刪除 MCP 伺服器，連同祕密、權限覆寫，以及工具設定裡屬於它的工具。</summary>
+    Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default);
+
+    /// <summary>讀出伺服器的環境變數與標頭的值；沒有時回 <see cref="McpServerSecrets.Empty"/>。</summary>
+    Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default);
 
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);

@@ -1,3 +1,4 @@
+using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
@@ -66,6 +67,24 @@ internal sealed class FakeModelCatalog : IModelCatalog
         Current = Current with { WorkbenchWindow = window.Normalize() };
         return Task.CompletedTask;
     }
+
+    public Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default)
+    {
+        var list = Current.McpServers.Where(m => m.Id != server.Id).Append(server).ToList();
+        Current = Current with { McpServers = list };
+        Raise();
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default)
+    {
+        Current = Current with { McpServers = Current.McpServers.Where(m => m.Id != serverId).ToList() };
+        Raise();
+        return Task.CompletedTask;
+    }
+
+    public Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default) =>
+        Task.FromResult(McpServerSecrets.Empty);
 
     /// <summary>每次 <see cref="SetToolsAsync"/> 收到的值。</summary>
     public List<ToolSettings> ToolSaves { get; } = [];

@@ -8,6 +8,9 @@ public enum NotificationKind
 
     /// <summary>啟動或睡眠喚醒後，彙總錯過的一次性提醒。</summary>
     MissedSummary,
+
+    /// <summary>系統訊息（例如 MCP 伺服器連不上，M16）。</summary>
+    SystemNotice,
 }
 
 /// <summary>要顯示給使用者的一則通知（純資料，怎麼顯示由 <see cref="INotificationSink"/> 的實作決定）。</summary>

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Mcp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.Mcp.Tests" />
+  </ItemGroup>
+
+  <!-- MCP 的 SDK 只能出現在這個專案（架構測試 McpLibraryRuleTests 守住） -->
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.Core" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
+  </ItemGroup>
+
+</Project>
