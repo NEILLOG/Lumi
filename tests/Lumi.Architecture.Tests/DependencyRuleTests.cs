@@ -34,6 +34,7 @@ public class DependencyRuleTests
     [InlineData("Lumi.Documents")]
     [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.Web")]
+    [InlineData("Lumi.Browser")]
     public void Library_ReferencesOnlyCoreAmongLumiProjects(string name)
     {
         var assembly = Assembly.Load(name);
@@ -52,6 +53,7 @@ public class DependencyRuleTests
     [InlineData("Lumi.Documents")]
     [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.Web")]
+    [InlineData("Lumi.Browser")]
     public void Library_DoesNotReferenceAvalonia(string name)
     {
         var refs = References(Assembly.Load(name));

@@ -1,3 +1,4 @@
+using Lumi.Core.Browser;
 using Lumi.Core.Mcp;
 using Lumi.Core.Speech;
 using Lumi.Core.Web;
@@ -82,6 +83,9 @@ public sealed record AppSettings(
 
     /// <summary>網路設定（M17）：Proxy、網站登入、逾時。Proxy 密碼不在這裡。舊檔沒有時用預設值。</summary>
     public NetworkSettings Network { get; init; } = NetworkSettings.Default;
+
+    /// <summary>瀏覽器設定（M18）：使用的瀏覽器、是否顯示視窗。舊檔沒有時用預設值。</summary>
+    public BrowserSettings Browser { get; init; } = BrowserSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

@@ -61,10 +61,16 @@ public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null
 /// </summary>
 public sealed record ToolResult(bool IsError, string Content, string? Summary)
 {
+    /// <summary>工具附的圖片（M18 D12，例如網頁截圖）；對話迴圈會存進附件資料夾，不放在 <see cref="Content"/> 裡。</summary>
+    public IReadOnlyList<ToolImage> Images { get; init; } = [];
+
     public static ToolResult Ok(string content, string? summary = null) => new(false, content, summary);
 
     public static ToolResult Error(string message, string? summary = null) => new(true, message, summary ?? message);
 }
+
+/// <summary>工具結果附的圖片（M18 D12）。位元組由對話迴圈存進附件資料夾，結果區塊只記檔名。</summary>
+public sealed record ToolImage(byte[] Data, string MediaType, string DisplayName);
 
 /// <summary>執行工具時的環境。<see cref="Scope"/> 是這則對話的檔案範圍；檔案類工具只能經由它存取檔案系統。</summary>
 public sealed record ToolContext(string ConversationId, ChatMode Mode, TimeProvider Time, IFileScope Scope);

@@ -1,3 +1,4 @@
+using Lumi.Core.Browser;
 using Lumi.Core.Mcp;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
@@ -96,6 +97,9 @@ public interface IModelCatalog
     /// <paramref name="newProxyPassword"/> 有值＝寫入；null＝不變。Auth 不是 Account 時刪除已存的密碼。存了就通知 <see cref="Changed"/>。
     /// </summary>
     Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default);
+
+    /// <summary>瀏覽器設定（M18）。先 <see cref="BrowserSettings.Normalize"/> 再存，存了就通知 <see cref="Changed"/>；設定頁的三項都是立即生效。</summary>
+    Task SetBrowserAsync(BrowserSettings settings, CancellationToken ct = default);
 
     /// <summary>Proxy 密碼有沒有存在。只查存不存在、不讀內容。</summary>
     Task<bool> HasProxyPasswordAsync(CancellationToken ct = default);

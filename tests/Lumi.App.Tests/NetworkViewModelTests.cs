@@ -560,6 +560,7 @@ public sealed class NetworkViewModelTests
 
         public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) => Task.FromResult(HasProxyPassword);
 
+        public Task SetBrowserAsync(Lumi.Core.Browser.BrowserSettings settings, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SaveConnectionAsync(ConnectionSettings connection, SecretValue? newApiKey, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<bool> HasApiKeyAsync(string connectionId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task ClearApiKeyAsync(string connectionId, CancellationToken ct = default) => throw new NotSupportedException();

@@ -3,6 +3,8 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- 這個專案不啟動瀏覽器：不要把 Playwright 的 Node 執行檔複製進輸出資料夾（M18） -->
+    <PlaywrightPlatform>none</PlaywrightPlatform>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,6 +28,7 @@
     <ProjectReference Include="..\..\src\Lumi.Sprites.Orb\Lumi.Sprites.Orb.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Sprites.Assets\Lumi.Sprites.Assets.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Web\Lumi.Web.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.Browser\Lumi.Browser.csproj" />
   </ItemGroup>
 
 </Project>

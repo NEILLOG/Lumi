@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Lumi.Core.Browser;
 using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
@@ -32,6 +33,7 @@ internal sealed class FakeCatalog(NetworkSettings network) : IModelCatalog
         Changed?.Invoke(this, Current);
     }
 
+    public Task SetBrowserAsync(BrowserSettings settings, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default) => throw new NotSupportedException();
     public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetSpeechAsync(Lumi.Core.Speech.SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default) => throw new NotSupportedException();

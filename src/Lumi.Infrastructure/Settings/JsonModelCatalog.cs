@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Lumi.Core.Browser;
 using Lumi.Core.IO;
 using Lumi.Core.Models;
 using Lumi.Core.Mcp;
@@ -294,6 +295,10 @@ public sealed class JsonModelCatalog : IModelCatalog
 
         await MutateAsync(s => s with { Network = normalized }, ct).ConfigureAwait(false);
     }
+
+    // Phase 0 的最簡版本：只更新記憶中的設定；設定檔欄位由 18J 補上
+    public Task SetBrowserAsync(BrowserSettings settings, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Browser = settings.Normalize() }, ct);
 
     public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) =>
         _secrets.ExistsAsync(NetworkSecrets.ProxyPassword, ct);

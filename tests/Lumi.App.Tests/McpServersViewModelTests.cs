@@ -38,6 +38,13 @@ internal sealed class McpCatalogSpy : IModelCatalog
     /// <summary><see cref="HasProxyPasswordAsync"/> 的回傳值（M17）。</summary>
     public bool HasProxyPassword { get; set; }
 
+    public Task SetBrowserAsync(Lumi.Core.Browser.BrowserSettings settings, CancellationToken ct = default)
+    {
+        Current = Current with { Browser = settings.Normalize() };
+        Changed?.Invoke(this, Current);
+        return Task.CompletedTask;
+    }
+
     public Task SetNetworkAsync(Lumi.Core.Web.NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default)
     {
         Current = Current with { Network = settings.Normalize() };

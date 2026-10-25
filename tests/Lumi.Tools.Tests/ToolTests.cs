@@ -1,6 +1,7 @@
 using Lumi.Core.Documents;
 using Lumi.Core.Chat;
 using Lumi.Core.Tools;
+using Lumi.Tools.Tests.Browser;
 using Lumi.Tools.Tests.Files;
 using Lumi.Tools.Tests.Memory;
 using Lumi.Tools.Tests.Notes;
@@ -116,6 +117,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
+        services.AddFakeBrowserServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
@@ -197,6 +199,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
+        services.AddFakeBrowserServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
@@ -219,6 +222,7 @@ public sealed class ToolTests : IDisposable
         var services = new ServiceCollection();
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
+        services.AddFakeBrowserServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
@@ -226,6 +230,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
+        services.AddFakeBrowserServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();
@@ -242,6 +247,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
+        services.AddFakeBrowserServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();

@@ -12,6 +12,7 @@ public static class ToolGroups
     public const string Notes = "notes";
     public const string Reminders = "reminders";
     public const string Web = "web";
+    public const string Browser = "browser";
     public const string Memory = "memory";
     public const string Sprite = "sprite";
 
@@ -23,8 +24,9 @@ public static class ToolGroups
         new(Notes, "筆記與對話", 3),
         new(Reminders, "提醒與計時", 4),
         new(Web, "網路", 5),
-        new(Memory, "長期記憶", 6),
-        new(Sprite, "小精靈", 7),
+        new(Browser, "瀏覽器", 6),
+        new(Memory, "長期記憶", 7),
+        new(Sprite, "小精靈", 8),
     ];
 
     /// <summary>找不到（例如 MCP 的群組）回 null。</summary>
