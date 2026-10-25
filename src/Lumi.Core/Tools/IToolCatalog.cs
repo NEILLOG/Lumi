@@ -18,7 +18,7 @@ public interface IToolCatalog
     /// <summary>依名稱找目前能執行的工具；找不到回 null。</summary>
     ITool? Find(string name);
 
-    /// <summary>設定頁用：依群組排好（群組依 Order，組內依 DisplayName 序數排序），沒有工具的群組不回傳。</summary>
+    /// <summary>設定頁用：依群組排好（群組依 Order，組內依 DisplayName 序數排序）。沒有工具的內建群組不回傳；已啟用的 MCP 伺服器即使還沒有工具也會有一個空群組（M16，畫面要顯示說明）。</summary>
     IReadOnlyList<ToolCatalogGroup> ListGroups();
 
     /// <summary>這個工具能不能設「永遠允許」：Write 或 Network，且 <see cref="ToolDescriptor.CanAlwaysAllow"/>。</summary>
