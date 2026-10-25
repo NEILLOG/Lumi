@@ -6,10 +6,12 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using System.Text.Json.Nodes;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
+using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Tools;
 using TextBlock = Avalonia.Controls.TextBlock;
@@ -31,7 +33,7 @@ public class ToolsPanelTests
             FakeCatalogTool.Make("memory_save", "儲存記憶", ToolPermission.Write, ToolGroups.Memory, canAlwaysAllow: false),
             FakeCatalogTool.Make("show_details", "顯示詳細內容", group: ToolGroups.Sprite, canDisable: false, modes: ToolModes.Sprite),
             FakeCatalogTool.Make("sprite_note", "小精靈筆記", group: ToolGroups.Sprite, modes: ToolModes.Sprite));
-        return new ToolsViewModel(tools, catalog ?? new FakeModelCatalog(), new FakeConfirmService());
+        return new ToolsViewModel(tools, catalog ?? new FakeModelCatalog(), new FakeConfirmService(), new FakeMcpToolSource(), new SyncUiDispatcher());
     }
 
     /// <summary>把面板放進獨立的視窗；寬度與窄視窗 class 和設定視窗相同（<c>Window.narrow</c> 規則在面板內）。</summary>
@@ -157,6 +159,108 @@ public class ToolsPanelTests
         Assert.DoesNotContain(All<Border>(window), b => b.Classes.Contains("warn-row") && b.IsEffectivelyVisible);
         Assert.False(All<Button>(window).Single(b => b.Content as string == Strings.Tools_ResetDefaults).IsEffectivelyEnabled);
         Assert.True(HasVisibleText(window, Strings.Tools_ResetBlocked));
+        window.Close();
+    }
+
+    // ---- M16 16G：MCP 群組 ----
+
+    private const string McpGroup = "mcp:s1";
+
+    /// <summary>內建工具加上一個 MCP 伺服器群組（和 <c>ToolCatalog</c> 一樣排在內建之後）。</summary>
+    private sealed class McpCatalog(FakeToolCatalog builtIn, params ToolCatalogGroup[] mcpGroups) : IToolCatalog
+    {
+        public Task<IReadOnlyList<ITool>> GetEnabledForNewConversationAsync(CancellationToken ct) => throw new NotSupportedException();
+
+        public IReadOnlyList<ITool> GetAll() => builtIn.GetAll();
+
+        public ITool? Find(string name) => throw new NotSupportedException();
+
+        public IReadOnlyList<ToolCatalogGroup> ListGroups() => [.. builtIn.ListGroups(), .. mcpGroups];
+    }
+
+    /// <summary>MCP 工具：權限讀設定裡的覆寫，沒有覆寫就是「寫入」（同 <c>McpTool</c>）。</summary>
+    private sealed class FakeMcpTool(string name, string displayName, FakeModelCatalog settings, McpToolHints? hints = null) : IMcpTool
+    {
+        public ToolDescriptor Descriptor => new(name, displayName, "MCP 測試工具。",
+            settings.Current.Tools.PermissionOverrides.TryGetValue(name, out var permission) ? permission : ToolPermission.Write,
+            ToolModes.Workbench, TimeSpan.FromSeconds(60), Group: McpGroup, Summary: "MCP 說明。");
+
+        public string ServerId => "s1";
+
+        public bool IsLive => true;
+
+        public McpToolHints Hints => hints ?? new McpToolHints(null, null);
+
+        public JsonNode InputSchema { get; } = new JsonObject { ["type"] = "object" };
+
+        public ToolPreview Preview(string argumentsJson, ToolContext context) => ToolPreview.None;
+
+        public Task<ToolResult> ExecuteAsync(string argumentsJson, ToolContext context, CancellationToken ct) =>
+            Task.FromResult(ToolResult.Ok("假結果"));
+    }
+
+    private static ToolsViewModel McpViewModel(FakeModelCatalog catalog, FakeConfirmService confirm, FakeMcpToolSource mcp)
+    {
+        var builtIn = new FakeToolCatalog(
+            FakeCatalogTool.Make("get_current_time", "查詢目前時間"),
+            FakeCatalogTool.Make("write_file", "寫入檔案", ToolPermission.Write, ToolGroups.FilesWrite));
+        var server = new ToolCatalogGroup(new ToolGroupInfo(McpGroup, "GitHub", 100),
+        [
+            new FakeMcpTool("mcp__s1__search", "搜尋", catalog, new McpToolHints(ReadOnly: true, Destructive: null)),
+            new FakeMcpTool("mcp__s1__wipe", "清除", catalog),
+        ]);
+        return new ToolsViewModel(new McpCatalog(builtIn, server), catalog, confirm, mcp, new SyncUiDispatcher());
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1040)]
+    [InlineData(720)]
+    public void Mcp_group_shows_status_hint_and_permission_choice_at_each_width(double width)
+    {
+        var mcp = new FakeMcpToolSource();
+        mcp.Statuses.Add(new McpServerStatus("s1", McpServerState.Ready, null, 2));
+        var vm = McpViewModel(new FakeModelCatalog(), new FakeConfirmService(), mcp);
+        var window = Host(vm, width);
+
+        Assert.True(HasVisibleText(window, "GitHub"));
+        Assert.True(HasVisibleText(window, string.Format(Strings.Mcp_StatusReady, "2")));
+        Assert.True(HasVisibleText(window, Strings.Tools_McpHintReadOnly));
+        // 內建工具的權限選單也在樹上但隱藏，只數看得到的
+        var permissions = All<ComboBox>(window).Where(c => AutomationProperties.GetName(c) == Strings.Tools_McpPermissionLabel
+            && c.IsEffectivelyVisible).ToList();
+        Assert.Equal(2, permissions.Count);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Built_in_tools_have_no_permission_choice_and_offline_group_says_so()
+    {
+        var mcp = new FakeMcpToolSource();
+        mcp.Statuses.Add(new McpServerStatus("s1", McpServerState.Failed, "連線逾時", 0));
+        var window = Host(McpViewModel(new FakeModelCatalog(), new FakeConfirmService(), mcp));
+
+        Assert.True(HasVisibleText(window, Strings.Tools_McpGroupOffline));
+        Assert.True(HasVisibleText(window, Strings.Mcp_StatusFailed));
+        // 只有 MCP 工具有權限等級：2 個 MCP 工具，內建的「寫入檔案」沒有
+        Assert.Equal(2, All<ComboBox>(window).Count(c => AutomationProperties.GetName(c) == Strings.Tools_McpPermissionLabel
+            && c.IsEffectivelyVisible));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Rendering_the_mcp_group_changes_no_permission_and_asks_nothing()
+    {
+        var catalog = new FakeModelCatalog();
+        var confirm = new FakeConfirmService();
+        var mcp = new FakeMcpToolSource();
+        var vm = McpViewModel(catalog, confirm, mcp);
+        var window = Host(vm, 1040);
+
+        // 下拉選單載入預設值時不能被當成使用者的選擇（否則會跳出「唯讀」的確認或寫入設定）
+        window.UpdateLayout();
+        Assert.Empty(confirm.Asked);
+        Assert.Empty(catalog.ToolSaves);
+        Assert.All(vm.Groups[^1].Items, i => Assert.Equal(ToolPermission.Write, i.SelectedPermission));
         window.Close();
     }
 }

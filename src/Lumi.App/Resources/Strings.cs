@@ -551,6 +551,13 @@ public static class Strings
     public static string Tools_ResetConfirmButton => Get(nameof(Tools_ResetConfirmButton));
     public static string Tools_ResetBlocked => Get(nameof(Tools_ResetBlocked));
     public static string Tools_SaveFailed => Get(nameof(Tools_SaveFailed));
+    public static string Tools_McpGroupOffline => Get(nameof(Tools_McpGroupOffline));
+    public static string Tools_McpGroupNoCache => Get(nameof(Tools_McpGroupNoCache));
+    public static string Tools_McpPermissionLabel => Get(nameof(Tools_McpPermissionLabel));
+    public static string Tools_McpHintReadOnly => Get(nameof(Tools_McpHintReadOnly));
+    public static string Tools_McpHintDestructive => Get(nameof(Tools_McpHintDestructive));
+    public static string Tools_McpReadOnlyConfirm => Get(nameof(Tools_McpReadOnlyConfirm));
+    public static string Tools_McpReadOnlyButton => Get(nameof(Tools_McpReadOnlyButton));
     public static string Tool_ApprovedAlways => Get(nameof(Tool_ApprovedAlways));
     public static string Mcp_ListTitle => Get(nameof(Mcp_ListTitle));
     public static string Mcp_AddServer => Get(nameof(Mcp_AddServer));

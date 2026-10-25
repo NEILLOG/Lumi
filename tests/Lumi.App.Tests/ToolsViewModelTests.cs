@@ -1,6 +1,8 @@
+using System.Text.Json.Nodes;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
+using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
@@ -13,11 +15,12 @@ public sealed class ToolsViewModelTests
 {
     private readonly FakeModelCatalog _catalog = new();
     private readonly FakeConfirmService _confirm = new();
+    private readonly FakeMcpToolSource _mcpSource = new();
     private readonly ToolsViewModel _vm;
 
     public ToolsViewModelTests()
     {
-        _vm = new ToolsViewModel(StandardTools(), _catalog, _confirm);
+        _vm = new ToolsViewModel(StandardTools(), _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
     }
 
     /// <summary>一組覆蓋各種情況的工具：一般（唯讀）、寫入檔案（寫入＋破壞性）、筆記（寫入）、長期記憶（不能永遠允許）、小精靈（一個不能關）。</summary>
@@ -91,7 +94,7 @@ public sealed class ToolsViewModelTests
     public void Locked_tool_stays_enabled_even_if_settings_list_it()
     {
         _catalog.Current = _catalog.Current with { Tools = new ToolSettings { Disabled = ["show_details"] } };
-        var vm = new ToolsViewModel(StandardTools(), _catalog, _confirm);
+        var vm = new ToolsViewModel(StandardTools(), _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
 
         var locked = vm.Groups.SelectMany(g => g.Items).Single(i => i.Name == "show_details");
         Assert.True(locked.IsEnabled);
@@ -104,7 +107,7 @@ public sealed class ToolsViewModelTests
     {
         var vm = new ToolsViewModel(new FakeToolCatalog(
             FakeCatalogTool.Make("show_details", "顯示詳細內容", group: ToolGroups.Sprite, canDisable: false, modes: ToolModes.Sprite)),
-            _catalog, _confirm);
+            _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
 
         var group = vm.Groups.Single();
         group.IsAllEnabled = false;
@@ -206,7 +209,7 @@ public sealed class ToolsViewModelTests
     public void Save_failure_shows_the_error_and_reloads_the_saved_state()
     {
         var failing = new SaveFailingCatalog();
-        var vm = new ToolsViewModel(StandardTools(), failing, _confirm);
+        var vm = new ToolsViewModel(StandardTools(), failing, _confirm, _mcpSource, new SyncUiDispatcher());
 
         vm.Groups.SelectMany(g => g.Items).Single(i => i.Name == "get_current_time").IsEnabled = false;
 
@@ -223,7 +226,7 @@ public sealed class ToolsViewModelTests
 
         var off = FakeModelCatalog.Model with { ToolsEnabled = false };
         _catalog.Current = new AppSettings([FakeModelCatalog.Connection], [off], off.Id, off.Id, ThemePreference.System);
-        var vm = new ToolsViewModel(StandardTools(), _catalog, _confirm);
+        var vm = new ToolsViewModel(StandardTools(), _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
 
         Assert.True(vm.HasModelToolsOffWarning);
         Assert.Contains("測試模型", vm.ModelToolsOffWarning);
@@ -234,10 +237,225 @@ public sealed class ToolsViewModelTests
     public void Memory_off_note_only_appears_on_the_memory_group()
     {
         _catalog.Current = _catalog.Current with { Memory = new MemorySettings(false) };
-        var vm = new ToolsViewModel(StandardTools(), _catalog, _confirm);
+        var vm = new ToolsViewModel(StandardTools(), _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
 
         Assert.Equal(Strings.Tools_MemoryOff, vm.Groups.Single(g => g.Id == ToolGroups.Memory).MemoryOffNote);
         Assert.Null(vm.Groups.Single(g => g.Id == ToolGroups.FilesWrite).MemoryOffNote);
+    }
+
+    // ---- M16 16G：MCP 群組、權限等級 ----
+
+    private const string McpServerId = "s1";
+    private const string McpGroup = "mcp:s1";
+
+    private static ToolItemViewModel ItemIn(ToolsViewModel vm, string name) => vm.Groups.SelectMany(g => g.Items).Single(i => i.Name == name);
+
+    private ToolsViewModel McpViewModel(params ToolCatalogGroup[] mcpGroups) =>
+        new(new McpCatalog(StandardTools(), mcpGroups), _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
+
+    private static ToolCatalogGroup McpServerGroup(string name, params ITool[] tools) =>
+        new(new ToolGroupInfo(McpGroup, name, 100), tools);
+
+    /// <summary>內建工具加上 MCP 群組；群組的排法和 <see cref="ToolCatalog"/> 相同（MCP 排在內建之後）。</summary>
+    private sealed class McpCatalog(FakeToolCatalog builtIn, IReadOnlyList<ToolCatalogGroup> mcpGroups) : IToolCatalog
+    {
+        public Task<IReadOnlyList<ITool>> GetEnabledForNewConversationAsync(CancellationToken ct) => throw new NotSupportedException();
+
+        public IReadOnlyList<ITool> GetAll() => builtIn.GetAll();
+
+        public ITool? Find(string name) => throw new NotSupportedException();
+
+        public IReadOnlyList<ToolCatalogGroup> ListGroups() => [.. builtIn.ListGroups(), .. mcpGroups];
+    }
+
+    /// <summary>MCP 工具：和 <c>McpTool</c> 一樣，權限讀設定裡的覆寫，沒有覆寫就是「寫入」。</summary>
+    private sealed class FakeMcpTool(string name, string displayName, FakeModelCatalog settings, McpToolHints? hints = null) : IMcpTool
+    {
+        public ToolDescriptor Descriptor => new(name, displayName, "MCP 測試工具。",
+            settings.Current.Tools.PermissionOverrides.TryGetValue(name, out var permission) ? permission : ToolPermission.Write,
+            ToolModes.Workbench, TimeSpan.FromSeconds(60), Group: McpGroup, Summary: "MCP 說明。");
+
+        public string ServerId => McpServerId;
+
+        public bool IsLive => true;
+
+        public McpToolHints Hints => hints ?? new McpToolHints(null, null);
+
+        public JsonNode InputSchema { get; } = new JsonObject { ["type"] = "object" };
+
+        public ToolPreview Preview(string argumentsJson, ToolContext context) => ToolPreview.None;
+
+        public Task<ToolResult> ExecuteAsync(string argumentsJson, ToolContext context, CancellationToken ct) =>
+            Task.FromResult(ToolResult.Ok("假結果"));
+    }
+
+    [Fact]
+    public void Mcp_group_comes_after_built_in_groups_and_shows_the_server_status()
+    {
+        _mcpSource.Statuses.Add(new McpServerStatus(McpServerId, McpServerState.Ready, null, 2));
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool("mcp__s1__search", "搜尋", _catalog),
+            new FakeMcpTool("mcp__s1__list", "列出", _catalog)));
+
+        Assert.Equal(["一般", "寫入檔案", "筆記與對話", "長期記憶", "小精靈", "GitHub"], vm.Groups.Select(g => g.Title).ToArray());
+        Assert.Equal("已連線 · 2 個工具", vm.Groups[^1].StatusText);
+        Assert.Null(vm.Groups[^1].OfflineNote);
+        Assert.Null(vm.Groups[0].StatusText);
+        Assert.Null(vm.Groups[0].OfflineNote);
+    }
+
+    [Fact]
+    public void Offline_server_keeps_cached_tools_with_a_note_and_a_server_without_cache_says_so()
+    {
+        _mcpSource.Statuses.Add(new McpServerStatus(McpServerId, McpServerState.Failed, "連線逾時", 0));
+        var offline = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool("mcp__s1__search", "搜尋", _catalog)));
+
+        Assert.Equal(Strings.Tools_McpGroupOffline, offline.Groups[^1].OfflineNote);
+        Assert.Equal(Strings.Mcp_StatusFailed, offline.Groups[^1].StatusText);
+        Assert.Single(offline.Groups[^1].Items);
+
+        _mcpSource.Statuses.Clear();
+        _mcpSource.Statuses.Add(new McpServerStatus(McpServerId, McpServerState.Connecting, null, 0));
+        var empty = McpViewModel(McpServerGroup("Notion"));
+
+        Assert.Equal(Strings.Tools_McpGroupNoCache, empty.Groups[^1].OfflineNote);
+        Assert.Equal(Strings.Mcp_StatusConnecting, empty.Groups[^1].StatusText);
+    }
+
+    [Fact]
+    public void Status_change_rebuilds_the_mcp_group()
+    {
+        _mcpSource.Statuses.Add(new McpServerStatus(McpServerId, McpServerState.Connecting, null, 0));
+        var vm = McpViewModel(McpServerGroup("GitHub"));
+        Assert.Equal(Strings.Mcp_StatusConnecting, vm.Groups[^1].StatusText);
+
+        _mcpSource.Statuses.Clear();
+        _mcpSource.Statuses.Add(new McpServerStatus(McpServerId, McpServerState.Ready, null, 0));
+        _mcpSource.Raise();
+
+        Assert.Equal(string.Format(Strings.Mcp_StatusReady, "0"), vm.Groups[^1].StatusText);
+        Assert.Null(vm.Groups[^1].OfflineNote);
+    }
+
+    [Fact]
+    public void Server_hints_are_advice_shown_only_for_mcp_tools()
+    {
+        var vm = McpViewModel(McpServerGroup("GitHub",
+            new FakeMcpTool("mcp__s1__read", "讀取", _catalog, new McpToolHints(ReadOnly: true, Destructive: null)),
+            new FakeMcpTool("mcp__s1__wipe", "清除", _catalog, new McpToolHints(ReadOnly: false, Destructive: true)),
+            new FakeMcpTool("mcp__s1__plain", "一般", _catalog)));
+
+        Assert.Equal(Strings.Tools_McpHintReadOnly, ItemIn(vm, "mcp__s1__read").HintText);
+        Assert.Equal(Strings.Tools_McpHintDestructive, ItemIn(vm, "mcp__s1__wipe").HintText);
+        Assert.Null(ItemIn(vm, "mcp__s1__plain").HintText);
+        Assert.False(ItemIn(vm, "write_file").IsMcp);
+        Assert.Null(ItemIn(vm, "write_file").HintText);
+        Assert.True(ItemIn(vm, "mcp__s1__plain").IsMcp);
+    }
+
+    [Fact]
+    public void Mcp_tool_is_enabled_by_default_and_its_permission_is_saved_as_an_override()
+    {
+        const string name = "mcp__s1__search";
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool(name, "搜尋", _catalog)));
+        Assert.True(ItemIn(vm, name).IsEnabled);
+        Assert.Equal(ToolPermission.Write, ItemIn(vm, name).SelectedPermission);
+
+        ItemIn(vm, name).SelectedPermission = ToolPermission.Network;
+
+        Assert.Equal(ToolPermission.Network, Saved.PermissionOverrides[name]);
+        Assert.Equal(ToolPermission.Network, ItemIn(vm, name).SelectedPermission);
+        Assert.Equal(ToolConfirmKind.Choosable, ItemIn(vm, name).ConfirmKind);
+
+        ItemIn(vm, name).SelectedPermission = ToolPermission.Write;
+
+        Assert.False(Saved.PermissionOverrides.ContainsKey(name));
+    }
+
+    [Fact]
+    public void Making_an_mcp_tool_read_only_asks_first_and_cancelling_changes_nothing()
+    {
+        const string name = "mcp__s1__search";
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool(name, "搜尋", _catalog)));
+
+        _confirm.Answer = false;
+        ItemIn(vm, name).SelectedPermission = ToolPermission.ReadOnly;
+
+        Assert.Empty(_catalog.ToolSaves);
+        Assert.Equal(ToolPermission.Write, ItemIn(vm, name).SelectedPermission);
+        var asked = Assert.Single(_confirm.Asked);
+        Assert.Equal(Strings.Tools_McpReadOnlyButton, asked.ConfirmText);
+        Assert.Equal(string.Format(Strings.Tools_McpReadOnlyConfirm, "搜尋"), asked.Message);
+
+        _confirm.Answer = true;
+        ItemIn(vm, name).SelectedPermission = ToolPermission.ReadOnly;
+
+        Assert.Equal(ToolPermission.ReadOnly, Saved.PermissionOverrides[name]);
+        Assert.Equal(ToolConfirmKind.NotNeeded, ItemIn(vm, name).ConfirmKind);
+        Assert.Equal(2, _confirm.Asked.Count);
+    }
+
+    [Fact]
+    public void Making_an_mcp_tool_destructive_removes_it_from_always_allow_without_asking()
+    {
+        const string name = "mcp__s1__search";
+        _catalog.Current = _catalog.Current with { Tools = new ToolSettings { AlwaysAllow = [name] } };
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool(name, "搜尋", _catalog)));
+
+        ItemIn(vm, name).SelectedPermission = ToolPermission.Destructive;
+
+        Assert.Empty(Saved.AlwaysAllow);
+        Assert.Equal(ToolPermission.Destructive, Saved.PermissionOverrides[name]);
+        Assert.Equal(ToolConfirmKind.AlwaysAsk, ItemIn(vm, name).ConfirmKind);
+        Assert.Empty(_confirm.Asked);
+    }
+
+    [Fact]
+    public void Built_in_tools_have_no_permission_choice()
+    {
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool("mcp__s1__search", "搜尋", _catalog)));
+
+        ItemIn(vm, "write_file").SelectedPermission = ToolPermission.Network;
+
+        Assert.Empty(_catalog.ToolSaves);
+        Assert.Empty(Saved.PermissionOverrides);
+    }
+
+    [Fact]
+    public void Saving_keeps_settings_for_tools_that_are_not_in_the_catalog()
+    {
+        const string name = "mcp__s1__search";
+        _catalog.Current = _catalog.Current with
+        {
+            Tools = new ToolSettings
+            {
+                Disabled = ["mcp__gone__x"],
+                PermissionOverrides = new Dictionary<string, ToolPermission> { ["mcp__gone__x"] = ToolPermission.Network },
+            },
+        };
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool(name, "搜尋", _catalog)));
+
+        ItemIn(vm, name).IsEnabled = false;
+        ItemIn(vm, name).SelectedPermission = ToolPermission.Destructive;
+
+        Assert.Equal(["mcp__gone__x", name], Saved.Disabled);
+        Assert.Equal(ToolPermission.Network, Saved.PermissionOverrides["mcp__gone__x"]);
+        Assert.Equal(ToolPermission.Destructive, Saved.PermissionOverrides[name]);
+    }
+
+    [Fact]
+    public void Permission_overrides_count_for_reset_and_reset_clears_them()
+    {
+        const string name = "mcp__s1__search";
+        var vm = McpViewModel(McpServerGroup("GitHub", new FakeMcpTool(name, "搜尋", _catalog)));
+        Assert.False(vm.CanResetToDefaults);
+
+        ItemIn(vm, name).SelectedPermission = ToolPermission.Network;
+        Assert.True(vm.CanResetToDefaults);
+
+        vm.ResetToDefaultsCommand.Execute(null);
+
+        Assert.Empty(Saved.PermissionOverrides);
+        Assert.False(vm.CanResetToDefaults);
     }
 
     /// <summary>寫入工具設定時丟出 IOException 的目錄；讀取的成員回固定的設定。其餘成員這個測試用不到。</summary>

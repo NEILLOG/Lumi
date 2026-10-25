@@ -563,6 +563,13 @@
   <data name="Tools_ResetConfirmButton" xml:space="preserve"><value>恢復預設</value></data>
   <data name="Tools_ResetBlocked" xml:space="preserve"><value>目前已是預設</value></data>
   <data name="Tools_SaveFailed" xml:space="preserve"><value>儲存失敗：{0}</value></data>
+  <data name="Tools_McpGroupOffline" xml:space="preserve"><value>伺服器未連線，顯示上次取得的工具。</value></data>
+  <data name="Tools_McpGroupNoCache" xml:space="preserve"><value>還沒有取得過這個伺服器的工具。</value></data>
+  <data name="Tools_McpPermissionLabel" xml:space="preserve"><value>權限等級</value></data>
+  <data name="Tools_McpHintReadOnly" xml:space="preserve"><value>伺服器標示：唯讀</value></data>
+  <data name="Tools_McpHintDestructive" xml:space="preserve"><value>伺服器標示：會刪除或覆蓋</value></data>
+  <data name="Tools_McpReadOnlyConfirm" xml:space="preserve"><value>「{0}」改成唯讀後，Lumi 使用它時不會先問你。只有在你確定它不會修改任何東西時才這樣設定。</value></data>
+  <data name="Tools_McpReadOnlyButton" xml:space="preserve"><value>改成唯讀</value></data>
   <data name="Tool_ApprovedAlways" xml:space="preserve"><value>已允許（永遠允許）</value></data>
   <data name="Mcp_ListTitle" xml:space="preserve"><value>我的伺服器 · {0}</value></data>
   <data name="Mcp_AddServer" xml:space="preserve"><value>新增伺服器</value></data>

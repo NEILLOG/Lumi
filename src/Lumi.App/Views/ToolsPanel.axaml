@@ -90,12 +90,25 @@
             </WrapPanel>
             <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap"
                        IsVisible="{Binding HasSummary}" />
+            <!-- MCP 工具：伺服器的標示只是建議（不可信），寫在說明下方 -->
+            <TextBlock Classes="muted" Text="{Binding HintText}" TextWrapping="Wrap"
+                       IsVisible="{Binding HintText, Converter={x:Static ObjectConverters.IsNotNull}}" />
             <TextBlock Classes="tool-name" Text="{Binding Name}" TextWrapping="Wrap" />
             <TextBlock Classes="muted" Text="{Binding LockedNote}" TextWrapping="Wrap"
                        IsVisible="{Binding LockedNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
           </StackPanel>
 
           <StackPanel Classes="tool-confirm" Spacing="4">
+            <!-- MCP 工具的權限等級（M16 D3）：只有 MCP 工具顯示，在確認方式的上方 -->
+            <StackPanel IsVisible="{Binding IsMcp}" Spacing="4">
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Tools_McpPermissionLabel}" />
+              <ComboBox Width="140" ItemsSource="{Binding PermissionOptions}" SelectedValue="{Binding SelectedPermission, Mode=TwoWay}"
+                        SelectedValueBinding="{Binding Value}" AutomationProperties.Name="{x:Static res:Strings.Tools_McpPermissionLabel}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ToolPermissionOption"><TextBlock Text="{Binding Text}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
             <ComboBox Width="140" ItemsSource="{Binding ConfirmOptions}" SelectedValue="{Binding AlwaysAllow, Mode=TwoWay}"
                       SelectedValueBinding="{Binding AlwaysAllow}" IsVisible="{Binding CanChoose}"
                       AutomationProperties.Name="{x:Static res:Strings.Tools_ConfirmLabel}">
@@ -139,10 +152,17 @@
                   <CheckBox Grid.Column="0" IsThreeState="True" IsChecked="{Binding IsAllEnabled, Mode=TwoWay}"
                             IsEnabled="{Binding CanToggle}" AutomationProperties.Name="{Binding Title}" />
                   <TextBlock Grid.Column="1" Classes="group-title" Text="{Binding Title}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="2" Classes="muted" Text="{Binding CountText}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Classes="muted" Text="{Binding CountText}" />
+                    <!-- MCP 群組：連線狀態（文字，不只靠顏色） -->
+                    <TextBlock Classes="muted" Text="{Binding StatusText}"
+                               IsVisible="{Binding StatusText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  </StackPanel>
                 </Grid>
                 <TextBlock Classes="muted" Text="{Binding MemoryOffNote}" TextWrapping="Wrap"
                            IsVisible="{Binding MemoryOffNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <TextBlock Classes="muted" Text="{Binding OfflineNote}" TextWrapping="Wrap"
+                           IsVisible="{Binding OfflineNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ToolRowTemplate}" />
                 <Border Classes="divider" />
               </StackPanel>

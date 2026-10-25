@@ -48,7 +48,7 @@ internal sealed class SettingsHost : IDisposable
         Tools = new ToolsViewModel(new FakeToolCatalog(
             FakeCatalogTool.Make("read_file", "讀取檔案", group: Lumi.Core.Tools.ToolGroups.FilesRead),
             FakeCatalogTool.Make("write_file", "寫入檔案", Lumi.Core.Tools.ToolPermission.Write, group: Lumi.Core.Tools.ToolGroups.FilesWrite),
-            FakeCatalogTool.Make("overwrite_file", "覆寫檔案", Lumi.Core.Tools.ToolPermission.Destructive, group: Lumi.Core.Tools.ToolGroups.FilesWrite)), Catalog, Confirm);
+            FakeCatalogTool.Make("overwrite_file", "覆寫檔案", Lumi.Core.Tools.ToolPermission.Destructive, group: Lumi.Core.Tools.ToolGroups.FilesWrite)), Catalog, Confirm, McpSource, dispatcher);
         McpServers = new McpServersViewModel(Catalog, McpSource, Confirm, dispatcher);
         General = new GeneralViewModel(Catalog, dispatcher);
         SpriteCatalog = spriteCatalog;
