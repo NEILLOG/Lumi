@@ -1,0 +1,366 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.McpServersPanel"
+             x:DataType="vm:McpServersViewModel">
+
+  <UserControl.Styles>
+    <!-- 測試結果：成功＝Soft 底＋勾；失敗＝Danger 淡底＋三角形＋訊息文字（不能只靠顏色） -->
+    <Style Selector="Border.result">
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.result.ok">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <Style Selector="Border.result.fail">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- 清單＋詳細（ui-guide.html 第 8 節）：清單 260、詳細吃剩餘寬度；視窗 < 900 時由根節點的 stacked class 改成上下排 -->
+  <ScrollViewer x:Name="PanelScroll" Classes="master-detail-scroll" HorizontalScrollBarVisibility="Disabled">
+    <Grid x:Name="Layout" ColumnDefinitions="260,*" RowDefinitions="Auto,*">
+
+      <!-- 清單 -->
+      <DockPanel x:Name="MasterHost" Classes="master">
+        <TextBlock x:Name="ListCaption" DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8" Text="{Binding ListTitle}" />
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,8,0,0">
+          <Button x:Name="ImportButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  HorizontalAlignment="Stretch" Content="{x:Static res:Strings.Mcp_Import}" Command="{Binding OpenImportCommand}" />
+        </StackPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock x:Name="EmptyText" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8"
+                       IsVisible="{Binding IsListEmpty}" Text="{x:Static res:Strings.Mcp_Empty}" />
+            <ListBox x:Name="ServerList" Classes="cards" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
+                     AutomationProperties.Name="{Binding ListTitle}">
+              <ListBox.Styles>
+                <!-- 卡片的可存取名稱：名稱、連線方式與工具數、狀態（卡片內的文字不只靠顏色，螢幕閱讀器也念得出來） -->
+                <Style Selector="ListBoxItem" x:DataType="vm:McpServerListItem">
+                  <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+                </Style>
+              </ListBox.Styles>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:McpServerListItem">
+                  <Border Classes="card" Padding="12" ToolTip.Tip="{Binding Name}">
+                    <Grid ColumnDefinitions="Auto,*">
+                      <views:ProviderMark Grid.Column="0" Width="40" Height="40" Margin="0,0,12,0" Text="{Binding Initial}" />
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,4,0,0">
+                          <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding IsReady}" Fill="{DynamicResource LumiSuccessDotBrush}" />
+                          <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding IsConnecting}" Fill="{DynamicResource LumiWarningDotBrush}" />
+                          <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
+                          <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding IsDisabled}" Fill="{DynamicResource LumiTextMutedBrush}" />
+                          <TextBlock Classes="muted" Text="{Binding StatusText}" FontSize="{DynamicResource LumiFontSizeCaption}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Button x:Name="AddServerButton" Classes="dashed" Command="{Binding NewServerCommand}"
+                    AutomationProperties.Name="{x:Static res:Strings.Mcp_AddServer}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Mcp_AddServer}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
+
+      <!-- 詳細：一個容器（placeholder、匯入、表單三選一） -->
+      <Panel x:Name="DetailHost" Classes="detail">
+        <TextBlock x:Name="DetailPlaceholder" IsVisible="{Binding ShowPlaceholder}" Text="{x:Static res:Strings.Mcp_Select}" Classes="muted"
+                   TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32" />
+
+        <!-- 匯入：取代表單 -->
+        <Border x:Name="ImportCard" Classes="card" Padding="24" IsVisible="{Binding IsImporting}">
+          <StackPanel Spacing="16" DataContext="{Binding Import}" x:DataType="vm:McpImportViewModel">
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Mcp_ImportHint}" />
+            <TextBox x:Name="ImportTextBox" Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap"
+                     FontFamily="Menlo, Consolas, monospace" MinHeight="192" MaxHeight="320"
+                     AutomationProperties.Name="{x:Static res:Strings.Mcp_ImportHint}" />
+            <Button x:Name="ParseButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Content="{x:Static res:Strings.Mcp_ImportParse}" Command="{Binding ParseCommand}" HorizontalAlignment="Left" />
+
+            <TextBlock x:Name="ImportParseErrorText" Classes="error" Text="{Binding ParseError}" IsVisible="{Binding HasParseError}" TextWrapping="Wrap" />
+
+            <ItemsControl x:Name="ImportRowList" ItemsSource="{Binding Rows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:McpImportRow">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" Text="{Binding Target}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" Text="{Binding RenamedNote}" IsVisible="{Binding HasRenamedNote}" TextWrapping="Wrap" />
+                      <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding HasError}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Classes="muted" Text="{Binding TransportText}" VerticalAlignment="Top" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock x:Name="ImportErrorText" Classes="error" Text="{Binding ImportError}" IsVisible="{Binding HasImportError}" TextWrapping="Wrap" />
+
+            <Border Classes="divider" />
+
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Button x:Name="ImportCancelButton" Grid.Column="0" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      Content="{x:Static res:Strings.Confirm_Cancel}" Command="{Binding CancelCommand}" />
+              <Button x:Name="ImportConfirmButton" Grid.Column="2" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      Content="{Binding ImportText}" Command="{Binding ImportCommand}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- 表單 -->
+        <Border x:Name="DetailCard" Classes="card" Padding="24" IsVisible="{Binding HasEditor}">
+          <Grid RowDefinitions="Auto,*,Auto">
+            <!-- 標頭：字首方塊、名稱、連線方式（Caption）、狀態 -->
+            <Grid x:Name="DetailHeader" Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,16">
+              <views:ProviderMark Grid.Column="0" Width="48" Height="48" Margin="0,0,16,0" Text="{Binding HeaderInitial}" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="HeaderTitleText" Text="{Binding HeaderTitle}" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold"
+                           Foreground="{DynamicResource LumiTextBrush}" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="HeaderSubtitleText" Classes="muted" Text="{Binding HeaderSubtitle}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <Border x:Name="StatusBadge" Grid.Column="2" Classes="badge" Margin="16,0,0,0" VerticalAlignment="Center"
+                      IsVisible="{Binding HasEditorStatus}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding EditorIsReady}" Fill="{DynamicResource LumiSuccessDotBrush}" />
+                  <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding EditorIsConnecting}" Fill="{DynamicResource LumiWarningDotBrush}" />
+                  <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding EditorIsFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
+                  <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding EditorIsDisabled}" Fill="{DynamicResource LumiTextMutedBrush}" />
+                  <TextBlock Text="{Binding EditorStatusText}" FontSize="{DynamicResource LumiFontSizeCaption}" VerticalAlignment="Center" />
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="16" Margin="0,0,12,8">
+
+                <ctl:FormField x:Name="NameField" Label="{x:Static res:Strings.Mcp_Name}" Requirement="Required" Error="{Binding NameError}">
+                  <TextBox x:Name="NameBox" Text="{Binding Name}" Classes.error="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           AutomationProperties.Name="{x:Static res:Strings.Mcp_Name}" />
+                </ctl:FormField>
+
+                <ctl:FormField x:Name="TransportField" Label="{x:Static res:Strings.Mcp_TransportLabel}">
+                  <Border Classes="segmented" HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once">
+                      <RadioButton x:Name="TransportStdio" GroupName="McpTransport" Content="{x:Static res:Strings.Mcp_TransportStdio}"
+                                   IsChecked="{Binding IsStdio, Mode=TwoWay}" />
+                      <RadioButton x:Name="TransportHttp" GroupName="McpTransport" Content="{x:Static res:Strings.Mcp_TransportHttp}"
+                                   IsChecked="{Binding IsHttp, Mode=TwoWay}" />
+                    </StackPanel>
+                  </Border>
+                </ctl:FormField>
+
+                <!-- 本機指令（stdio） -->
+                <StackPanel Spacing="16" IsVisible="{Binding IsStdio}">
+                  <ctl:FormField x:Name="CommandField" Label="{x:Static res:Strings.Mcp_Command}" Requirement="Required"
+                                 Hint="{x:Static res:Strings.Mcp_CommandHint}" Error="{Binding CommandError}">
+                    <TextBox x:Name="CommandBox" Text="{Binding Command}" Classes.error="{Binding CommandError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             AutomationProperties.Name="{x:Static res:Strings.Mcp_Command}" />
+                  </ctl:FormField>
+
+                  <ctl:FormField x:Name="ArgsField" Label="{x:Static res:Strings.Mcp_Args}" Hint="{x:Static res:Strings.Mcp_ArgsHint}">
+                    <TextBox x:Name="ArgsBox" Text="{Binding ArgsText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" MaxHeight="160"
+                             AutomationProperties.Name="{x:Static res:Strings.Mcp_Args}" />
+                  </ctl:FormField>
+
+                  <ctl:FormField x:Name="EnvField" Label="{x:Static res:Strings.Mcp_Env}">
+                    <StackPanel Spacing="8">
+                      <ItemsControl x:Name="EnvList" ItemsSource="{Binding EnvRows}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:McpSecretRowViewModel">
+                            <StackPanel Spacing="4" Margin="0,0,0,8">
+                              <Grid IsVisible="{Binding ShowStored}" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Classes="muted" Text="{x:Static res:Strings.Mcp_SecretSet}" VerticalAlignment="Center" />
+                                <Button Grid.Column="2" Classes="secondary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        Content="{x:Static res:Strings.Mcp_SecretReplace}" Command="{Binding ReplaceCommand}" />
+                                <Button Grid.Column="3" Classes="tertiary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        Content="{x:Static res:Strings.Mcp_SecretRemove}" Command="{Binding RemoveCommand}" />
+                              </Grid>
+                              <Grid IsVisible="{Binding ShowInput}" ColumnDefinitions="*,*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding Name}" IsEnabled="{Binding !IsSaved}" Watermark="{x:Static res:Strings.Mcp_EnvName}"
+                                         Classes.error="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                         AutomationProperties.Name="{x:Static res:Strings.Mcp_EnvName}" />
+                                <TextBox Grid.Column="1" Text="{Binding Value}" PasswordChar="•" Watermark="{x:Static res:Strings.Mcp_ValueWatermark}"
+                                         AutomationProperties.Name="{x:Static res:Strings.Mcp_ValueWatermark}" />
+                                <Button Grid.Column="2" Classes="tertiary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        IsVisible="{Binding IsReplacing}" Content="{x:Static res:Strings.Mcp_SecretCancelReplace}" Command="{Binding CancelReplaceCommand}" />
+                                <Button Grid.Column="2" Classes="tertiary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        IsVisible="{Binding !IsReplacing}" Content="{x:Static res:Strings.Mcp_SecretRemove}" Command="{Binding RemoveCommand}" />
+                              </Grid>
+                              <TextBlock Classes="error" Text="{Binding NameError}" IsVisible="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}" TextWrapping="Wrap" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button x:Name="AddEnvButton" Classes="secondary" HorizontalAlignment="Left" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                              Command="{Binding AddEnvCommand}" AutomationProperties.Name="{x:Static res:Strings.Mcp_AddEnv}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                          <TextBlock Text="{x:Static res:Strings.Mcp_AddEnv}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </StackPanel>
+                  </ctl:FormField>
+                </StackPanel>
+
+                <!-- 遠端 HTTP -->
+                <StackPanel Spacing="16" IsVisible="{Binding IsHttp}">
+                  <ctl:FormField x:Name="UrlField" Label="{x:Static res:Strings.Mcp_Url}" Requirement="Required"
+                                 Hint="{x:Static res:Strings.Mcp_UrlHint}" Error="{Binding UrlError}">
+                    <TextBox x:Name="UrlBox" Text="{Binding Url}" Classes.error="{Binding UrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             AutomationProperties.Name="{x:Static res:Strings.Mcp_Url}" />
+                  </ctl:FormField>
+
+                  <ctl:FormField x:Name="HeadersField" Label="{x:Static res:Strings.Mcp_Headers}" Hint="{x:Static res:Strings.Mcp_HeadersHint}">
+                    <StackPanel Spacing="8">
+                      <ItemsControl x:Name="HeaderList" ItemsSource="{Binding HeaderRows}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:McpSecretRowViewModel">
+                            <StackPanel Spacing="4" Margin="0,0,0,8">
+                              <Grid IsVisible="{Binding ShowStored}" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Classes="muted" Text="{x:Static res:Strings.Mcp_SecretSet}" VerticalAlignment="Center" />
+                                <Button Grid.Column="2" Classes="secondary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        Content="{x:Static res:Strings.Mcp_SecretReplace}" Command="{Binding ReplaceCommand}" />
+                                <Button Grid.Column="3" Classes="tertiary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        Content="{x:Static res:Strings.Mcp_SecretRemove}" Command="{Binding RemoveCommand}" />
+                              </Grid>
+                              <Grid IsVisible="{Binding ShowInput}" ColumnDefinitions="*,*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding Name}" IsEnabled="{Binding !IsSaved}" Watermark="{x:Static res:Strings.Mcp_HeaderName}"
+                                         Classes.error="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                         AutomationProperties.Name="{x:Static res:Strings.Mcp_HeaderName}" />
+                                <TextBox Grid.Column="1" Text="{Binding Value}" PasswordChar="•" Watermark="{x:Static res:Strings.Mcp_ValueWatermark}"
+                                         AutomationProperties.Name="{x:Static res:Strings.Mcp_ValueWatermark}" />
+                                <Button Grid.Column="2" Classes="tertiary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        IsVisible="{Binding IsReplacing}" Content="{x:Static res:Strings.Mcp_SecretCancelReplace}" Command="{Binding CancelReplaceCommand}" />
+                                <Button Grid.Column="2" Classes="tertiary" Padding="12,8" MinHeight="{StaticResource LumiControlHeight}"
+                                        IsVisible="{Binding !IsReplacing}" Content="{x:Static res:Strings.Mcp_SecretRemove}" Command="{Binding RemoveCommand}" />
+                              </Grid>
+                              <TextBlock Classes="error" Text="{Binding NameError}" IsVisible="{Binding NameError, Converter={x:Static ObjectConverters.IsNotNull}}" TextWrapping="Wrap" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button x:Name="AddHeaderButton" Classes="secondary" HorizontalAlignment="Left" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                              Command="{Binding AddHeaderCommand}" AutomationProperties.Name="{x:Static res:Strings.Mcp_AddHeader}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                          <TextBlock Text="{x:Static res:Strings.Mcp_AddHeader}" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </StackPanel>
+                  </ctl:FormField>
+                </StackPanel>
+
+                <!-- 啟用與小精靈 -->
+                <StackPanel Spacing="8">
+                  <CheckBox x:Name="EnabledBox" Content="{x:Static res:Strings.Mcp_Enabled}" IsChecked="{Binding Enabled, Mode=TwoWay}" />
+                  <CheckBox x:Name="AlsoInSpriteBox" Content="{x:Static res:Strings.Mcp_AlsoInSprite}" IsChecked="{Binding AlsoInSprite, Mode=TwoWay}" />
+                </StackPanel>
+
+                <!-- 進階（預設收合；有錯誤時自動展開，ConnectionsPanel 同樣的做法） -->
+                <Expander x:Name="AdvancedExpander" Classes="advanced" Header="{x:Static res:Strings.Settings_Advanced}" IsExpanded="False">
+                  <StackPanel Spacing="16" Margin="0,8,0,0">
+                    <ctl:FormField x:Name="KeyField" Label="{x:Static res:Strings.Mcp_Key}" Hint="{x:Static res:Strings.Mcp_KeyHint}" Error="{Binding KeyError}">
+                      <TextBox x:Name="KeyBox" Text="{Binding Key}" Classes.error="{Binding KeyError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               AutomationProperties.Name="{x:Static res:Strings.Mcp_Key}" />
+                    </ctl:FormField>
+
+                    <ctl:FormField x:Name="WorkingDirectoryField" Label="{x:Static res:Strings.Mcp_WorkingDirectory}"
+                                   Hint="{x:Static res:Strings.Mcp_WorkingDirectoryHint}" IsVisible="{Binding IsStdio}">
+                      <TextBox x:Name="WorkingDirectoryBox" Text="{Binding WorkingDirectory}"
+                               AutomationProperties.Name="{x:Static res:Strings.Mcp_WorkingDirectory}" />
+                    </ctl:FormField>
+
+                    <ctl:FormField x:Name="TimeoutField" Label="{x:Static res:Strings.Mcp_Timeout}" Requirement="Required"
+                                   Hint="{x:Static res:Strings.Mcp_TimeoutHint}" Error="{Binding TimeoutError}">
+                      <TextBox x:Name="TimeoutBox" Text="{Binding TimeoutText}" Classes.error="{Binding TimeoutError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               AutomationProperties.Name="{x:Static res:Strings.Mcp_Timeout}" />
+                    </ctl:FormField>
+                  </StackPanel>
+                </Expander>
+
+                <!-- 風險與資料去向說明（Caption） -->
+                <StackPanel Spacing="4">
+                  <TextBlock x:Name="StdioRiskText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Mcp_StdioRisk}"
+                             IsVisible="{Binding IsStdio}" />
+                  <TextBlock x:Name="SecretsNoteText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Mcp_SecretsNote}" />
+                  <TextBlock x:Name="ResultsNoteText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Mcp_ResultsNote}" />
+                </StackPanel>
+
+                <!-- 連線失敗：狀態區（Danger 淡底＋三角＋文字） -->
+                <Border x:Name="EditorFailure" Classes="result fail" IsVisible="{Binding EditorIsFailed}">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}" VerticalAlignment="Top" />
+                    <StackPanel Grid.Column="1" Spacing="4">
+                      <TextBlock Text="{x:Static res:Strings.Mcp_StatusFailed}" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
+                      <TextBlock Text="{Binding EditorError}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
+                                 IsVisible="{Binding EditorError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <!-- 底部：錯誤、測試結果、分隔線、動作列（刪除 danger｜測試連線 secondary、儲存 primary） -->
+            <StackPanel Grid.Row="2" Spacing="8">
+              <TextBlock x:Name="FieldErrorsText" Classes="error" Text="{x:Static res:Strings.Form_FixErrors}" IsVisible="{Binding HasFieldErrors}" TextWrapping="Wrap" />
+              <TextBlock x:Name="SaveErrorText" Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" TextWrapping="Wrap" />
+
+              <Border x:Name="TestResultOk" Classes="result ok" IsVisible="{Binding ShowTestOk}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconCheck}" Size="16" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1" Spacing="4">
+                    <TextBlock Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+                    <TextBlock Classes="muted" Text="{Binding TestToolNames}" TextWrapping="Wrap" IsVisible="{Binding ShowTestTools}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+              <Border x:Name="TestResultFail" Classes="result fail" IsVisible="{Binding ShowTestFailure}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}" VerticalAlignment="Top" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="{x:Static res:Strings.Mcp_StatusFailed}" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
+                    <TextBlock Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <Border Classes="divider" />
+
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <Button x:Name="DeleteButton" Grid.Column="0" Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Conn_Delete}" Command="{Binding DeleteCommand}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                  <Button x:Name="TestButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Test}" Command="{Binding TestCommand}" IsVisible="{Binding !IsTesting}" />
+                  <TextBlock x:Name="TestingText" Text="{x:Static res:Strings.Conn_Testing}" IsVisible="{Binding IsTesting}" VerticalAlignment="Center" />
+                  <Button x:Name="SaveButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                          Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Panel>
+    </Grid>
+  </ScrollViewer>
+</UserControl>
