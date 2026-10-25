@@ -664,4 +664,22 @@ public static class Strings
     public static string Network_Save => Get(nameof(Network_Save));
     public static string Network_Saving => Get(nameof(Network_Saving));
     public static string Network_Saved => Get(nameof(Network_Saved));
+    public static string Browser_Section => Get(nameof(Browser_Section));
+    public static string Browser_Choice => Get(nameof(Browser_Choice));
+    public static string Browser_ChoiceHint => Get(nameof(Browser_ChoiceHint));
+    public static string Browser_ChoiceAuto => Get(nameof(Browser_ChoiceAuto));
+    public static string Browser_ChoiceEdge => Get(nameof(Browser_ChoiceEdge));
+    public static string Browser_ChoiceChrome => Get(nameof(Browser_ChoiceChrome));
+    public static string Browser_Found => Get(nameof(Browser_Found));
+    public static string Browser_NotFound => Get(nameof(Browser_NotFound));
+    public static string Browser_Refresh => Get(nameof(Browser_Refresh));
+    public static string Browser_ShowWindow => Get(nameof(Browser_ShowWindow));
+    public static string Browser_ShowWindowHint => Get(nameof(Browser_ShowWindowHint));
+    public static string Browser_Login => Get(nameof(Browser_Login));
+    public static string Browser_Clear => Get(nameof(Browser_Clear));
+    public static string Browser_ClearHint => Get(nameof(Browser_ClearHint));
+    public static string Browser_ClearConfirm => Get(nameof(Browser_ClearConfirm));
+    public static string Browser_ClearConfirmButton => Get(nameof(Browser_ClearConfirmButton));
+    public static string Browser_Cleared => Get(nameof(Browser_Cleared));
+    public static string Browser_Privacy => Get(nameof(Browser_Privacy));
 }
