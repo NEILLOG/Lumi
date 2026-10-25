@@ -26,7 +26,8 @@ public sealed class MemorySaveTool(IMemoryStore memory, IModelCatalog catalog, I
         + "某一天發生的事請用 add_note 記筆記；要在某個時間點提醒請用 create_reminder。"
         + "不要記密碼、金鑰、卡號等機密。與既有記憶衝突時改用 memory_update，不要再新增一則。"
         + "每次呼叫都需要使用者確認；被拒絕就不要再重試同一則內容。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), RequiresScope: false, RequiresMemory: true);
+        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), RequiresScope: false, RequiresMemory: true,
+        Group: ToolGroups.Memory, Summary: "記住關於你的長期事實。", CanAlwaysAllow: false);
 
     protected override ToolPreview Describe(MemorySaveArgs args, ToolContext context)
     {

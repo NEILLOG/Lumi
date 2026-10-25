@@ -71,6 +71,9 @@ public sealed record AppSettings(
 
     /// <summary>長期記憶設定（M14）：開關。舊檔沒有時是預設（開）。</summary>
     public MemorySettings Memory { get; init; } = MemorySettings.Default;
+
+    /// <summary>工具清單頁的設定（M15）：關閉的工具、永遠允許的工具。舊檔沒有時是預設（全部啟用、都要確認）。</summary>
+    public ToolSettings Tools { get; init; } = ToolSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

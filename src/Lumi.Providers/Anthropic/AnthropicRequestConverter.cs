@@ -120,10 +120,10 @@ internal static class AnthropicRequestConverter
     /// 工具定義。Schema 的所有頂層欄位（type、properties、required、additionalProperties）原樣帶過去：
     /// 用 SDK 的 rawData 建構式而不是只設 Properties／Required，才不會丟掉 additionalProperties。
     /// </summary>
-    private static BetaMessages.BetaTool ToTool(ITool tool) => new()
+    private static BetaMessages.BetaTool ToTool(ToolDefinition tool) => new()
     {
-        Name = tool.Descriptor.Name,
-        Description = tool.Descriptor.Description,
+        Name = tool.Name,
+        Description = tool.Description,
         InputSchema = new BetaMessages.InputSchema(ToolJson.SchemaFields(tool.InputSchema)),
     };
 

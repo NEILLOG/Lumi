@@ -204,7 +204,7 @@ public class ContextAndImageTests
         store.Files["pic.png"] = Png;
         var handler = FakeAnthropicHttpHandler.ForError(HttpStatusCode.BadRequest, Fixtures.OpenAIHttpError("400"));
         var blocks = withImage ? new ContentBlock[] { new ImageBlock("pic.png", "image/png", "p"), new TextBlock("看") } : [new TextBlock("看")];
-        var request = new ChatRequest(OpenAiModel, [User(blocks)], withTools ? [new EchoTool()] : null);
+        var request = new ChatRequest(OpenAiModel, [User(blocks)], withTools ? [Lumi.Core.Tools.ToolDefinition.From(new EchoTool())] : null);
 
         var events = await Collect(OpenAi(handler, store), request);
 

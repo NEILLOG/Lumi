@@ -67,7 +67,7 @@ public class ConversationToolLoopTests
         Assert.Equal(2, provider.Requests.Count);
         Assert.Equal([ChatRole.User, ChatRole.Assistant, ChatRole.Tool], provider.Requests[1].Messages.Select(m => m.Role));
         Assert.NotNull(provider.Requests[0].Tools);
-        Assert.Equal("echo", Assert.Single(provider.Requests[0].Tools!).Descriptor.Name);
+        Assert.Equal("echo", Assert.Single(provider.Requests[0].Tools!).Name);
     }
 
     [Fact]
@@ -97,8 +97,8 @@ public class ConversationToolLoopTests
         await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨", mode: ChatMode.Workbench));
         await Collect(rig.Service.SendAsync(rig.Conversation.Id, "嗨", mode: ChatMode.Sprite));
 
-        Assert.Equal(["only_bench", "only_sprite"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
-        Assert.Equal(["only_bench", "only_sprite"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["only_bench", "only_sprite"], provider.Requests[0].Tools!.Select(t => t.Name));
+        Assert.Equal(["only_bench", "only_sprite"], provider.Requests[1].Tools!.Select(t => t.Name));
     }
 
     [Fact]

@@ -25,7 +25,7 @@ public class AnthropicToolTests
         new(ChatMessage.NewId(), role, blocks, DateTimeOffset.UtcNow);
 
     private static ChatRequest Request(IReadOnlyList<ChatMessage>? history = null, bool withTools = true) => new(
-        Model, history ?? [Msg(ChatRole.User, new TextBlock("嗨"))], withTools ? [new EchoTool()] : null);
+        Model, history ?? [Msg(ChatRole.User, new TextBlock("嗨"))], withTools ? [Lumi.Core.Tools.ToolDefinition.From(new EchoTool())] : null);
 
     private static async Task<List<ChatEvent>> Collect(AnthropicChatProvider provider, ChatRequest request)
     {

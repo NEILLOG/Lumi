@@ -57,7 +57,7 @@ public class PromptRequestTests
     {
         var prompt = Composer.Compose(new PromptContext(mode, PersonaSettings.Default));
         int? cap = mode == ChatMode.Sprite ? 2048 : null;
-        return new ChatRequest(model, history, withTools ? [new EchoTool()] : null, prompt.System, prompt.TurnSuffix, cap);
+        return new ChatRequest(model, history, withTools ? [Lumi.Core.Tools.ToolDefinition.From(new EchoTool())] : null, prompt.System, prompt.TurnSuffix, cap);
     }
 
     // ================= Anthropic =================

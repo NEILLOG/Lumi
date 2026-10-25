@@ -17,6 +17,12 @@ internal sealed class FakeModelCatalog(bool memoryEnabled = true) : IModelCatalo
         remove { }
     }
 
+    public Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default)
+    {
+        Current = Current with { Tools = tools.Normalize() };
+        return Task.CompletedTask;
+    }
+
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default)
     {
         Current = Current with { Memory = new MemorySettings(enabled) };

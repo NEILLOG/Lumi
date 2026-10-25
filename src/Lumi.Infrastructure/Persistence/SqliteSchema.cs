@@ -112,6 +112,10 @@ internal static class SqliteSchema
         // 8：這則對話第一次送出時的 system prompt。整則對話都送它，中途變動改以訊息附加（SystemPromptUpdate），
         // 因為 thinking 區塊簽章綁定 system。舊對話是 NULL＝下一次送出時才記。
         "ALTER TABLE conversations ADD COLUMN system_prompt TEXT;",
+
+        // 9：這則對話第一次送出時凍結的工具定義（ToolSnapshotJson）。工具清單中途改變會讓 thinking 簽章失效，
+        // 所以整則對話都送它（M15）。舊對話是 NULL＝下一次送出時才記。
+        "ALTER TABLE conversations ADD COLUMN tool_snapshot TEXT;",
     ];
 
     public static int LatestVersion => Migrations.Length;

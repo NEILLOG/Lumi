@@ -50,7 +50,7 @@ public class ConversationMemoryTests
         }
     }
 
-    private static IEnumerable<string> ToolNames(ChatRequest request) => request.Tools?.Select(t => t.Descriptor.Name) ?? [];
+    private static IEnumerable<string> ToolNames(ChatRequest request) => request.Tools?.Select(t => t.Name) ?? [];
 
     [Fact]
     public async Task Enabled_WithMemory_RequestSystemCarriesTheBlock()

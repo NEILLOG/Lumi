@@ -44,7 +44,7 @@ public class ConversationScopeTests
 
         await Collect(service.SendAsync(id, "嗨"));
 
-        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Name));
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public class ConversationScopeTests
         await scopeContext.AddAsync(scopedId, ContextKind.Folder, "/proj", "proj");
         await Collect(withScope.SendAsync(scopedId, "嗨"));
 
-        Assert.Equal(["echo", "scoped_write"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
-        Assert.Equal(["echo", "scoped_write"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_write"], provider.Requests[0].Tools!.Select(t => t.Name));
+        Assert.Equal(["echo", "scoped_write"], provider.Requests[1].Tools!.Select(t => t.Name));
     }
 
     private sealed class ScopedWriteTool : ToolBase<EchoArgs>
@@ -97,7 +97,7 @@ public class ConversationScopeTests
 
         await Collect(service.SendAsync(id, "嗨"));
 
-        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Name));
     }
 
     [Fact]
@@ -159,8 +159,8 @@ public class ConversationScopeTests
 
         await Collect(service.SendAsync(conversation.Id, "x"));
 
-        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
-        Assert.Equal(["echo", "scoped_read"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["echo", "scoped_read"], provider.Requests[0].Tools!.Select(t => t.Name));
+        Assert.Equal(["echo", "scoped_read"], provider.Requests[1].Tools!.Select(t => t.Name));
     }
 
     [Fact]
@@ -174,8 +174,8 @@ public class ConversationScopeTests
         await context.RemoveAsync(id, item.Id);
         await Collect(service.SendAsync(id, "第二次"));
 
-        Assert.Equal(["scoped_read"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
-        Assert.Equal(["scoped_read"], provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["scoped_read"], provider.Requests[0].Tools!.Select(t => t.Name));
+        Assert.Equal(["scoped_read"], provider.Requests[1].Tools!.Select(t => t.Name));
     }
 
     [Fact]

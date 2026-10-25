@@ -56,7 +56,7 @@ public sealed record ToolResultBlock(
     ToolApproval Approval) : ContentBlock;
 
 [JsonConverter(typeof(JsonStringEnumConverter<ToolApproval>))]
-public enum ToolApproval { NotRequired, AllowedOnce, AllowedForConversation, Denied }
+public enum ToolApproval { NotRequired, AllowedOnce, AllowedForConversation, Denied, AllowedAlways }
 
 /// <summary>
 /// 使用者加入的檔案或資料夾在「送出那一刻」的快照（M4 的 Q1）：UI 在使用者氣泡上方畫成 chip，送給模型時轉成文字

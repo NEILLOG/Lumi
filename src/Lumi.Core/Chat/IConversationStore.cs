@@ -53,6 +53,15 @@ public interface IConversationStore
     Task SetSystemPromptAsync(string conversationId, string systemPrompt, CancellationToken ct = default) => Task.CompletedTask;
 
     /// <summary>
+    /// 這則對話第一次送出時凍結的工具定義（<see cref="Tools.ToolSnapshotJson"/> 的 JSON）；之後整則對話都送它（M15 D1）。還沒記過回 null。
+    /// 預設不存（永遠回 null），只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task<string?> GetToolSnapshotAsync(string conversationId, CancellationToken ct = default) => Task.FromResult<string?>(null);
+
+    /// <summary>記下這則對話的工具快照。只在第一次送出時呼叫一次。預設什麼都不做。</summary>
+    Task SetToolSnapshotAsync(string conversationId, string snapshotJson, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>
     /// 移除最後一則訊息（「重新產生」用）。從尾端移除不會讓前面任何一則的內容改變，所以不影響 thinking 簽章的一致性；
     /// 對話的更新時間不變，之後再加訊息時順序號接著剩下的最後一則。
     /// </summary>

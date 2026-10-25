@@ -67,6 +67,18 @@ internal sealed class FakeModelCatalog : IModelCatalog
         return Task.CompletedTask;
     }
 
+    /// <summary>每次 <see cref="SetToolsAsync"/> 收到的值。</summary>
+    public List<ToolSettings> ToolSaves { get; } = [];
+
+    public Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default)
+    {
+        var normalized = tools.Normalize();
+        ToolSaves.Add(normalized);
+        Current = Current with { Tools = normalized };
+        Raise();
+        return Task.CompletedTask;
+    }
+
     /// <summary>每次 <see cref="SetMemoryEnabledAsync"/> 收到的值。</summary>
     public List<bool> MemoryEnabledSaves { get; } = [];
 

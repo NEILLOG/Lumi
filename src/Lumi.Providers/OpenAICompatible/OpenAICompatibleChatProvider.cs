@@ -237,7 +237,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
             body["tools"] = tools.Select(t => new
             {
                 type = "function",
-                function = new { name = t.Descriptor.Name, description = t.Descriptor.Description, parameters = t.InputSchema },
+                function = new { name = t.Name, description = t.Description, parameters = t.InputSchema },
             }).ToList();
         }
 

@@ -241,7 +241,7 @@ public sealed class ConversationService
                 requestMessages = [.. requestMessages.Take(requestMessages.Count - 1), last with { TurnSuffix = turnSuffix }];
             }
 
-            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools : null, system, turnSuffix, maxOutputTokens);
+            var request = new ChatRequest(model, requestMessages, tools.Count > 0 ? tools.Select(ToolDefinition.From).ToList() : null, system, turnSuffix, maxOutputTokens);
             Completed? completed = null;
             var failed = false;
 

@@ -157,6 +157,9 @@ public sealed class JsonModelCatalog : IModelCatalog
         return MutateAsync(s => s with { Notes = normalized }, ct);
     }
 
+    public Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Tools = tools.Normalize() }, ct);
+
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) =>
         MutateAsync(s => s with { Memory = new MemorySettings(enabled).Normalize() }, ct);
 

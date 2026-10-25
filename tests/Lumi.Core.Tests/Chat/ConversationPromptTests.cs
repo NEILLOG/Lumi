@@ -74,7 +74,7 @@ public class ConversationPromptTests
 
         var (bench, sprite) = (provider.Requests[0], provider.Requests[1]);
         Assert.Equal(bench.System, sprite.System);
-        Assert.Equal(bench.Tools!.Select(t => t.Descriptor.Name), sprite.Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(bench.Tools!.Select(t => t.Name), sprite.Tools!.Select(t => t.Name));
         Assert.Equal(bench.Model, sprite.Model);
         Assert.StartsWith("<lumi_mode>\n目前模式：小精靈", sprite.TurnSuffix);
         // 第二次請求的歷史就是第一次的歷史往後加：前綴沒有被改動

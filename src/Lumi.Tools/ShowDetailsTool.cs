@@ -24,7 +24,8 @@ public sealed class ShowDetailsTool : ToolBase<ShowDetailsArgs>
         Name, "整理完整內容",
         "把放不進一兩句話的完整內容（程式碼、步驟、清單、表格、長篇的說明或翻譯）放到工作台，讓使用者之後點開查看。"
         + "只在小精靈模式使用；呼叫之後，回答只用一句話說重點，不要重複內容。",
-        ToolPermission.ReadOnly, ToolModes.Sprite, TimeSpan.FromSeconds(5));
+        ToolPermission.ReadOnly, ToolModes.Sprite, TimeSpan.FromSeconds(5),
+        Group: ToolGroups.Sprite, Summary: "把完整內容放到工作台，讓你之後點開查看。", CanDisable: false);
 
     protected override ToolPreview Describe(ShowDetailsArgs args, ToolContext context) => new(args.Title?.Trim(), null);
 

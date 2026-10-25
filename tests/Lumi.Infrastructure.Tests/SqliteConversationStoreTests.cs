@@ -201,6 +201,28 @@ public sealed class SqliteConversationStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task UpgradeFromVersion8_AddsToolSnapshot_AndKeepsConversations()
+    {
+        var store = NewStore();
+        var conversation = await store.CreateAsync("M15 之前的資料");
+        using (var connection = new SqliteConnection($"Data Source={DatabasePath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE conversations DROP COLUMN tool_snapshot; UPDATE schema_version SET version = 8;";
+            command.ExecuteNonQuery();
+        }
+        SqliteConnection.ClearAllPools();
+
+        var reopened = NewStore();
+
+        Assert.Equal(conversation.Id, (await reopened.GetLatestAsync())?.Id);
+        using var check = new SqliteConnection($"Data Source={DatabasePath}");
+        check.Open();
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
+    }
+
+    [Fact]
     public async Task UpgradeFromVersion7_AddsSystemPrompt_AndKeepsConversations()
     {
         var store = NewStore();
@@ -210,7 +232,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 7;";
+            command.CommandText = "ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 7;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -234,7 +256,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 6;";   // 模擬 migration 7 之前的資料庫
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 6;";   // 模擬 migration 7 之前的資料庫
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -260,7 +282,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 5 之前建立的資料庫：沒有 scheduled_items，版本是 4
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -287,7 +309,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 4 之前建立的資料庫：沒有 search_text 與 app_meta，版本是 3
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -316,7 +338,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -372,7 +394,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

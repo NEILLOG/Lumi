@@ -74,6 +74,9 @@ public interface IModelCatalog
     /// <summary>長期記憶的開關（M14）。存了就通知 <see cref="Changed"/>。</summary>
     Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default);
 
+    /// <summary>工具清單頁的設定（M15）。存了就通知 <see cref="Changed"/>。</summary>
+    Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default);
+
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);
 }

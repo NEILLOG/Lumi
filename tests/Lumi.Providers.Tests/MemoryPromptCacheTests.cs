@@ -56,7 +56,7 @@ public class MemoryPromptCacheTests(ITestOutputHelper output)
     {
         var prompt = Composer.Compose(new PromptContext(mode, PersonaSettings.Default, memory));
         int? cap = mode == ChatMode.Sprite ? 2048 : null;
-        return new ChatRequest(model, History, [new EchoTool()], prompt.System, prompt.TurnSuffix, cap);
+        return new ChatRequest(model, History, [Lumi.Core.Tools.ToolDefinition.From(new EchoTool())], prompt.System, prompt.TurnSuffix, cap);
     }
 
     private static async Task<JsonObject> SentToAnthropic(ChatRequest request)

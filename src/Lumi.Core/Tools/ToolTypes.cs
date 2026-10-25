@@ -27,6 +27,10 @@ public static class ToolModesExtensions
 /// <param name="Modes">能在哪些模式執行。定義一律送出，模式不符時在執行時回錯誤（M5 的 Q1）。</param>
 /// <param name="Timeout">每個工具都要有逾時。</param>
 /// <param name="RequiresScope">需要使用者加入的檔案或資料夾才有意義：範圍是空的時，請求不帶這個工具的定義。</param>
+/// <param name="Group">工具清單頁的群組代號（<see cref="ToolGroups"/>；MCP 工具用 <c>mcp:{伺服器 Id}</c>）。</param>
+/// <param name="Summary">給使用者看的一句話（設定頁），不送給模型。</param>
+/// <param name="CanDisable">false＝設定頁不能關（<c>show_details</c>）。</param>
+/// <param name="CanAlwaysAllow">false＝不能設「永遠允許」（<c>memory_save</c>）；Destructive 一律不行，不必另外設。</param>
 /// <param name="RequiresMemory">長期記憶的工具（M14）：記憶在設定裡關閉時，工具不能執行（回說明、不詢問權限）；定義仍照送（2026-10-25：工具清單改變會讓 thinking 簽章失效）。只依使用者的設定、不依模式。</param>
 public sealed record ToolDescriptor(
     string Name,
@@ -36,7 +40,11 @@ public sealed record ToolDescriptor(
     ToolModes Modes,
     TimeSpan Timeout,
     bool RequiresScope = false,
-    bool RequiresMemory = false);
+    bool RequiresMemory = false,
+    string Group = ToolGroups.General,
+    string? Summary = null,
+    bool CanDisable = true,
+    bool CanAlwaysAllow = true);
 
 /// <summary>顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。</summary>
 public sealed record ToolPreview(string? Target, string? Detail)

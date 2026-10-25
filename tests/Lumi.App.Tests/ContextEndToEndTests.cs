@@ -142,7 +142,7 @@ public sealed class ContextEndToEndTests : IDisposable
         Assert.Contains("不在可存取的範圍內", results[1].Content);
         Assert.DoesNotContain("不該被讀到", results[1].Content);
         // 有範圍時，請求帶著三個檔案工具
-        Assert.Equal(["list_dir", "read_file", "search"], provider.Requests[0].Tools!.Select(t => t.Descriptor.Name));
+        Assert.Equal(["list_dir", "read_file", "search"], provider.Requests[0].Tools!.Select(t => t.Name));
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class ContextEndToEndTests : IDisposable
         await _db.RemoveAsync(conversation.Id, item.Id);
         await Run(service.SendAsync(conversation.Id, "還記得嗎"));
 
-        Assert.Equal(provider.Requests[0].Tools!.Select(t => t.Descriptor.Name), provider.Requests[1].Tools!.Select(t => t.Descriptor.Name));   // 範圍沒了，工具清單不變
+        Assert.Equal(provider.Requests[0].Tools!.Select(t => t.Name), provider.Requests[1].Tools!.Select(t => t.Name));   // 範圍沒了，工具清單不變
         Assert.Contains(provider.Requests[1].Messages[0].Content, b => b is ContextBlock);   // 之前的快照還在歷史裡
     }
 

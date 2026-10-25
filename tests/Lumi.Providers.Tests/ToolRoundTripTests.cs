@@ -40,7 +40,7 @@ public class ToolRoundTripTests
     private static ToolResultBlock ResultFor(ToolUseBlock use) =>
         new(use.Id, "結果：" + use.Name, false, use.Name, null, null, 1, ToolApproval.NotRequired);
 
-    private static readonly IReadOnlyList<Lumi.Core.Tools.ITool> Tools = [new EchoTool()];
+    private static readonly IReadOnlyList<Lumi.Core.Tools.ToolDefinition> Tools = [Lumi.Core.Tools.ToolDefinition.From(new EchoTool())];
 
     [Fact]
     public async Task Anthropic_TwoRequests_SecondCarriesToolUseAndResult()
