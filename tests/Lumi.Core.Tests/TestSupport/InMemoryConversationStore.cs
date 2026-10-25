@@ -7,6 +7,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
     private readonly Dictionary<string, Conversation> _conversations = [];
     private readonly Dictionary<string, List<ChatMessage>> _messages = [];
     private readonly Dictionary<string, string> _systemPrompts = [];
+    private readonly Dictionary<string, string> _toolSnapshots = [];
     private readonly object _lock = new();
 
     public Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
@@ -114,6 +115,19 @@ internal sealed class InMemoryConversationStore : IConversationStore
     {
         lock (_lock)
             _systemPrompts[conversationId] = systemPrompt;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetToolSnapshotAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_toolSnapshots.GetValueOrDefault(conversationId));
+    }
+
+    public Task SetToolSnapshotAsync(string conversationId, string snapshotJson, CancellationToken ct = default)
+    {
+        lock (_lock)
+            _toolSnapshots[conversationId] = snapshotJson;
         return Task.CompletedTask;
     }
 
