@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Lumi.Core.Browser;
 using Lumi.Core.Context;
 using Lumi.Core.Memory;
 using Lumi.Core.Models;
@@ -48,6 +49,7 @@ public sealed class ConversationService
     private readonly INetworkStatus _network;
     private readonly IMemoryStore? _memoryStore;
     private readonly IToolCatalog _toolCatalog;
+    private readonly IAttachmentStore? _attachments;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -74,7 +76,8 @@ public sealed class ConversationService
         PromptOptions? promptOptions = null,
         INetworkStatus? network = null,
         IMemoryStore? memoryStore = null,
-        IToolCatalog? toolCatalog = null)
+        IToolCatalog? toolCatalog = null,
+        IAttachmentStore? attachments = null)
     {
         _provider = provider;
         _store = store;
@@ -92,6 +95,7 @@ public sealed class ConversationService
         _network = network ?? new AlwaysOnlineNetworkStatus();
         _memoryStore = memoryStore;
         _toolCatalog = toolCatalog ?? new ToolCatalog(registry, catalog);
+        _attachments = attachments;
     }
 
     /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
@@ -412,8 +416,9 @@ public sealed class ConversationService
                         toolResult = ToolResult.Error(StoppedMessage, "已停止");
                     }
 
+                    var images = await SaveToolImagesAsync(toolResult).ConfigureAwait(false);
                     block = new ToolResultBlock(use.Id, toolResult.Content, toolResult.IsError, descriptor.DisplayName,
-                        preview.Target, toolResult.Summary, ToolExecutor.ElapsedMilliseconds(started, _time), approval);
+                        preview.Target, toolResult.Summary, ToolExecutor.ElapsedMilliseconds(started, _time), approval, images);
                 }
 
                 results.Add(block);
@@ -430,6 +435,34 @@ public sealed class ConversationService
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
             $"工具呼叫已達到 {_options.MaxIterations} 次上限，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+    }
+
+    /// <summary>
+    /// 把工具回傳的圖片存進附件資料夾（M18 D12）：最多前 <see cref="BrowserLimits.MaxScreenshotImages"/> 張、超過
+    /// <see cref="BrowserLimits.MaxScreenshotBytes"/> 的略過、存檔失敗的略過；沒有附件儲存時整批丟棄。沒有可記的圖片回 null。
+    /// </summary>
+    private async Task<IReadOnlyList<ImageBlock>?> SaveToolImagesAsync(ToolResult toolResult)
+    {
+        if (_attachments is null || toolResult.Images.Count == 0)
+            return null;
+
+        var saved = new List<ImageBlock>();
+        foreach (var image in toolResult.Images.Take(BrowserLimits.MaxScreenshotImages))
+        {
+            if (image.Data.LongLength > BrowserLimits.MaxScreenshotBytes)
+                continue;
+            try
+            {
+                var fileName = await _attachments.SaveAsync(image.Data, image.MediaType, CancellationToken.None).ConfigureAwait(false);
+                saved.Add(new ImageBlock(fileName, image.MediaType, image.DisplayName));
+            }
+            catch (Exception ex)
+            {
+                // 不記內容；少一張圖不該讓整個工具結果失敗
+                _logger.LogWarning(ex, "工具結果的圖片存檔失敗，已略過這一張。");
+            }
+        }
+        return saved.Count == 0 ? null : saved;
     }
 
     /// <summary>長期記憶（第 5 層）：記憶關閉或沒有記憶儲存時為 null；只取有效的記憶。</summary>
