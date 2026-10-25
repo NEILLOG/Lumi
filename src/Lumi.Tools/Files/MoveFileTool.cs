@@ -14,7 +14,7 @@ public sealed class MoveFileTool : ToolBase<MoveFileArgs>
         "move_file", "移動檔案",
         "移動範圍內的一個檔案，或在同一資料夾裡改名（改名也用這個工具）。目的檔已存在時失敗，不會覆蓋。只能移動檔案，不能移動資料夾；" +
         "只改大小寫也可以。目的的上層資料夾不存在時會自動建立。不能移成 .docx、.xlsx、.pptx、.pdf、壓縮檔等副檔名。",
-        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromMinutes(5), RequiresScope: true);
+        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromMinutes(5), RequiresScope: true, Group: ToolGroups.FilesWrite, Summary: "移動檔案或改名。");
 
     protected override ToolPreview Describe(MoveFileArgs args, ToolContext context) =>
         FileWriteSupport.SafePreview(() =>

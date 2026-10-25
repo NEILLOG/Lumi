@@ -16,7 +16,7 @@ public sealed partial class AddNoteTool(INoteStore notes, NoteOptions options) :
     public override ToolDescriptor Descriptor { get; } = new(
         "add_note", "記筆記",
         "把一則內容記到使用者的筆記裡（每天一個檔案，只追加，不覆寫、不刪除）。只在使用者明確要求記錄時使用，例如「幫我記下…」「記一筆…」。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Notes, Summary: "把一件事記到今天的筆記。");
 
     protected override ToolPreview Describe(AddNoteArgs args, ToolContext context)
     {

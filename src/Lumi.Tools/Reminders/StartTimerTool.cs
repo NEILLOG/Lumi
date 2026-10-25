@@ -18,7 +18,7 @@ public sealed class StartTimerTool(IReminderService reminders, ReminderOptions o
         "start_timer", "啟動計時器",
         "啟動一個倒數計時器，時間到會在 Lumi 裡跳出通知，例如「幫我計時 10 分鐘」。時長以秒指定，10 秒到 24 小時。"
         + "只在使用者明確要求計時時使用。Lumi 沒有在執行時（例如程式沒開）不會響，不要承諾一定會準時提醒。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Reminders, Summary: "開始倒數計時。");
 
     protected override ToolPreview Describe(StartTimerArgs args, ToolContext context)
     {

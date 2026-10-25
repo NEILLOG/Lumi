@@ -23,7 +23,7 @@ public sealed class MemoryUpdateTool(IMemoryStore memory, IModelCatalog catalog,
         + "必須提供既有記憶的代號 id，例如 m3（system 的 <lumi_memory> 裡列出的 [m3]）。"
         + "只改有給的欄位；expires_at 給 never 就清除到期日。要新增一則記憶請用 memory_save，不要用這個工具。"
         + "每次呼叫都需要使用者確認；被拒絕就照實告訴使用者，不要假裝已經改好。",
-        ToolPermission.Destructive, ToolModes.Both, TimeSpan.FromSeconds(10), RequiresScope: false, RequiresMemory: true);
+        ToolPermission.Destructive, ToolModes.Both, TimeSpan.FromSeconds(10), RequiresScope: false, RequiresMemory: true, Group: ToolGroups.Memory, Summary: "修改一則記憶。");
 
     protected override ToolPreview Describe(MemoryUpdateArgs args, ToolContext context)
     {

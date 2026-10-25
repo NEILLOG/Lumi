@@ -13,7 +13,7 @@ public sealed class GetCurrentTimeTool : ToolBase<GetCurrentTimeArgs>
     public override ToolDescriptor Descriptor { get; } = new(
         "get_current_time", "查詢目前時間",
         "取得目前的日期與時間。你不知道現在幾點、今天幾號或星期幾的時候一定要呼叫它，不要憑印象回答。",
-        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(5));
+        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(5), Group: ToolGroups.General, Summary: "查詢現在的日期與時間。");
 
     protected override ToolPreview Describe(GetCurrentTimeArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Timezone) ? null : args.Timezone.Trim(), null);

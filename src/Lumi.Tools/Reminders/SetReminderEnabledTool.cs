@@ -16,7 +16,7 @@ public sealed class SetReminderEnabledTool(IReminderService reminders) : ToolBas
         "set_reminder_enabled", "啟用或停用提醒",
         "暫停（enabled 為 false）或恢復（enabled 為 true）一則還沒結束的提醒、計時器或週期排程，不會刪除它。"
         + "已經完成、取消或錯過的項目無法啟用或停用。只在使用者明確要求暫停或恢復時使用。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Reminders, Summary: "暫停或恢復週期提醒。");
 
     protected override ToolPreview Describe(SetReminderEnabledArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Id) ? null : args.Id.Trim(), args.Enabled ? "啟用" : "停用");

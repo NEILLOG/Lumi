@@ -14,7 +14,7 @@ public sealed class CopyFileTool : ToolBase<CopyFileArgs>
         "copy_file", "複製檔案",
         "把使用者加入的範圍內的一個檔案複製到另一個位置（可以是同資料夾的新名稱，也可以是別的資料夾）。目的檔已存在時失敗，不會覆蓋。" +
         "只能複製檔案，不能複製資料夾；目的的上層資料夾不存在時會自動建立。不能複製成 .docx、.xlsx、.pptx、.pdf、壓縮檔等副檔名。",
-        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromMinutes(5), RequiresScope: true);
+        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromMinutes(5), RequiresScope: true, Group: ToolGroups.FilesWrite, Summary: "複製檔案。");
 
     protected override ToolPreview Describe(CopyFileArgs args, ToolContext context) =>
         FileWriteSupport.SafePreview(() =>

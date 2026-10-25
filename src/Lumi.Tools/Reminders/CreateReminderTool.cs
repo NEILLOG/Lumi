@@ -25,7 +25,7 @@ public sealed class CreateReminderTool(IReminderService reminders, ReminderOptio
         + "相對時間（「十分鐘後」「明天早上」）要先用 get_current_time 取得現在時間，再換算成 at。"
         + "一次性提醒用 at；每天、平日、每週或每月的重複提醒用 recurrence 加 time。"
         + "Lumi 沒有在執行時（例如程式沒開）不會響，不要承諾一定會準時叫使用者。設定後會把解析後的時間顯示給使用者確認。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Reminders, Summary: "在指定時間提醒你。");
 
     protected override ToolPreview Describe(CreateReminderArgs args, ToolContext context)
     {

@@ -13,7 +13,7 @@ public sealed class ListDirTool(FileToolOptions options) : ToolBase<ListDirArgs>
     public override ToolDescriptor Descriptor { get; } = new(
         "list_dir", "列出資料夾",
         "列出使用者加入的資料夾範圍內的檔案與子資料夾（名稱與大小）。想知道有哪些檔案、專案結構是什麼，先用它；再用 read_file 讀內容。",
-        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(15), RequiresScope: true);
+        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(15), RequiresScope: true, Group: ToolGroups.FilesRead, Summary: "列出你加入的資料夾裡有哪些檔案。");
 
     protected override ToolPreview Describe(ListDirArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Path) ? null : args.Path.Trim(), args.Depth is > 1 ? $"往下 {args.Depth} 層" : null);
