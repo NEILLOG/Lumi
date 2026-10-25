@@ -7,6 +7,7 @@ using Lumi.Core.Mcp;
 using Lumi.Core.Notes;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -276,6 +277,13 @@ public sealed class JsonModelCatalog : IModelCatalog
         var saved = normalized with { TokenHint = hint, TokenHost = tokenHost };
         await MutateAsync(s => s with { Speech = saved }, ct).ConfigureAwait(false);
     }
+
+    // Phase 0 的最簡版本：只更新記憶中的設定；設定檔欄位、驗證與 Proxy 密碼由 17D 補上
+    public Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Network = settings.Normalize() }, ct);
+
+    public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) =>
+        _secrets.ExistsAsync(NetworkSecrets.ProxyPassword, ct);
 
     public Task<bool> HasSpeechTokenAsync(CancellationToken ct = default) =>
         _secrets.ExistsAsync(SpeechSecrets.WhisperToken, ct);

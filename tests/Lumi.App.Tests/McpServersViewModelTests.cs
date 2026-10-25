@@ -35,6 +35,18 @@ internal sealed class McpCatalogSpy : IModelCatalog
 
     public Func<McpServerSettings, bool> FailSaveFor { get; set; } = _ => false;
 
+    /// <summary><see cref="HasProxyPasswordAsync"/> 的回傳值（M17）。</summary>
+    public bool HasProxyPassword { get; set; }
+
+    public Task SetNetworkAsync(Lumi.Core.Web.NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default)
+    {
+        Current = Current with { Network = settings.Normalize() };
+        Changed?.Invoke(this, Current);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) => Task.FromResult(HasProxyPassword);
+
     public Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default)
     {
         if (FailSaveFor(server))

@@ -40,6 +40,7 @@ public partial class ToolRuleTests
     [InlineData("Lumi.Infrastructure")]
     [InlineData("Lumi.Platform")]
     [InlineData("Lumi.App")]
+    [InlineData("Lumi.Web")]
     public void Other_assemblies_implement_no_tools(string name)
     {
         Assert.Empty(ConcreteTools(Assembly.Load(name)).Select(t => t.FullName));

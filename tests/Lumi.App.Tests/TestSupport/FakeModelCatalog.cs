@@ -2,6 +2,7 @@ using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Web;
 
 namespace Lumi.App.Tests.TestSupport;
 
@@ -67,6 +68,18 @@ internal sealed class FakeModelCatalog : IModelCatalog
         Current = Current with { WorkbenchWindow = window.Normalize() };
         return Task.CompletedTask;
     }
+
+    /// <summary><see cref="HasProxyPasswordAsync"/> 的回傳值（M17）。</summary>
+    public bool HasProxyPassword { get; set; }
+
+    public Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default)
+    {
+        Current = Current with { Network = settings.Normalize() };
+        Changed?.Invoke(this, Current);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) => Task.FromResult(HasProxyPassword);
 
     public Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default)
     {

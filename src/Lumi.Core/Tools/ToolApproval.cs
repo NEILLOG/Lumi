@@ -8,7 +8,14 @@ public sealed record ToolApprovalRequest(
     string DisplayName,
     ToolPermission Permission,
     ToolPreview Preview,
-    string ArgumentsJson);
+    string ArgumentsJson)
+{
+    /// <summary>確認區額外顯示的警告（M17：沒出現過的網站、搜尋引擎）。</summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
+
+    /// <summary>false＝不提供「本次對話都允許」（M17：搜尋引擎網址每次都問）。</summary>
+    public bool AllowRemember { get; init; } = true;
+}
 
 /// <summary>
 /// 向使用者請求同意。對話迴圈在 <see cref="RequestAsync"/> 暫停，直到使用者選擇或被取消；

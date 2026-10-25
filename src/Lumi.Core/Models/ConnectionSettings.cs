@@ -1,5 +1,6 @@
 using Lumi.Core.Mcp;
 using Lumi.Core.Speech;
+using Lumi.Core.Web;
 
 namespace Lumi.Core.Models;
 
@@ -78,6 +79,9 @@ public sealed record AppSettings(
 
     /// <summary>MCP 伺服器（M16）。祕密（環境變數與標頭的值）不在這裡。舊檔沒有時是空的。</summary>
     public IReadOnlyList<McpServerSettings> McpServers { get; init; } = [];
+
+    /// <summary>網路設定（M17）：Proxy、網站登入、逾時。Proxy 密碼不在這裡。舊檔沒有時用預設值。</summary>
+    public NetworkSettings Network { get; init; } = NetworkSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

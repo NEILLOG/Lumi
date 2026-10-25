@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.Web.Tests" />
+  </ItemGroup>
+
+  <!-- 解析網頁與 PAC 的套件只能出現在這個專案（架構測試 WebLibraryRuleTests 守住） -->
+  <ItemGroup>
+    <PackageReference Include="SmartReader" />
+    <PackageReference Include="ReverseMarkdown" />
+    <PackageReference Include="AngleSharp" />
+    <PackageReference Include="Jint" />
+    <PackageReference Include="System.ServiceModel.Syndication" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
+  </ItemGroup>
+
+</Project>

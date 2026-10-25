@@ -1,6 +1,7 @@
 using Lumi.Core.Mcp;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Web;
 
 namespace Lumi.Core.Models;
 
@@ -89,6 +90,15 @@ public interface IModelCatalog
 
     /// <summary>讀出伺服器的環境變數與標頭的值；沒有時回 <see cref="McpServerSecrets.Empty"/>。</summary>
     Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 網路設定（M17）。先 <see cref="NetworkSettings.Normalize"/>，再用 <c>NetworkRules.Validate</c> 檢查，有錯丟 <see cref="ArgumentException"/>（訊息可直接顯示）。
+    /// <paramref name="newProxyPassword"/> 有值＝寫入；null＝不變。Auth 不是 Account 時刪除已存的密碼。存了就通知 <see cref="Changed"/>。
+    /// </summary>
+    Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default);
+
+    /// <summary>Proxy 密碼有沒有存在。只查存不存在、不讀內容。</summary>
+    Task<bool> HasProxyPasswordAsync(CancellationToken ct = default);
 
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);

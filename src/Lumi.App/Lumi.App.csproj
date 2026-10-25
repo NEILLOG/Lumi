@@ -36,6 +36,7 @@
     <ProjectReference Include="..\Lumi.Sprites.Abstractions\Lumi.Sprites.Abstractions.csproj" />
     <ProjectReference Include="..\Lumi.Sprites.Orb\Lumi.Sprites.Orb.csproj" />
     <ProjectReference Include="..\Lumi.Sprites.Assets\Lumi.Sprites.Assets.csproj" />
+    <ProjectReference Include="..\Lumi.Web\Lumi.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

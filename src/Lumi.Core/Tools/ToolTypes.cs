@@ -46,8 +46,11 @@ public sealed record ToolDescriptor(
     bool CanDisable = true,
     bool CanAlwaysAllow = true);
 
-/// <summary>顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。</summary>
-public sealed record ToolPreview(string? Target, string? Detail)
+/// <summary>
+/// 顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。
+/// <paramref name="Url"/>：這次會連到的網址；有值時對話迴圈會套用網址來源規則（M17 D4）。
+/// </summary>
+public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null)
 {
     public static readonly ToolPreview None = new(null, null);
 }

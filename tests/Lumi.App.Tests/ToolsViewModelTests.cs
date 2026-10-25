@@ -488,6 +488,8 @@ public sealed class ToolsViewModelTests
         public Task ClearSpeechTokenAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetNotesFolderAsync(string folder, CancellationToken ct = default) => throw new NotSupportedException();
         public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SetNetworkAsync(Lumi.Core.Web.NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task SaveMcpServerAsync(Lumi.Core.Mcp.McpServerSettings server, Lumi.Core.Mcp.McpServerSecrets? newSecrets, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<Lumi.Core.Mcp.McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default) => throw new NotSupportedException();
