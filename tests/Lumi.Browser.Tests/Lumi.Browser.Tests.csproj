@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lumi.Browser\Lumi.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.Tools\Lumi.Tools.csproj" />
   </ItemGroup>
 
 </Project>
