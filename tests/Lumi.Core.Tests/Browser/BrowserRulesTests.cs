@@ -153,4 +153,14 @@ public class BrowserRulesTests
             [".exe", ".msi", ".bat", ".cmd", ".com", ".scr", ".ps1", ".vbs", ".sh", ".command", ".app", ".pkg", ".dmg"],
             BrowserRules.BlockedDownloadExtensions);
     }
+
+    [Theory]
+    [InlineData(".exe", true)]
+    [InlineData(".MSI", true)]
+    [InlineData(".Dmg", true)]
+    [InlineData(".pdf", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsBlockedDownloadExtension_ignores_case(string? extension, bool expected) =>
+        Assert.Equal(expected, BrowserRules.IsBlockedDownloadExtension(extension));
 }

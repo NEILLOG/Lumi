@@ -42,7 +42,7 @@ public sealed class BrowserDownloadTool(IBrowserSessions sessions) : ToolBase<Br
         var full = resolved.FullPath!;
         var display = context.Scope.ToDisplayPath(full);
         var extension = Path.GetExtension(full);
-        if (BrowserRules.BlockedDownloadExtensions.Contains(extension))
+        if (BrowserRules.IsBlockedDownloadExtension(extension))
             return ToolResult.Error($"不能下載執行檔或安裝檔（{extension}）。", "副檔名不允許");
         if (Directory.Exists(full))
             return ToolResult.Error($"「{display}」是資料夾，不能寫入。請在 path 指定檔名。", "是資料夾");
@@ -55,7 +55,7 @@ public sealed class BrowserDownloadTool(IBrowserSessions sessions) : ToolBase<Br
             var download = await sessions.DownloadAsync(context.ConversationId, @ref, full, WebLimits.DownloadMaxBytes, ct);
 
             var actualExtension = Path.GetExtension(download.FileName);
-            if (BrowserRules.BlockedDownloadExtensions.Contains(actualExtension))
+            if (BrowserRules.IsBlockedDownloadExtension(actualExtension))
             {
                 TextFileWriter.TryDelete(full);
                 return ToolResult.Error($"不能下載執行檔或安裝檔（{actualExtension}）。", "副檔名不允許");

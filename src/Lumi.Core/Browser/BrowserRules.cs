@@ -19,6 +19,10 @@ public static class BrowserRules
         ".exe", ".msi", ".bat", ".cmd", ".com", ".scr", ".ps1", ".vbs", ".sh", ".command", ".app", ".pkg", ".dmg",
     ];
 
+    /// <summary>副檔名（含點）是否被擋；不分大小寫。</summary>
+    public static bool IsBlockedDownloadExtension(string? extension) =>
+        !string.IsNullOrEmpty(extension) && BlockedDownloadExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+
     public static bool TryParseKey(string? raw, out string key, out string error)
     {
         key = "";
