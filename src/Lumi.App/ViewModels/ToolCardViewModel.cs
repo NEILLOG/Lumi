@@ -177,6 +177,7 @@ public partial class ToolCardViewModel : ObservableObject
     {
         ToolApproval.AllowedOnce => Strings.Tool_ApprovedOnce,
         ToolApproval.AllowedForConversation => Strings.Tool_ApprovedConversation,
+        ToolApproval.AllowedAlways => Strings.Tool_ApprovedAlways,
         ToolApproval.Denied => Strings.Tool_Denied,
         _ => "",
     };
