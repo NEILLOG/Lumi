@@ -233,6 +233,15 @@
                   </StackPanel>
                 </Grid>
               </ListBoxItem>
+              <ListBoxItem x:Name="CategoryTools" AutomationProperties.Name="{x:Static res:Strings.Tools_MenuTitle}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconWrench}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Tools_MenuTitle}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Tools_MenuSubtitle}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
               <ListBoxItem x:Name="CategoryGeneral" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryGeneral}">
                 <Grid ColumnDefinitions="Auto,*">
                   <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSun}" Size="18" Margin="0,0,12,0" />
@@ -436,6 +445,16 @@
         </views:SettingsPageHeader>
 
         <views:MemoryPanel x:Name="MemoryPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Memory}" />
+      </Grid>
+
+      <!-- ===== 工具：頁首（沒有主要動作）→ 面板（說明、群組、恢復預設）。面板自己捲動 ===== -->
+      <Grid x:Name="ToolsPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowTools}" Margin="32">
+        <views:SettingsPageHeader x:Name="ToolsHeader" Grid.Row="0"
+                                  Eyebrow="{x:Static res:Strings.Tools_HeaderEyebrow}"
+                                  Title="{x:Static res:Strings.Tools_HeaderTitle}"
+                                  Description="{x:Static res:Strings.Tools_HeaderDescription}" />
+
+        <views:ToolsPanel x:Name="ToolsPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Tools}" />
       </Grid>
 
       <!-- ===== 外觀與操作：主題色票（五張可選取的小卡片）→ 分隔線 → 明暗 ===== -->

@@ -21,6 +21,7 @@ public static class CoreServiceCollectionExtensions
 
         // 工具：登錄、權限記憶（只在記憶體）、迴圈設定。沒有畫面可以詢問時預設一律拒絕（TryAdd：App 註冊自己的會取代它）
         services.AddSingleton<IToolRegistry, ToolRegistry>();
+        services.AddSingleton<IToolCatalog, ToolCatalog>();   // 工具目錄：設定頁與對話迴圈共用（M15）
         services.AddSingleton<ToolPermissionMemory>();
         services.AddSingleton(new ToolLoopOptions());
         services.TryAddSingleton<IToolApprovalService, DenyAllToolApprovalService>();

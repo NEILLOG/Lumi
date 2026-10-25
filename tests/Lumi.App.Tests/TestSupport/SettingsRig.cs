@@ -134,23 +134,26 @@ internal sealed class SettingsRig : IDisposable
                 if (state == "memory-editing")
                     Host.Memory.Groups[0].Items[0].EditCommand.Execute(null);
                 break;
-            case "general":
+            case "tools":
                 settings.CategoryIndex = 3;
+                break;
+            case "general":
+                settings.CategoryIndex = 4;
                 break;
             case "sprite":
             case "sprite-issues":
-                settings.CategoryIndex = 4;
+                settings.CategoryIndex = 5;
                 break;
             case "speech":
-                settings.CategoryIndex = 5;
+                settings.CategoryIndex = 6;
                 break;
             case "speech-token-stored":
                 await Host.Catalog.SetSpeechAsync(new SpeechSettings("https://speech.example.com/v1", "zh", 120), new SecretValue("wh-token-5678"));
-                settings.CategoryIndex = 5;
+                settings.CategoryIndex = 6;
                 break;
             case "speech-test-ok":
             case "speech-test-fail":
-                settings.CategoryIndex = 5;
+                settings.CategoryIndex = 6;
                 Host.Speech.Endpoint = "https://speech.example.com/v1";
                 Host.Speech.NewToken = "wh-token-5678";
                 Settle();

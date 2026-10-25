@@ -335,7 +335,7 @@ public class SettingsAccessibilityTests
         Assert.Equal(forward.AsEnumerable().Reverse().Select(Label), backward.Select(Label));
     }
 
-    private static string CategoryName(int index) => index switch { 0 => "Connections", 1 => "Persona", 2 => "Memory", 3 => "General", 4 => "Sprite", _ => "Speech" };
+    private static string CategoryName(int index) => index switch { 0 => "Connections", 1 => "Persona", 2 => "Memory", 3 => "Tools", 4 => "General", 5 => "Sprite", _ => "Speech" };
 
     private static bool IsInMenu(InputElement e, Window window) => e.GetVisualAncestors().Contains(window.FindByName<Border>("Menu"));
 
@@ -356,20 +356,23 @@ public class SettingsAccessibilityTests
         PressKey(rig, Key.Down);
         Assert.Equal(2, settings.CategoryIndex);   // 人格與主動性之後是「記憶」
         Assert.Equal("CategoryMemory", FocusedName(rig));
+        PressKey(rig, Key.Down);   // 記憶之後是「工具」
+        Assert.Equal(3, settings.CategoryIndex);
+        Assert.Equal("CategoryTools", FocusedName(rig));
         PressKey(rig, Key.Down);
         PressKey(rig, Key.Down);
-        Assert.Equal(4, settings.CategoryIndex);
-        PressKey(rig, Key.Down);   // 小精靈之後是「語音」（最後一個可用的分類）
         Assert.Equal(5, settings.CategoryIndex);
+        PressKey(rig, Key.Down);   // 小精靈之後是「語音」（最後一個可用的分類）
+        Assert.Equal(6, settings.CategoryIndex);
         Assert.Equal("CategorySpeech", FocusedName(rig));
         PressKey(rig, Key.Down);   // 最後一個之後不會跑進停用的「設定首頁」「資料與隱私」
-        Assert.Equal(5, settings.CategoryIndex);
+        Assert.Equal(6, settings.CategoryIndex);
         Assert.Equal("CategorySpeech", FocusedName(rig));
         PressKey(rig, Key.Up);
-        Assert.Equal(4, settings.CategoryIndex);
+        Assert.Equal(5, settings.CategoryIndex);
         Assert.Equal("CategorySprite", FocusedName(rig));
         PressKey(rig, Key.Up);
-        Assert.Equal(3, settings.CategoryIndex);
+        Assert.Equal(4, settings.CategoryIndex);
         Assert.True(settings.ShowGeneral);
     }
 

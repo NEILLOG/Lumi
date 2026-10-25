@@ -5,20 +5,21 @@ using Lumi.Core.Models;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>設定視窗：左側分類（AI 連線、人格與主動性、記憶、外觀與操作、小精靈、語音），「AI 連線」內分連線、模型設定兩個分頁。</summary>
+/// <summary>設定視窗：左側分類（AI 連線、人格與主動性、記憶、工具、外觀與操作、小精靈、語音），「AI 連線」內分連線、模型設定兩個分頁。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
-        GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
         Models = models;
         Persona = persona;
         Memory = memory;
+        Tools = tools;
         General = general;
         Sprite = sprite;
         Speech = speech;
@@ -36,6 +37,9 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>「記憶」分類（M14 14D）。</summary>
     public MemoryViewModel Memory { get; }
 
+    /// <summary>「工具」分類（M15）。</summary>
+    public ToolsViewModel Tools { get; }
+
     public GeneralViewModel General { get; }
 
     public SpriteSettingsViewModel Sprite { get; }
@@ -47,8 +51,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool HasLoadProblem => LoadProblem is not null;
 
-    /// <summary>左側分類：0 = AI 連線、1 = 人格與主動性、2 = 記憶、3 = 外觀與操作、4 = 小精靈、5 = 語音。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech))]
+    /// <summary>左側分類：0 = AI 連線、1 = 人格與主動性、2 = 記憶、3 = 工具、4 = 外觀與操作、5 = 小精靈、6 = 語音。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech))]
     private int _categoryIndex;
 
     /// <summary>「AI 連線」內的分頁：0 = 連線、1 = 模型設定。</summary>
@@ -67,11 +71,13 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool ShowMemory => CategoryIndex == 2;
 
-    public bool ShowGeneral => CategoryIndex == 3;
+    public bool ShowTools => CategoryIndex == 3;
 
-    public bool ShowSprite => CategoryIndex == 4;
+    public bool ShowGeneral => CategoryIndex == 4;
 
-    public bool ShowSpeech => CategoryIndex == 5;
+    public bool ShowSprite => CategoryIndex == 5;
+
+    public bool ShowSpeech => CategoryIndex == 6;
 
     /// <summary>Menu 底部的版本說明（例如「Lumi 1.0.0」）。</summary>
     public string VersionText { get; } =
@@ -94,14 +100,17 @@ public partial class SettingsViewModel : ObservableObject
             case SettingsSection.Persona:
                 CategoryIndex = 1;
                 break;
-            case SettingsSection.General:
+            case SettingsSection.Tools:
                 CategoryIndex = 3;
                 break;
-            case SettingsSection.Sprite:
+            case SettingsSection.General:
                 CategoryIndex = 4;
                 break;
-            case SettingsSection.Speech:
+            case SettingsSection.Sprite:
                 CategoryIndex = 5;
+                break;
+            case SettingsSection.Speech:
+                CategoryIndex = 6;
                 break;
             case SettingsSection.Models:
                 CategoryIndex = 0;

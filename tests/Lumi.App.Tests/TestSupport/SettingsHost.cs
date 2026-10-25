@@ -45,11 +45,15 @@ internal sealed class SettingsHost : IDisposable
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Persona = new PersonaViewModel(Catalog, dispatcher);
         Memory = new MemoryViewModel(MemoryStore, Catalog, Confirm, dispatcher, new FakeTimeProvider());
+        Tools = new ToolsViewModel(new FakeToolCatalog(
+            FakeCatalogTool.Make("read_file", "讀取檔案", group: Lumi.Core.Tools.ToolGroups.FilesRead),
+            FakeCatalogTool.Make("write_file", "寫入檔案", Lumi.Core.Tools.ToolPermission.Write, group: Lumi.Core.Tools.ToolGroups.FilesWrite),
+            FakeCatalogTool.Make("overwrite_file", "覆寫檔案", Lumi.Core.Tools.ToolPermission.Destructive, group: Lumi.Core.Tools.ToolGroups.FilesWrite)), Catalog, Confirm);
         General = new GeneralViewModel(Catalog, dispatcher);
         SpriteCatalog = spriteCatalog;
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
         Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, General, Sprite, Speech, Catalog, Confirm, WindowService);
+        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, General, Sprite, Speech, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
@@ -64,6 +68,7 @@ internal sealed class SettingsHost : IDisposable
     public PersonaViewModel Persona { get; }
     public FakeMemoryStore MemoryStore { get; } = new();
     public MemoryViewModel Memory { get; }
+    public ToolsViewModel Tools { get; }
     public GeneralViewModel General { get; }
     public SpriteSettingsViewModel Sprite { get; }
     public SpeechViewModel Speech { get; }

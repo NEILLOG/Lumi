@@ -69,6 +69,8 @@
   <StreamGeometry x:Key="LumiIconTrash">M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2 M10 11V17 M14 11V17</StreamGeometry>
   <!-- 記憶（lucide: brain） -->
   <StreamGeometry x:Key="LumiIconBrain">M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4 M17.599 6.5a3 3 0 0 0 .399-1.375 M6.003 5.125A3 3 0 0 0 6.401 6.5 M3.477 10.896a4 4 0 0 1 .585-.396 M19.938 10.5a4 4 0 0 1 .585.396 M6 18a4 4 0 0 1-1.967-.516 M19.967 17.484A4 4 0 0 1 18 18</StreamGeometry>
+  <!-- 工具（lucide: wrench） -->
+  <StreamGeometry x:Key="LumiIconWrench">M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z</StreamGeometry>
   <!-- 提醒通知（lucide: bell） -->
   <StreamGeometry x:Key="LumiIconBell">M6 8A6 6 0 0 1 18 8C18 15 21 17 21 17H3C3 17 6 15 6 8Z M10.3 21A1.94 1.94 0 0 0 13.7 21</StreamGeometry>
 </ResourceDictionary>
