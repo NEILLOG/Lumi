@@ -1,3 +1,4 @@
+using Lumi.Core.Mcp;
 using Lumi.Core.Memory;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
@@ -35,6 +36,7 @@ public static class InfrastructureServiceCollectionExtensions
         // 長期記憶（M14）：同一個資料庫；取代 Core 預設的記憶體版
         services.AddSingleton<SqliteMemoryStore>();
         services.Replace(ServiceDescriptor.Singleton<IMemoryStore>(sp => sp.GetRequiredService<SqliteMemoryStore>()));
+        services.AddSingleton<IMcpToolCache, SqliteMcpToolCache>();   // MCP 伺服器最近一次的工具清單（M16）
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();
