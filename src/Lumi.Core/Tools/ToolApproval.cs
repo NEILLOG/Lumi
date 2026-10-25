@@ -38,6 +38,7 @@ public sealed class DenyAllToolApprovalService : IToolApprovalService
 /// 內建工具依權限等級記住（允許一次 <c>Write</c> 工具，同等級的內建工具都允許）；
 /// MCP 工具（群組以 <c>mcp:</c> 開頭）依工具名稱記住，不連帶其他工具（M16 D13）。
 /// <see cref="ToolPermission.Destructive"/> 沒有記住選項，永遠詢問。
+/// 這則對話允許過的網站（M17 D4）也記在這裡。
 /// </summary>
 public sealed class ToolPermissionMemory
 {
@@ -45,6 +46,7 @@ public sealed class ToolPermissionMemory
 
     private readonly object _lock = new();
     private readonly Dictionary<string, HashSet<string>> _allowed = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> _approvedSites = new(StringComparer.Ordinal);
 
     public bool IsAllowed(string conversationId, ToolPermission permission) =>
         IsAllowedKey(conversationId, LevelKey(permission), permission);
@@ -57,6 +59,23 @@ public sealed class ToolPermissionMemory
 
     public void Allow(string conversationId, ToolDescriptor descriptor) =>
         AllowKey(conversationId, KeyFor(descriptor), descriptor.Permission);
+
+    /// <summary>記住這則對話允許過的網站（<see cref="Web.WebOrigin.Of"/> 的格式）。</summary>
+    public void ApproveSite(string conversationId, string origin)
+    {
+        lock (_lock)
+        {
+            if (!_approvedSites.TryGetValue(conversationId, out var set))
+                _approvedSites[conversationId] = set = new HashSet<string>(StringComparer.Ordinal);
+            set.Add(origin);
+        }
+    }
+
+    public bool IsSiteApproved(string conversationId, string origin)
+    {
+        lock (_lock)
+            return _approvedSites.TryGetValue(conversationId, out var set) && set.Contains(origin);
+    }
 
     private bool IsAllowedKey(string conversationId, string key, ToolPermission permission)
     {
@@ -93,6 +112,9 @@ public sealed class ToolPermissionMemory
     public void Clear(string conversationId)
     {
         lock (_lock)
+        {
             _allowed.Remove(conversationId);
+            _approvedSites.Remove(conversationId);
+        }
     }
 }
