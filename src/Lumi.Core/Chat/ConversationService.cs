@@ -7,6 +7,7 @@ using Lumi.Core.Models;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Tools;
+using Lumi.Core.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -316,23 +317,36 @@ public sealed class ConversationService
 
                 yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
 
+                // ---- 網址來源（M17 D4）：沒出現過的網站與搜尋引擎一定詢問，不看「永遠允許」與「本次對話都允許」----
+                var urlCheck = UrlCheck.Known;
+                if (preview.Url is { } url)
+                {
+                    var provenance = UrlProvenance.From(history, results);
+                    urlCheck = NetworkUrlPolicy.Check(url, provenance, origin => _memory.IsSiteApproved(conversationId, origin));
+                }
+                var mustAsk = urlCheck != UrlCheck.Known;
+
                 // ---- 權限 ----
                 var approval = ToolApproval.NotRequired;
                 var denied = false;
-                if (descriptor.Permission != ToolPermission.ReadOnly)
+                if (descriptor.Permission != ToolPermission.ReadOnly || mustAsk)
                 {
-                    if (IsAlwaysAllowed(descriptor))
+                    if (!mustAsk && IsAlwaysAllowed(descriptor))
                     {
                         // 設定頁的「永遠允許」：不詢問，也不記在對話裡（設定立即生效，M15 D5）
                         approval = ToolApproval.AllowedAlways;
                     }
-                    else if (_memory.IsAllowed(conversationId, descriptor))
+                    else if (!mustAsk && _memory.IsAllowed(conversationId, descriptor))
                     {
                         approval = ToolApproval.AllowedForConversation;
                     }
                     else
                     {
-                        var approvalRequest = new ToolApprovalRequest(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview, use.InputJson);
+                        var approvalRequest = new ToolApprovalRequest(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview, use.InputJson)
+                        {
+                            Warnings = mustAsk ? [NetworkUrlPolicy.Warning(urlCheck, preview.Url!)] : [],
+                            AllowRemember = urlCheck != UrlCheck.SearchEngine,
+                        };
                         yield return new ApprovalRequired(approvalRequest);
 
                         ApprovalDecision? decision = null;
@@ -355,12 +369,20 @@ public sealed class ConversationService
 
                         switch (decision)
                         {
+                            case ApprovalDecision.AllowForConversation when urlCheck == UrlCheck.SearchEngine:
+                                // 搜尋引擎網址不能「本次對話都允許」：當成允許一次，什麼都不記
+                                approval = ToolApproval.AllowedOnce;
+                                break;
                             case ApprovalDecision.AllowForConversation:
                                 _memory.Allow(conversationId, descriptor);   // Destructive 不會被記住；MCP 工具依名稱記住（M16 D13）
                                 approval = descriptor.Permission == ToolPermission.Destructive ? ToolApproval.AllowedOnce : ToolApproval.AllowedForConversation;
+                                if (urlCheck == UrlCheck.UnknownSite)
+                                    _memory.ApproveSite(conversationId, WebOrigin.Of(preview.Url!));
                                 break;
                             case ApprovalDecision.AllowOnce:
                                 approval = ToolApproval.AllowedOnce;
+                                if (urlCheck == UrlCheck.UnknownSite)
+                                    _memory.ApproveSite(conversationId, WebOrigin.Of(preview.Url!));
                                 break;
                             default:
                                 approval = ToolApproval.Denied;
