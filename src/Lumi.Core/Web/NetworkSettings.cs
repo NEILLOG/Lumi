@@ -52,6 +52,30 @@ public sealed record NetworkSettings
         TimeoutSeconds = Math.Clamp(TimeoutSeconds, MinTimeoutSeconds, MaxTimeoutSeconds),
     };
 
+    // record 預設的相等比較對清單是比參考；這裡改成比內容（IsDirty、設定變更偵測都靠它）
+    public bool Equals(NetworkSettings? other) =>
+        other is not null
+        && Mode == other.Mode && PacUrl == other.PacUrl && ManualProxy == other.ManualProxy
+        && Auth == other.Auth && ProxyUser == other.ProxyUser && TimeoutSeconds == other.TimeoutSeconds
+        && (BypassList ?? []).SequenceEqual(other.BypassList ?? [])
+        && (IntegratedAuthSites ?? []).SequenceEqual(other.IntegratedAuthSites ?? []);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Mode);
+        hash.Add(PacUrl);
+        hash.Add(ManualProxy);
+        hash.Add(Auth);
+        hash.Add(ProxyUser);
+        hash.Add(TimeoutSeconds);
+        foreach (var item in BypassList ?? [])
+            hash.Add(item);
+        foreach (var item in IntegratedAuthSites ?? [])
+            hash.Add(item);
+        return hash.ToHashCode();
+    }
+
     private static IReadOnlyList<string> Clean(IReadOnlyList<string>? lines) =>
         (lines ?? [])
             .Select(l => l?.Trim().ToLowerInvariant() ?? "")
