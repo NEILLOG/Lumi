@@ -11,7 +11,7 @@ public static partial class McpToolNaming
     public const int MaxKeyLength = 16;
     private const int HashLength = 8;
 
-    [GeneratedRegex("^[a-z0-9](?:[a-z0-9-]{0,14}[a-z0-9])?$")]
+    [GeneratedRegex(@"^[a-z0-9](?:[a-z0-9-]{0,14}[a-z0-9])?\z")]
     private static partial Regex ValidKey();
 
     [GeneratedRegex("[^A-Za-z0-9_-]")]

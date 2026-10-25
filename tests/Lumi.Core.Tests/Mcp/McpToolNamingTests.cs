@@ -85,6 +85,7 @@ public class McpToolNamingTests
     [InlineData("A", false)]
     [InlineData("a_b", false)]
     [InlineData("", false)]
+    [InlineData("github\n", false)]
     [InlineData(null, false)]
     public void IsValidKey_FollowsTheRule(string? key, bool expected)
     {

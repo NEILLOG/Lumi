@@ -536,16 +536,11 @@ public sealed class JsonModelCatalog : IModelCatalog
         return servers;
     }
 
-    /// <summary>代號的錯誤文字，和 16A 的 <c>McpServerRules.ValidateKey</c> 相同（合併後改用它）。</summary>
-    private const string McpKeyFormatMessage = "只能使用小寫英文、數字與 -，最多 16 個字";
-    private const string McpKeyTakenMessage = "這個代號已經被其他伺服器使用";
-
     private void ValidateMcpServerKey(McpServerSettings server)
     {
-        if (!McpToolNaming.IsValidKey(server.Key))
-            throw new ArgumentException(McpKeyFormatMessage, nameof(server));
-        if (_current.McpServers.Any(m => m.Key == server.Key && m.Id != server.Id))
-            throw new ArgumentException(McpKeyTakenMessage, nameof(server));
+        var error = McpServerRules.ValidateKey(server.Key, _current.McpServers.Where(m => m.Id != server.Id).Select(m => m.Key));
+        if (error is not null)
+            throw new ArgumentException(error, nameof(server));
     }
 
     /// <summary>刪除伺服器時，把它的工具從停用、永遠允許與權限覆寫裡一併移除（名稱以 <c>mcp__{key}__</c> 開頭）。</summary>
