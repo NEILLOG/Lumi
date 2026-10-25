@@ -1,0 +1,182 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.NetworkPanel"
+             x:DataType="vm:NetworkViewModel">
+
+  <!-- 設定視窗「網路」頁（M17 D12）：版面同語音頁（單欄、最大寬 560、section-title、divider、動作列在底部）。
+       顏色與間距只用樣式 class 與主題 token；樣式定義在 SettingsWindow.axaml。 -->
+  <StackPanel Margin="32">
+    <views:SettingsPageHeader x:Name="NetworkHeader"
+                              Eyebrow="{x:Static res:Strings.Settings_CategoryNetwork}"
+                              Title="{x:Static res:Strings.Network_HeaderTitle}"
+                              Description="{x:Static res:Strings.Network_HeaderDescription}" />
+    <ctl:FractionWidthLimiter MaxPixels="560" HorizontalAlignment="Stretch">
+      <StackPanel x:Name="NetworkForm">
+
+        <!-- Proxy：連線方式、PAC、手動位址、不經過 Proxy、驗證、帳號與密碼 -->
+        <StackPanel x:Name="NetworkProxySection" Spacing="16">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.Network_SectionProxy}" />
+
+          <ctl:FormField x:Name="NetworkModeField" Label="{x:Static res:Strings.Network_Mode}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_ModeHint}">
+            <StackPanel Spacing="8">
+              <RadioButton x:Name="NetworkModeSystem" GroupName="NetworkMode" Content="{x:Static res:Strings.Network_ModeSystem}"
+                           IsChecked="{Binding ModeIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
+              <RadioButton x:Name="NetworkModePac" GroupName="NetworkMode" Content="{x:Static res:Strings.Network_ModePac}"
+                           IsChecked="{Binding ModeIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
+              <RadioButton x:Name="NetworkModeManual" GroupName="NetworkMode" Content="{x:Static res:Strings.Network_ModeManual}"
+                           IsChecked="{Binding ModeIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=2}" />
+              <RadioButton x:Name="NetworkModeNone" GroupName="NetworkMode" Content="{x:Static res:Strings.Network_ModeNone}"
+                           IsChecked="{Binding ModeIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=3}" />
+            </StackPanel>
+          </ctl:FormField>
+
+          <ctl:FormField x:Name="NetworkPacUrlField" Label="{x:Static res:Strings.Network_PacUrl}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_PacUrlHint}" Error="{Binding PacUrlError}"
+                         IsVisible="{Binding ShowPac}">
+            <TextBox x:Name="NetworkPacUrlBox" Text="{Binding PacUrl}" Classes.error="{Binding PacUrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     Watermark="{x:Static res:Strings.Network_PacUrlWatermark}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_PacUrl}" />
+          </ctl:FormField>
+
+          <ctl:FormField x:Name="NetworkManualProxyField" Label="{x:Static res:Strings.Network_ManualProxy}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_ManualProxyHint}" Error="{Binding ManualProxyError}"
+                         IsVisible="{Binding ShowManual}">
+            <TextBox x:Name="NetworkManualProxyBox" Text="{Binding ManualProxy}" Classes.error="{Binding ManualProxyError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     Watermark="{x:Static res:Strings.Network_ManualProxyWatermark}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_ManualProxy}" />
+          </ctl:FormField>
+
+          <ctl:FormField x:Name="NetworkBypassField" Label="{x:Static res:Strings.Network_Bypass}" Requirement="Optional"
+                         Hint="{x:Static res:Strings.Network_BypassHint}" Error="{Binding BypassError}"
+                         IsVisible="{Binding ShowManual}">
+            <TextBox x:Name="NetworkBypassBox" Text="{Binding BypassText}" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="80"
+                     Classes.error="{Binding BypassError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_Bypass}" />
+          </ctl:FormField>
+
+          <ctl:FormField x:Name="NetworkAuthField" Label="{x:Static res:Strings.Network_Auth}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_AuthHint}" IsVisible="{Binding ShowAuth}">
+            <StackPanel Spacing="8">
+              <RadioButton x:Name="NetworkAuthNone" GroupName="NetworkAuth" Content="{x:Static res:Strings.Network_AuthNone}"
+                           IsChecked="{Binding AuthIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
+              <RadioButton x:Name="NetworkAuthIntegrated" GroupName="NetworkAuth" Content="{x:Static res:Strings.Network_AuthIntegrated}"
+                           IsChecked="{Binding AuthIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
+              <RadioButton x:Name="NetworkAuthAccount" GroupName="NetworkAuth" Content="{x:Static res:Strings.Network_AuthAccount}"
+                           IsChecked="{Binding AuthIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=2}" />
+            </StackPanel>
+          </ctl:FormField>
+
+          <ctl:FormField x:Name="NetworkProxyUserField" Label="{x:Static res:Strings.Network_ProxyUser}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_ProxyUserHint}" Error="{Binding ProxyUserError}"
+                         IsVisible="{Binding ShowAccount}">
+            <TextBox x:Name="NetworkProxyUserBox" Text="{Binding ProxyUser}" Classes.error="{Binding ProxyUserError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_ProxyUser}" />
+          </ctl:FormField>
+
+          <!-- 密碼：已設定時顯示「已設定」與更換；更換或尚未設定時顯示輸入框（遮罩＋顯示切換），更換中可以取消 -->
+          <ctl:FormField x:Name="NetworkPasswordField" Label="{x:Static res:Strings.Network_Password}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_PasswordHint}" Error="{Binding PasswordError}"
+                         IsVisible="{Binding ShowAccount}">
+            <StackPanel Spacing="8">
+              <Grid x:Name="NetworkPasswordStatusRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowPasswordStatus}">
+                <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Network_PasswordStored}" VerticalAlignment="Center" />
+                <Button x:Name="NetworkReplacePasswordButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Network_PasswordReplace}" Command="{Binding ReplacePasswordCommand}" />
+              </Grid>
+              <Grid x:Name="NetworkPasswordInputRow" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding ShowPasswordInput}">
+                <TextBox x:Name="NetworkPasswordBox" Grid.Column="0" Text="{Binding NewPassword}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
+                         Watermark="{x:Static res:Strings.Network_PasswordPlaceholder}"
+                         Classes.error="{Binding PasswordError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                         AutomationProperties.Name="{x:Static res:Strings.Network_Password}" />
+                <ToggleButton x:Name="NetworkRevealPasswordButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                              Content="{x:Static res:Strings.Network_PasswordShow}" IsChecked="{Binding RevealPassword}" />
+                <Button x:Name="NetworkCancelReplacePasswordButton" Grid.Column="2" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Network_PasswordCancelReplace}" Command="{Binding CancelReplacePasswordCommand}"
+                        IsVisible="{Binding ReplacingPassword}" />
+              </Grid>
+            </StackPanel>
+          </ctl:FormField>
+        </StackPanel>
+
+        <Border Classes="divider" />
+
+        <!-- 網站與網路工具：自動使用 Windows 登入的網站、逾時、不提供搜尋的說明 -->
+        <StackPanel x:Name="NetworkSitesSection" Spacing="16">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.Network_SectionSites}" />
+          <ctl:FormField x:Name="NetworkSitesField" Label="{x:Static res:Strings.Network_IntegratedSites}" Requirement="Optional"
+                         Hint="{x:Static res:Strings.Network_IntegratedSitesHint}" Error="{Binding SitesError}">
+            <TextBox x:Name="NetworkSitesBox" Text="{Binding IntegratedSitesText}" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="80"
+                     Classes.error="{Binding SitesError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_IntegratedSites}" />
+          </ctl:FormField>
+
+          <ctl:FormField x:Name="NetworkTimeoutField" Label="{x:Static res:Strings.Network_Timeout}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_TimeoutHint}" Error="{Binding TimeoutError}">
+            <TextBox x:Name="NetworkTimeoutBox" Text="{Binding TimeoutText}" Width="120" HorizontalAlignment="Left"
+                     Classes.error="{Binding TimeoutError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_Timeout}" />
+          </ctl:FormField>
+
+          <TextBlock x:Name="NetworkNoteNoSearch" Classes="muted" Text="{x:Static res:Strings.Network_NoteNoSearch}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Classes="divider" />
+
+        <!-- 測試連線：測試網址不存進設定；結果同語音頁（成功＝Success 淡底＋勾，失敗＝Danger 淡底＋三角＋原因） -->
+        <StackPanel x:Name="NetworkTestSection" Spacing="16">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.Network_SectionTest}" />
+          <ctl:FormField x:Name="NetworkTestUrlField" Label="{x:Static res:Strings.Network_TestUrl}" Requirement="Required"
+                         Hint="{x:Static res:Strings.Network_TestUrlHint}" Error="{Binding TestUrlError}">
+            <TextBox x:Name="NetworkTestUrlBox" Text="{Binding TestUrl}" Classes.error="{Binding TestUrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     AutomationProperties.Name="{x:Static res:Strings.Network_TestUrl}" />
+          </ctl:FormField>
+
+          <StackPanel x:Name="NetworkResults" Spacing="8">
+            <Border x:Name="NetworkTestOk" Classes="result ok" IsVisible="{Binding ShowTestOk}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconCheck}" Size="16" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Top" />
+                <TextBlock Grid.Column="1" Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+              </Grid>
+            </Border>
+            <Border x:Name="NetworkTestFail" Classes="result fail" IsVisible="{Binding ShowTestFailure}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiDangerBrush}" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{x:Static res:Strings.Network_TestFailed}" FontWeight="Bold" Foreground="{DynamicResource LumiDangerBrush}" />
+                  <TextBlock Text="{Binding TestResultText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}" />
+                </StackPanel>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- 動作列：左邊是訊息與停用原因，右邊是測試連線（secondary）、還原（secondary）、儲存（primary，這一區唯一的 Primary） -->
+        <Grid x:Name="NetworkActions" ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,16,0,0">
+          <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+            <TextBlock x:Name="NetworkMessage" Classes="muted" Classes.error="{Binding MessageIsError}"
+                       IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
+            <TextBlock x:Name="NetworkTestBlockedText" Classes="muted" Text="{Binding TestBlockedReason}" TextWrapping="Wrap"
+                       IsVisible="{Binding HasTestBlockedReason}" />
+            <TextBlock x:Name="NetworkSaveBlockedText" Classes="muted" Text="{Binding SaveBlockedReason}" TextWrapping="Wrap"
+                       IsVisible="{Binding HasSaveBlockedReason}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button x:Name="NetworkTestButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Content="{x:Static res:Strings.Network_Test}" Command="{Binding TestCommand}" IsVisible="{Binding !IsTesting}" />
+            <TextBlock x:Name="NetworkTestingText" Text="{x:Static res:Strings.Network_Testing}" IsVisible="{Binding ShowTestingText}" VerticalAlignment="Center" />
+            <Button x:Name="NetworkRevertButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Content="{x:Static res:Strings.Network_Revert}" Command="{Binding RevertCommand}" />
+            <TextBlock x:Name="NetworkSavingText" Text="{x:Static res:Strings.Network_Saving}" IsVisible="{Binding ShowSavingText}" VerticalAlignment="Center" />
+            <Button x:Name="NetworkSaveButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Content="{x:Static res:Strings.Network_Save}" Command="{Binding SaveCommand}" />
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </StackPanel>
+</UserControl>
