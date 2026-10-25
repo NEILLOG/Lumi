@@ -100,4 +100,41 @@ public sealed class SdkConnectionTests : IAsyncLifetime
 
         Assert.NotNull(ex.InnerException);
     }
+
+    [Fact]
+    public async Task Http_transport_uses_the_named_client_from_the_factory()
+    {
+        var handler = new RecordingHandler();
+        var factory = new RecordingHttpClientFactory(handler);
+        var server = new McpServerSettings("s", "k", "n", McpTransportKind.Http, null, [], null, [], "https://mcp.example.test/mcp", []);
+
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            new SdkMcpConnectionFactory(factory).ConnectAsync(server, McpServerSecrets.Empty, new Dictionary<string, string>(), default));
+
+        Assert.Equal([SdkMcpConnectionFactory.HttpClientName], factory.Names);
+        Assert.NotEmpty(handler.Requests);
+        Assert.All(handler.Requests, uri => Assert.Equal("mcp.example.test", uri.Host));
+    }
+
+    private sealed class RecordingHandler : HttpMessageHandler
+    {
+        public List<Uri> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add(request.RequestUri!);
+            throw new HttpRequestException("測試用：不連線");
+        }
+    }
+
+    private sealed class RecordingHttpClientFactory(HttpMessageHandler handler) : IHttpClientFactory
+    {
+        public List<string> Names { get; } = [];
+
+        public HttpClient CreateClient(string name)
+        {
+            Names.Add(name);
+            return new HttpClient(handler, disposeHandler: false);
+        }
+    }
 }

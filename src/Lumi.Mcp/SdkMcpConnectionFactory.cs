@@ -10,8 +10,11 @@ namespace Lumi.Mcp;
 /// 用官方 C# SDK（ModelContextProtocol.Core）實作的連線工廠（M16 16C）。SDK 的型別只允許出現在這個檔案
 /// （架構測試 <c>McpLibraryRuleTests</c> 守住相依方向）。祕密的值只放進程序環境變數與 HTTP 標頭，不寫 log、不進例外訊息。
 /// </summary>
-public sealed class SdkMcpConnectionFactory : IMcpConnectionFactory
+public sealed class SdkMcpConnectionFactory(IHttpClientFactory? httpClientFactory = null) : IMcpConnectionFactory
 {
+    /// <summary>遠端 MCP 伺服器用的具名 HttpClient；它和其他 HttpClient 一樣經過 Lumi 的 Proxy 設定（M17 D2）。</summary>
+    public const string HttpClientName = "mcp";
+
     private const string DefaultPathExt = ".COM;.EXE;.BAT;.CMD";
 
     private static readonly string ClientVersion =
@@ -23,7 +26,7 @@ public sealed class SdkMcpConnectionFactory : IMcpConnectionFactory
         var transport = server.Transport switch
         {
             McpTransportKind.Stdio => CreateStdioTransport(server, secrets, baseEnvironment, stderr),
-            McpTransportKind.Http => CreateHttpTransport(server, secrets),
+            McpTransportKind.Http => CreateHttpTransport(server, secrets, httpClientFactory),
             _ => throw new ArgumentOutOfRangeException(nameof(server), server.Transport, "不認得的傳輸方式。"),
         };
 
@@ -72,19 +75,26 @@ public sealed class SdkMcpConnectionFactory : IMcpConnectionFactory
         });
     }
 
-    private static IClientTransport CreateHttpTransport(McpServerSettings server, McpServerSecrets secrets)
+    private static IClientTransport CreateHttpTransport(McpServerSettings server, McpServerSecrets secrets, IHttpClientFactory? httpClientFactory)
     {
         if (string.IsNullOrWhiteSpace(server.Url))
             throw new ArgumentException("缺少網址。", nameof(server));
 
         var headers = new Dictionary<string, string>(secrets.Headers, StringComparer.OrdinalIgnoreCase);
-        return new HttpClientTransport(new HttpClientTransportOptions
+        var options = new HttpClientTransportOptions
         {
             Name = server.Name,
             Endpoint = new Uri(server.Url),
             TransportMode = HttpTransportMode.StreamableHttp,
             AdditionalHeaders = headers,
-        }, NullLoggerFactory.Instance);
+        };
+        if (httpClientFactory is null)
+            return new HttpClientTransport(options, NullLoggerFactory.Instance);
+
+        // 串流回應會持續很久，逾時靠 CancellationToken 與每個伺服器自己的逾時設定，不靠 HttpClient 的整體逾時
+        var http = httpClientFactory.CreateClient(HttpClientName);
+        http.Timeout = Timeout.InfiniteTimeSpan;
+        return new HttpClientTransport(options, http, NullLoggerFactory.Instance, ownsHttpClient: false);
     }
 
     /// <summary>Windows 上 <c>npx</c> 實際是 <c>npx.cmd</c>，找得到就用完整路徑；其他平台原樣使用。</summary>

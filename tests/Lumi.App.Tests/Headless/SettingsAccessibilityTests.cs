@@ -362,12 +362,16 @@ public class SettingsAccessibilityTests
         PressKey(rig, Key.Down);
         PressKey(rig, Key.Down);
         Assert.Equal(5, settings.CategoryIndex);
-        PressKey(rig, Key.Down);   // 小精靈之後是「語音」（最後一個可用的分類）
+        PressKey(rig, Key.Down);   // 小精靈之後是「語音」
         Assert.Equal(6, settings.CategoryIndex);
         Assert.Equal("CategorySpeech", FocusedName(rig));
+        PressKey(rig, Key.Down);   // 語音之後是「網路」（最後一個可用的分類）
+        Assert.Equal(7, settings.CategoryIndex);
+        Assert.Equal("CategoryNetwork", FocusedName(rig));
         PressKey(rig, Key.Down);   // 最後一個之後不會跑進停用的「設定首頁」「資料與隱私」
-        Assert.Equal(6, settings.CategoryIndex);
-        Assert.Equal("CategorySpeech", FocusedName(rig));
+        Assert.Equal(7, settings.CategoryIndex);
+        Assert.Equal("CategoryNetwork", FocusedName(rig));
+        PressKey(rig, Key.Up);
         PressKey(rig, Key.Up);
         Assert.Equal(5, settings.CategoryIndex);
         Assert.Equal("CategorySprite", FocusedName(rig));

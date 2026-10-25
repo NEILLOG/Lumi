@@ -23,12 +23,12 @@ public class SpeechPageTests
         root.GetVisualDescendants().OfType<TextBlock>().Any(t => t.IsEffectivelyVisible && t.Text == text);
 
     [AvaloniaFact]
-    public async Task TheSpeechCategory_IsTheLastMenuItem_WithItsName()
+    public async Task TheSpeechCategory_IsTheSeventhMenuItem_WithItsName()
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
         var list = rig.Window.FindByName<ListBox>("CategoryList");
 
-        Assert.Equal(7, list.ItemCount);
+        Assert.Equal(8, list.ItemCount);
         var item = Assert.IsType<ListBoxItem>(list.Items[6]);
         Assert.Equal("CategorySpeech", item.Name);
         Assert.Equal("語音", AutomationProperties.GetName(item));

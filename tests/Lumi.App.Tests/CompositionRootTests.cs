@@ -13,6 +13,7 @@ using Lumi.Platform;
 using Lumi.Providers;
 using Lumi.Speech;
 using Lumi.Tools;
+using Lumi.Web;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -44,6 +45,7 @@ public sealed class CompositionRootTests : IDisposable
             o.KeychainService = "io.github.neillog.lumi.tests";
             o.DpapiFilePath = Path.Combine(_directory, "secrets.json");
         });
+        builder.Services.AddLumiWeb();
         builder.Services.AddLumiProviders();
         builder.Services.AddLumiSpeech();
         builder.Services.AddLumiInfrastructure(o => o.DatabasePath = Path.Combine(_directory, "lumi.db"));
@@ -75,7 +77,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
-        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "get_current_time", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "overwrite_file", "read_document", "read_file", "read_notes", "search", "set_reminder_enabled", "show_details", "start_timer", "write_file"],
+        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "download_file", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
         // 長期記憶（M14）：SQLite 版取代 Core 預設的記憶體版；第 5 層、清理服務都要能解析
         Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMemoryStore>(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>());
@@ -94,6 +96,16 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMcpToolCache>(services.GetRequiredService<Lumi.Core.Mcp.IMcpToolCache>());
         Assert.NotNull(services.GetRequiredService<Lumi.Core.Platform.IShellEnvironment>());
         Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is Lumi.App.Services.McpHostedService);
+        // M17：網路基礎。IWebProxy 是 LumiWebProxy（Proxy 資訊與 HttpClient 共用同一個）、網路工具用的服務都能解析
+        Assert.IsType<Lumi.Web.Proxy.LumiWebProxy>(services.GetRequiredService<System.Net.IWebProxy>());
+        Assert.Same(services.GetRequiredService<System.Net.IWebProxy>(), services.GetRequiredService<Lumi.Core.Web.INetworkProxyInfo>());
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Web.IWebClient>());
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Web.IWebContentExtractor>());
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Web.IFeedReader>());
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Web.INetworkDiagnostics>());
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Web.INetworkTester>());
+        Assert.NotNull(services.GetRequiredService<NetworkViewModel>());
+        Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is Lumi.Web.Proxy.ProxyHostedService);
         // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱

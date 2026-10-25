@@ -5,6 +5,7 @@ using Lumi.Tools.Tests.Files;
 using Lumi.Tools.Tests.Memory;
 using Lumi.Tools.Tests.Notes;
 using Lumi.Tools.Tests.Reminders;
+using Lumi.Tools.Tests.Web;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lumi.Tools.Tests;
@@ -18,6 +19,7 @@ public sealed class ToolGroupTests
         var services = new ServiceCollection();
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
+        services.AddFakeWebServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddLumiTools();

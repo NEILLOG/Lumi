@@ -12,6 +12,7 @@ using Lumi.Platform;
 using Lumi.Providers;
 using Lumi.Speech;
 using Lumi.Tools;
+using Lumi.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -63,6 +64,7 @@ internal static class Program
             if (bool.TryParse(builder.Configuration["Lumi:Developer:OverlayLayered"], out var layered))
                 options.Layered = layered;
         });
+        builder.Services.AddLumiWeb();   // 網路基礎（M17）：Proxy 與網路工具；要在 AddHttpClient 的註冊之前
         builder.Services.AddLumiProviders();
         builder.Services.AddLumiSpeech();
         builder.Services.AddLumiDocuments();   // 文件讀取（M10 10C）：read_document 用
