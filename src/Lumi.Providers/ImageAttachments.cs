@@ -11,7 +11,7 @@ internal static class ImageAttachments
     public static async Task<IReadOnlyDictionary<string, byte[]>> LoadAsync(
         IAttachmentStore store, IEnumerable<ChatMessage> messages, CancellationToken ct)
     {
-        var names = messages.SelectMany(m => m.Content).OfType<ImageBlock>().Select(b => b.FileName).Distinct(StringComparer.Ordinal).ToList();
+        var names = messages.SelectMany(m => m.Content).SelectMany(ImagesOf).Select(b => b.FileName).Distinct(StringComparer.Ordinal).ToList();
         if (names.Count == 0)
             return None;
 
@@ -28,5 +28,13 @@ internal static class ImageAttachments
     public static string MissingText(ImageBlock block) => $"[圖片「{block.DisplayName}」已經遺失，沒有送出]";
 
     public static bool HasImages(ChatRequest request) =>
-        request.Messages.Any(m => m.Content.Any(b => b is ImageBlock));
+        request.Messages.Any(m => m.Content.Any(b => ImagesOf(b).Any()));
+
+    /// <summary>一個內容區塊帶的圖片：圖片區塊本身，或工具結果上附的圖片（M18 D12）。</summary>
+    public static IEnumerable<ImageBlock> ImagesOf(ContentBlock block) => block switch
+    {
+        ImageBlock image => [image],
+        ToolResultBlock { Images: { } images } => images,
+        _ => [],
+    };
 }
