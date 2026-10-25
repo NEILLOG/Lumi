@@ -54,7 +54,8 @@ internal sealed class SettingsHost : IDisposable
         SpriteCatalog = spriteCatalog;
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
         Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Catalog, Confirm, WindowService);
+        Network = new NetworkViewModel(Catalog, NetworkTester, dispatcher);
+        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
@@ -62,6 +63,8 @@ internal sealed class SettingsHost : IDisposable
     public InMemorySecretStore Secrets { get; } = new();
     public FakeConnectionTester Tester { get; } = new();
     public FakeConfirmService Confirm { get; } = new();
+    public FakeNetworkTester NetworkTester { get; } = new();
+    public NetworkViewModel Network { get; }
     public ConnectionStatusCache Status { get; } = new();
     public JsonModelCatalog Catalog { get; }
     public ConnectionsViewModel Connections { get; }

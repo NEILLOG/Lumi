@@ -4,6 +4,7 @@ using Lumi.Core.Tools;
 using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
 using Lumi.Tools.Reminders;
+using Lumi.Tools.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -57,6 +58,15 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<MemorySaveTool>();
         services.AddLumiTool<MemoryUpdateTool>();
         services.AddLumiTool<MemoryDeleteTool>();
+
+        // 網路工具（M17）：IWebClient、IWebContentExtractor、IFeedReader、INetworkDiagnostics 由 Lumi.Web 的 AddLumiWeb 註冊
+        services.AddLumiTool<WebFetchTool>();
+        services.AddLumiTool<WebLinksTool>();
+        services.AddLumiTool<RssReadTool>();
+        services.AddLumiTool<HttpRequestTool>();
+        services.AddLumiTool<HttpSendTool>();
+        services.AddLumiTool<DownloadFileTool>();
+        services.AddLumiTool<NetCheckTool>();
         return services;
     }
 }

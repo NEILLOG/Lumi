@@ -203,7 +203,7 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 記憶、3 外觀與操作、4 小精靈、5 語音） -->
+            <!-- 分類：索引與 CategoryIndex 一致（0 AI 連線、1 人格與主動性、2 記憶、3 工具、4 外觀與操作、5 小精靈、6 語音、7 網路） -->
             <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}"
                      AutomationProperties.Name="{x:Static res:Strings.Settings_CategoriesName}">
               <ListBoxItem x:Name="CategoryConnections" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
@@ -266,6 +266,15 @@
                   <StackPanel Grid.Column="1">
                     <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategorySpeech}" />
                     <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategorySpeechSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategoryNetwork" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryNetwork}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconGlobe}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryNetwork}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryNetworkSub}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
                 </Grid>
               </ListBoxItem>
@@ -847,6 +856,11 @@
           </StackPanel>
         </ctl:FractionWidthLimiter>
        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 網路與 Proxy（M17 17G）：頁首與表單都在 NetworkPanel -->
+      <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowNetwork}">
+        <views:NetworkPanel DataContext="{Binding Network}" />
       </ScrollViewer>
     </Grid>
     </Grid>

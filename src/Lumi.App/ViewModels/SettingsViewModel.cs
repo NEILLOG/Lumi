@@ -12,7 +12,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
-        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
@@ -24,6 +24,7 @@ public partial class SettingsViewModel : ObservableObject
         General = general;
         Sprite = sprite;
         Speech = speech;
+        Network = network;
         _confirm = confirm;
         _windows = windows;
         LoadProblem = catalog.LoadProblem;
@@ -50,13 +51,16 @@ public partial class SettingsViewModel : ObservableObject
 
     public SpeechViewModel Speech { get; }
 
+    /// <summary>網路與 Proxy（M17 17G）。</summary>
+    public NetworkViewModel Network { get; }
+
     /// <summary>設定檔損毀或版本太新時的說明（版本太新時所有儲存都會失敗）。</summary>
     public string? LoadProblem { get; }
 
     public bool HasLoadProblem => LoadProblem is not null;
 
-    /// <summary>左側分類：0 = AI 連線、1 = 人格與主動性、2 = 記憶、3 = 工具、4 = 外觀與操作、5 = 小精靈、6 = 語音。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech))]
+    /// <summary>左側分類：0 = AI 連線、1 = 人格與主動性、2 = 記憶、3 = 工具、4 = 外觀與操作、5 = 小精靈、6 = 語音、7 = 網路。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech), nameof(ShowNetwork))]
     private int _categoryIndex;
 
     /// <summary>「AI 連線」內的分頁：0 = 連線、1 = 模型設定。</summary>
@@ -91,6 +95,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool ShowSpeech => CategoryIndex == 6;
 
+    public bool ShowNetwork => CategoryIndex == 7;
+
     /// <summary>Menu 底部的版本說明（例如「Lumi 1.0.0」）。</summary>
     public string VersionText { get; } =
         string.Format(Strings.Settings_MenuVersion, typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
@@ -103,7 +109,7 @@ public partial class SettingsViewModel : ObservableObject
             await _windows.ReturnToWorkbench();
     }
 
-    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty || Speech.IsDirty || McpServers.IsDirty;
+    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty || Speech.IsDirty || Network.IsDirty || McpServers.IsDirty;
 
     public async Task NavigateAsync(SettingsNavigation navigation)
     {
@@ -128,6 +134,9 @@ public partial class SettingsViewModel : ObservableObject
                 break;
             case SettingsSection.Speech:
                 CategoryIndex = 6;
+                break;
+            case SettingsSection.Network:
+                CategoryIndex = 7;
                 break;
             case SettingsSection.Models:
                 CategoryIndex = 0;
