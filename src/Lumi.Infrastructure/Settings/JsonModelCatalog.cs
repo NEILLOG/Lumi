@@ -278,9 +278,22 @@ public sealed class JsonModelCatalog : IModelCatalog
         await MutateAsync(s => s with { Speech = saved }, ct).ConfigureAwait(false);
     }
 
-    // Phase 0 的最簡版本：只更新記憶中的設定；設定檔欄位、驗證與 Proxy 密碼由 17D 補上
-    public Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default) =>
-        MutateAsync(s => s with { Network = settings.Normalize() }, ct);
+    public async Task SetNetworkAsync(NetworkSettings settings, SecretValue? newProxyPassword, CancellationToken ct = default)
+    {
+        ThrowIfReadOnly();
+        var normalized = settings.Normalize();
+        var error = NetworkRules.Validate(normalized);
+        if (error is not null)
+            throw new ArgumentException(error, nameof(settings));
+
+        // 祕密只寫進 ISecretStore：不是帳號與密碼驗證時就刪掉已存的密碼；驗證時沒傳新密碼就保留原來的
+        if (normalized.Auth != ProxyAuthMode.Account)
+            await _secrets.DeleteAsync(NetworkSecrets.ProxyPassword, ct).ConfigureAwait(false);
+        else if (newProxyPassword is not null)
+            await _secrets.SetAsync(NetworkSecrets.ProxyPassword, newProxyPassword, ct).ConfigureAwait(false);
+
+        await MutateAsync(s => s with { Network = normalized }, ct).ConfigureAwait(false);
+    }
 
     public Task<bool> HasProxyPasswordAsync(CancellationToken ct = default) =>
         _secrets.ExistsAsync(NetworkSecrets.ProxyPassword, ct);
@@ -331,6 +344,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             WorkbenchWindow = settings.WorkbenchWindow?.Normalize(),
             Notes = settings.Notes.Normalize(),
             Memory = settings.Memory.Normalize(),
+            Network = settings.Network.Normalize(),
         };
     }
 
@@ -417,6 +431,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Memory = ReadMemory(file.Memory),                              // M14 加的欄位，缺少或格式錯誤時當作預設（開）
             Tools = ReadTools(file.Tools),                                 // M15 加的欄位，缺少或格式錯誤時當作預設（全部啟用）
             McpServers = ReadMcpServers(file.McpServers),                  // M16 加的欄位，缺少時是空清單；單筆壞掉只跳過那一筆
+            Network = ReadNetwork(file.Network),                           // M17 加的欄位，缺少或格式錯誤時用預設（Proxy 跟隨系統）
         });
         return (settings, false, null);
     }
@@ -544,6 +559,52 @@ public sealed class JsonModelCatalog : IModelCatalog
         return servers;
     }
 
+    /// <summary>
+    /// 網路設定（M17）：缺少或不是物件時用預設值（Proxy 跟隨系統，和舊版行為相同）。每個欄位各自讀取，
+    /// 型別錯誤的那一個欄位用預設值，其他欄位照常使用，不能因此把整個設定檔當成損毀。
+    /// </summary>
+    private NetworkSettings ReadNetwork(JsonElement? element)
+    {
+        if (element is not JsonElement el)
+        {
+            _logger.LogInformation("設定檔沒有網路設定，使用預設值");
+            return NetworkSettings.Default;
+        }
+        if (el.ValueKind != JsonValueKind.Object)
+        {
+            _logger.LogWarning("網路設定格式錯誤，改用預設值");
+            return NetworkSettings.Default;
+        }
+
+        var d = NetworkSettings.Default;
+        return new NetworkSettings
+        {
+            Mode = ReadNetworkField(el, "mode", d.Mode),
+            PacUrl = ReadNetworkField(el, "pacUrl", d.PacUrl),
+            ManualProxy = ReadNetworkField(el, "manualProxy", d.ManualProxy),
+            BypassList = ReadNetworkField(el, "bypassList", d.BypassList),
+            Auth = ReadNetworkField(el, "auth", d.Auth),
+            ProxyUser = ReadNetworkField(el, "proxyUser", d.ProxyUser),
+            IntegratedAuthSites = ReadNetworkField(el, "integratedAuthSites", d.IntegratedAuthSites),
+            TimeoutSeconds = ReadNetworkField(el, "timeoutSeconds", d.TimeoutSeconds),
+        }.Normalize();
+    }
+
+    private T ReadNetworkField<T>(JsonElement el, string name, T fallback)
+    {
+        if (!el.TryGetProperty(name, out var value))
+            return fallback;
+        try
+        {
+            return value.Deserialize<T>(JsonOptions) ?? fallback;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "網路設定的 {Field} 格式錯誤，改用預設值", name);
+            return fallback;
+        }
+    }
+
     private void ValidateMcpServerKey(McpServerSettings server)
     {
         var error = McpServerRules.ValidateKey(server.Key, _current.McpServers.Where(m => m.Id != server.Id).Select(m => m.Key));
@@ -580,7 +641,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             JsonSerializer.SerializeToElement(settings.Notes.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Memory.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Tools.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.McpServers, JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.McpServers, JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Network.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -637,5 +699,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         JsonElement? Notes = null,
         JsonElement? Memory = null,
         JsonElement? Tools = null,
-        JsonElement? McpServers = null);
+        JsonElement? McpServers = null,
+        JsonElement? Network = null);
 }
