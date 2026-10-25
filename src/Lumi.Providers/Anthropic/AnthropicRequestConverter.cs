@@ -184,10 +184,40 @@ internal static class AnthropicRequestConverter
         ThinkingBlock t => new BetaMessages.BetaThinkingBlockParam { Thinking = t.Thinking, Signature = t.Signature },
         RedactedThinkingBlock r => new BetaMessages.BetaRedactedThinkingBlockParam { Data = r.Data },
         ToolUseBlock u => new BetaMessages.BetaToolUseBlockParam { ID = u.Id, Name = u.Name, Input = ToolJson.ParseObject(u.InputJson) },
-        ToolResultBlock r => new BetaMessages.BetaToolResultBlockParam { ToolUseID = r.ToolUseId, Content = r.Content, IsError = r.IsError ? true : null },
+        ToolResultBlock r => ToToolResult(r, images),
         ProviderBlock p => AnthropicProviderBlocks.ToParam(p),   // 只剩 Anthropic 自己的（見 IsSendable）
         _ => throw new NotSupportedException($"未知的內容區塊類型：{block.GetType()}"),
     };
+
+    /// <summary>
+    /// 工具結果。沒有圖片（或圖片一張都讀不到）時維持字串內容，既有請求的形狀不變（守住快取）；
+    /// 有圖片時內容改成區塊清單：文字在前，後面每張圖一個圖片區塊，讀不到的圖改成文字說明（M18 D12）。
+    /// </summary>
+    private static BetaMessages.BetaToolResultBlockParam ToToolResult(ToolResultBlock r, IReadOnlyDictionary<string, byte[]> images)
+    {
+        var isError = r.IsError ? true : (bool?)null;
+        if (r.Images is not { Count: > 0 } resultImages || !resultImages.Any(i => images.ContainsKey(i.FileName)))
+            return new BetaMessages.BetaToolResultBlockParam { ToolUseID = r.ToolUseId, Content = r.Content, IsError = isError };
+
+        var blocks = new List<BetaMessages.Block>();
+        if (r.Content.Length > 0)   // API 不接受空的文字區塊
+            blocks.Add(new BetaMessages.BetaTextBlockParam { Text = r.Content });
+        foreach (var image in resultImages)
+        {
+            if (images.TryGetValue(image.FileName, out var bytes) && ToMediaType(image.MediaType) is { } mediaType)
+            {
+                blocks.Add(new BetaMessages.BetaImageBlockParam
+                {
+                    Source = new BetaMessages.BetaBase64ImageSource { Data = Convert.ToBase64String(bytes), MediaType = mediaType },
+                });
+            }
+            else
+            {
+                blocks.Add(new BetaMessages.BetaTextBlockParam { Text = ImageAttachments.MissingText(image) });
+            }
+        }
+        return new BetaMessages.BetaToolResultBlockParam { ToolUseID = r.ToolUseId, Content = blocks, IsError = isError };
+    }
 
     private static BetaMessages.BetaContentBlockParam ToImage(ImageBlock block, IReadOnlyDictionary<string, byte[]> images)
     {

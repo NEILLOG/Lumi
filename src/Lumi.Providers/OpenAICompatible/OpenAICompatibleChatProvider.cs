@@ -159,8 +159,12 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
         var suffix = request.TurnSuffix is { Length: > 0 } turnSuffix ? turnSuffix : null;
         var lastMessage = request.Messages.Count > 0 ? request.Messages[^1] : null;
         var suffixPlaced = false;
+        var toolImageParts = new List<object>();   // 同一批 tool 訊息裡各結果的圖片，批次結束時合成一則 user 訊息（M18 D12）
         foreach (var message in request.Messages)
         {
+            if (message.Role != ChatRole.Tool)
+                FlushToolImages(messages, toolImageParts);
+
             switch (message.Role)
             {
                 case ChatRole.User:
@@ -215,10 +219,19 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                 }
                 case ChatRole.Tool:
                     foreach (var result in message.Content.OfType<ToolResultBlock>())
+                    {
                         messages.Add(new { role = "tool", tool_call_id = result.ToolUseId, content = result.Content });
+                        // tool 角色不能帶圖片：圖片留到這一批 tool 訊息之後，讀不到的略過
+                        foreach (var image in result.Images ?? [])
+                        {
+                            if (images.TryGetValue(image.FileName, out var bytes))
+                                toolImageParts.Add(new { type = "image_url", image_url = new { url = $"data:{image.MediaType};base64,{Convert.ToBase64String(bytes)}" } });
+                        }
+                    }
                     break;
             }
         }
+        FlushToolImages(messages, toolImageParts);
 
         if (suffix is not null && !suffixPlaced)
             messages.Add(new { role = "user", content = suffix });
@@ -242,6 +255,21 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
         }
 
         return JsonSerializer.Serialize(body);
+    }
+
+    /// <summary>
+    /// 一批 tool 訊息之後，若有圖片，緊接著加一則 user 訊息（先一段說明文字，再每張圖一個 image_url）。
+    /// 這則訊息是請求時從已存的區塊推導出來的，不存檔、不改歷史。
+    /// </summary>
+    private static void FlushToolImages(List<object> messages, List<object> imageParts)
+    {
+        if (imageParts.Count == 0)
+            return;
+
+        List<object> parts = [new { type = "text", text = "（以上工具產生的圖片）" }];
+        parts.AddRange(imageParts);
+        messages.Add(new { role = "user", content = parts });
+        imageParts.Clear();
     }
 }
 
