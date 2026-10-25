@@ -15,7 +15,7 @@ public sealed class OverwriteFileTool(FileToolOptions options) : ToolBase<Overwr
         "overwrite_file", "覆寫檔案",
         "用新內容整份取代一個既有的純文字檔，原有內容會全部丟掉、無法復原。只有使用者明確要求整份取代檔案時才呼叫；只想在末尾加內容請用 write_file（mode=append）。" +
         "檔案必須已存在；沿用原檔的編碼與換行，先寫暫存檔再取代，寫入失敗時原檔不變。每次都會請使用者確認。",
-        ToolPermission.Destructive, ToolModes.Workbench, TimeSpan.FromSeconds(15), RequiresScope: true);
+        ToolPermission.Destructive, ToolModes.Workbench, TimeSpan.FromSeconds(15), RequiresScope: true, Group: ToolGroups.FilesWrite, Summary: "用新內容覆蓋整個既有檔案。");
 
     protected override ToolPreview Describe(OverwriteFileArgs args, ToolContext context) =>
         FileWriteSupport.SafePreview(() => new ToolPreview(

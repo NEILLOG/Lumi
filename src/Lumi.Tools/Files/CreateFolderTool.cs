@@ -12,7 +12,7 @@ public sealed class CreateFolderTool : ToolBase<CreateFolderArgs>
     public override ToolDescriptor Descriptor { get; } = new(
         "create_folder", "建立資料夾",
         "在使用者加入的範圍內建立一個新資料夾（上層資料夾不存在時一併建立）。資料夾已經存在時會回報已存在，不視為錯誤；同名的檔案存在時失敗。",
-        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(10), RequiresScope: true);
+        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(10), RequiresScope: true, Group: ToolGroups.FilesWrite, Summary: "建立資料夾。");
 
     protected override ToolPreview Describe(CreateFolderArgs args, ToolContext context) =>
         FileWriteSupport.SafePreview(() => new ToolPreview(

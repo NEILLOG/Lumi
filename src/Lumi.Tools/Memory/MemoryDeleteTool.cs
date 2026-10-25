@@ -19,7 +19,7 @@ public sealed class MemoryDeleteTool(IMemoryStore memory, IModelCatalog catalog)
         "刪除使用者要求遺忘的一則指定記憶（例如「忘掉…」「不要再記得…」）。必須提供既有記憶的代號 id，例如 m3。"
         + "只在使用者明確要求時使用。每次呼叫都需要使用者確認。"
         + "刪除後要照實告訴使用者刪掉了哪一則；被拒絕或失敗時也要照實說，不要假裝已經忘掉。",
-        ToolPermission.Destructive, ToolModes.Both, TimeSpan.FromSeconds(10), RequiresScope: false, RequiresMemory: true);
+        ToolPermission.Destructive, ToolModes.Both, TimeSpan.FromSeconds(10), RequiresScope: false, RequiresMemory: true, Group: ToolGroups.Memory, Summary: "刪除一則記憶。");
 
     protected override ToolPreview Describe(MemoryDeleteArgs args, ToolContext context)
     {

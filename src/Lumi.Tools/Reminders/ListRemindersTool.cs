@@ -36,7 +36,7 @@ public sealed class ListRemindersTool(IReminderService reminders) : ToolBase<Lis
         "list_reminders", "列出提醒",
         "列出使用者的提醒、計時器與週期排程，預設只列還沒響的項目。使用者問「我有哪些提醒」「還有什麼還沒響」時使用；"
         + "要取消或停用某一項之前，可以先用這個工具找到它的 id。",
-        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Reminders, Summary: "列出目前的提醒與計時器。");
 
     protected override async Task<ToolResult> InvokeAsync(ListRemindersArgs args, ToolContext context, CancellationToken ct)
     {

@@ -16,7 +16,7 @@ public sealed class SearchTool(FileToolOptions options) : ToolBase<SearchArgs>
     public override ToolDescriptor Descriptor { get; } = new(
         "search", "搜尋",
         "在使用者加入的資料夾範圍內搜尋：用正規表示式找檔案內容（回傳「檔案:行號: 內容」），或用 glob 找檔名。想知道某個東西在哪裡被用到、哪個檔案有某段文字時用它。",
-        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(30), RequiresScope: true);
+        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(30), RequiresScope: true, Group: ToolGroups.FilesRead, Summary: "在你加入的檔案裡搜尋文字。");
 
     protected override ToolPreview Describe(SearchArgs args, ToolContext context)
     {

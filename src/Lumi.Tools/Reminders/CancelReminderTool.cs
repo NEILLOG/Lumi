@@ -15,7 +15,7 @@ public sealed class CancelReminderTool(IReminderService reminders) : ToolBase<Ca
         "cancel_reminder", "取消提醒",
         "取消一則還沒響的提醒、計時器或週期排程（用 id）。只在使用者明確要求取消時使用。"
         + "已經完成、取消或錯過的項目不會有變更，會直接回報它目前的狀態。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Reminders, Summary: "取消提醒或計時器。");
 
     protected override ToolPreview Describe(CancelReminderArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Id) ? null : args.Id.Trim(), null);

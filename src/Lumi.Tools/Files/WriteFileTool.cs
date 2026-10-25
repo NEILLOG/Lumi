@@ -18,7 +18,7 @@ public sealed class WriteFileTool(FileToolOptions options) : ToolBase<WriteFileA
         "在使用者加入的資料夾或檔案範圍內寫入一個純文字檔。mode=create 建立新檔（檔案已存在就失敗）；mode=append 把文字加在既有檔案的末尾（檔案不存在就建立）。" +
         "兩種模式都不會覆蓋既有內容；要整份取代檔案請用 overwrite_file。只有使用者明確要求建立或寫入檔案時才呼叫。" +
         "不能建立或修改 .docx、.xlsx、.pptx、.pdf、壓縮檔等複合文件與封存檔。追加時沿用原檔的編碼與換行。寫入前會請使用者確認。",
-        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(15), RequiresScope: true);
+        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(15), RequiresScope: true, Group: ToolGroups.FilesWrite, Summary: "新增檔案，或在檔案結尾加上內容。");
 
     protected override ToolPreview Describe(WriteFileArgs args, ToolContext context) =>
         FileWriteSupport.SafePreview(() => new ToolPreview(

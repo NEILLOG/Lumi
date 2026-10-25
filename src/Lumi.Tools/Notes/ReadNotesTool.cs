@@ -17,7 +17,7 @@ public sealed class ReadNotesTool(INoteStore notes, NoteOptions options) : ToolB
     public override ToolDescriptor Descriptor { get; } = new(
         "read_notes", "查筆記",
         "讀取使用者記過的筆記，可指定日期範圍與關鍵字。沒有指定日期時只讀今天；範圍最多 31 天。使用者問「我今天記了什麼」「我上週那個會議記了什麼」時使用。",
-        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(10));
+        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Notes, Summary: "查看之前記的筆記。");
 
     protected override ToolPreview Describe(ReadNotesArgs args, ToolContext context)
     {

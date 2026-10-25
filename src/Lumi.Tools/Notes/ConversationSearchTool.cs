@@ -21,7 +21,7 @@ public sealed class ConversationSearchTool(IConversationStore conversations, INo
     public override ToolDescriptor Descriptor { get; } = new(
         "conversation_search", "搜尋過去對話",
         "搜尋過去的對話與筆記（筆記只看近一年），找出和某個主題有關的內容。使用者問「我之前聊過…」「上次我們說的…」「我記過…嗎」時使用。不會包含目前這則對話。",
-        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(15));
+        ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(15), Group: ToolGroups.Notes, Summary: "搜尋過去的對話內容。");
 
     protected override ToolPreview Describe(ConversationSearchArgs args, ToolContext context) =>
         new(string.IsNullOrWhiteSpace(args.Query) ? null : args.Query.Trim(), null);
