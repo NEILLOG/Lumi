@@ -531,4 +531,35 @@
   <data name="Memory_ClearAllQuestion" xml:space="preserve"><value>忘掉全部 {0} 則記憶？清除後無法復原。</value></data>
   <data name="Memory_Cleared" xml:space="preserve"><value>已清除 {0} 則記憶。</value></data>
   <data name="Memory_LoadFailed" xml:space="preserve"><value>讀取記憶失敗，請再試一次。</value></data>
+  <data name="Tools_MenuTitle" xml:space="preserve"><value>工具</value></data>
+  <data name="Tools_MenuSubtitle" xml:space="preserve"><value>能用的工具與確認方式</value></data>
+  <data name="Tools_HeaderEyebrow" xml:space="preserve"><value>工具</value></data>
+  <data name="Tools_HeaderTitle" xml:space="preserve"><value>Lumi 能用的工具</value></data>
+  <data name="Tools_HeaderDescription" xml:space="preserve"><value>選擇 Lumi 在對話中可以使用哪些工具，以及使用前要不要先問你。</value></data>
+  <data name="Tools_EffectNote" xml:space="preserve"><value>啟用與關閉從下一則新對話開始生效；進行中的對話維持原本的工具。</value></data>
+  <data name="Tools_ConfirmNote" xml:space="preserve"><value>確認方式改了立即生效。</value></data>
+  <data name="Tools_ModelToolsOff" xml:space="preserve"><value>目前的預設模型「{0}」關閉了「啟用工具」，對話中不會送出任何工具。可以到「AI 連線」的「模型設定」打開。</value></data>
+  <data name="Tools_GroupCount" xml:space="preserve"><value>已啟用 {0}／{1}</value></data>
+  <data name="Tools_MemoryOff" xml:space="preserve"><value>長期記憶已在「記憶」頁關閉，這些工具目前不會執行。</value></data>
+  <data name="Tools_PermissionReadOnly" xml:space="preserve"><value>唯讀</value></data>
+  <data name="Tools_PermissionWrite" xml:space="preserve"><value>寫入</value></data>
+  <data name="Tools_PermissionNetwork" xml:space="preserve"><value>網路</value></data>
+  <data name="Tools_PermissionDestructive" xml:space="preserve"><value>破壞性</value></data>
+  <data name="Tools_ModeWorkbenchOnly" xml:space="preserve"><value>只限工作台</value></data>
+  <data name="Tools_ModeSpriteOnly" xml:space="preserve"><value>只限小精靈</value></data>
+  <data name="Tools_ConfirmNotNeeded" xml:space="preserve"><value>不需確認</value></data>
+  <data name="Tools_ConfirmAlwaysAsk" xml:space="preserve"><value>每次都會詢問</value></data>
+  <data name="Tools_ConfirmAsk" xml:space="preserve"><value>每次詢問</value></data>
+  <data name="Tools_ConfirmAlways" xml:space="preserve"><value>永遠允許</value></data>
+  <data name="Tools_ConfirmLabel" xml:space="preserve"><value>確認方式</value></data>
+  <data name="Tools_AlwaysAskMemoryTooltip" xml:space="preserve"><value>寫進記憶的內容每則訊息都會送出，所以一律先問你。</value></data>
+  <data name="Tools_AlwaysAskDestructiveTooltip" xml:space="preserve"><value>這個工具會覆蓋或刪除內容，所以一律先問你。</value></data>
+  <data name="Tools_CannotDisable" xml:space="preserve"><value>小精靈靠它把完整內容放到工作台，不能關閉。</value></data>
+  <data name="Tools_AlwaysAllowConfirm" xml:space="preserve"><value>之後 Lumi 使用「{0}」時不會再先問你，所有對話都是如此。確定要永遠允許嗎？</value></data>
+  <data name="Tools_ResetDefaults" xml:space="preserve"><value>全部恢復預設</value></data>
+  <data name="Tools_ResetConfirm" xml:space="preserve"><value>所有工具都會重新啟用，確認方式都改回「每次詢問」。</value></data>
+  <data name="Tools_ResetConfirmButton" xml:space="preserve"><value>恢復預設</value></data>
+  <data name="Tools_ResetBlocked" xml:space="preserve"><value>目前已是預設</value></data>
+  <data name="Tools_SaveFailed" xml:space="preserve"><value>儲存失敗：{0}</value></data>
+  <data name="Tool_ApprovedAlways" xml:space="preserve"><value>已允許（永遠允許）</value></data>
 </root>

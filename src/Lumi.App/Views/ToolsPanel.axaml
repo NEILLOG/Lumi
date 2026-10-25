@@ -1,0 +1,164 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.ToolsPanel"
+             x:DataType="vm:ToolsViewModel">
+
+  <!--
+    工具面板（M15 15D）：頁首與分類在 SettingsWindow。這裡是說明與提醒 → 分群組的工具清單（每群一個分隔線）→ 底部（全部恢復預設）。
+    開關與確認方式改了立即儲存（沒有儲存鈕）；儲存失敗時頂端寫出原因。
+    窄視窗（Window.narrow）時確認方式欄移到說明下方、靠左（規則在下面的 Styles）。
+  -->
+  <UserControl.Styles>
+    <!-- 工具的一列：內距用 8，列與列之間不畫線（群組之間才有分隔線） -->
+    <Style Selector="Border.tool-row">
+      <Setter Property="Padding" Value="0,8" />
+    </Style>
+    <!-- Warning 整行淡底（模型關閉工具時）：圖示加文字，不只靠顏色 -->
+    <Style Selector="Border.warn-row">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="Border.warn-row TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- 破壞性的權限徽章：Danger 淡底（仿 warn-badge，改成 Danger 的 token） -->
+    <Style Selector="Border.danger-badge">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.danger-badge TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <!-- 群組標題 14／700；工具名稱 14／600 -->
+    <Style Selector="TextBlock.group-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.item-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <!-- 工具名稱（給模型的識別碼）：Caption、等寬 -->
+    <Style Selector="TextBlock.tool-name">
+      <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <!-- RWD：窄視窗時確認方式欄移到第 2 列、靠左（第 1 格之後） -->
+    <Style Selector="StackPanel.tool-confirm">
+      <Setter Property="(Grid.Row)" Value="0" />
+      <Setter Property="(Grid.Column)" Value="2" />
+    </Style>
+    <Style Selector="Window.narrow StackPanel.tool-confirm">
+      <Setter Property="(Grid.Row)" Value="1" />
+      <Setter Property="(Grid.Column)" Value="1" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- 一列工具：勾選框 → 名稱、權限徽章、模式、說明、工具名稱、不能關的原因 → 確認方式（下拉或說明文字） -->
+    <DataTemplate x:Key="ToolRowTemplate" x:DataType="vm:ToolItemViewModel">
+      <Border Classes="tool-row">
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="0">
+          <CheckBox Grid.Column="0" Grid.Row="0" VerticalAlignment="Top" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                    IsEnabled="{Binding CanToggle}" AutomationProperties.Name="{Binding DisplayName}" />
+
+          <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4">
+            <WrapPanel>
+              <TextBlock Classes="item-title" Text="{Binding DisplayName}" Margin="0,0,8,4" VerticalAlignment="Center" />
+              <Border Classes="badge" Classes.danger-badge="{Binding IsDestructive}" Margin="0,0,8,4">
+                <TextBlock Text="{Binding PermissionText}" />
+              </Border>
+              <TextBlock Classes="muted" Margin="0,0,8,4" Text="{Binding ModeText}" VerticalAlignment="Center"
+                         IsVisible="{Binding ModeText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </WrapPanel>
+            <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap"
+                       IsVisible="{Binding HasSummary}" />
+            <TextBlock Classes="tool-name" Text="{Binding Name}" TextWrapping="Wrap" />
+            <TextBlock Classes="muted" Text="{Binding LockedNote}" TextWrapping="Wrap"
+                       IsVisible="{Binding LockedNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+
+          <StackPanel Classes="tool-confirm" Spacing="4">
+            <ComboBox Width="140" ItemsSource="{Binding ConfirmOptions}" SelectedValue="{Binding AlwaysAllow, Mode=TwoWay}"
+                      SelectedValueBinding="{Binding AlwaysAllow}" IsVisible="{Binding CanChoose}"
+                      AutomationProperties.Name="{x:Static res:Strings.Tools_ConfirmLabel}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ToolConfirmOption"><TextBlock Text="{Binding Text}" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="muted" Text="{Binding ConfirmText}" TextWrapping="Wrap" ToolTip.Tip="{Binding AlwaysAskTooltip}"
+                       IsVisible="{Binding !CanChoose}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
+      <StackPanel>
+
+        <!-- 說明：兩行 Caption；頁面頂端的儲存失敗也在這裡 -->
+        <StackPanel Spacing="4">
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.Tools_EffectNote}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.Tools_ConfirmNote}" TextWrapping="Wrap" />
+          <TextBlock Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
+        </StackPanel>
+
+        <!-- 模型關閉了工具：整行 Warning，寫出模型名稱與去哪裡打開 -->
+        <Border Classes="warn-row" Margin="0,16,0,0" IsVisible="{Binding HasModelToolsOffWarning}">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" VerticalAlignment="Top" />
+            <TextBlock Grid.Column="1" Text="{Binding ModelToolsOffWarning}" />
+          </Grid>
+        </Border>
+
+        <!-- 群組：標題列（三態勾選框、名稱、已啟用數），下面是工具列，群組之間用分隔線 -->
+        <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Groups}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ToolGroupViewModel">
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                  <CheckBox Grid.Column="0" IsThreeState="True" IsChecked="{Binding IsAllEnabled, Mode=TwoWay}"
+                            IsEnabled="{Binding CanToggle}" AutomationProperties.Name="{Binding Title}" />
+                  <TextBlock Grid.Column="1" Classes="group-title" Text="{Binding Title}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Classes="muted" Text="{Binding CountText}" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Classes="muted" Text="{Binding MemoryOffNote}" TextWrapping="Wrap"
+                           IsVisible="{Binding MemoryOffNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ToolRowTemplate}" />
+                <Border Classes="divider" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 底部：全部恢復預設（secondary，先確認）；已經是預設時停用，原因寫在旁邊 -->
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  Content="{x:Static res:Strings.Tools_ResetDefaults}" Command="{Binding ResetToDefaultsCommand}" VerticalAlignment="Center"
+                  AutomationProperties.Name="{x:Static res:Strings.Tools_ResetDefaults}" />
+          <TextBlock Classes="muted" Text="{Binding ResetBlockedReason}" VerticalAlignment="Center" TextWrapping="Wrap"
+                     IsVisible="{Binding ResetBlockedReason, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </ScrollViewer>
+</UserControl>
