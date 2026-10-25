@@ -624,4 +624,55 @@
   <data name="Mcp_ImportConfirm" xml:space="preserve"><value>匯入 {0} 筆</value></data>
   <data name="Mcp_ImportRenamed" xml:space="preserve"><value>名稱重複，改為「{0}」</value></data>
   <data name="Mcp_ImportPartialFailure" xml:space="preserve"><value>已匯入 {0} 筆，第 {1} 筆失敗：{2}</value></data>
+  <!-- 網路（M17 17G） -->
+  <data name="Settings_CategoryNetwork" xml:space="preserve"><value>網路</value></data>
+  <data name="Settings_CategoryNetworkSub" xml:space="preserve"><value>Proxy、網站登入</value></data>
+  <data name="Network_HeaderTitle" xml:space="preserve"><value>網路與 Proxy</value></data>
+  <data name="Network_HeaderDescription" xml:space="preserve"><value>設定 Lumi 怎麼連上網路。這些設定會套用到 Lumi 所有的連線：AI 模型、語音、遠端 MCP 伺服器與網路工具。</value></data>
+  <data name="Network_SectionProxy" xml:space="preserve"><value>Proxy</value></data>
+  <data name="Network_Mode" xml:space="preserve"><value>連線方式</value></data>
+  <data name="Network_ModeHint" xml:space="preserve"><value>公司網路通常選「跟隨系統設定」就可以。</value></data>
+  <data name="Network_ModeSystem" xml:space="preserve"><value>跟隨系統設定</value></data>
+  <data name="Network_ModePac" xml:space="preserve"><value>使用 PAC 網址</value></data>
+  <data name="Network_ModeManual" xml:space="preserve"><value>手動指定 Proxy</value></data>
+  <data name="Network_ModeNone" xml:space="preserve"><value>不使用 Proxy</value></data>
+  <data name="Network_PacUrl" xml:space="preserve"><value>PAC 網址</value></data>
+  <data name="Network_PacUrlHint" xml:space="preserve"><value>例如 http://wpad.example.com/proxy.pac，也可以是 file:// 開頭的本機檔案。</value></data>
+  <data name="Network_PacUrlWatermark" xml:space="preserve"><value>http://…/proxy.pac</value></data>
+  <data name="Network_ManualProxy" xml:space="preserve"><value>Proxy 位址</value></data>
+  <data name="Network_ManualProxyHint" xml:space="preserve"><value>主機與連接埠，例如 proxy.example.com:8080。</value></data>
+  <data name="Network_ManualProxyWatermark" xml:space="preserve"><value>proxy.example.com:8080</value></data>
+  <data name="Network_Bypass" xml:space="preserve"><value>不經過 Proxy 的位址</value></data>
+  <data name="Network_BypassHint" xml:space="preserve"><value>一行一個，例如 *.example.com 或 10.0.0.5。本機位址（localhost）一律不經過 Proxy。</value></data>
+  <data name="Network_Auth" xml:space="preserve"><value>Proxy 驗證</value></data>
+  <data name="Network_AuthHint" xml:space="preserve"><value>公司 Proxy 使用 AD 帳號時，Windows 選「使用目前登入的帳號」；Mac 若驗證不過，改用帳號與密碼。</value></data>
+  <data name="Network_AuthNone" xml:space="preserve"><value>不需要</value></data>
+  <data name="Network_AuthIntegrated" xml:space="preserve"><value>使用目前登入的帳號（Windows 網域）</value></data>
+  <data name="Network_AuthAccount" xml:space="preserve"><value>帳號與密碼</value></data>
+  <data name="Network_ProxyUser" xml:space="preserve"><value>帳號</value></data>
+  <data name="Network_ProxyUserHint" xml:space="preserve"><value>可以寫成「網域\帳號」，例如 CORP\amy。</value></data>
+  <data name="Network_Password" xml:space="preserve"><value>密碼</value></data>
+  <data name="Network_PasswordHint" xml:space="preserve"><value>密碼只存在這台裝置。</value></data>
+  <data name="Network_PasswordPlaceholder" xml:space="preserve"><value>輸入密碼</value></data>
+  <data name="Network_PasswordStored" xml:space="preserve"><value>已設定</value></data>
+  <data name="Network_PasswordReplace" xml:space="preserve"><value>更換</value></data>
+  <data name="Network_PasswordCancelReplace" xml:space="preserve"><value>取消更換</value></data>
+  <data name="Network_PasswordShow" xml:space="preserve"><value>顯示</value></data>
+  <data name="Network_PasswordRequired" xml:space="preserve"><value>請輸入密碼</value></data>
+  <data name="Network_SectionSites" xml:space="preserve"><value>網站與網路工具</value></data>
+  <data name="Network_IntegratedSites" xml:space="preserve"><value>自動使用 Windows 登入的網站</value></data>
+  <data name="Network_IntegratedSitesHint" xml:space="preserve"><value>網路工具連到這些網站時，會用你目前登入的 Windows 帳號自動驗證（內部網站常見）。一行一個，例如 *.corp.example.com。只套用在網路工具。</value></data>
+  <data name="Network_Timeout" xml:space="preserve"><value>網路工具的逾時（秒）</value></data>
+  <data name="Network_TimeoutHint" xml:space="preserve"><value>單次請求最多等待的秒數，5 到 120。</value></data>
+  <data name="Network_NoteNoSearch" xml:space="preserve"><value>Lumi 不提供網路搜尋，請直接給 Lumi 網址。Lumi 只會自動連到對話中出現過的網站，其他網站會先問你。</value></data>
+  <data name="Network_SectionTest" xml:space="preserve"><value>測試連線</value></data>
+  <data name="Network_TestUrl" xml:space="preserve"><value>測試網址</value></data>
+  <data name="Network_TestUrlHint" xml:space="preserve"><value>用目前表單上的設定（還沒儲存也可以）連到這個網址。</value></data>
+  <data name="Network_Test" xml:space="preserve"><value>測試連線</value></data>
+  <data name="Network_Testing" xml:space="preserve"><value>測試中…</value></data>
+  <data name="Network_TestFailed" xml:space="preserve"><value>連線失敗</value></data>
+  <data name="Network_Revert" xml:space="preserve"><value>還原</value></data>
+  <data name="Network_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Network_Saving" xml:space="preserve"><value>儲存中…</value></data>
+  <data name="Network_Saved" xml:space="preserve"><value>已儲存</value></data>
 </root>
