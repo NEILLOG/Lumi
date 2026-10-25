@@ -85,6 +85,15 @@ public sealed class CompositionRootTests : IDisposable
             .GetValue(services.GetRequiredService<ConversationService>());
         Assert.Same(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>(), injected);
         Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is Lumi.App.Services.MemoryCleanupService);
+        // M15／M16：工具目錄、MCP 管理員、背景啟動。ConversationService 的 toolCatalog 是可選參數，沒被注入會退回自己建的一份，所以直接檢查欄位
+        var toolCatalog = services.GetRequiredService<Lumi.Core.Tools.IToolCatalog>();
+        Assert.IsType<Lumi.Core.Tools.ToolCatalog>(toolCatalog);
+        Assert.Same(toolCatalog, typeof(ConversationService).GetField("_toolCatalog", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(services.GetRequiredService<ConversationService>()));
+        Assert.IsType<Lumi.Mcp.McpServerManager>(services.GetRequiredService<Lumi.Core.Mcp.IMcpToolSource>());
+        Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMcpToolCache>(services.GetRequiredService<Lumi.Core.Mcp.IMcpToolCache>());
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Platform.IShellEnvironment>());
+        Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is Lumi.App.Services.McpHostedService);
         // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱
