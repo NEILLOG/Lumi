@@ -158,15 +158,79 @@ public sealed class JsonModelCatalog : IModelCatalog
         return MutateAsync(s => s with { Notes = normalized }, ct);
     }
 
-    // Phase 0 的最簡版本：只更新設定。祕密的讀寫與設定檔欄位由 M16 的 16B 補上
-    public Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default) =>
-        MutateAsync(s => s with { McpServers = Upsert(s.McpServers, server, m => m.Id) }, ct);
+    public async Task SaveMcpServerAsync(McpServerSettings server, McpServerSecrets? newSecrets, CancellationToken ct = default)
+    {
+        ThrowIfReadOnly();
+        _ = McpSecrets.KeyFor(server.Id);   // Id 格式不合法會在這裡丟 ArgumentException
+        ValidateMcpServerKey(server);
 
-    public Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default) =>
-        MutateAsync(s => s with { McpServers = s.McpServers.Where(m => m.Id != serverId).ToList() }, ct);
+        var existing = _current.McpServers.FirstOrDefault(m => m.Id == server.Id);
+        IReadOnlyList<string> envNames = server.EnvNames;
+        IReadOnlyList<string> headerNames = server.HeaderNames;
+        string? version;
+        if (newSecrets is not null)
+        {
+            // 祕密只寫進 ISecretStore；設定檔只留名稱。每次寫入祕密都換一個新的版本號，讓管理員知道要重新連線
+            await _secrets.SetAsync(McpSecrets.KeyFor(server.Id), new SecretValue(JsonSerializer.Serialize(newSecrets, JsonOptions)), ct)
+                .ConfigureAwait(false);
+            version = Guid.NewGuid().ToString("N");
+            envNames = newSecrets.Env.Keys.Order(StringComparer.Ordinal).ToList();
+            headerNames = newSecrets.Headers.Keys.Order(StringComparer.Ordinal).ToList();
+        }
+        else
+        {
+            // 呼叫端傳進來的版本號不採信，祕密沒變就沿用目前的
+            version = existing?.SecretsVersion ?? server.SecretsVersion;
+        }
 
-    public Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default) =>
-        Task.FromResult(McpServerSecrets.Empty);
+        var saved = server with { EnvNames = envNames, HeaderNames = headerNames, SecretsVersion = version };
+        await MutateAsync(s => s with { McpServers = Upsert(s.McpServers, saved, m => m.Id) }, ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteMcpServerAsync(string serverId, CancellationToken ct = default)
+    {
+        ThrowIfReadOnly();
+        var secretKey = McpSecrets.KeyFor(serverId);
+        var server = _current.McpServers.FirstOrDefault(m => m.Id == serverId);
+        var toolPrefix = server is null ? null : $"mcp__{server.Key}__";
+
+        await MutateAsync(s => s with
+        {
+            McpServers = s.McpServers.Where(m => m.Id != serverId).ToList(),
+            Tools = toolPrefix is null ? s.Tools : RemoveToolsWithPrefix(s.Tools, toolPrefix),
+        }, ct).ConfigureAwait(false);
+
+        try
+        {
+            await _secrets.DeleteAsync(secretKey, ct).ConfigureAwait(false);
+        }
+        catch (SecretStoreException ex)
+        {
+            // 設定已經刪了；留下一筆用不到的祕密不影響功能，記下來就好
+            _logger.LogWarning(ex, "刪除 MCP 伺服器 {ServerId} 的祕密失敗", serverId);
+        }
+    }
+
+    public async Task<McpServerSecrets> GetMcpSecretsAsync(string serverId, CancellationToken ct = default)
+    {
+        var value = await _secrets.GetAsync(McpSecrets.KeyFor(serverId), ct).ConfigureAwait(false);
+        if (value is null)
+            return McpServerSecrets.Empty;
+
+        try
+        {
+            var secrets = JsonSerializer.Deserialize<McpServerSecrets>(value.Reveal(), JsonOptions);
+            return secrets is null
+                ? McpServerSecrets.Empty
+                : new McpServerSecrets(secrets.Env ?? new Dictionary<string, string>(), secrets.Headers ?? new Dictionary<string, string>());
+        }
+        catch (JsonException)
+        {
+            // 不記錄例外內容：祕密的明文可能就在錯誤裡
+            _logger.LogWarning("MCP 伺服器 {ServerId} 的祕密格式錯誤，視為沒有設定", serverId);
+            return McpServerSecrets.Empty;
+        }
+    }
 
     public Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default) =>
         MutateAsync(s => s with { Tools = tools.Normalize() }, ct);
@@ -262,10 +326,15 @@ public sealed class JsonModelCatalog : IModelCatalog
         };
     }
 
-    private async Task MutateAsync(Func<AppSettings, AppSettings> change, CancellationToken ct, bool notify = true)
+    private void ThrowIfReadOnly()
     {
         if (_readOnly)
             throw new InvalidOperationException(LoadProblem ?? "設定檔目前無法寫入。");
+    }
+
+    private async Task MutateAsync(Func<AppSettings, AppSettings> change, CancellationToken ct, bool notify = true)
+    {
+        ThrowIfReadOnly();
 
         AppSettings next;
         await _writeLock.WaitAsync(ct).ConfigureAwait(false);
@@ -339,6 +408,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Notes = ReadNotes(file.Notes),                                 // M10 10B 加的欄位，格式錯誤時當作預設
             Memory = ReadMemory(file.Memory),                              // M14 加的欄位，缺少或格式錯誤時當作預設（開）
             Tools = ReadTools(file.Tools),                                 // M15 加的欄位，缺少或格式錯誤時當作預設（全部啟用）
+            McpServers = ReadMcpServers(file.McpServers),                  // M16 加的欄位，缺少時是空清單；單筆壞掉只跳過那一筆
         });
         return (settings, false, null);
     }
@@ -412,6 +482,82 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
     }
 
+    /// <summary>
+    /// MCP 伺服器設定（M16）：缺少時是空清單；陣列以外的格式當作沒有。單筆格式錯誤、代號不合法或重複的那一筆只跳過並記 log，
+    /// 不影響其他筆，也不能因此把整個設定檔當成損毀。
+    /// </summary>
+    private List<McpServerSettings> ReadMcpServers(JsonElement? element)
+    {
+        if (element is not JsonElement el)
+            return [];
+        if (el.ValueKind != JsonValueKind.Array)
+        {
+            _logger.LogWarning("MCP 伺服器設定格式錯誤，改用空清單");
+            return [];
+        }
+
+        var servers = new List<McpServerSettings>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        var index = 0;
+        foreach (var item in el.EnumerateArray())
+        {
+            index++;
+            McpServerSettings? server;
+            try
+            {
+                server = item.Deserialize<McpServerSettings>(JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "第 {Index} 個 MCP 伺服器設定格式錯誤，已略過", index);
+                continue;
+            }
+
+            if (server is null
+                || string.IsNullOrWhiteSpace(server.Id)
+                || !Enum.IsDefined(server.Transport)
+                || !McpToolNaming.IsValidKey(server.Key)
+                || !ids.Add(server.Id)
+                || !keys.Add(server.Key))
+            {
+                _logger.LogWarning("第 {Index} 個 MCP 伺服器設定缺少或不合法的欄位（代號不合法或重複），已略過", index);
+                continue;
+            }
+
+            servers.Add(server with
+            {
+                Name = server.Name ?? "",
+                Args = server.Args ?? [],
+                EnvNames = server.EnvNames ?? [],
+                HeaderNames = server.HeaderNames ?? [],
+            });
+        }
+        return servers;
+    }
+
+    /// <summary>代號的錯誤文字，和 16A 的 <c>McpServerRules.ValidateKey</c> 相同（合併後改用它）。</summary>
+    private const string McpKeyFormatMessage = "只能使用小寫英文、數字與 -，最多 16 個字";
+    private const string McpKeyTakenMessage = "這個代號已經被其他伺服器使用";
+
+    private void ValidateMcpServerKey(McpServerSettings server)
+    {
+        if (!McpToolNaming.IsValidKey(server.Key))
+            throw new ArgumentException(McpKeyFormatMessage, nameof(server));
+        if (_current.McpServers.Any(m => m.Key == server.Key && m.Id != server.Id))
+            throw new ArgumentException(McpKeyTakenMessage, nameof(server));
+    }
+
+    /// <summary>刪除伺服器時，把它的工具從停用、永遠允許與權限覆寫裡一併移除（名稱以 <c>mcp__{key}__</c> 開頭）。</summary>
+    private static ToolSettings RemoveToolsWithPrefix(ToolSettings tools, string prefix) => tools with
+    {
+        Disabled = tools.Disabled.Where(n => !n.StartsWith(prefix, StringComparison.Ordinal)).ToList(),
+        AlwaysAllow = tools.AlwaysAllow.Where(n => !n.StartsWith(prefix, StringComparison.Ordinal)).ToList(),
+        PermissionOverrides = tools.PermissionOverrides
+            .Where(p => !p.Key.StartsWith(prefix, StringComparison.Ordinal))
+            .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal),
+    };
+
     private (AppSettings, bool, string?) RecoverFromBrokenFile()
     {
         var brokenPath = $"{_path}.broken-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}";
@@ -430,7 +576,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             settings.WorkbenchWindow is null ? null : JsonSerializer.SerializeToElement(settings.WorkbenchWindow.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Notes.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Memory.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.Tools.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.Tools.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.McpServers, JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -486,5 +633,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         JsonElement? WorkbenchWindow = null,    // 原樣保留成 JsonElement，格式錯誤時不影響整個檔案的讀取
         JsonElement? Notes = null,
         JsonElement? Memory = null,
-        JsonElement? Tools = null);
+        JsonElement? Tools = null,
+        JsonElement? McpServers = null);
 }
