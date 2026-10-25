@@ -626,7 +626,7 @@
   <data name="Mcp_ImportPartialFailure" xml:space="preserve"><value>已匯入 {0} 筆，第 {1} 筆失敗：{2}</value></data>
   <!-- 網路（M17 17G） -->
   <data name="Settings_CategoryNetwork" xml:space="preserve"><value>網路</value></data>
-  <data name="Settings_CategoryNetworkSub" xml:space="preserve"><value>Proxy、網站登入</value></data>
+  <data name="Settings_CategoryNetworkSub" xml:space="preserve"><value>Proxy、瀏覽器</value></data>
   <data name="Network_HeaderTitle" xml:space="preserve"><value>網路與 Proxy</value></data>
   <data name="Network_HeaderDescription" xml:space="preserve"><value>設定 Lumi 怎麼連上網路。這些設定會套用到 Lumi 所有的連線：AI 模型、語音、遠端 MCP 伺服器與網路工具。</value></data>
   <data name="Network_SectionProxy" xml:space="preserve"><value>Proxy</value></data>

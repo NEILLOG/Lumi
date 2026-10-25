@@ -13,7 +13,7 @@ public sealed class BrowserUploadTool(IBrowserSessions sessions) : ToolBase<Brow
 {
     public override ToolDescriptor Descriptor { get; } = new(
         "browser_upload", "上傳檔案",
-        "在網頁的檔案欄位選擇要上傳的檔案（檔案必須在使用者加入的檔案或資料夾範圍內）。上傳會把檔案送到該網站，每次都會請使用者確認。",
+        "在網頁的檔案欄位選擇要上傳的檔案（檔案必須在使用者加入的檔案或資料夾範圍內）。上傳會把檔案送到該網站，會先請使用者確認。",
         ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(120),
         RequiresScope: true, Group: ToolGroups.Browser, Summary: "把你加入的檔案上傳到網頁。", CanAlwaysAllow: false);
 

@@ -96,6 +96,8 @@ public partial class ToolRuleTests
     [InlineData("MoveFileTool.cs")]
     [InlineData("CreateFolderTool.cs")]
     [InlineData("DownloadFileTool.cs")]
+    [InlineData("BrowserUploadTool.cs")]
+    [InlineData("BrowserDownloadTool.cs")]
     public void WriteTools_ResolvePathsThroughContextScope(string file)
     {
         // 寫入類工具一律經過範圍；這裡點名檢查，免得之後有人重新命名或拆檔時漏掉

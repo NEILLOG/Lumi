@@ -858,9 +858,17 @@
        </StackPanel>
       </ScrollViewer>
 
-      <!-- 網路與 Proxy（M17 17G）：頁首與表單都在 NetworkPanel -->
+      <!-- 網路與 Proxy（M17 17G）：頁首與表單都在 NetworkPanel；下半部是瀏覽器設定（M18 18I，立即生效，和上面的儲存無關） -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowNetwork}">
-        <views:NetworkPanel DataContext="{Binding Network}" />
+        <StackPanel>
+          <views:NetworkPanel DataContext="{Binding Network}" />
+          <ctl:FractionWidthLimiter MaxPixels="560" HorizontalAlignment="Stretch" Margin="32,0,32,32">
+            <StackPanel x:Name="BrowserSectionHost" DataContext="{Binding Browser}" x:DataType="vm:BrowserSettingsViewModel">
+              <Border Classes="divider" />
+              <views:BrowserSettingsSection />
+            </StackPanel>
+          </ctl:FractionWidthLimiter>
+        </StackPanel>
       </ScrollViewer>
     </Grid>
     </Grid>

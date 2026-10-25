@@ -56,6 +56,10 @@ public static class ToolSchema
         if (obj["type"] is JsonValue t && t.TryGetValue<string>(out var type) && type == "object" && !obj.ContainsKey("additionalProperties"))
             obj["additionalProperties"] = false;
 
+        // 沒有任何參數的工具（M18 的 browser_close、browser_back）：補上空的 properties，部分 OpenAI 相容的閘道要求一定要有這個欄位
+        if (context.PropertyInfo is null && obj["type"] is JsonValue o && o.TryGetValue<string>(out var objectType) && objectType == "object" && !obj.ContainsKey("properties"))
+            obj["properties"] = new JsonObject();
+
         return obj;
     }
 

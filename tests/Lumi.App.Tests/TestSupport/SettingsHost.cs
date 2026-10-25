@@ -55,7 +55,8 @@ internal sealed class SettingsHost : IDisposable
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
         Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
         Network = new NetworkViewModel(Catalog, NetworkTester, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Catalog, Confirm, WindowService);
+        Browser = new BrowserSettingsViewModel(Catalog, BrowserLocator, BrowserSessions, Confirm, dispatcher);
+        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
@@ -65,6 +66,9 @@ internal sealed class SettingsHost : IDisposable
     public FakeConfirmService Confirm { get; } = new();
     public FakeNetworkTester NetworkTester { get; } = new();
     public NetworkViewModel Network { get; }
+    public FakeBrowserLocator BrowserLocator { get; } = new();
+    public Lumi.App.Tests.TestSupport.FakeBrowserSessions BrowserSessions { get; } = new();
+    public BrowserSettingsViewModel Browser { get; }
     public ConnectionStatusCache Status { get; } = new();
     public JsonModelCatalog Catalog { get; }
     public ConnectionsViewModel Connections { get; }

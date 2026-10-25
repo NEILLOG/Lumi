@@ -49,6 +49,7 @@ public static class CoreServiceCollectionExtensions
         // 長期記憶（M14）：預設是記憶體版（測試與沒有資料庫時）；Lumi.Infrastructure 取代成 SQLite 版
         services.TryAddSingleton(new MemoryOptions());
         services.TryAddSingleton<IMemoryStore, InMemoryMemoryStore>();
+        services.TryAddSingleton<Lumi.Core.Browser.IBrowserSessions, Lumi.Core.Browser.NullBrowserSessions>();   // 沒有瀏覽器時的預設；Lumi.Browser 的 AddLumiBrowser 會取代（M18）
         services.TryAddSingleton<IMcpToolSource, EmptyMcpToolSource>();   // 沒有 MCP 時的預設；Lumi.Mcp 的 AddLumiMcp 會取代（M16）
 
         // 提醒與排程（M10 10D）：服務本體；IScheduledItemStore 由 Lumi.Infrastructure 註冊，通知由 App 取代 NullNotificationSink

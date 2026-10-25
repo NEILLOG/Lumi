@@ -1,6 +1,7 @@
 using Lumi.Core.Context;
 using Lumi.Core.Notes;
 using Lumi.Core.Tools;
+using Lumi.Tools.Browser;
 using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
 using Lumi.Tools.Reminders;
@@ -67,6 +68,22 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<HttpSendTool>();
         services.AddLumiTool<DownloadFileTool>();
         services.AddLumiTool<NetCheckTool>();
+
+        // 瀏覽器工具（M18）：IBrowserSessions 由 Lumi.Browser 的 AddLumiBrowser 註冊（沒註冊時用 Core 的 NullBrowserSessions）
+        services.AddLumiTool<BrowserOpenTool>();
+        services.AddLumiTool<BrowserSnapshotTool>();
+        services.AddLumiTool<BrowserExtractTool>();
+        services.AddLumiTool<BrowserScreenshotTool>();
+        services.AddLumiTool<BrowserScrollTool>();
+        services.AddLumiTool<BrowserCloseTool>();
+        services.AddLumiTool<BrowserClickTool>();
+        services.AddLumiTool<BrowserTypeTool>();
+        services.AddLumiTool<BrowserSelectTool>();
+        services.AddLumiTool<BrowserPressTool>();
+        services.AddLumiTool<BrowserBackTool>();
+        services.AddLumiTool<BrowserUploadTool>();
+        services.AddLumiTool<BrowserDownloadTool>();
+        services.AddLumiTool<BrowserWaitForUserTool>();
         return services;
     }
 }

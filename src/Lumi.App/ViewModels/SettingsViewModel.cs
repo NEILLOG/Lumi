@@ -12,7 +12,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
-        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
@@ -25,6 +25,7 @@ public partial class SettingsViewModel : ObservableObject
         Sprite = sprite;
         Speech = speech;
         Network = network;
+        Browser = browser;
         _confirm = confirm;
         _windows = windows;
         LoadProblem = catalog.LoadProblem;
@@ -53,6 +54,9 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>網路與 Proxy（M17 17G）。</summary>
     public NetworkViewModel Network { get; }
+
+    /// <summary>瀏覽器設定（M18 18I）：放在「網路」頁的下半部，三項都是立即生效，所以不算未儲存的變更。</summary>
+    public BrowserSettingsViewModel Browser { get; }
 
     /// <summary>設定檔損毀或版本太新時的說明（版本太新時所有儲存都會失敗）。</summary>
     public string? LoadProblem { get; }

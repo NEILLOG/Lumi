@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Media.Fonts;
 using Lumi.App.Services;
 using Lumi.App.Views;
+using Lumi.Browser;
 using Lumi.Core;
 using Lumi.Documents;
 using Lumi.Infrastructure;
@@ -71,6 +72,7 @@ internal static class Program
         builder.Services.AddLumiInfrastructure();
         builder.Services.AddLumiTools();
         builder.Services.AddLumiMcp();   // MCP 伺服器（M16）
+        builder.Services.AddLumiBrowser(o => o.ProfileRoot = Path.Combine(LumiPaths.DataDirectory, "browser"));   // 瀏覽器自動化（M18）
         builder.Services.AddLumiApp();
         // 開發用開關：Lumi:Developer:ShowSpriteHud（小精靈殼的診斷 HUD 與開發選單）
         builder.Services.AddSingleton(new DeveloperOptions

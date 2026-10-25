@@ -40,7 +40,8 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<GeneralViewModel>();
         services.AddTransient<SpriteSettingsViewModel>();
         services.AddTransient<SpeechViewModel>();
-        services.AddTransient<NetworkViewModel>();   // 網路與 Proxy（M17 17G）
+        services.AddTransient<NetworkViewModel>();
+        services.AddTransient<BrowserSettingsViewModel>();   // 瀏覽器設定（M18 18I）   // 網路與 Proxy（M17 17G）
 
         // 權限確認：取代 Core 預設的「一律拒絕」；對話迴圈等在 IToolApprovalService，卡片上的按鈕走 IToolApprovalResponder
         services.AddSingleton<ToolApprovalService>();

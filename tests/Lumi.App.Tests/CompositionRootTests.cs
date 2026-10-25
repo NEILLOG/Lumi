@@ -1,3 +1,4 @@
+using Lumi.Browser;
 using Lumi.Mcp;
 using Lumi.App.ViewModels;
 using Lumi.Core;
@@ -54,6 +55,7 @@ public sealed class CompositionRootTests : IDisposable
         builder.Services.AddLumiTools();
         builder.Services.AddLumiDocuments();
         builder.Services.AddLumiMcp();
+        builder.Services.AddLumiBrowser(o => o.ProfileRoot = Path.Combine(_directory, "browser"));
         builder.Services.AddLumiApp();
         // 角色資料夾：測試用暫存資料夾，不要碰到使用者真正的 sprites/
         builder.Services.Replace(ServiceDescriptor.Singleton(new Lumi.Sprites.Assets.AssetSpriteOptions { Directory = Path.Combine(_directory, "sprites") }));
@@ -77,7 +79,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
-        Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "download_file", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links", "write_file"],
+        Assert.Equal(["add_note", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "download_file", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
         // 長期記憶（M14）：SQLite 版取代 Core 預設的記憶體版；第 5 層、清理服務都要能解析
         Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMemoryStore>(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>());
@@ -106,6 +108,16 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotNull(services.GetRequiredService<Lumi.Core.Web.INetworkTester>());
         Assert.NotNull(services.GetRequiredService<NetworkViewModel>());
         Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is Lumi.Web.Proxy.ProxyHostedService);
+        // M18：瀏覽器。Core 的 NullBrowserSessions 被取代；Playwright 的工作階段是單例，刪除對話與對話迴圈用的是同一個。
+        // 這兩個可選參數沒被注入會靜默失效（圖片被丟掉、刪除對話時不關瀏覽器），所以直接檢查欄位（M14 的教訓）
+        Assert.IsType<PlaywrightBrowserSessions>(services.GetRequiredService<Lumi.Core.Browser.IBrowserSessions>());
+        Assert.IsType<BrowserLocator>(services.GetRequiredService<Lumi.Core.Browser.IBrowserLocator>());
+        Assert.Same(services.GetRequiredService<Lumi.Core.Browser.IBrowserSessions>(), typeof(ConversationDeletionService)
+            .GetField("_browser", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(services.GetRequiredService<ConversationDeletionService>()));
+        Assert.NotNull(typeof(ConversationService).GetField("_attachments", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(services.GetRequiredService<ConversationService>()));
+        Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is BrowserHostedService);
         // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱

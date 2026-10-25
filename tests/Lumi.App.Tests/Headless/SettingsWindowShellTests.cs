@@ -140,7 +140,7 @@ public class SettingsWindowShellTests
             ("CategoryGeneral", "外觀與操作", "主題、色票與明暗"),
             ("CategorySprite", "小精靈", "角色、尺寸與語氣"),
             ("CategorySpeech", "語音", "Whisper 語音辨識"),
-            ("CategoryNetwork", "網路", "Proxy、網站登入"),
+            ("CategoryNetwork", "網路", "Proxy、瀏覽器"),
         };
         for (var i = 0; i < expected.Length; i++)
         {

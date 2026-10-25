@@ -19,7 +19,7 @@ public sealed class BrowserWaitForUserTool(IBrowserSessions sessions) : ToolBase
         "browser_wait_for_user", "等待使用者操作",
         "打開瀏覽器視窗，請使用者自己完成一件事（登入、輸入密碼、過驗證碼…），等到頁面符合你指定的「完成」條件才繼續。" +
         "必須用 done_when_url_contains（網址包含某段文字，例如登入後的網址）或 done_when_text（頁面出現某段文字，例如使用者的名字或「登出」）指定條件。" +
-        "不要自己輸入密碼；遇到密碼欄位一律用這個工具。每次都會請使用者確認。",
+        "不要自己輸入密碼；遇到密碼欄位一律用這個工具。會先請使用者確認。",
         ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(610),
         Group: ToolGroups.Browser, Summary: "請你在瀏覽器視窗自己完成操作（登入、驗證碼）。", CanAlwaysAllow: false);
 
