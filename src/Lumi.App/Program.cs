@@ -7,6 +7,7 @@ using Lumi.Core;
 using Lumi.Documents;
 using Lumi.Infrastructure;
 using Lumi.Infrastructure.Logging;
+using Lumi.Mcp;
 using Lumi.Platform;
 using Lumi.Providers;
 using Lumi.Speech;
@@ -67,6 +68,7 @@ internal static class Program
         builder.Services.AddLumiDocuments();   // 文件讀取（M10 10C）：read_document 用
         builder.Services.AddLumiInfrastructure();
         builder.Services.AddLumiTools();
+        builder.Services.AddLumiMcp();   // MCP 伺服器（M16）
         builder.Services.AddLumiApp();
         // 開發用開關：Lumi:Developer:ShowSpriteHud（小精靈殼的診斷 HUD 與開發選單）
         builder.Services.AddSingleton(new DeveloperOptions

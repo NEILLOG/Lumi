@@ -48,6 +48,7 @@ public static class AppServiceCollectionExtensions
         services.AddHostedService<AttachmentCleanupService>();
         services.AddHostedService<MemoryCleanupService>();        // 啟動時清掉到期超過 30 天的記憶（M14）
         services.AddHostedService<SearchTextBackfillService>();   // 舊訊息的搜尋文字，背景補一次
+        services.AddHostedService<McpHostedService>();            // 背景連上已啟用的 MCP 伺服器（M16）
         services.AddHostedService<ReminderHostedService>();       // 提醒的背景迴圈（M10 10D）：到點觸發、錯過的檢查、睡眠喚醒
         // 提醒的送達（M10 10E）：取代 Core 的 NullNotificationSink；工作台的通知列與小精靈的提醒卡片綁同一個執行個體。
         // 視窗與協調者用委派延遲取得，避免「工具 → 提醒服務 → 通知 → 協調者 → 對話 → 工具」的循環相依

@@ -1,3 +1,4 @@
+using Lumi.Mcp;
 using Lumi.App.ViewModels;
 using Lumi.Core;
 using Lumi.Core.Chat;
@@ -50,6 +51,7 @@ public sealed class CompositionRootTests : IDisposable
         builder.Services.Configure<ModelCatalogOptions>(o => o.SettingsPath = Path.Combine(_directory, "settings.json"));
         builder.Services.AddLumiTools();
         builder.Services.AddLumiDocuments();
+        builder.Services.AddLumiMcp();
         builder.Services.AddLumiApp();
         // 角色資料夾：測試用暫存資料夾，不要碰到使用者真正的 sprites/
         builder.Services.Replace(ServiceDescriptor.Singleton(new Lumi.Sprites.Assets.AssetSpriteOptions { Directory = Path.Combine(_directory, "sprites") }));
