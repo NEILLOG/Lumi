@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.BrowserSettingsSection"
+             x:DataType="vm:BrowserSettingsViewModel">
+
+  <!-- 設定視窗「網路」底部的「瀏覽器」區段（M18 D3）：版面同網路頁的區段（section-title、FormField、動作列在右側）。
+       三項都立即生效；區段之間的分隔線由網路頁放。顏色與間距只用樣式 class 與主題 token。 -->
+  <StackPanel x:Name="BrowserSection" Spacing="16">
+    <TextBlock Classes="section-title" Text="{x:Static res:Strings.Browser_Section}" />
+
+    <!-- 使用的瀏覽器：自動／Edge／Chrome，下面是偵測結果（找不到時是警告） -->
+    <ctl:FormField x:Name="BrowserChoiceField" Label="{x:Static res:Strings.Browser_Choice}" Requirement="None"
+                   Hint="{x:Static res:Strings.Browser_ChoiceHint}">
+      <StackPanel Spacing="8">
+        <RadioButton x:Name="BrowserChoiceAuto" GroupName="BrowserChoice" Content="{x:Static res:Strings.Browser_ChoiceAuto}"
+                     AutomationProperties.Name="{x:Static res:Strings.Browser_ChoiceAuto}"
+                     IsChecked="{Binding ChoiceIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
+        <RadioButton x:Name="BrowserChoiceEdge" GroupName="BrowserChoice" Content="{x:Static res:Strings.Browser_ChoiceEdge}"
+                     AutomationProperties.Name="{x:Static res:Strings.Browser_ChoiceEdge}"
+                     IsChecked="{Binding ChoiceIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
+        <RadioButton x:Name="BrowserChoiceChrome" GroupName="BrowserChoice" Content="{x:Static res:Strings.Browser_ChoiceChrome}"
+                     AutomationProperties.Name="{x:Static res:Strings.Browser_ChoiceChrome}"
+                     IsChecked="{Binding ChoiceIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=2}" />
+        <TextBlock x:Name="BrowserDetectionText" Classes="muted" Text="{Binding DetectionText}" TextWrapping="Wrap"
+                   Classes.warning="{Binding HasProblem}" />
+        <Button x:Name="BrowserRefreshButton" Classes="tertiary" HorizontalAlignment="Left" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                Content="{x:Static res:Strings.Browser_Refresh}" Command="{Binding RefreshCommand}"
+                AutomationProperties.Name="{x:Static res:Strings.Browser_Refresh}" />
+      </StackPanel>
+    </ctl:FormField>
+
+    <!-- 顯示瀏覽器視窗：預設關閉（背景執行） -->
+    <ctl:FormField x:Name="BrowserShowWindowField" Label="{x:Static res:Strings.Browser_ShowWindow}" Requirement="None">
+      <CheckBox x:Name="BrowserShowWindowBox" Content="{x:Static res:Strings.Browser_ShowWindowHint}" IsChecked="{Binding ShowWindow, Mode=TwoWay}"
+                AutomationProperties.Name="{x:Static res:Strings.Browser_ShowWindow}" />
+    </ctl:FormField>
+
+    <!-- 登入狀態：清除專屬設定檔（先確認）；結果訊息在按鈕下方 -->
+    <ctl:FormField x:Name="BrowserLoginField" Label="{x:Static res:Strings.Browser_Login}" Requirement="None">
+      <StackPanel Spacing="8">
+        <TextBlock x:Name="BrowserClearHint" Classes="muted" Text="{x:Static res:Strings.Browser_ClearHint}" TextWrapping="Wrap" />
+        <Button x:Name="BrowserClearButton" Classes="secondary" HorizontalAlignment="Left" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                Content="{x:Static res:Strings.Browser_Clear}" Command="{Binding ClearProfileCommand}"
+                AutomationProperties.Name="{x:Static res:Strings.Browser_Clear}" />
+        <TextBlock x:Name="BrowserMessage" Classes="muted" Classes.error="{Binding MessageIsError}"
+                   IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
+      </StackPanel>
+    </ctl:FormField>
+
+    <TextBlock x:Name="BrowserPrivacyNote" Classes="muted" Text="{x:Static res:Strings.Browser_Privacy}" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

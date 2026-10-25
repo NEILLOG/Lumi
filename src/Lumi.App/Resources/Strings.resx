@@ -675,4 +675,22 @@
   <data name="Network_Save" xml:space="preserve"><value>儲存</value></data>
   <data name="Network_Saving" xml:space="preserve"><value>儲存中…</value></data>
   <data name="Network_Saved" xml:space="preserve"><value>已儲存</value></data>
+  <data name="Browser_Section" xml:space="preserve"><value>瀏覽器</value></data>
+  <data name="Browser_Choice" xml:space="preserve"><value>使用的瀏覽器</value></data>
+  <data name="Browser_ChoiceHint" xml:space="preserve"><value>Lumi 用電腦上已安裝的瀏覽器操作網頁。下次開啟瀏覽器時生效。</value></data>
+  <data name="Browser_ChoiceAuto" xml:space="preserve"><value>自動（Edge 優先，其次 Chrome）</value></data>
+  <data name="Browser_ChoiceEdge" xml:space="preserve"><value>Microsoft Edge</value></data>
+  <data name="Browser_ChoiceChrome" xml:space="preserve"><value>Google Chrome</value></data>
+  <data name="Browser_Found" xml:space="preserve"><value>找到：{0}</value></data>
+  <data name="Browser_NotFound" xml:space="preserve"><value>找不到 Microsoft Edge 或 Google Chrome，請先安裝 Microsoft Edge。</value></data>
+  <data name="Browser_Refresh" xml:space="preserve"><value>重新偵測</value></data>
+  <data name="Browser_ShowWindow" xml:space="preserve"><value>顯示瀏覽器視窗</value></data>
+  <data name="Browser_ShowWindowHint" xml:space="preserve"><value>開啟後可以看到 Lumi 的每一步操作，偵錯時很有用。下次開啟瀏覽器時生效。</value></data>
+  <data name="Browser_Login" xml:space="preserve"><value>登入狀態</value></data>
+  <data name="Browser_Clear" xml:space="preserve"><value>清除瀏覽器的登入狀態</value></data>
+  <data name="Browser_ClearHint" xml:space="preserve"><value>Lumi 使用自己專屬的瀏覽器設定檔，不會讀取你平常使用的瀏覽器的 Cookie 與密碼。登入狀態會保留，直到你清除。</value></data>
+  <data name="Browser_ClearConfirm" xml:space="preserve"><value>清除後，Lumi 的瀏覽器裡所有網站都要重新登入。確定要清除嗎？</value></data>
+  <data name="Browser_ClearConfirmButton" xml:space="preserve"><value>清除</value></data>
+  <data name="Browser_Cleared" xml:space="preserve"><value>已清除瀏覽器的登入狀態。</value></data>
+  <data name="Browser_Privacy" xml:space="preserve"><value>頁面內容與截圖會送到你選擇的模型供應商。</value></data>
 </root>
