@@ -56,7 +56,7 @@ public sealed class HeuristicTokenEstimator : ITokenEstimator
                     ContextBlock c => Estimate(ContextBlockFormatter.ToPromptText(c)),
                     ImageBlock => ImageTokens,
                     ToolUseBlock u => Estimate(u.Name) + Estimate(u.InputJson),
-                    ToolResultBlock r => Estimate(r.Content),
+                    ToolResultBlock r => Estimate(r.Content) + (r.Images?.Count ?? 0) * ImageTokens,
                     _ => 0,
                 };
             }

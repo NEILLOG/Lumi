@@ -297,14 +297,18 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        // 只有含圖片區塊的訊息才需要解析（序列化格式固定是 "type":"image"）
-        command.CommandText = "SELECT content_json FROM messages WHERE content_json LIKE '%\"type\":\"image\"%';";
+        // 只有含圖片區塊的訊息才需要解析：使用者圖片是 "type":"image"；工具結果上的圖片（M18）是 ToolResultBlock.Images 陣列裡的
+        // ImageBlock，宣告型別就是 ImageBlock，序列化時沒有 type 欄位，所以另外比對 "Images":[{
+        command.CommandText = "SELECT content_json FROM messages WHERE content_json LIKE '%\"type\":\"image\"%' OR content_json LIKE '%\"Images\":[{%';";
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         var names = new HashSet<string>(StringComparer.Ordinal);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var blocks = JsonSerializer.Deserialize<List<ContentBlock>>(reader.GetString(0)) ?? [];
             foreach (var image in blocks.OfType<ImageBlock>())
+                names.Add(image.FileName);
+            // 工具結果附的圖片（M18）
+            foreach (var image in blocks.OfType<ToolResultBlock>().SelectMany(r => r.Images ?? []))
                 names.Add(image.FileName);
         }
         return names;
