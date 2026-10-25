@@ -76,6 +76,8 @@ public sealed class BrowserExtractTool(IBrowserSessions sessions, IWebContentExt
         var body = tables.Count == 0
             ? "（沒有找到表格。）"
             : string.Join("\n\n", tables.Select((table, index) => FormatTable(table, index + 1)));
+        if (body.Length > WebLimits.MaxChars)
+            body = body[..WebLimits.MaxChars] + $"\n\n（表格太長，只顯示前 {WebLimits.MaxChars:N0} 字；要看其他部分請用 ref 指定較小的範圍。）";
         var url = sessions.CurrentUrl(conversationId) ?? new Uri("about:blank");
         var wrapped = WebToolSupport.Wrap("web_content", url, null, WebToolSupport.ContentNotice, null, body);
         return ToolResult.Ok(wrapped, $"{tables.Count} 個表格");

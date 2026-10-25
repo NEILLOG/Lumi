@@ -66,7 +66,7 @@ public class BrowserLaunchPlannerTests
         };
         var spec = Plan(network);
         Assert.Empty(spec.Args);
-        Assert.Equal(new BrowserProxySpec("http://proxy.corp:8080", "*.corp,10.*", null, null), spec.Proxy);
+        Assert.Equal(new BrowserProxySpec("http://proxy.corp:8080", "*.corp,10.0.0.0/8", null, null), spec.Proxy);
     }
 
     [Fact]
@@ -193,4 +193,17 @@ public class BrowserLaunchPlannerTests
         Assert.NotEqual(edge.UserDataDir, chrome.UserDataDir);
         Assert.Equal("/apps/chrome", chrome.ExecutablePath);
     }
+
+    [Theory]
+    [InlineData("10.*", "10.0.0.0/8")]
+    [InlineData("192.168.*", "192.168.0.0/16")]
+    [InlineData("192.168.1.*", "192.168.1.0/24")]
+    [InlineData("172.16.*.*", "172.16.0.0/16")]
+    [InlineData("*.example.com", "*.example.com")]
+    [InlineData("intranet.example.com", "intranet.example.com")]
+    [InlineData("192.168.1.20", "192.168.1.20")]
+    [InlineData("*", "*")]
+    [InlineData("300.*", "300.*")]
+    public void ToChromiumBypassRule_converts_wildcard_ipv4_to_cidr(string pattern, string expected) =>
+        Assert.Equal(expected, BrowserLaunchPlanner.ToChromiumBypassRule(pattern));
 }

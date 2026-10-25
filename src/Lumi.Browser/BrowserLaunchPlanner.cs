@@ -45,7 +45,7 @@ public static class BrowserLaunchPlanner
                 var useAccount = network.Auth == ProxyAuthMode.Account && !string.IsNullOrWhiteSpace(network.ProxyUser);
                 proxy = new BrowserProxySpec(
                     server.AbsoluteUri.TrimEnd('/'),
-                    network.BypassList.Count > 0 ? string.Join(",", network.BypassList) : null,
+                    network.BypassList.Count > 0 ? string.Join(",", network.BypassList.Select(ToChromiumBypassRule)) : null,
                     useAccount ? network.ProxyUser : null,
                     useAccount ? proxyPassword : null);
                 break;
@@ -64,5 +64,23 @@ public static class BrowserLaunchPlanner
             args,
             proxy,
             warning);
+    }
+
+    /// <summary>
+    /// Lumi 的例外清單可以寫 <c>10.*</c>、<c>192.168.1.*</c>（M17 的萬用字元語法），Chromium 的 <c>--proxy-bypass-list</c> 不認得；
+    /// 這種「前面是數字、後面都是 *」的 IPv4 樣式轉成 CIDR（<c>10.0.0.0/8</c>、<c>192.168.1.0/24</c>）。其他寫法（<c>*.example.com</c>、主機名稱、完整 IP）原樣交給 Chromium。
+    /// </summary>
+    internal static string ToChromiumBypassRule(string pattern)
+    {
+        var segments = pattern.Split('.');
+        if (segments.Length is < 2 or > 4)
+            return pattern;
+
+        var numeric = segments.TakeWhile(s => int.TryParse(s, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) && n <= 255).Count();
+        if (numeric == 0 || numeric == segments.Length || segments.Skip(numeric).Any(s => s != "*"))
+            return pattern;
+
+        var address = string.Join('.', segments.Take(numeric).Concat(Enumerable.Repeat("0", 4 - numeric)));
+        return $"{address}/{numeric * 8}";
     }
 }

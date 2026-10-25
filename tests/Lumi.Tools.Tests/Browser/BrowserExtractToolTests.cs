@@ -225,4 +225,18 @@ public sealed class BrowserExtractToolTests
         }
         return count;
     }
+
+    [Fact]
+    public async Task Tables_mode_caps_very_long_output()
+    {
+        var rows = Enumerable.Range(0, 3000).Select(i => (IReadOnlyList<string>)[$"欄{i}", "值"]).ToList();
+        _sessions.Tables = [new BrowserTable(null, rows)];
+
+        var result = await new BrowserExtractTool(_sessions, new FakeWebContentExtractor())
+            .ExecuteAsync("""{"mode":"tables"}""", Context, default);
+
+        Assert.False(result.IsError);
+        Assert.Contains("表格太長", result.Content);
+        Assert.True(result.Content.Length < 20_000);
+    }
 }
