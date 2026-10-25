@@ -111,6 +111,26 @@
         <!-- 確認區（等待允許時）：這次會做什麼、按鈕依權限等級 -->
         <StackPanel IsVisible="{Binding IsAwaiting}" Spacing="8">
           <TextBlock Text="{Binding PermissionNote}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+          <!-- 警告（M17）：每則一列，淡底＋三角圖示；沒有警告時整塊不佔位置 -->
+          <ItemsControl x:Name="ApprovalWarnings" IsVisible="{Binding HasWarnings}" ItemsSource="{Binding Warnings}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Border Background="{DynamicResource LumiWarningBackgroundBrush}" BorderBrush="{DynamicResource LumiWarningBorderBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource LumiRadiusInput}" Padding="12,8">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiWarningTextBrush}"
+                                  VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
           <ctl:EmojiTextBlock IsVisible="{Binding HasPreviewDetail}" Text="{Binding PreviewDetail}" TextWrapping="Wrap" />
           <TextBlock IsVisible="{Binding IsDestructive}" Text="{x:Static res:Strings.Tool_Irreversible}"
                      FontWeight="SemiBold" Foreground="{DynamicResource LumiDangerBrush}" />

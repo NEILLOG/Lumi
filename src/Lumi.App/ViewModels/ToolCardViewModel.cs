@@ -118,7 +118,8 @@ public partial class ToolCardViewModel : ObservableObject
 
     /// <summary>等待確認時的請求內容（預覽、權限等級）；之後清掉。</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PreviewDetail), nameof(HasPreviewDetail), nameof(ShowAllowForConversation), nameof(IsDestructive), nameof(PermissionNote))]
+    [NotifyPropertyChangedFor(nameof(PreviewDetail), nameof(HasPreviewDetail), nameof(ShowAllowForConversation), nameof(IsDestructive), nameof(PermissionNote),
+        nameof(Warnings), nameof(HasWarnings))]
     private ToolApprovalRequest? _request;
 
     [ObservableProperty]
@@ -204,8 +205,15 @@ public partial class ToolCardViewModel : ObservableObject
 
     public bool IsDestructive => Request?.Permission == ToolPermission.Destructive;
 
-    /// <summary>「本次對話都允許」只有 Write、Network 有；Destructive 每次都問（agent.md 第 8 節）。</summary>
-    public bool ShowAllowForConversation => Request?.Permission is ToolPermission.Write or ToolPermission.Network;
+    /// <summary>確認區的警告（M17：沒有在對話中出現過的網站、搜尋引擎網址）；每則一列。</summary>
+    public IReadOnlyList<string> Warnings => Request?.Warnings ?? [];
+
+    public bool HasWarnings => Warnings.Count > 0;
+
+    /// <summary>「本次對話都允許」只有 Write、Network 有；Destructive 每次都問（agent.md 第 8 節）。
+    /// 請求說不提供（<see cref="ToolApprovalRequest.AllowRemember"/> 為 false，M17 搜尋引擎網址）時也不提供。</summary>
+    public bool ShowAllowForConversation => Request is { AllowRemember: true } request
+        && request.Permission is ToolPermission.Write or ToolPermission.Network;
 
     public string PermissionNote => Request?.Permission switch
     {

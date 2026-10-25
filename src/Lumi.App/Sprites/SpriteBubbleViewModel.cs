@@ -34,6 +34,14 @@ public sealed partial class SpriteApprovalViewModel(ToolApprovalRequest request)
     /// <summary><c>Destructive</c> 要完整列出所有對象。</summary>
     public string? Detail => request.Preview.Detail;
 
+    /// <summary>確認的警告（M17）：多則合併成一段，換行分開。</summary>
+    public string? Warning => request.Warnings.Count == 0 ? null : string.Join("\n", request.Warnings);
+
+    public bool HasWarning => Warning is not null;
+
+    /// <summary>false＝不提供「這則對話都允許」（M17 搜尋引擎網址）。</summary>
+    public bool AllowRemember => request.AllowRemember;
+
     public bool ShowDetail => IsDestructive && !string.IsNullOrEmpty(Detail);
 
     public string AllowLabel => IsDestructive ? Strings.Sprite_AllowDestructive : Strings.Sprite_Allow;

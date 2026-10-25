@@ -106,6 +106,8 @@
             <ctl:EmojiTextBlock Text="{Binding Question}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" />
             <TextBlock IsVisible="{Binding HasTarget}" Text="{Binding Target}" Classes="mono" TextWrapping="Wrap"
                        FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiWarningTextBrush}" />
+            <TextBlock IsVisible="{Binding HasWarning}" Text="{Binding Warning}" TextWrapping="Wrap"
+                       FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiWarningTextBrush}" />
             <TextBlock IsVisible="{Binding IsDestructive}" Text="{x:Static res:Strings.Sprite_Irreversible}" FontWeight="SemiBold"
                        Foreground="{DynamicResource LumiDangerBrush}" />
             <ScrollViewer IsVisible="{Binding ShowDetail}" MaxHeight="80" VerticalScrollBarVisibility="Auto">
@@ -129,7 +131,7 @@
               <Button x:Name="OptionAllowOnce" Classes="small primary" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowOnce}"
                       Command="{Binding AllowOnceCommand}" />
               <Button x:Name="OptionAllowConversation" Classes="small secondary" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_AllowConversation}"
-                      Command="{Binding AllowForConversationCommand}" />
+                      Command="{Binding AllowForConversationCommand}" IsVisible="{Binding Approval.AllowRemember}" />
               <Button x:Name="OptionDeny" Classes="small tertiary" Margin="0,0,6,6" Content="{x:Static res:Strings.Sprite_Deny}" Command="{Binding DenyCommand}" />
             </WrapPanel>
             <Button x:Name="ViewLink" Classes="link" Command="{Binding ViewInWorkbenchCommand}" HorizontalAlignment="Left"
