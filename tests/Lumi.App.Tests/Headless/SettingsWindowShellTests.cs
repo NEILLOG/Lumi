@@ -70,6 +70,7 @@ public class SettingsWindowShellTests
         Assert.Null(bar.DataContext);   // 不繼承設定視窗的 ViewModel：標題列不需要工作台的繫結
         Assert.False(bar.FindByName<Button>("SpriteModeButton").IsEffectivelyVisible);
         Assert.False(bar.FindByName<Border>("Divider").IsEffectivelyVisible);
+        Assert.False(bar.FindByName<Button>("SettingsButton").IsEffectivelyVisible);   // 設定視窗裡沒有齒輪（已經在設定裡）
         Assert.True(bar.FindByName<TextBlock>("Brand").IsEffectivelyVisible);
         Assert.Contains(Strings.TitleBar_Brand, TextsIn(bar));
         Assert.DoesNotContain(Strings.TitleBar_LogoMark, TextsIn(bar));   // 標題列只有軟體名稱，不放 logo
@@ -86,15 +87,18 @@ public class SettingsWindowShellTests
         Assert.True(bar.ShowSpriteButton);
         Assert.True(bar.SpriteModeButton.IsEffectivelyVisible);
         Assert.True(bar.Divider.IsEffectivelyVisible);
+        Assert.True(bar.SettingsButton.IsEffectivelyVisible);
 
         bar.ShowSpriteButton = false;
         host.UpdateLayout();
         Assert.False(bar.SpriteModeButton.IsEffectivelyVisible);
+        Assert.False(bar.SettingsButton.IsEffectivelyVisible);
         Assert.False(bar.Divider.IsEffectivelyVisible);
 
         bar.ShowSpriteButton = true;
         host.UpdateLayout();
         Assert.True(bar.SpriteModeButton.IsEffectivelyVisible);
+        Assert.True(bar.SettingsButton.IsEffectivelyVisible);
         host.Close();
     }
 

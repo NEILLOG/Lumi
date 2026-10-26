@@ -8,6 +8,9 @@
              Height="40">
 
   <UserControl.Styles>
+    <!-- chrome 層級（無框、Text 色、hover SurfaceAlt）給齒輪用；樣式與工具列共用 -->
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+
     <!-- 小精靈模式：Soft 底、圖示加文字（ui-guide.html 第 6 節，tertiary 以外的視窗層級入口） -->
     <Style Selector="Button.spriteMode">
       <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
@@ -39,6 +42,17 @@
       <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
     </Style>
 
+    <!-- 齒輪：chrome 的無框透明底與 hover 由 ChatStyles 提供；這裡只定 32×32 與圓角 9（ui-usage-and-topbar.md 1.1） -->
+    <Style Selector="Button.titleIcon">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
     <!-- RWD（根節點 class）：按鈕位置固定，只切換文字（RWD原則 3.1）。這一段要放在最後，才蓋得過上面的預設 -->
     <Style Selector="TextBlock.label-short">
       <Setter Property="IsVisible" Value="False" />
@@ -60,7 +74,7 @@
 
   <!-- 整條標題列都是拖曳面（Background 要有值才吃得到滑鼠）；按鈕自己處理點擊，不會觸發拖曳 -->
   <Border x:Name="TitleBarSurface" Background="{DynamicResource LumiChromeBrush}">
-    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto">
       <!-- macOS 讓出紅綠燈、Windows 的左邊界 -->
       <Border x:Name="LeftSpacer" Grid.Column="0" Width="16" />
 
@@ -82,12 +96,20 @@
         </StackPanel>
       </Button>
 
+      <!-- 設定（齒輪）：開設定獨立視窗。回應中也可以用；和小精靈按鈕一起隱藏（設定視窗本身沒有） -->
+      <Button x:Name="SettingsButton" Grid.Column="4" Classes="chrome titleIcon" Margin="8,0,0,0"
+              Command="{Binding OpenSettingsCommand}"
+              ToolTip.Tip="{x:Static res:Strings.Workbench_Settings}"
+              AutomationProperties.Name="{x:Static res:Strings.Workbench_Settings}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconSettings}" Size="16" />
+      </Button>
+
       <!-- 和系統按鈕之間的分隔線（Windows） -->
-      <Border x:Name="Divider" Grid.Column="4" Width="1" Height="16" Margin="12,0,0,0" VerticalAlignment="Center"
+      <Border x:Name="Divider" Grid.Column="5" Width="1" Height="16" Margin="12,0,0,0" VerticalAlignment="Center"
               Background="{DynamicResource LumiBorderBrush}" />
 
       <!-- Windows：為系統按鈕保留的寬度；macOS：右邊界 -->
-      <Border x:Name="RightSpacer" Grid.Column="5" Width="16" />
+      <Border x:Name="RightSpacer" Grid.Column="6" Width="16" />
     </Grid>
   </Border>
 </UserControl>

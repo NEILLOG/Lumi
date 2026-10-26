@@ -21,6 +21,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IConfirmService, ConfirmService>();
+        services.AddSingleton<IRenameService, RenameService>();   // 工作台「⋯」›重新命名對話
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<ConnectionStatusCache>();
         services.AddSingleton<ThemeService>();

@@ -18,6 +18,12 @@ namespace Lumi.App.Tests.Headless;
 /// <summary>UB-2：工具列重做——secondary 按鈕加圖示、模型膠囊「供應商 · model ID」、「…」選單、回應中停用的 Tooltip。</summary>
 public class ChatToolbarTests
 {
+    /// <summary>「⋯」選單需要改名服務才會啟用重新命名（DI 在 App 裡提供真的對話框）。</summary>
+    private sealed class StubRename : IRenameService
+    {
+        public Task<string?> PromptAsync(string currentTitle, int maxLength) => Task.FromResult<string?>(null);
+    }
+
     private sealed class Rig
     {
         public FakeSettingsWindowService SettingsWindow { get; } = new();
@@ -34,7 +40,8 @@ public class ChatToolbarTests
             var service = new ConversationService(provider, store, catalog);
             Vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), SettingsWindow,
                 new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
-                NullLogger<WorkbenchViewModel>.Instance);
+                NullLogger<WorkbenchViewModel>.Instance, deletion: HistoryTestSupport.Deletion(store), confirm: new FakeConfirmService(),
+                filePicker: new FakeFilePicker(), rename: new StubRename());
             Window = new WorkbenchWindow(Vm);
             Window.Show();
             Window.UpdateLayout();
@@ -137,36 +144,69 @@ public class ChatToolbarTests
         rig.Window.Close();
     }
 
+    private static MenuFlyout OpenMenu(Rig rig)
+    {
+        var menu = (MenuFlyout)rig.Toolbar.MoreButton.Flyout!;
+        menu.ShowAt(rig.Toolbar.MoreButton);
+        rig.Window.UpdateLayout();
+        return menu;
+    }
+
     [AvaloniaFact]
-    public void TheMoreButton_IsATertiaryIconButton_WithAMenuOfSettingsAndManage()
+    public void TheMoreButton_IsATertiaryIconButton_NamedConversationOptions_WithTheThreeConversationActions()
     {
         var rig = new Rig();
         var more = rig.Toolbar.MoreButton;
 
         Assert.Contains("tertiary", more.Classes);
-        Assert.Equal(Strings.Workbench_More, ToolTip.GetTip(more));
-        Assert.Equal(Strings.Workbench_More, Avalonia.Automation.AutomationProperties.GetName(more));
+        Assert.Equal(Strings.Workbench_ConversationOptions, ToolTip.GetTip(more));
+        Assert.Equal(Strings.Workbench_ConversationOptions, Avalonia.Automation.AutomationProperties.GetName(more));
         Assert.Contains(more.GetVisualDescendants().OfType<LumiIcon>(), i => i.Data is not null);
         var menu = Assert.IsType<MenuFlyout>(more.Flyout);
-        var items = menu.Items.OfType<MenuItem>().ToList();
-        Assert.Equal([Strings.Workbench_Settings, Strings.ModelPicker_Manage], items.Select(i => i.Header));
+        var items = OpenMenu(rig).Items.OfType<MenuItem>().ToList();
+        // 設定與「管理連線與模型」不在這裡：設定是第一列的齒輪，管理在模型選單底部
+        Assert.Equal([Strings.Workbench_RenameConversation, Strings.Workbench_ExportConversation, Strings.Workbench_DeleteConversation],
+            items.Select(i => i.Header));
+        Assert.Same(rig.Vm.RenameConversationCommand, items[0].Command);
+        Assert.Same(rig.Vm.ExportConversationCommand, items[1].Command);
+        Assert.Same(rig.Vm.DeleteConversationCommand, items[2].Command);
+        menu.Hide();
         rig.Window.Close();
     }
 
     [AvaloniaFact]
-    public void TheMenuItems_OpenTheSettingsWindow_AtTheRightPlace()
+    public async Task AnEmptyConversation_DisablesAllThreeItems()
     {
         var rig = new Rig();
-        var menu = (MenuFlyout)rig.Toolbar.MoreButton.Flyout!;
-        menu.ShowAt(rig.Toolbar.MoreButton);
-        rig.Window.UpdateLayout();
+        await rig.Vm.InitializeAsync();
+        var menu = OpenMenu(rig);
+
         var items = menu.Items.OfType<MenuItem>().ToList();
+        Assert.All(items, i => Assert.False(i.IsEnabled));
+        menu.Hide();
+        rig.Window.Close();
+    }
 
-        Assert.All(items, i => Assert.NotNull(i.Command));
-        items[0].Command!.Execute(null);
-        items[1].Command!.Execute(null);
+    [AvaloniaFact]
+    public async Task AConversationWithMessages_EnablesAllThree_AndWhileRespondingOnlyRenameIsEnabled()
+    {
+        var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("好")) { HangOnCall = 1 });
+        await rig.Vm.InitializeAsync();
+        rig.Vm.InputText = "x";
+        var sending = rig.Vm.SendCommand.ExecuteAsync(null);
+        await SettingsHost.WaitUntil(() => rig.Vm.IsResponding);
 
-        Assert.Equal([SettingsSection.Home, SettingsSection.Models], rig.SettingsWindow.Shown.Select(s => s.Section));
+        var menu = OpenMenu(rig);
+        var items = menu.Items.OfType<MenuItem>().ToList();
+        Assert.True(items[0].IsEnabled);    // 重新命名：回應中可用
+        Assert.False(items[1].IsEnabled);   // 匯出：回應中停用
+        Assert.False(items[2].IsEnabled);   // 刪除：回應中停用
+        menu.Hide();
+
+        await rig.Vm.StopAndWaitAsync();
+        await sending;
+        menu = OpenMenu(rig);
+        Assert.All(menu.Items.OfType<MenuItem>(), i => Assert.True(i.IsEnabled));
         menu.Hide();
         rig.Window.Close();
     }
