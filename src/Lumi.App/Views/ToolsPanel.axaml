@@ -41,11 +41,11 @@
       <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
     </Style>
-    <!-- 群組標題 14／700；工具名稱 14／600 -->
+    <!-- 群組標題 16／700、Accent 色（比工具名稱 14 明顯）；工具名稱 14／600 -->
     <Style Selector="TextBlock.group-title">
-      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontSize" Value="16" />
       <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiAccentTextBrush}" />
     </Style>
     <Style Selector="TextBlock.item-title">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
@@ -147,23 +147,26 @@
         <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Groups}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ToolGroupViewModel">
-              <StackPanel Spacing="8">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                  <CheckBox Grid.Column="0" IsThreeState="True" IsChecked="{Binding IsAllEnabled, Mode=TwoWay}"
-                            IsEnabled="{Binding CanToggle}" AutomationProperties.Name="{Binding Title}" />
-                  <TextBlock Grid.Column="1" Classes="group-title" Text="{Binding Title}" VerticalAlignment="Center" />
-                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <TextBlock Classes="muted" Text="{Binding CountText}" />
-                    <!-- MCP 群組：連線狀態（文字，不只靠顏色） -->
-                    <TextBlock Classes="muted" Text="{Binding StatusText}"
-                               IsVisible="{Binding StatusText, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                  </StackPanel>
-                </Grid>
+              <StackPanel Spacing="8" Margin="0,8,0,0">
+                <Border Classes="group-header" Background="{DynamicResource LumiAccentSoftBrush}"
+                        CornerRadius="{StaticResource LumiRadiusInput}" Padding="12,8">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                    <CheckBox Grid.Column="0" IsThreeState="True" IsChecked="{Binding IsAllEnabled, Mode=TwoWay}"
+                              IsEnabled="{Binding CanToggle}" AutomationProperties.Name="{Binding Title}" />
+                    <TextBlock Grid.Column="1" Classes="group-title" Text="{Binding Title}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                      <TextBlock Classes="muted" Text="{Binding CountText}" />
+                      <!-- MCP 群組：連線狀態（文字，不只靠顏色） -->
+                      <TextBlock Classes="muted" Text="{Binding StatusText}"
+                                 IsVisible="{Binding StatusText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
                 <TextBlock Classes="muted" Text="{Binding MemoryOffNote}" TextWrapping="Wrap"
                            IsVisible="{Binding MemoryOffNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 <TextBlock Classes="muted" Text="{Binding OfflineNote}" TextWrapping="Wrap"
                            IsVisible="{Binding OfflineNote, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ToolRowTemplate}" />
+                <ItemsControl Margin="12,0,0,0" ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ToolRowTemplate}" />
                 <Border Classes="divider" />
               </StackPanel>
             </DataTemplate>
