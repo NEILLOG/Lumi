@@ -3,183 +3,107 @@
              xmlns:vm="using:Lumi.App.ViewModels"
              xmlns:ctl="using:Lumi.App.Controls"
              xmlns:res="using:Lumi.App.Resources"
+             xmlns:local="using:Lumi.App.Views"
              x:Class="Lumi.App.Views.HomePanel"
              x:DataType="vm:SettingsViewModel">
 
   <!--
-    設定首頁（M20 20D）：11 個常用設定的連結，點了用 GoToCommand 切到對應分類。
-    不顯示即時狀態（連線是否正常、記憶用量等都留給各分類頁）。
-    連結不用資料模板，直接寫在 ItemsControl 裡；參數是 SettingsSection 的名稱。
+    設定首頁（M20 20G）：狀態總覽。6 張卡片（AI 連線、提醒排程、記憶、工具、外觀與操作、網路），
+    每張顯示目前的值與需要注意的地方；點卡片用 GoToCommand 切到對應分類。
+    寬視窗 2 欄、窄視窗（Window.narrow）1 欄。卡片沒有開關，只顯示狀態。
   -->
+  <UserControl.Resources>
+    <local:IconKeyConverter x:Key="IconKeyConverter" />
+  </UserControl.Resources>
+
   <UserControl.Styles>
-    <!-- 一個連結列：整列是按鈕，沒有外框；hover／按下用 Accent Soft 底（同設定左側選單的寫法） -->
-    <Style Selector="Button.home-link">
-      <Setter Property="Background" Value="Transparent" />
+    <!-- 一張卡片：Surface 底、1px 邊框、卡片圓角；整張是按鈕，hover／按下換成 Surface Alt 底與較強的邊框 -->
+    <Style Selector="Button.home-card">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+      <Setter Property="Padding" Value="16" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Padding" Value="12,8" />
-      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
-      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
     </Style>
-    <Style Selector="Button.home-link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Style Selector="Button.home-card:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
     </Style>
-    <Style Selector="Button.home-link:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    <Style Selector="Button.home-card:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
     </Style>
-    <!-- 連結標題 14／600；說明是 Caption 次要色 -->
-    <Style Selector="TextBlock.link-title">
+    <!-- 卡片標題（Caption 11、次要色、SemiBold）；數值 14／600 -->
+    <Style Selector="TextBlock.card-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <Style Selector="TextBlock.card-value">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
-    </Style>
-    <Style Selector="TextBlock.link-sub">
-      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
-      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- Warning 淡底：「需要處理」，文字一定寫出來（不只靠顏色）；同 MemoryPanel 的寫法 -->
+    <Style Selector="Border.warn-badge">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.warn-badge TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <!-- RWD：寬視窗 2 欄、窄視窗 1 欄 -->
+    <Style Selector="Window.narrow UniformGrid.home-grid">
+      <Setter Property="Columns" Value="1" />
     </Style>
   </UserControl.Styles>
 
   <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
-      <ItemsControl x:Name="HomeLinkList">
+    <ctl:FractionWidthLimiter MaxPixels="720" HorizontalAlignment="Stretch">
+      <ItemsControl x:Name="HomeCardList" ItemsSource="{Binding Home.Cards}"
+                    AutomationProperties.Name="{x:Static res:Strings.Home_CardsName}">
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <StackPanel Spacing="4" />
+            <UniformGrid Columns="2" Classes="home-grid" />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
 
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Connections"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconDiamond}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryConnections}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryConnectionsSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Models"
-                AutomationProperties.Name="{x:Static res:Strings.Home_LinkModels}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSettings}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Home_LinkModels}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Home_LinkModelsSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Persona"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPersona}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconUser}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryPersona}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryPersonaSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Memory"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryMemory}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBrain}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryMemory}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryMemorySub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Reminders"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryReminders}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBell}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryReminders}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryRemindersSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Tools"
-                AutomationProperties.Name="{x:Static res:Strings.Tools_MenuTitle}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconWrench}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Tools_MenuTitle}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Tools_MenuSubtitle}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="General"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryGeneral}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSun}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryGeneral}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryGeneralSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Sprite"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySprite}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSparkle}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategorySprite}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategorySpriteSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Speech"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySpeech}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconMic}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategorySpeech}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategorySpeechSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Network"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryNetwork}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconGlobe}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryNetwork}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryNetworkSub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
-
-        <Button Classes="home-link" Command="{Binding GoToCommand}" CommandParameter="Privacy"
-                AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPrivacy}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-            <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconShield}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
-              <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryPrivacy}" />
-              <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryPrivacySub}" />
-            </StackPanel>
-            <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-          </Grid>
-        </Button>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:HomeCardViewModel">
+            <Button Classes="home-card" Margin="0,0,12,12"
+                    Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).GoToCommand}"
+                    CommandParameter="{Binding Section}"
+                    AutomationProperties.Name="{Binding Title}">
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <ctl:LumiIcon Grid.Column="0" Data="{Binding IconKey, Converter={StaticResource IconKeyConverter}}" Size="18"
+                                Margin="0,0,8,0" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Classes="card-title" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                  <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16"
+                                Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Classes="card-value" Text="{Binding Value}" />
+                <TextBlock Classes="muted" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasDetail}" />
+                <Border Classes="warn-badge" HorizontalAlignment="Left" Margin="0,4,0,0" IsVisible="{Binding NeedsAttention}">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="12" Foreground="{DynamicResource LumiWarningTextBrush}"
+                                  VerticalAlignment="Center" />
+                    <TextBlock Text="{x:Static res:Strings.Home_Attention}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
       </ItemsControl>
     </ctl:FractionWidthLimiter>
   </ScrollViewer>

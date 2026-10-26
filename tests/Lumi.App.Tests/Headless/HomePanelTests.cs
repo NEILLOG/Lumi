@@ -10,11 +10,11 @@ using Lumi.App.Views;
 
 namespace Lumi.App.Tests.Headless;
 
-/// <summary>M20 20D：設定首頁（<c>HomePanel</c>）的畫面與連結——11 個常用設定連結、點了切到對應分類、每個連結有無障礙名稱。</summary>
+/// <summary>M20 20G：設定首頁（<c>HomePanel</c>）的狀態卡片——6 張卡片、每張有無障礙名稱、點了切到對應分類、沒有模型時的提示。</summary>
 public class HomePanelTests
 {
-    private static IEnumerable<Button> HomeLinks(Visual root) =>
-        root.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("home-link"));
+    private static IEnumerable<Button> HomeCards(Visual root) =>
+        root.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("home-card"));
 
     /// <summary>獨立視窗：設定視窗提供的 muted 文字樣式，這裡用同一份共用樣式。</summary>
     private static Window Host(SettingsHost host, double width = 1040)
@@ -27,34 +27,34 @@ public class HomePanelTests
         return window;
     }
 
-    private static Button LinkNamed(Visual root, string name) =>
-        HomeLinks(root).Single(b => AutomationProperties.GetName(b) == name);
+    private static Button CardNamed(Visual root, string name) =>
+        HomeCards(root).Single(b => AutomationProperties.GetName(b) == name);
 
     [AvaloniaFact]
-    public void Panel_ShowsElevenLinks()
+    public void Panel_ShowsSixCards()
     {
         using var host = new SettingsHost(new AvaloniaUiDispatcher());
         var window = Host(host);
 
-        Assert.Equal(11, HomeLinks(window).Count());
+        Assert.Equal(6, HomeCards(window).Count());
     }
 
     [AvaloniaFact]
-    public void EveryLink_HasAnAccessibilityName()
+    public void EveryCard_HasAnAccessibilityName()
     {
         using var host = new SettingsHost(new AvaloniaUiDispatcher());
         var window = Host(host);
 
-        foreach (var button in HomeLinks(window))
+        foreach (var button in HomeCards(window))
             Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(button)));
     }
 
     [AvaloniaFact]
-    public void MemoryLink_SwitchesToTheMemoryCategory()
+    public void MemoryCard_SwitchesToTheMemoryCategory()
     {
         using var host = new SettingsHost(new AvaloniaUiDispatcher());
         var window = Host(host);
-        var memory = LinkNamed(window, Strings.Settings_CategoryMemory);
+        var memory = CardNamed(window, Strings.Settings_CategoryMemory);
 
         memory.Command!.Execute(memory.CommandParameter);
 
@@ -63,28 +63,31 @@ public class HomePanelTests
     }
 
     [AvaloniaFact]
-    public void ModelsLink_SwitchesToConnectionsAndTheModelsTab()
+    public void ConnectionsCard_SwitchesToConnectionsAndTheConnectionsTab()
     {
         using var host = new SettingsHost(new AvaloniaUiDispatcher());
         var window = Host(host);
-        var models = LinkNamed(window, Strings.Home_LinkModels);
+        var connections = CardNamed(window, Strings.Settings_CategoryConnections);
 
-        models.Command!.Execute(models.CommandParameter);
+        connections.Command!.Execute(connections.CommandParameter);
 
         Assert.True(host.Settings.ShowConnectionsAndModels);
-        Assert.True(host.Settings.ShowModelsTab);
+        Assert.True(host.Settings.ShowConnectionsTab);
     }
 
     [AvaloniaFact]
-    public void ToolsLink_SwitchesToTheToolsCategory()
+    public async Task WithoutAModel_TheConnectionsCardAsksForOne()
     {
         using var host = new SettingsHost(new AvaloniaUiDispatcher());
+        // 沒有設定檔時預設會有一個模型，這裡刪掉，才看得到「尚未設定模型」
+        foreach (var model in host.Catalog.Current.Models)
+            await host.Catalog.DeleteModelAsync(model.Id);
+        await host.Home.RefreshAsync();
         var window = Host(host);
-        var tools = LinkNamed(window, Strings.Tools_MenuTitle);
+        var connections = CardNamed(window, Strings.Settings_CategoryConnections);
 
-        tools.Command!.Execute(tools.CommandParameter);
-
-        Assert.True(host.Settings.ShowTools);
-        Assert.True(host.Settings.ShowToolsListTab);
+        var texts = connections.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
+        Assert.Contains(Strings.Home_NoModel, texts);
+        Assert.Contains(Strings.Home_Attention, texts);
     }
 }
