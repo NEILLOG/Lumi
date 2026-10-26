@@ -1,0 +1,173 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.DataPrivacyPanel"
+             x:DataType="vm:DataPrivacyViewModel">
+
+  <!--
+    資料與隱私面板（M20 20C）：頁首與分類在 SettingsWindow。這裡是存放位置（可開啟、複製、看大小）→ 哪些內容會送出去 → 怎麼控制（連到對應的設定）。
+    唯讀：沒有刪除動作。窄視窗（Window.narrow）時位置列的按鈕移到說明下方（規則在下面的 Styles）。
+  -->
+  <UserControl.Styles>
+    <!-- 位置與控制的一列：分隔線分開，不是卡片 -->
+    <Style Selector="Border.data-row">
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="Padding" Value="0,12" />
+    </Style>
+    <Style Selector="TextBlock.row-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <!-- 路徑：等寬、Caption、淡色 -->
+    <Style Selector="SelectableTextBlock.path">
+      <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- RWD：窄視窗時位置列的按鈕移到說明下方、靠左（第 2 列） -->
+    <Style Selector="StackPanel.loc-actions">
+      <Setter Property="(Grid.Row)" Value="0" />
+      <Setter Property="(Grid.Column)" Value="1" />
+    </Style>
+    <Style Selector="Window.narrow StackPanel.loc-actions">
+      <Setter Property="(Grid.Row)" Value="1" />
+      <Setter Property="(Grid.Column)" Value="0" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
+      <StackPanel>
+
+        <!-- 存放位置 -->
+        <TextBlock Classes="section-title" Text="{x:Static res:Strings.Privacy_LocationsTitle}" />
+        <TextBlock Classes="muted" Margin="0,4,0,8" Text="{x:Static res:Strings.Privacy_LocationsNote}" TextWrapping="Wrap" />
+
+        <!-- 訊息：開啟失敗（錯誤色）或已複製 -->
+        <TextBlock Classes="muted" Classes.error="{Binding MessageIsError}" Margin="0,0,0,8"
+                   Text="{Binding Message}" TextWrapping="Wrap" IsVisible="{Binding HasMessage}" />
+
+        <ItemsControl x:Name="PrivacyLocationList" ItemsSource="{Binding Locations}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DataLocationItemViewModel">
+              <Border Classes="data-row loc-row">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="0">
+                  <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                    <TextBlock Classes="row-title" Text="{Binding Name}" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                    <SelectableTextBlock Classes="path" Text="{Binding PathText}" IsVisible="{Binding HasPath}" />
+                    <TextBlock Classes="muted" Text="{Binding SizeText}" TextWrapping="Wrap"
+                               IsVisible="{Binding SizeText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_NotCreated}" TextWrapping="Wrap"
+                               IsVisible="{Binding NotCreated}" />
+                  </StackPanel>
+
+                  <StackPanel Classes="loc-actions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                    <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                            Content="{Binding $parent[UserControl].((vm:DataPrivacyViewModel)DataContext).OpenButtonText}"
+                            Command="{Binding OpenCommand}" AutomationProperties.Name="{Binding Name}" />
+                    <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                            Content="{x:Static res:Strings.Privacy_Copy}" Command="{Binding CopyCommand}"
+                            AutomationProperties.Name="{Binding Name}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- 會送出去的內容 -->
+        <StackPanel x:Name="PrivacySendSection" Margin="0,24,0,0" Spacing="8">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.Privacy_SendTitle}" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendModel}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendBrowser}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendSpeech}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendFiles}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendKeys}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- 怎麼控制：每列一個連到對應設定分類的按鈕（第一列是清除對話，在對話側欄，沒有按鈕） -->
+        <TextBlock Classes="section-title" Margin="0,24,0,4" Text="{x:Static res:Strings.Privacy_ControlTitle}" />
+        <StackPanel x:Name="PrivacyControlSection">
+
+          <Border Classes="data-row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="row-title" Text="{x:Static res:Strings.Privacy_CtlHistory}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_CtlHistoryDesc}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Classes="data-row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="row-title" Text="{x:Static res:Strings.Privacy_CtlMemory}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_CtlMemoryDesc}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8" VerticalAlignment="Top"
+                      Content="{x:Static res:Strings.Privacy_GoSettings}" Command="{Binding GoToCommand}" CommandParameter="Memory"
+                      AutomationProperties.Name="{x:Static res:Strings.Privacy_CtlMemory}" />
+            </Grid>
+          </Border>
+
+          <Border Classes="data-row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="row-title" Text="{x:Static res:Strings.Privacy_CtlTools}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_CtlToolsDesc}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8" VerticalAlignment="Top"
+                      Content="{x:Static res:Strings.Privacy_GoSettings}" Command="{Binding GoToCommand}" CommandParameter="Tools"
+                      AutomationProperties.Name="{x:Static res:Strings.Privacy_CtlTools}" />
+            </Grid>
+          </Border>
+
+          <Border Classes="data-row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="row-title" Text="{x:Static res:Strings.Privacy_CtlBrowser}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_CtlBrowserDesc}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8" VerticalAlignment="Top"
+                      Content="{x:Static res:Strings.Privacy_GoSettings}" Command="{Binding GoToCommand}" CommandParameter="Network"
+                      AutomationProperties.Name="{x:Static res:Strings.Privacy_CtlBrowser}" />
+            </Grid>
+          </Border>
+
+          <Border Classes="data-row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="row-title" Text="{x:Static res:Strings.Privacy_CtlReminders}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_CtlRemindersDesc}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8" VerticalAlignment="Top"
+                      Content="{x:Static res:Strings.Privacy_GoSettings}" Command="{Binding GoToCommand}" CommandParameter="Reminders"
+                      AutomationProperties.Name="{x:Static res:Strings.Privacy_CtlReminders}" />
+            </Grid>
+          </Border>
+
+          <Border Classes="data-row">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Classes="row-title" Text="{x:Static res:Strings.Privacy_CtlSpeech}" TextWrapping="Wrap" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Privacy_CtlSpeechDesc}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8" VerticalAlignment="Top"
+                      Content="{x:Static res:Strings.Privacy_GoSettings}" Command="{Binding GoToCommand}" CommandParameter="Speech"
+                      AutomationProperties.Name="{x:Static res:Strings.Privacy_CtlSpeech}" />
+            </Grid>
+          </Border>
+
+        </StackPanel>
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </ScrollViewer>
+</UserControl>
