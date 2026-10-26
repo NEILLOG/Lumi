@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "id": "neillog.robot-pixel",
+  "name": "機器人（像素）",
+  "author": "張仲毅",
+  "version": "0.1.0",
+  "kind": "frames",
+  "box": {
+    "width": 96,
+    "height": 96
+  },
+  "effectMargin": 0,
+  "hitShape": "rect",
+  "bubbleAnchor": {
+    "x": 0.5,
+    "y": 0.16
+  },
+  "voice": "語氣簡潔、帶點機械感，偶爾用「嗶」開頭。",
+  "rendering": "pixelated",
+  "animations": {
+    "idle": {
+      "source": "idle.png",
+      "frames": 12,
+      "columns": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "listening": {
+      "source": "listening.png",
+      "frames": 4,
+      "columns": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "transcribing": {
+      "source": "transcribing.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "thinking": {
+      "source": "thinking.png",
+      "frames": 10,
+      "columns": 5,
+      "fps": 5,
+      "loop": true
+    },
+    "tool": {
+      "source": "tool.png",
+      "frames": 2,
+      "columns": 2,
+      "fps": 4,
+      "loop": true
+    },
+    "streaming": {
+      "source": "streaming.png",
+      "frames": 6,
+      "columns": 6,
+      "fps": 10,
+      "loop": true
+    },
+    "done": {
+      "source": "done.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 8,
+      "loop": false,
+      "next": "idle"
+    },
+    "attention": {
+      "source": "attention.png",
+      "frames": 4,
+      "columns": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "error": {
+      "source": "error.png",
+      "frames": 6,
+      "columns": 6,
+      "fps": 6,
+      "loop": false,
+      "hold": "last"
+    },
+    "sleep": {
+      "source": "sleep.png",
+      "frames": 4,
+      "columns": 4,
+      "fps": 2,
+      "loop": true
+    },
+    "poke.press": {
+      "source": "poke_press.png",
+      "frames": 2,
+      "columns": 2,
+      "fps": 12,
+      "loop": false,
+      "hold": "last"
+    },
+    "poke.release": {
+      "source": "poke_rel.png",
+      "frames": 8,
+      "columns": 4,
+      "fps": 10,
+      "loop": false,
+      "next": "idle"
+    },
+    "drag": {
+      "source": "drag.png",
+      "frames": 4,
+      "columns": 4,
+      "fps": 8,
+      "loop": true
+    }
+  }
+}
