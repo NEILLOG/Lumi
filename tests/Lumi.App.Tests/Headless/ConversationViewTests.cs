@@ -168,7 +168,7 @@ public class ConversationViewTests
 
         var actions = view.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "MessageActions" && p.IsEffectivelyVisible);
         var buttons = actions.Children.OfType<Button>().Where(b => b.IsEffectivelyVisible || !b.IsEnabled).ToList();
-        Assert.Equal(4, buttons.Count);   // 複製、重新產生（最後一則）、👍、👎
+        Assert.Equal(2, buttons.Count);   // 複製、重新產生（最後一則）；沒有評價按鈕
         Assert.All(buttons, b => Assert.Contains("tertiary", b.Classes));
         Assert.All(buttons, b => Assert.NotNull(b.GetVisualDescendants().OfType<LumiIcon>().FirstOrDefault()));
         Assert.All(buttons, b => Assert.False(string.IsNullOrEmpty(ToolTip.GetTip(b) as string)));
@@ -182,28 +182,38 @@ public class ConversationViewTests
     }
 
     [AvaloniaFact]
-    public async Task ThumbsButtons_AreDisabled_WithAVisibleCaptionAndTooltip()
+    public async Task ThereAreNoFeedbackButtons()
     {
         var (window, vm, view) = Show();
         await vm.InitializeAsync();
         await SendAsync(window, vm);
 
-        var like = view.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "LikeButton" && b.IsEffectivelyVisible);
-        var dislike = view.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "DislikeButton" && b.IsEffectivelyVisible);
-        foreach (var button in new[] { like, dislike })
-        {
-            Assert.False(button.IsEnabled);
-            Assert.Null(button.Command);
-            Assert.Equal(Strings.Workbench_FeedbackComingSoon, ToolTip.GetTip(button));
-            Assert.True(ToolTip.GetShowOnDisabled(button));
-        }
-        Assert.Equal(Strings.Workbench_Like, AutomationProperties.GetName(like));
-        Assert.Equal(Strings.Workbench_Dislike, AutomationProperties.GetName(dislike));
+        Assert.DoesNotContain(view.GetVisualDescendants().OfType<Button>(), b => b.Name is "LikeButton" or "DislikeButton");
+        window.Close();
+    }
 
-        // 旁邊有一個共用的可見說明（不是每個按鈕各一個）
-        var captions = view.GetVisualDescendants().OfType<TextBlock>()
-            .Where(t => t.Text == Strings.Workbench_FeedbackComingSoon && t.IsEffectivelyVisible && t.Classes.Contains("muted")).ToList();
-        Assert.Single(captions);
+    [AvaloniaFact]
+    public async Task TokenUsage_IsHiddenByDefault_AndShownOnlyWhenTheAdvancedSwitchIsOn()
+    {
+        var (window, vm, view) = Show();
+        await vm.InitializeAsync();
+        await SendAsync(window, vm);
+        var message = vm.Messages.Last();
+        Assert.True(message.HasUsage);
+
+        bool UsageVisible() => view.GetVisualDescendants().OfType<TextBlock>()
+            .Any(t => t.Name == "UsageLabel" && t.IsEffectivelyVisible && t.Text == message.UsageText);
+
+        Assert.False(vm.ShowTokenUsage);
+        Assert.False(UsageVisible());
+
+        vm.ShowTokenUsage = true;
+        window.UpdateLayout();
+        Assert.True(UsageVisible());
+
+        vm.ShowTokenUsage = false;
+        window.UpdateLayout();
+        Assert.False(UsageVisible());
         window.Close();
     }
 

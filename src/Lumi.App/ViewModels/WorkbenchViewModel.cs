@@ -113,7 +113,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         };
         _approvals.Resolved += OnApprovalResolved;
 
-        catalog.Changed += (_, _) => dispatcher.Post(OnModelSettingsChanged);
+        _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
+        catalog.Changed += (_, settings) => dispatcher.Post(() =>
+        {
+            ShowTokenUsage = settings.Display.ShowTokenUsage;
+            OnModelSettingsChanged();
+        });
         status.Changed += (_, _) => dispatcher.Post(OnConnectionStatusChanged);
     }
 
@@ -269,6 +274,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText), nameof(ContextUsed), nameof(ContextText))]
     private TokenUsage? _lastUsage;
+
+    /// <summary>設定 › 外觀與操作 › 進階：在每則回答下方顯示輸入／輸出 token 數（預設關閉）。</summary>
+    [ObservableProperty]
+    private bool _showTokenUsage;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText))]

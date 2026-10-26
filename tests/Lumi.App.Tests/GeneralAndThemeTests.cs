@@ -66,4 +66,30 @@ public sealed class GeneralAndThemeTests
 
         Assert.Equal([ThemeVariant.Light, ThemeVariant.Dark, ThemeVariant.Default], applied);
     }
+
+    [Fact]
+    public async Task TheTokenUsageSwitch_IsOffByDefault_AndIsSavedWhenTurnedOn()
+    {
+        using var host = new SettingsHost();
+        Assert.False(host.General.ShowTokenUsage);
+
+        host.General.ShowTokenUsage = true;
+        await SettingsHost.WaitUntil(() => host.Catalog.Current.Display.ShowTokenUsage);
+
+        Assert.True(host.General.ShowTokenUsage);
+
+        host.General.ShowTokenUsage = false;
+        await SettingsHost.WaitUntil(() => !host.Catalog.Current.Display.ShowTokenUsage);
+        Assert.False(host.General.ShowTokenUsage);
+    }
+
+    [Fact]
+    public async Task TheTokenUsageSwitch_FollowsChangesMadeElsewhere()
+    {
+        using var host = new SettingsHost();
+
+        await host.Catalog.SetShowTokenUsageAsync(true);
+
+        Assert.True(host.General.ShowTokenUsage);
+    }
 }

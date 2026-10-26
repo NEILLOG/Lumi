@@ -270,13 +270,13 @@ public class HeightAndAccessibilityTests
     }
 
     [AvaloniaFact]
-    public async Task ActionBarButtons_AreAllNamedAndWithTooltips_IncludingTheDisabledOnes()
+    public async Task ActionBarButtons_AreAllNamedAndWithTooltips()
     {
         var rig = new Rig(1200, 800);
         await rig.SendAsync();
         var actions = rig.Conversation.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "MessageActions" && p.IsEffectivelyVisible);
         var buttons = actions.Children.OfType<Button>().Where(b => b.IsEffectivelyVisible).ToList();
-        Assert.True(buttons.Count >= 3);
+        Assert.True(buttons.Count >= 2);   // 複製、重新產生
         foreach (var button in buttons)
         {
             Assert.False(string.IsNullOrWhiteSpace(AutomationProperties.GetName(button)), Describe(button));

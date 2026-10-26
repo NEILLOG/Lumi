@@ -133,9 +133,6 @@
   <data name="Workbench_AssistantName" xml:space="preserve"><value>Lumi</value></data>
   <data name="Workbench_CopyTip" xml:space="preserve"><value>複製這則回覆</value></data>
   <data name="Workbench_RegenerateTip" xml:space="preserve"><value>重新產生這則回覆</value></data>
-  <data name="Workbench_Like" xml:space="preserve"><value>覺得有幫助</value></data>
-  <data name="Workbench_Dislike" xml:space="preserve"><value>覺得沒幫助</value></data>
-  <data name="Workbench_FeedbackComingSoon" xml:space="preserve"><value>評價功能即將推出</value></data>
   <data name="Workbench_History" xml:space="preserve"><value>歷史對話</value></data>
   <data name="Workbench_HistoryEmpty" xml:space="preserve"><value>還沒有對話紀錄</value></data>
   <data name="Workbench_SpriteMode" xml:space="preserve"><value>小精靈模式</value></data>
@@ -794,4 +791,7 @@
   <data name="Home_SpriteFormat" xml:space="preserve"><value>小精靈：{0}</value></data>
   <data name="Home_CardsName" xml:space="preserve"><value>目前的設定狀態</value></data>
   <data name="Home_Attention" xml:space="preserve"><value>需要處理</value></data>
+  <data name="Advanced_Title" xml:space="preserve"><value>進階</value></data>
+  <data name="Advanced_ShowTokenUsage" xml:space="preserve"><value>在每則回答下方顯示 token 用量</value></data>
+  <data name="Advanced_ShowTokenUsageNote" xml:space="preserve"><value>顯示這則回答的輸入與輸出 token 數（含命中快取的部分），用來估算費用。預設關閉。</value></data>
 </root>

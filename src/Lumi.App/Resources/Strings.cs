@@ -130,9 +130,6 @@ public static class Strings
     public static string Workbench_AssistantName => Get(nameof(Workbench_AssistantName));
     public static string Workbench_CopyTip => Get(nameof(Workbench_CopyTip));
     public static string Workbench_RegenerateTip => Get(nameof(Workbench_RegenerateTip));
-    public static string Workbench_Like => Get(nameof(Workbench_Like));
-    public static string Workbench_Dislike => Get(nameof(Workbench_Dislike));
-    public static string Workbench_FeedbackComingSoon => Get(nameof(Workbench_FeedbackComingSoon));
     public static string Workbench_History => Get(nameof(Workbench_History));
     public static string Workbench_HistoryEmpty => Get(nameof(Workbench_HistoryEmpty));
     public static string History_SearchPlaceholder => Get(nameof(History_SearchPlaceholder));
@@ -783,4 +780,7 @@ public static class Strings
     public static string Home_SpriteFormat => Get(nameof(Home_SpriteFormat));
     public static string Home_CardsName => Get(nameof(Home_CardsName));
     public static string Home_Attention => Get(nameof(Home_Attention));
+    public static string Advanced_Title => Get(nameof(Advanced_Title));
+    public static string Advanced_ShowTokenUsage => Get(nameof(Advanced_ShowTokenUsage));
+    public static string Advanced_ShowTokenUsageNote => Get(nameof(Advanced_ShowTokenUsageNote));
 }

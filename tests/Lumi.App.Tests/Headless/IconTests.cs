@@ -14,7 +14,7 @@ public class IconTests
     [
         "LumiIconChevronDown", "LumiIconPlus", "LumiIconClock", "LumiIconMoreHorizontal", "LumiIconSparkle",
         "LumiIconArrowUp", "LumiIconSquare", "LumiIconPaperclip", "LumiIconFolder", "LumiIconMic", "LumiIconCopy",
-        "LumiIconRefresh", "LumiIconThumbsUp", "LumiIconThumbsDown", "LumiIconX", "LumiIconCheck", "LumiIconSettings",
+        "LumiIconRefresh", "LumiIconX", "LumiIconCheck", "LumiIconSettings",
         "LumiIconArrowLeft", "LumiIconHome", "LumiIconDiamond", "LumiIconSun", "LumiIconShield", "LumiIconAlertTriangle",
         "LumiIconUser", "LumiIconChevronRight", "LumiIconBan", "LumiIconLoader", "LumiIconBell",
     ];

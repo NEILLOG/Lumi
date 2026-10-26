@@ -86,6 +86,9 @@ public sealed record AppSettings(
 
     /// <summary>瀏覽器設定（M18）：使用的瀏覽器、是否顯示視窗。舊檔沒有時用預設值。</summary>
     public BrowserSettings Browser { get; init; } = BrowserSettings.Default;
+
+    /// <summary>顯示設定（進階）：是否顯示 token 用量。舊檔沒有時用預設（不顯示）。</summary>
+    public DisplaySettings Display { get; init; } = DisplaySettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

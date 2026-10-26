@@ -71,12 +71,18 @@ public partial class GeneralViewModel : ObservableObject
         _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(catalog.Current.ThemeId));
         _notesFolderSaved = catalog.Current.Notes.Folder;
         _notesFolderInput = _notesFolderSaved;
+        _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
         catalog.Changed += (_, settings) => dispatcher.Post(() =>
         {
             _selectedTheme = ThemeOption.All.First(o => o.Preference == settings.Theme);
             OnPropertyChanged(nameof(SelectedTheme));
             _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(settings.ThemeId));
             OnPropertyChanged(nameof(SelectedPalette));
+            if (settings.Display.ShowTokenUsage != _showTokenUsage)
+            {
+                _showTokenUsage = settings.Display.ShowTokenUsage;
+                OnPropertyChanged(nameof(ShowTokenUsage));
+            }
             // 別處改了資料夾才覆寫輸入框；只是改了主題時不要把正在編輯的文字蓋掉
             if (settings.Notes.Folder != _notesFolderSaved)
                 SetSavedNotesFolder(settings.Notes.Folder);
@@ -188,6 +194,37 @@ public partial class GeneralViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _error;
+
+    private bool _showTokenUsage;
+
+    /// <summary>進階：在每則回答下方顯示 token 用量。勾選立即儲存，失敗時還原並顯示錯誤。</summary>
+    public bool ShowTokenUsage
+    {
+        get => _showTokenUsage;
+        set
+        {
+            if (value == _showTokenUsage)
+                return;
+            _showTokenUsage = value;
+            OnPropertyChanged();
+            _ = ApplyShowTokenUsageAsync(value);
+        }
+    }
+
+    public async Task ApplyShowTokenUsageAsync(bool show)
+    {
+        Error = null;
+        try
+        {
+            await _catalog.SetShowTokenUsageAsync(show);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            Error = ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed;
+            _showTokenUsage = _catalog.Current.Display.ShowTokenUsage;
+            OnPropertyChanged(nameof(ShowTokenUsage));
+        }
+    }
 
     public ThemeOption SelectedTheme
     {

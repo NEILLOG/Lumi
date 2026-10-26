@@ -230,19 +230,14 @@
                           <TextBlock Classes="action-label" Text="{x:Static res:Strings.Workbench_Regenerate}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
-                      <Button x:Name="LikeButton" Classes="tertiary small message-action" IsEnabled="False"
-                              ToolTip.Tip="{x:Static res:Strings.Workbench_FeedbackComingSoon}" ToolTip.ShowOnDisabled="True"
-                              AutomationProperties.Name="{x:Static res:Strings.Workbench_Like}">
-                        <ctl:LumiIcon Data="{StaticResource LumiIconThumbsUp}" Size="14" />
-                      </Button>
-                      <Button x:Name="DislikeButton" Classes="tertiary small message-action" IsEnabled="False"
-                              ToolTip.Tip="{x:Static res:Strings.Workbench_FeedbackComingSoon}" ToolTip.ShowOnDisabled="True"
-                              AutomationProperties.Name="{x:Static res:Strings.Workbench_Dislike}">
-                        <ctl:LumiIcon Data="{StaticResource LumiIconThumbsDown}" Size="14" />
-                      </Button>
-                      <!-- 停用的原因：一個共用的說明，不是每個按鈕各一個 -->
-                      <TextBlock Classes="muted" Text="{x:Static res:Strings.Workbench_FeedbackComingSoon}" VerticalAlignment="Center" />
-                      <TextBlock IsVisible="{Binding HasUsage}" Text="{Binding UsageText}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center" />
+                      <TextBlock x:Name="UsageLabel" Text="{Binding UsageText}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <TextBlock.IsVisible>
+                          <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="HasUsage" />
+                            <Binding Path="$parent[views:ConversationView].((vm:WorkbenchViewModel)DataContext).ShowTokenUsage" />
+                          </MultiBinding>
+                        </TextBlock.IsVisible>
+                      </TextBlock>
                     </StackPanel>
                   </StackPanel>
                 </Grid>

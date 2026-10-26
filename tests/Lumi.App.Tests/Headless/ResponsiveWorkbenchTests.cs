@@ -353,6 +353,8 @@ public class ResponsiveWorkbenchTests
         await rig.SendAsync();
         var view = rig.Conversation;
 
+        rig.Vm.ShowTokenUsage = true;   // token 文字預設不顯示（進階開關）
+        view.UpdateLayout();
         var actions = view.GetVisualDescendants().OfType<StackPanel>().Single(p => p.Name == "MessageActions" && p.IsEffectivelyVisible);
         var texts = VisibleTexts(actions);
         Assert.DoesNotContain(Strings.Workbench_Regenerate, texts);
