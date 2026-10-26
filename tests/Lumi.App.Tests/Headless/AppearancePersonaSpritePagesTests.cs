@@ -24,9 +24,9 @@ namespace Lumi.App.Tests.Headless;
 /// <summary>UD-3：「外觀與操作」「人格與主動性」「小精靈」三頁——色票卡片、明暗下拉、區段表單、按鈕層級、角色卡片、警告區、&lt; 900 上下排。</summary>
 public class AppearancePersonaSpritePagesTests
 {
-    private const int GeneralIndex = 4;
-    private const int PersonaIndex = 1;
-    private const int SpriteIndex = 5;
+    private const int GeneralIndex = (int)SettingsCategory.General;
+    private const int PersonaIndex = (int)SettingsCategory.Persona;
+    private const int SpriteIndex = (int)SettingsCategory.Sprite;
 
     private sealed class Rig : IDisposable
     {

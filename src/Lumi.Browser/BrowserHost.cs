@@ -279,6 +279,7 @@ internal sealed class BrowserHost : IAsyncDisposable
         try
         {
             Directory.CreateDirectory(spec.UserDataDir);
+            PlaywrightDriverLocator.Prepare();   // 單一檔案發佈時指向解壓出來的 driver（M20）
             _playwright ??= await Playwright.CreateAsync().WaitAsync(ct).ConfigureAwait(false);
             var options = new BrowserTypeLaunchPersistentContextOptions
             {

@@ -112,11 +112,11 @@ public class SettingsWindowShellTests
         Assert.Equal(TokenColor(window, "LumiChromeBrush"), ColorOf(menu.Background));
         Assert.Equal(TokenColor(window, "LumiBorderBrush"), ColorOf(menu.BorderBrush));
 
-        // 標題區：L 標誌、「Lumi 設定」、Caption
+        // M20：沒有標題區（L 標誌、「Lumi 設定」、「個人偏好與 AI 連線」都移除了）
         var texts = TextsIn(menu).ToList();
-        Assert.Contains(Strings.Settings_MenuTitle, texts);
-        Assert.Contains("個人偏好與 AI 連線", texts);
-        Assert.Contains(Strings.TitleBar_LogoMark, texts);
+        Assert.DoesNotContain(Strings.Settings_MenuTitle, texts);
+        Assert.DoesNotContain(Strings.Settings_MenuSubtitle, texts);
+        Assert.DoesNotContain(Strings.TitleBar_LogoMark, texts);
         // 底部：版本與金鑰說明
         Assert.StartsWith("Lumi ", window.FindByName<TextBlock>("MenuVersion").Text);
         Assert.Equal("金鑰只儲存在這台裝置", window.FindByName<TextBlock>("MenuKeysNote").Text);
@@ -124,23 +124,26 @@ public class SettingsWindowShellTests
     }
 
     [AvaloniaFact]
-    public void Menu_ListsTheEightCategories_WithPlainNamesAndSubtitles()
+    public void Menu_ListsTheElevenCategories_WithPlainNamesAndSubtitles()
     {
         using var host = new SettingsHost();
         var window = Show(host);
 
         var list = window.FindByName<ListBox>("CategoryList");
-        Assert.Equal(8, list.ItemCount);
+        Assert.Equal(11, list.ItemCount);
         var expected = new[]
         {
+            ("CategoryHome", "設定首頁", "常用設定的快速入口"),
             ("CategoryConnections", "AI 連線", "供應商、金鑰與模型"),
             ("CategoryPersona", "人格與主動性", "回答風格與主動程度"),
             ("CategoryMemory", "記憶", "Lumi 記得的事"),
+            ("CategoryReminders", "提醒排程", "查看與刪除提醒、計時器"),
             ("CategoryTools", "工具", "能用的工具與確認方式"),
             ("CategoryGeneral", "外觀與操作", "主題、色票與明暗"),
             ("CategorySprite", "小精靈", "角色、尺寸與語氣"),
             ("CategorySpeech", "語音", "Whisper 語音辨識"),
             ("CategoryNetwork", "網路", "Proxy、瀏覽器"),
+            ("CategoryPrivacy", "資料與隱私", "資料存放位置與隱私說明"),
         };
         for (var i = 0; i < expected.Length; i++)
         {
@@ -168,7 +171,7 @@ public class SettingsWindowShellTests
         var window = Show(host);
         var list = window.FindByName<ListBox>("CategoryList");
 
-        Assert.Equal(0, list.SelectedIndex);   // 預設是 AI 連線
+        Assert.Equal((int)SettingsCategory.Connections, list.SelectedIndex);   // SettingsHost 預設從 AI 連線開始
         var connections = window.FindByName<ListBoxItem>("CategoryConnections");
         var general = window.FindByName<ListBoxItem>("CategoryGeneral");
         Assert.Equal(new CornerRadius(10), connections.CornerRadius);
@@ -181,9 +184,9 @@ public class SettingsWindowShellTests
         Assert.NotEqual(soft, (PresenterOf(general).Background as ISolidColorBrush)?.Color);
 
         // 點另一個分類 → ViewModel 的 CategoryIndex 跟著變，選取樣式也移過去
-        list.SelectedIndex = 4;
+        list.SelectedIndex = (int)SettingsCategory.General;
         window.UpdateLayout();
-        Assert.Equal(4, host.Settings.CategoryIndex);
+        Assert.Equal((int)SettingsCategory.General, host.Settings.CategoryIndex);
         Assert.True(host.Settings.ShowGeneral);
         Assert.Equal(soft, ColorOf(PresenterOf(general).Background));
         Assert.NotEqual(soft, (PresenterOf(connections).Background as ISolidColorBrush)?.Color);
@@ -191,34 +194,34 @@ public class SettingsWindowShellTests
         // ViewModel 導覽也會反映到 Menu
         await host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Sprite));
         window.UpdateLayout();
-        Assert.Equal(5, list.SelectedIndex);
+        Assert.Equal((int)SettingsCategory.Sprite, list.SelectedIndex);
         window.Close();
     }
 
     [AvaloniaFact]
-    public void ComingSoonItems_AreDisabled_WithATooltipAndAVisibleCaption()
+    public void TheMenu_HasElevenCategories_HomeFirst_PrivacyLast_AndNothingIsComingSoon()
     {
         using var host = new SettingsHost();
         var window = Show(host);
-        var list = window.FindByName<ListBox>("ComingSoonList");
-        Assert.Equal(2, list.ItemCount);
+        var list = window.FindByName<ListBox>("CategoryList");
 
-        foreach (var (name, title) in new[] { ("CategoryHome", "設定首頁"), ("CategoryPrivacy", "資料與隱私") })
+        Assert.Equal(11, list.ItemCount);
+        string[] names = ["CategoryHome", "CategoryConnections", "CategoryPersona", "CategoryMemory", "CategoryReminders", "CategoryTools",
+            "CategoryGeneral", "CategorySprite", "CategorySpeech", "CategoryNetwork", "CategoryPrivacy"];
+        Assert.Equal(names, list.Items.OfType<ListBoxItem>().Select(i => i.Name).ToArray());
+        Assert.Null(window.FindControl<ListBox>("ComingSoonList"));
+        Assert.All(list.Items.OfType<ListBoxItem>(), item =>
         {
-            var item = window.FindByName<ListBoxItem>(name);
-            Assert.False(item.IsEnabled);
-            Assert.False(item.IsEffectivelyEnabled);
-            Assert.Equal("即將推出", ToolTip.GetTip(item));
-            Assert.True(ToolTip.GetShowOnDisabled(item));
-            Assert.Equal([title, "即將推出"], TextsIn(item).ToArray());   // Caption 看得到，不只靠 Tooltip
-            Assert.All(item.GetVisualDescendants().OfType<TextBlock>(), t => Assert.True(t.IsEffectivelyVisible));
-            Assert.Single(item.GetVisualDescendants().OfType<Lumi.App.Controls.LumiIcon>());
-        }
+            Assert.True(item.IsEffectivelyEnabled);
+            Assert.DoesNotContain(Strings.Settings_ComingSoon, TextsIn(item));
+        });
 
-        // 停用項目不可選：點不到，選取與分類都不會變
-        list.SelectedIndex = 0;
+        list.SelectedIndex = (int)SettingsCategory.Privacy;
         window.UpdateLayout();
-        Assert.Equal(0, host.Settings.CategoryIndex);
+        Assert.True(host.Settings.ShowPrivacy);
+        list.SelectedIndex = (int)SettingsCategory.Reminders;
+        window.UpdateLayout();
+        Assert.True(host.Settings.ShowReminders);
         window.Close();
     }
 

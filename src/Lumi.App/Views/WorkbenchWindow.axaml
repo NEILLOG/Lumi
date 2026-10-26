@@ -6,6 +6,7 @@
         xmlns:views="using:Lumi.App.Views"
         xmlns:md="using:Lumi.App.Markdown"
         x:Name="Root"
+        Icon="avares://Lumi.App/Assets/Icons/lumi-256.png"
         x:Class="Lumi.App.Views.WorkbenchWindow"
         x:DataType="vm:WorkbenchViewModel"
         Title="{Binding Title}"

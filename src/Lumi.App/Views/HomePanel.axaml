@@ -53,7 +53,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconDiamond}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryConnections}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryConnectionsSub}" />
             </StackPanel>
@@ -65,7 +65,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Home_LinkModels}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSettings}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Home_LinkModels}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Home_LinkModelsSub}" />
             </StackPanel>
@@ -77,7 +77,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPersona}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconUser}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryPersona}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryPersonaSub}" />
             </StackPanel>
@@ -89,7 +89,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryMemory}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBrain}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryMemory}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryMemorySub}" />
             </StackPanel>
@@ -101,7 +101,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryReminders}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBell}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryReminders}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryRemindersSub}" />
             </StackPanel>
@@ -113,7 +113,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Tools_MenuTitle}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconWrench}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Tools_MenuTitle}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Tools_MenuSubtitle}" />
             </StackPanel>
@@ -125,7 +125,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryGeneral}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSun}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryGeneral}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryGeneralSub}" />
             </StackPanel>
@@ -137,7 +137,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySprite}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconSparkle}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategorySprite}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategorySpriteSub}" />
             </StackPanel>
@@ -149,7 +149,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySpeech}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconMic}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategorySpeech}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategorySpeechSub}" />
             </StackPanel>
@@ -161,7 +161,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryNetwork}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconGlobe}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryNetwork}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryNetworkSub}" />
             </StackPanel>
@@ -173,7 +173,7 @@
                 AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPrivacy}">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconShield}" Size="18" Margin="0,0,12,0" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Spacing="0" VerticalAlignment="Center">
               <TextBlock Classes="link-title" Text="{x:Static res:Strings.Settings_CategoryPrivacy}" />
               <TextBlock Classes="link-sub" Text="{x:Static res:Strings.Settings_CategoryPrivacySub}" />
             </StackPanel>

@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:res="using:Lumi.App.Resources"
+        Icon="avares://Lumi.App/Assets/Icons/lumi-256.png"
         x:Class="Lumi.App.Views.StartupFailureWindow"
         Title="{x:Static res:Strings.StartupFailure_Title}"
         Width="480" SizeToContent="Height" CanResize="False"

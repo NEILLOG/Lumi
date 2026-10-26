@@ -166,7 +166,7 @@ public class ChatToolbarTests
         items[0].Command!.Execute(null);
         items[1].Command!.Execute(null);
 
-        Assert.Equal([SettingsSection.Connections, SettingsSection.Models], rig.SettingsWindow.Shown.Select(s => s.Section));
+        Assert.Equal([SettingsSection.Home, SettingsSection.Models], rig.SettingsWindow.Shown.Select(s => s.Section));
         menu.Hide();
         rig.Window.Close();
     }

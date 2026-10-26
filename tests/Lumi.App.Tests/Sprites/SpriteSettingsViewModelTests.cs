@@ -170,7 +170,7 @@ public sealed class SpriteSettingsViewModelTests
         await host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Sprite));
 
         Assert.True(host.Settings.ShowSprite);
-        Assert.Equal(5, host.Settings.CategoryIndex);
+        Assert.Equal((int)SettingsCategory.Sprite, host.Settings.CategoryIndex);
         Assert.False(host.Settings.ShowGeneral);
         Assert.False(host.Settings.ShowPersona);
         Assert.False(host.Settings.ShowConnectionsAndModels);

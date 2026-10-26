@@ -656,7 +656,7 @@ public partial class SpriteWindow : Window
         switchSprite.Click += (_, _) => _ = _settingsWindow?.ShowAsync(new SettingsNavigation(SettingsSection.Sprite));
 
         var settings = new MenuItem { Header = Strings.Sprite_MenuSettings };
-        settings.Click += (_, _) => _ = _settingsWindow?.ShowAsync(new SettingsNavigation(SettingsSection.Connections));
+        settings.Click += (_, _) => _ = _settingsWindow?.ShowAsync(new SettingsNavigation(SettingsSection.Home));
 
         var hide = new MenuItem { Header = Strings.Sprite_MenuHide };
         hide.Click += (_, _) => _coordinator?.HideSpriteTemporarily();

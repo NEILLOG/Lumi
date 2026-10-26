@@ -129,7 +129,7 @@ public class MemoryPanelTests
     public async Task EmptyState_ShowsTheExampleSentence_AndDisablesClearAll()
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
-        rig.Host.Settings.CategoryIndex = 2;
+        rig.Host.Settings.CategoryIndex = 3;
         rig.Settle();
 
         var empty = rig.Window.FindByName<TextBlock>("MemoryEmptyText");

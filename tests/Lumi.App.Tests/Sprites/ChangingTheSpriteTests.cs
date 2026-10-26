@@ -146,7 +146,7 @@ public class ChangingTheSpriteTests
         using var host = new SettingsHost(null, new BlockSpriteFactory());
         var window = new SettingsWindow(host.Settings);
         window.Show();
-        host.Settings.CategoryIndex = 5;
+        host.Settings.CategoryIndex = 7;
         var preview = window.Preview!;
         Assert.NotNull(preview.View);
 
@@ -183,7 +183,7 @@ public class ChangingTheSpriteTests
         var window = new SettingsWindow(host.Settings);
         window.Show();
 
-        host.Settings.CategoryIndex = 5;
+        host.Settings.CategoryIndex = 7;
         window.UpdateLayout();
 
         Assert.NotNull(window.FindControl<ListBox>("SpriteList"));

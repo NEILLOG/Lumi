@@ -6,6 +6,7 @@
     <AssemblyName>Lumi.App</AssemblyName>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Icons\Lumi.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Window 由 DI 建構（建構子注入 ViewModel），不走執行階段載入器 -->
     <NoWarn>$(NoWarn);AVLN3001</NoWarn>

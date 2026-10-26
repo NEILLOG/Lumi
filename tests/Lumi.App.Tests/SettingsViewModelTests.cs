@@ -80,4 +80,55 @@ public sealed class SettingsViewModelTests
         Assert.Equal(1, host.WindowService.ReturnToWorkbenchCalls);
         Assert.StartsWith("Lumi ", host.Settings.VersionText);
     }
+
+    [Fact]
+    public async Task Navigate_ReachesTheNewCategories()
+    {
+        using var host = new SettingsHost();
+        var vm = host.Settings;
+
+        await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Reminders));
+        Assert.True(vm.ShowReminders);
+        await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Privacy));
+        Assert.True(vm.ShowPrivacy);
+        Assert.False(vm.ShowReminders);
+        await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Memory));
+        Assert.True(vm.ShowMemory);
+        await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Home));
+        Assert.True(vm.ShowHome);
+        Assert.Equal((int)SettingsCategory.Home, vm.CategoryIndex);
+    }
+
+    [Fact]
+    public void TheCategoryNumbers_FollowTheMenuOrder()
+    {
+        Assert.Equal(
+            ["Home", "Connections", "Persona", "Memory", "Reminders", "Tools", "General", "Sprite", "Speech", "Network", "Privacy"],
+            Enum.GetValues<SettingsCategory>().OrderBy(c => (int)c).Select(c => c.ToString()).ToArray());
+    }
+
+    [Fact]
+    public async Task GoToCommand_NavigatesByTheSectionName_AndIgnoresUnknownNames()
+    {
+        using var host = new SettingsHost();
+        var vm = host.Settings;
+
+        await vm.GoToCommand.ExecuteAsync("Reminders");
+        Assert.True(vm.ShowReminders);
+        await vm.GoToCommand.ExecuteAsync("Models");
+        Assert.True(vm.ShowConnectionsAndModels);
+        Assert.True(vm.ShowModelsTab);
+        await vm.GoToCommand.ExecuteAsync("Nope");
+        Assert.True(vm.ShowConnectionsAndModels);
+    }
+
+    [Fact]
+    public void ThePrivacyLinks_NavigateThroughTheSettingsViewModel()
+    {
+        using var host = new SettingsHost();
+
+        host.Privacy.GoToCommand.Execute("Memory");
+
+        Assert.True(host.Settings.ShowMemory);
+    }
 }

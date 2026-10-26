@@ -20,7 +20,7 @@ public class BrowserSettingsSectionTests
         host.Browser.RefreshCommand.Execute(null);
         var window = new SettingsWindow(host.Settings);
         window.Show();
-        host.Settings.CategoryIndex = 7;
+        host.Settings.CategoryIndex = 9;
         window.UpdateLayout();
         return (host, window);
     }

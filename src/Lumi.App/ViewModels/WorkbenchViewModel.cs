@@ -159,7 +159,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     /// <summary>開啟設定視窗（不等它關閉；視窗是獨立的，可以和工作台並排）。</summary>
     [RelayCommand]
-    private void OpenSettings() => _ = _settingsWindow.ShowAsync(new SettingsNavigation(SettingsSection.Connections));
+    private void OpenSettings() => _ = _settingsWindow.ShowAsync(new SettingsNavigation(SettingsSection.Home));
 
     private void OnModelSettingsChanged()
     {

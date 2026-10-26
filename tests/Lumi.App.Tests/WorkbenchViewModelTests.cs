@@ -290,7 +290,7 @@ public class WorkbenchViewModelTests
 
         vm.OpenSettingsCommand.Execute(null);
 
-        Assert.Equal(SettingsSection.Connections, Assert.Single(settings.Shown).Section);
+        Assert.Equal(SettingsSection.Home, Assert.Single(settings.Shown).Section);   // 從選單開啟設定預設落在設定首頁
         Assert.True(vm.OpenSettingsCommand.CanExecute(null));
     }
 

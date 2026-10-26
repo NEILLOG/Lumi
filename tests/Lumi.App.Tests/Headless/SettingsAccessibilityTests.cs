@@ -1,3 +1,4 @@
+using Lumi.App.ViewModels;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -171,22 +172,18 @@ public class SettingsAccessibilityTests
     [AvaloniaTheory]
     [InlineData(Wide)]
     [InlineData(Stacked)]
-    public async Task TheDisabledMenuItems_HaveAVisibleExplanation_AndAreNotOnTheTabChain(double width)
+    public async Task OnlyTheSelectedMenuItem_IsOnTheTabChain_AndNoItemIsComingSoon(double width)
     {
         using var rig = await SettingsRig.CreateAsync("connections-list", width);
         var chain = TabChain(rig.Window);
-        foreach (var name in new[] { "CategoryHome", "CategoryPrivacy" })
+        foreach (var name in new[] { "CategoryHome", "CategoryReminders", "CategoryPrivacy" })
         {
             var item = rig.Window.FindByName<ListBoxItem>(name);
-            Assert.False(item.IsEffectivelyEnabled);
-            Assert.True(item.IsEffectivelyVisible);
-            // 說明是看得到的文字（Caption），不只靠 Tooltip
-            Assert.Contains(item.GetVisualDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text == Strings.Settings_ComingSoon);
-            Assert.Equal(Strings.Settings_ComingSoon, ToolTip.GetTip(item));
-            Assert.DoesNotContain(item, chain);
-            Assert.False(IsTabStop(item));
+            Assert.True(item.IsEffectivelyEnabled);
+            Assert.DoesNotContain(item.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == Strings.Settings_ComingSoon);
+            Assert.DoesNotContain(item, chain);   // Tab 只停在目前分類，用方向鍵換分類
         }
-        Assert.DoesNotContain(chain, e => e is ListBoxItem item && item.FindAncestorOfType<ListBox>() is { Name: "ComingSoonList" });
+        Assert.Single(chain, e => e is ListBoxItem item && item.FindAncestorOfType<ListBox>() is { Name: "CategoryList" });
     }
 
     [AvaloniaFact]
@@ -335,7 +332,7 @@ public class SettingsAccessibilityTests
         Assert.Equal(forward.AsEnumerable().Reverse().Select(Label), backward.Select(Label));
     }
 
-    private static string CategoryName(int index) => index switch { 0 => "Connections", 1 => "Persona", 2 => "Memory", 3 => "Tools", 4 => "General", 5 => "Sprite", _ => "Speech" };
+    private static string CategoryName(int index) => ((SettingsCategory)index).ToString();
 
     private static bool IsInMenu(InputElement e, Window window) => e.GetVisualAncestors().Contains(window.FindByName<Border>("Menu"));
 
@@ -344,40 +341,33 @@ public class SettingsAccessibilityTests
     // ---- 3. 鍵盤操作 ----
 
     [AvaloniaFact]
-    public async Task TheCategoryMenu_ChangesCategoryWithArrowKeys_AndSkipsTheDisabledItems()
+    public async Task TheCategoryMenu_ChangesCategoryWithArrowKeys()
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
         var settings = rig.Host.Settings;
         rig.Window.FindByName<ListBoxItem>("CategoryConnections").Focus();
 
-        PressKey(rig, Key.Down);
-        Assert.Equal(1, settings.CategoryIndex);
-        Assert.Equal("CategoryPersona", FocusedName(rig));
-        PressKey(rig, Key.Down);
-        Assert.Equal(2, settings.CategoryIndex);   // 人格與主動性之後是「記憶」
-        Assert.Equal("CategoryMemory", FocusedName(rig));
-        PressKey(rig, Key.Down);   // 記憶之後是「工具」
-        Assert.Equal(3, settings.CategoryIndex);
-        Assert.Equal("CategoryTools", FocusedName(rig));
-        PressKey(rig, Key.Down);
-        PressKey(rig, Key.Down);
-        Assert.Equal(5, settings.CategoryIndex);
-        PressKey(rig, Key.Down);   // 小精靈之後是「語音」
-        Assert.Equal(6, settings.CategoryIndex);
-        Assert.Equal("CategorySpeech", FocusedName(rig));
-        PressKey(rig, Key.Down);   // 語音之後是「網路」（最後一個可用的分類）
-        Assert.Equal(7, settings.CategoryIndex);
+        void Down(SettingsCategory expected)
+        {
+            PressKey(rig, Key.Down);
+            Assert.Equal((int)expected, settings.CategoryIndex);
+            Assert.Equal($"Category{expected}", FocusedName(rig));
+        }
+
+        Down(SettingsCategory.Persona);
+        Down(SettingsCategory.Memory);   // 人格與主動性之後是「記憶」
+        Down(SettingsCategory.Reminders);
+        Down(SettingsCategory.Tools);
+        Down(SettingsCategory.General);
+        Down(SettingsCategory.Sprite);
+        Down(SettingsCategory.Speech);   // 小精靈之後是「語音」
+        Down(SettingsCategory.Network);
+        Down(SettingsCategory.Privacy);   // 網路之後是最後一個「資料與隱私」
+        PressKey(rig, Key.Down);   // 最後一個之後停在原地
+        Assert.Equal((int)SettingsCategory.Privacy, settings.CategoryIndex);
+        PressKey(rig, Key.Up);
+        Assert.Equal((int)SettingsCategory.Network, settings.CategoryIndex);
         Assert.Equal("CategoryNetwork", FocusedName(rig));
-        PressKey(rig, Key.Down);   // 最後一個之後不會跑進停用的「設定首頁」「資料與隱私」
-        Assert.Equal(7, settings.CategoryIndex);
-        Assert.Equal("CategoryNetwork", FocusedName(rig));
-        PressKey(rig, Key.Up);
-        PressKey(rig, Key.Up);
-        Assert.Equal(5, settings.CategoryIndex);
-        Assert.Equal("CategorySprite", FocusedName(rig));
-        PressKey(rig, Key.Up);
-        Assert.Equal(4, settings.CategoryIndex);
-        Assert.True(settings.ShowGeneral);
     }
 
     [AvaloniaFact]
