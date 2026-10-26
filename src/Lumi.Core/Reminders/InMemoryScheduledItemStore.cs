@@ -106,6 +106,10 @@ public sealed class InMemoryScheduledItemStore : IScheduledItemStore
         }
     }
 
+    public Task<bool> DeleteAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
+
+    public Task<int> DeleteFinishedAsync(CancellationToken ct = default) => throw new NotImplementedException();
+
     private static DateTimeOffset SortKey(ScheduledItem item) => item.NextFireAt ?? item.CreatedAt;
 
     private static bool IsActivePending(ScheduledItem item) =>

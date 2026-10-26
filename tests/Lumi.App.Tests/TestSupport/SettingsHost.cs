@@ -56,10 +56,20 @@ internal sealed class SettingsHost : IDisposable
         Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
         Network = new NetworkViewModel(Catalog, NetworkTester, dispatcher);
         Browser = new BrowserSettingsViewModel(Catalog, BrowserLocator, BrowserSessions, Confirm, dispatcher);
-        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Catalog, Confirm, WindowService);
+        ReminderService = new Lumi.Core.Reminders.ReminderService(ReminderStore, new NullNotificationSink(), TimeProvider.System,
+            new Lumi.Core.Reminders.ReminderOptions(), NullLogger<Lumi.Core.Reminders.ReminderService>.Instance);
+        Reminders = new RemindersViewModel(ReminderService, Confirm, dispatcher, TimeProvider.System);
+        Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
+        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Catalog, Confirm, WindowService);
     }
 
     public string SettingsPath { get; }
+    public Lumi.Core.Reminders.InMemoryScheduledItemStore ReminderStore { get; } = new();
+    public Lumi.Core.Reminders.ReminderService ReminderService { get; }
+    public RemindersViewModel Reminders { get; }
+    public FakeDataLocationProvider DataLocations { get; } = new();
+    public FakeClipboardService Clipboard { get; } = new();
+    public DataPrivacyViewModel Privacy { get; }
     public FakeSettingsWindowService WindowService { get; } = new();
     public InMemorySecretStore Secrets { get; } = new();
     public FakeConnectionTester Tester { get; } = new();
@@ -115,4 +125,16 @@ internal sealed class SettingsHost : IDisposable
             return false;
         }
     }
+}
+
+internal sealed class NullNotificationSink : Lumi.Core.Reminders.INotificationSink
+{
+    public Task ShowAsync(Lumi.Core.Reminders.AppNotification notification, CancellationToken ct) => Task.CompletedTask;
+}
+
+internal sealed class FakeDataLocationProvider : IDataLocationProvider
+{
+    public List<DataLocation> Locations { get; } = [];
+
+    public IReadOnlyList<DataLocation> GetLocations() => Locations;
 }

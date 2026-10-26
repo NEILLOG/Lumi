@@ -102,6 +102,10 @@ public sealed class ReminderHostedServiceTests
 
         public Task<int> PurgeFinishedAsync(DateTimeOffset olderThan, CancellationToken ct = default) =>
             inner.PurgeFinishedAsync(olderThan, ct);
+
+        public Task<bool> DeleteAsync(string id, CancellationToken ct = default) => inner.DeleteAsync(id, ct);
+
+        public Task<int> DeleteFinishedAsync(CancellationToken ct = default) => inner.DeleteFinishedAsync(ct);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, string because)

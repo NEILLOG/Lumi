@@ -39,4 +39,10 @@ public interface IScheduledItemStore
     /// <paramref name="olderThan"/> 的項目，回傳刪除筆數。
     /// </summary>
     Task<int> PurgeFinishedAsync(DateTimeOffset olderThan, CancellationToken ct = default);
+
+    /// <summary>以 Id 刪除一筆（任何狀態）；找不到回 false。</summary>
+    Task<bool> DeleteAsync(string id, CancellationToken ct = default);
+
+    /// <summary>刪除所有已結束（Completed、Cancelled、Missed）的項目，不看時間；回傳刪除筆數。</summary>
+    Task<int> DeleteFinishedAsync(CancellationToken ct = default);
 }

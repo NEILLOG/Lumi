@@ -128,6 +128,10 @@ public sealed class ReminderService(
         return result;
     }
 
+    public Task<bool> DeleteAsync(string id, CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<int> DeleteFinishedAsync(CancellationToken ct) => throw new NotImplementedException();
+
     public async Task<ScheduledItem?> SetEnabledAsync(string id, bool enabled, CancellationToken ct)
     {
         ScheduledItem updated;

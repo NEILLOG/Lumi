@@ -127,6 +127,10 @@ public sealed class SqliteScheduledItemStore(SqliteConversationStore database, I
         return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    public Task<bool> DeleteAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
+
+    public Task<int> DeleteFinishedAsync(CancellationToken ct = default) => throw new NotImplementedException();
+
     private static void Bind(SqliteCommand command, ScheduledItem item)
     {
         command.Parameters.AddWithValue("$id", item.Id);

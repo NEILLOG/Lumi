@@ -693,4 +693,91 @@
   <data name="Browser_ClearConfirmButton" xml:space="preserve"><value>清除</value></data>
   <data name="Browser_Cleared" xml:space="preserve"><value>已清除瀏覽器的登入狀態。</value></data>
   <data name="Browser_Privacy" xml:space="preserve"><value>頁面內容與截圖會送到你選擇的模型供應商。</value></data>
+  <data name="Settings_CategoryHomeSub" xml:space="preserve"><value>常用設定的快速入口</value></data>
+  <data name="Settings_CategoryReminders" xml:space="preserve"><value>提醒排程</value></data>
+  <data name="Settings_CategoryRemindersSub" xml:space="preserve"><value>查看與刪除提醒、計時器</value></data>
+  <data name="Settings_CategoryPrivacySub" xml:space="preserve"><value>資料存放位置與隱私說明</value></data>
+  <data name="Settings_HeaderHomeTitle" xml:space="preserve"><value>常用設定</value></data>
+  <data name="Settings_HeaderHomeDescription" xml:space="preserve"><value>選一個項目，直接前往對應的設定。</value></data>
+  <data name="Settings_HeaderRemindersTitle" xml:space="preserve"><value>提醒與排程</value></data>
+  <data name="Settings_HeaderRemindersDescription" xml:space="preserve"><value>這裡列出 Lumi 目前記得的提醒、計時器與週期排程。可以刪除不要的項目；要新增請直接在對話裡告訴 Lumi。</value></data>
+  <data name="Settings_HeaderPrivacyTitle" xml:space="preserve"><value>資料存放與隱私</value></data>
+  <data name="Settings_HeaderPrivacyDescription" xml:space="preserve"><value>看看 Lumi 把資料放在哪裡、哪些內容會送出去，以及怎麼控制。</value></data>
+  <data name="Home_ListName" xml:space="preserve"><value>常用設定連結</value></data>
+  <data name="Home_LinkModels" xml:space="preserve"><value>模型設定</value></data>
+  <data name="Home_LinkModelsSub" xml:space="preserve"><value>選擇與調整使用的模型</value></data>
+  <data name="Reminders_PendingTitle" xml:space="preserve"><value>待觸發</value></data>
+  <data name="Reminders_FinishedTitle" xml:space="preserve"><value>已結束</value></data>
+  <data name="Reminders_FinishedNote" xml:space="preserve"><value>完成、錯過或取消的項目，系統會保留 30 天後自動清除。</value></data>
+  <data name="Reminders_RunningNote" xml:space="preserve"><value>Lumi 沒在執行時不會響；下次啟動時會彙總提醒你錯過的項目。</value></data>
+  <data name="Reminders_EmptyPending" xml:space="preserve"><value>目前沒有待觸發的提醒。</value></data>
+  <data name="Reminders_EmptyFinished" xml:space="preserve"><value>沒有已結束的項目。</value></data>
+  <data name="Reminders_KindReminder" xml:space="preserve"><value>提醒</value></data>
+  <data name="Reminders_KindTimer" xml:space="preserve"><value>計時器</value></data>
+  <data name="Reminders_KindSchedule" xml:space="preserve"><value>排程</value></data>
+  <data name="Reminders_StatusCompleted" xml:space="preserve"><value>已完成</value></data>
+  <data name="Reminders_StatusMissed" xml:space="preserve"><value>已錯過</value></data>
+  <data name="Reminders_StatusCancelled" xml:space="preserve"><value>已取消</value></data>
+  <data name="Reminders_StatusPaused" xml:space="preserve"><value>已暫停</value></data>
+  <data name="Reminders_NextFireFormat" xml:space="preserve"><value>下次：{0}</value></data>
+  <data name="Reminders_LastFiredFormat" xml:space="preserve"><value>最後觸發：{0}</value></data>
+  <data name="Reminders_CreatedByAgent" xml:space="preserve"><value>由 Lumi 建立</value></data>
+  <data name="Reminders_CreatedByUser" xml:space="preserve"><value>由你建立</value></data>
+  <data name="Reminders_Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="Reminders_DeleteQuestion" xml:space="preserve"><value>要刪除這個項目嗎？刪除後就不會再響。</value></data>
+  <data name="Reminders_DeleteFailed" xml:space="preserve"><value>刪除失敗，請稍後再試。</value></data>
+  <data name="Reminders_Deleted" xml:space="preserve"><value>已刪除。</value></data>
+  <data name="Reminders_ClearFinished" xml:space="preserve"><value>清除已結束</value></data>
+  <data name="Reminders_ClearFinishedQuestion" xml:space="preserve"><value>要清除全部 {0} 個已結束的項目嗎？</value></data>
+  <data name="Reminders_Cleared" xml:space="preserve"><value>已清除 {0} 個項目。</value></data>
+  <data name="Reminders_LoadFailed" xml:space="preserve"><value>讀取提醒失敗。</value></data>
+  <data name="Privacy_LocationsTitle" xml:space="preserve"><value>資料存放在哪裡</value></data>
+  <data name="Privacy_LocationsNote" xml:space="preserve"><value>以下是 Lumi 在這台電腦上存放資料的位置。這些資料不會自動上傳；只有對話需要的內容才會送到你選擇的服務。</value></data>
+  <data name="Privacy_OpenMac" xml:space="preserve"><value>在 Finder 顯示</value></data>
+  <data name="Privacy_OpenWindows" xml:space="preserve"><value>在檔案總管顯示</value></data>
+  <data name="Privacy_Copy" xml:space="preserve"><value>複製路徑</value></data>
+  <data name="Privacy_Copied" xml:space="preserve"><value>已複製路徑。</value></data>
+  <data name="Privacy_OpenFailed" xml:space="preserve"><value>無法開啟這個位置。</value></data>
+  <data name="Privacy_SizeFormat" xml:space="preserve"><value>約 {0}</value></data>
+  <data name="Privacy_NotCreated" xml:space="preserve"><value>尚未建立</value></data>
+  <data name="Privacy_LocData" xml:space="preserve"><value>資料資料夾</value></data>
+  <data name="Privacy_LocDataDesc" xml:space="preserve"><value>Lumi 的資料都放在這個資料夾裡（筆記資料夾與系統金鑰除外）。</value></data>
+  <data name="Privacy_LocDatabase" xml:space="preserve"><value>對話與記憶資料庫</value></data>
+  <data name="Privacy_LocDatabaseDesc" xml:space="preserve"><value>對話與訊息、長期記憶、提醒排程與 MCP 工具快取（lumi.db）。內容是明文，只存在這台電腦。</value></data>
+  <data name="Privacy_LocAttachments" xml:space="preserve"><value>圖片附件</value></data>
+  <data name="Privacy_LocAttachmentsDesc" xml:space="preserve"><value>你在對話中貼上或加入的圖片。刪除對話時會一起清掉。</value></data>
+  <data name="Privacy_LocSettings" xml:space="preserve"><value>設定檔</value></data>
+  <data name="Privacy_LocSettingsDesc" xml:space="preserve"><value>連線、模型、人設、工具、外觀與網路等設定（settings.json）。不含 API 金鑰。</value></data>
+  <data name="Privacy_LocSecretsMac" xml:space="preserve"><value>API 金鑰與密碼</value></data>
+  <data name="Privacy_LocSecretsMacDesc" xml:space="preserve"><value>存在 macOS 鑰匙圈（服務名稱：{0}），不會寫進資料庫或記錄檔。</value></data>
+  <data name="Privacy_LocSecretsWindows" xml:space="preserve"><value>API 金鑰與密碼</value></data>
+  <data name="Privacy_LocSecretsWindowsDesc" xml:space="preserve"><value>存在加密檔案（secrets.json，用你的 Windows 登入帳號加密），不會寫進資料庫或記錄檔。</value></data>
+  <data name="Privacy_LocLogs" xml:space="preserve"><value>記錄檔</value></data>
+  <data name="Privacy_LocLogsDesc" xml:space="preserve"><value>程式啟動失敗與未處理的錯誤（lumi-日期.log）。回報問題時可以附上。</value></data>
+  <data name="Privacy_LocBrowser" xml:space="preserve"><value>瀏覽器登入狀態</value></data>
+  <data name="Privacy_LocBrowserDesc" xml:space="preserve"><value>Lumi 專用瀏覽器記住的登入狀態（Cookie），屬於敏感資料。可以到「網路」頁清除。</value></data>
+  <data name="Privacy_LocSprites" xml:space="preserve"><value>角色素材</value></data>
+  <data name="Privacy_LocSpritesDesc" xml:space="preserve"><value>你匯入的小精靈角色。</value></data>
+  <data name="Privacy_LocNotes" xml:space="preserve"><value>筆記資料夾</value></data>
+  <data name="Privacy_LocNotesDesc" xml:space="preserve"><value>Lumi 幫你記下的筆記檔案。可以到「外觀與操作」頁更改位置。</value></data>
+  <data name="Privacy_SendTitle" xml:space="preserve"><value>哪些內容會送出去</value></data>
+  <data name="Privacy_SendModel" xml:space="preserve"><value>對話內容、你加入的圖片與檔案內容、長期記憶，以及工具執行的結果，會送到你選擇的 AI 供應商。</value></data>
+  <data name="Privacy_SendBrowser" xml:space="preserve"><value>使用瀏覽器工具時，網頁內容與截圖也會送到 AI 供應商。</value></data>
+  <data name="Privacy_SendSpeech" xml:space="preserve"><value>使用語音輸入時，錄音會送到你設定的語音服務。</value></data>
+  <data name="Privacy_SendFiles" xml:space="preserve"><value>Lumi 只讀取你加入對話的檔案與資料夾；看起來像金鑰或憑證的檔案會被排除。</value></data>
+  <data name="Privacy_SendKeys" xml:space="preserve"><value>API 金鑰只保存在系統的安全儲存空間，不會出現在對話、資料庫或記錄檔裡。</value></data>
+  <data name="Privacy_ControlTitle" xml:space="preserve"><value>怎麼控制</value></data>
+  <data name="Privacy_GoSettings" xml:space="preserve"><value>前往設定</value></data>
+  <data name="Privacy_CtlHistory" xml:space="preserve"><value>刪除對話</value></data>
+  <data name="Privacy_CtlHistoryDesc" xml:space="preserve"><value>在工作台的歷史對話裡刪除單一對話，它的附件會一起清掉。</value></data>
+  <data name="Privacy_CtlMemory" xml:space="preserve"><value>長期記憶</value></data>
+  <data name="Privacy_CtlMemoryDesc" xml:space="preserve"><value>可以關閉記憶、逐則刪除，或全部清除。</value></data>
+  <data name="Privacy_CtlTools" xml:space="preserve"><value>工具權限</value></data>
+  <data name="Privacy_CtlToolsDesc" xml:space="preserve"><value>可以關閉個別工具，或設成每次使用前都先問你。</value></data>
+  <data name="Privacy_CtlBrowser" xml:space="preserve"><value>瀏覽器登入狀態</value></data>
+  <data name="Privacy_CtlBrowserDesc" xml:space="preserve"><value>可以清除 Lumi 專用瀏覽器記住的登入狀態。</value></data>
+  <data name="Privacy_CtlReminders" xml:space="preserve"><value>提醒排程</value></data>
+  <data name="Privacy_CtlRemindersDesc" xml:space="preserve"><value>可以查看並刪除 Lumi 記得的提醒。</value></data>
+  <data name="Privacy_CtlSpeech" xml:space="preserve"><value>語音服務</value></data>
+  <data name="Privacy_CtlSpeechDesc" xml:space="preserve"><value>可以決定語音要送到哪個服務，或不設定就不會送出。</value></data>
 </root>

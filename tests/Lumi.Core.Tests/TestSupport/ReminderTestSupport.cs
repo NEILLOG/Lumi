@@ -82,6 +82,10 @@ internal sealed class CollidingScheduledItemStore(IScheduledItemStore inner, int
 
     public Task<int> PurgeFinishedAsync(DateTimeOffset olderThan, CancellationToken ct = default) =>
         inner.PurgeFinishedAsync(olderThan, ct);
+
+    public Task<bool> DeleteAsync(string id, CancellationToken ct = default) => inner.DeleteAsync(id, ct);
+
+    public Task<int> DeleteFinishedAsync(CancellationToken ct = default) => inner.DeleteFinishedAsync(ct);
 }
 
 /// <summary>組好的提醒服務（記憶體儲存、手動時鐘、記錄用的通知）。</summary>

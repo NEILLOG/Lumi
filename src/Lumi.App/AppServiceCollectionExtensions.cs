@@ -37,6 +37,9 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<McpServersViewModel>();   // MCP 伺服器（M16 16F）
         services.AddTransient<ToolsViewModel>();    // 工具清單（M15 15D）
         services.AddTransient<MemoryViewModel>();   // 記憶（M14 14D）
+        services.AddTransient<RemindersViewModel>();   // 設定頁「提醒排程」（M20）
+        services.AddTransient<DataPrivacyViewModel>();   // 設定頁「資料與隱私」（M20）
+        services.AddSingleton<IDataLocationProvider, DataLocationProvider>();
         services.AddTransient<GeneralViewModel>();
         services.AddTransient<SpriteSettingsViewModel>();
         services.AddTransient<SpeechViewModel>();

@@ -35,4 +35,10 @@ public interface IReminderService
 
     /// <summary>只有待觸發（Pending）的項目可以啟停；找不到回 null。</summary>
     Task<ScheduledItem?> SetEnabledAsync(string id, bool enabled, CancellationToken ct);
+
+    /// <summary>真正刪除一筆（任何狀態，待觸發的刪除後不會再響）；找不到回 false。設定頁用，不是工具。</summary>
+    Task<bool> DeleteAsync(string id, CancellationToken ct);
+
+    /// <summary>刪除所有已結束（完成、取消、錯過）的項目；回傳刪除筆數。設定頁用，不是工具。</summary>
+    Task<int> DeleteFinishedAsync(CancellationToken ct);
 }

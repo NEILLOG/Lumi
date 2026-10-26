@@ -42,6 +42,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\Fonts\*.ttf" />
+    <AvaloniaResource Include="Assets\Icons\*.png" />
     <None Include="Assets\Fonts\LICENSES\**" />
     <None Include="Assets\LICENSES\**" />
     <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
