@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Channels;
 using Lumi.Core.Browser;
 using Lumi.Core.Context;
 using Lumi.Core.Memory;
@@ -24,6 +25,9 @@ namespace Lumi.Core.Chat;
 public sealed class ConversationService
 {
     public const int TitleMaxLength = 30;
+
+    /// <summary>工具進度文字的上限（M19 D12）。</summary>
+    public const int ProgressMaxChars = 100;
 
     private const string NoModelMessage = "還沒有可用的模型，請先到設定加入連線與模型。";
     private const string InterruptedMessage = "對話被中斷，沒有取得這個工具的結果。";
@@ -406,9 +410,39 @@ public sealed class ConversationService
                 {
                     var started = _time.GetTimestamp();
                     ToolResult toolResult;
+
+                    // 工具執行中轉發進度（M19 D12）。等待工具時不能在 try 裡 yield，所以迴圈放在 try 外面；
+                    // 工具結束後不再發剩下的進度。取消、逾時、例外仍由下面的 ToolExecutor 與 catch 處理
+                    var progress = new ToolProgressSink();
+                    using var toolCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    var running = ToolExecutor.RunAsync(tool, use.InputJson, context with { Progress = progress }, _options.MaxResultChars, _logger, toolCts.Token);
                     try
                     {
-                        toolResult = await ToolExecutor.RunAsync(tool, use.InputJson, context, _options.MaxResultChars, _logger, ct).ConfigureAwait(false);
+                        var ready = progress.WaitToReadAsync(ct).AsTask();
+                        while (!running.IsCompleted && !ct.IsCancellationRequested)
+                        {
+                            await Task.WhenAny(running, ready).ConfigureAwait(false);
+                            if (running.IsCompleted)
+                                break;
+                            while (progress.TryRead(out var text))
+                            {
+                                if (NormalizeProgress(text) is { } shown)
+                                    yield return new ToolCallProgress(use.Id, shown);
+                            }
+                            ready = progress.WaitToReadAsync(ct).AsTask();
+                        }
+                    }
+                    finally
+                    {
+                        progress.Complete();
+                        // 迭代器在工具執行中被釋放（呼叫端放棄列舉）時，不讓工具繼續跑下去
+                        if (!running.IsCompleted)
+                            toolCts.Cancel();
+                    }
+
+                    try
+                    {
+                        toolResult = await running.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (ct.IsCancellationRequested)
                     {
@@ -508,6 +542,39 @@ public sealed class ConversationService
 
     private static ToolResultBlock StoppedResult(ToolUseBlock use, ToolDescriptor descriptor, ToolPreview preview, ToolApproval approval) =>
         new(use.Id, StoppedMessage, true, descriptor.DisplayName, preview.Target, "已停止", 0, approval);
+
+    /// <summary>進度文字：空白的略過（null），超過 <see cref="ProgressMaxChars"/> 字截斷。</summary>
+    private static string? NormalizeProgress(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        if (text.Length <= ProgressMaxChars)
+            return text;
+        // 不把代理對（emoji）切成兩半
+        var cut = char.IsHighSurrogate(text[ProgressMaxChars - 1]) ? ProgressMaxChars - 1 : ProgressMaxChars;
+        return text[..cut];
+    }
+
+    /// <summary>
+    /// 工具的進度通道（M19 D12）。不用 <see cref="Progress{T}"/>（它會抓同步內容、回到呼叫端的執行緒）；
+    /// 寫入是有界佇列，滿了丟掉最舊的，工具不會因為畫面來不及而被卡住。
+    /// </summary>
+    private sealed class ToolProgressSink : IProgress<string>
+    {
+        private readonly Channel<string> _channel = Channel.CreateBounded<string>(new BoundedChannelOptions(16)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true,
+        });
+
+        public void Report(string value) => _channel.Writer.TryWrite(value);
+
+        public ValueTask<bool> WaitToReadAsync(CancellationToken ct) => _channel.Reader.WaitToReadAsync(ct);
+
+        public bool TryRead(out string value) => _channel.Reader.TryRead(out value!);
+
+        public void Complete() => _channel.Writer.TryComplete();
+    }
 
     /// <summary>呼叫一次供應商：轉發事件、完成時存助理訊息、取消時把已收到的文字存成「已停止」。</summary>
     private async IAsyncEnumerable<ChatEvent> StreamOnceAsync(
