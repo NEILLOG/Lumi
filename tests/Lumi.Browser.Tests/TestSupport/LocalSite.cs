@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -58,6 +59,13 @@ public sealed class LocalSite : IDisposable
         </body></html>
         """;
 
+    private static string CrawlPage(string title, params string[] links)
+    {
+        var list = string.Concat(links.Select(l => $"<li><a href=\"{l.Split('|')[0]}\">{l.Split('|')[1]}</a></li>"));
+        var filler = string.Concat(Enumerable.Repeat("這是爬取測試頁面的內文，用來讓內容超過兩百個字，避免被當成需要 JavaScript 的空白頁。", 6));
+        return $"<!doctype html><html lang=\"zh-TW\"><head><meta charset=\"utf-8\"><title>{title}</title></head><body><article><h1>{title}</h1><p>{filler}</p><ul>{list}</ul></article></body></html>";
+    }
+
     private readonly HttpListener _listener = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly Task _loop;
@@ -82,6 +90,9 @@ public sealed class LocalSite : IDisposable
         }
         _loop = Task.Run(LoopAsync);
     }
+
+    /// <summary>每個收到的請求的路徑（含查詢字串），用來確認某些網址根本沒被請求過。</summary>
+    public ConcurrentQueue<string> Requests { get; } = new();
 
     public Uri BaseUri { get; }
 
@@ -133,10 +144,37 @@ public sealed class LocalSite : IDisposable
         try
         {
             var response = context.Response;
+            Requests.Enqueue(context.Request.Url?.PathAndQuery ?? "");
             switch (context.Request.Url?.AbsolutePath)
             {
                 case "/":
                     await WriteAsync(response, "text/html; charset=utf-8", IndexHtml).ConfigureAwait(false);
+                    break;
+                case "/robots.txt":
+                    await WriteAsync(response, "text/plain", "User-agent: *\nDisallow: /crawl/private\n").ConfigureAwait(false);
+                    break;
+                case "/crawl/":
+                    await WriteAsync(response, "text/html; charset=utf-8", CrawlPage("爬取首頁",
+                        "/crawl/a|頁面 A", "/crawl/b|頁面 B", "/crawl/logout|登出", "/crawl/private|私有頁", "/crawl/file.pdf|說明文件",
+                        "http://other.invalid/x|外部網站")).ConfigureAwait(false);
+                    break;
+                case "/crawl/a":
+                    await WriteAsync(response, "text/html; charset=utf-8", CrawlPage("頁面 A", "/crawl/c|頁面 C", "/crawl/|回首頁")).ConfigureAwait(false);
+                    break;
+                case "/crawl/b":
+                    await WriteAsync(response, "text/html; charset=utf-8", CrawlPage("頁面 B")).ConfigureAwait(false);
+                    break;
+                case "/crawl/c":
+                    await WriteAsync(response, "text/html; charset=utf-8", CrawlPage("頁面 C")).ConfigureAwait(false);
+                    break;
+                case "/crawl/private":
+                    await WriteAsync(response, "text/html; charset=utf-8", CrawlPage("私有頁")).ConfigureAwait(false);
+                    break;
+                case "/crawl/logout":
+                    await WriteAsync(response, "text/html; charset=utf-8", CrawlPage("登出")).ConfigureAwait(false);
+                    break;
+                case "/crawl/file.pdf":
+                    await WriteAsync(response, "application/pdf", "%PDF-1.4 fake").ConfigureAwait(false);
                     break;
                 case "/tall":
                     await WriteAsync(response, "text/html; charset=utf-8", TallHtml).ConfigureAwait(false);

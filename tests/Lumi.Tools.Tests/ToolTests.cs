@@ -126,7 +126,7 @@ public sealed class ToolTests : IDisposable
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
         Assert.Equal(["add_note", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "download_file", "get_current_time", "http_request", "http_send", "list_dir",
-                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links", "write_file"],
+                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
             registry.GetAll().Select(t => t.Descriptor.Name));
         Assert.Equal(["add_note", "calculate", "cancel_reminder", "conversation_search", "create_reminder", "get_current_time", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "net_check", "read_document", "read_file",
                 "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links"],
@@ -207,7 +207,7 @@ public sealed class ToolTests : IDisposable
 
         var fileTools = provider.GetServices<ITool>().Where(t => t.Descriptor.RequiresScope).ToList();
 
-        Assert.Equal(["browser_download", "browser_upload", "copy_file", "create_folder", "download_file", "list_dir", "move_file", "overwrite_file", "read_document", "read_file", "search", "write_file"],
+        Assert.Equal(["browser_download", "browser_upload", "copy_file", "create_folder", "download_file", "list_dir", "move_file", "overwrite_file", "read_document", "read_file", "search", "web_crawl", "write_file"],
             fileTools.Select(t => t.Descriptor.Name).Order());
         Assert.All(fileTools.Where(t => t.Descriptor.Name is "list_dir" or "read_file" or "search"),
             t => Assert.Equal(ToolPermission.ReadOnly, t.Descriptor.Permission));

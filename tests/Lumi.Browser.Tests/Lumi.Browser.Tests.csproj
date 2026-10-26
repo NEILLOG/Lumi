@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Xunit.SkippableFact" />
@@ -16,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Lumi.Browser\Lumi.Browser.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Tools\Lumi.Tools.csproj" />
+    <ProjectReference Include="..\..\src\Lumi.Web\Lumi.Web.csproj" />
   </ItemGroup>
 
 </Project>

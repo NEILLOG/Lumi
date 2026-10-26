@@ -68,6 +68,7 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<HttpSendTool>();
         services.AddLumiTool<DownloadFileTool>();
         services.AddLumiTool<NetCheckTool>();
+        services.AddLumiTool<WebCrawlTool>();   // 爬取網站（M19）：HTTP 或 Lumi 的瀏覽器，進度顯示在卡片上
 
         // 瀏覽器工具（M18）：IBrowserSessions 由 Lumi.Browser 的 AddLumiBrowser 註冊（沒註冊時用 Core 的 NullBrowserSessions）
         services.AddLumiTool<BrowserOpenTool>();

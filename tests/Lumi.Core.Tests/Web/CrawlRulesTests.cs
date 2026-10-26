@@ -157,4 +157,17 @@ public class CrawlRulesTests
         Assert.DoesNotContain(':', name);
         Assert.EndsWith("-20260102-030405", name);
     }
+
+    [Theory]
+    [InlineData("https://a.example/files/report.pdf", true)]
+    [InlineData("https://a.example/files/REPORT.PDF", true)]
+    [InlineData("https://a.example/a.docx?download=1", true)]
+    [InlineData("https://a.example/img/logo.PNG", true)]
+    [InlineData("https://a.example/docs/page.html", false)]
+    [InlineData("https://a.example/docs/page", false)]
+    [InlineData("https://a.example/v1.2/docs", false)]
+    [InlineData("https://a.example/", false)]
+    [InlineData("https://a.example/index.php", false)]
+    public void LooksLikeFile_goes_by_the_extension_of_the_path(string url, bool expected) =>
+        Assert.Equal(expected, CrawlRules.LooksLikeFile(new Uri(url)));
 }

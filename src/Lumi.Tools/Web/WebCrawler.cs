@@ -317,6 +317,12 @@ internal sealed class WebCrawler
                     continue;
                 if (!_visited.Add(url.AbsoluteUri))
                     continue;
+                // 看副檔名就知道是檔案的連結不讀（瀏覽器模式讀不出差別，會把 PDF 檢視器的畫面存成網頁），只列在目錄裡
+                if (CrawlRules.LooksLikeFile(url))
+                {
+                    _fileLinks.Add(url);
+                    continue;
+                }
                 _queue.Enqueue(new QueueItem(url, childDepth));
             }
         }

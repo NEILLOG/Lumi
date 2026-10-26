@@ -53,6 +53,26 @@ public static class CrawlRules
         return !exclude.Any(s => !string.IsNullOrWhiteSpace(s) && ContainsInUrl(url, s));
     }
 
+    /// <summary>
+    /// 路徑的副檔名是常見的檔案類型（PDF、Office、壓縮檔、圖片、影音、安裝檔…）：不當成網頁讀，只列在目錄的「其他檔案連結」。
+    /// 看不出來的（沒有副檔名、<c>.html</c>、<c>.php</c> 等）一律當網頁，HTTP 模式再用回應的媒體類型確認。
+    /// </summary>
+    public static bool LooksLikeFile(Uri url)
+    {
+        var path = url.AbsolutePath;
+        var dot = path.LastIndexOf('.');
+        if (dot < 0 || dot < path.LastIndexOf('/'))
+            return false;
+        return FileExtensions.Contains(path[dot..]);
+    }
+
+    private static readonly HashSet<string> FileExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".xlsm", ".ppt", ".pptx", ".csv", ".zip", ".rar", ".7z", ".gz", ".tar",
+        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp", ".mp3", ".mp4", ".wav", ".mov", ".avi", ".webm",
+        ".exe", ".msi", ".dmg", ".pkg", ".iso", ".apk",
+    };
+
     /// <summary>網址或連結文字含登出類字樣（D3）。</summary>
     public static bool IsLogoutLink(Uri url, string? linkText)
     {
