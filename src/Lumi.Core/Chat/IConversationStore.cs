@@ -69,4 +69,17 @@ public interface IConversationStore
     Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default);
 
     Task RenameAsync(string conversationId, string title, CancellationToken ct = default);
+
+    /// <summary>
+    /// 從 <paramref name="since"/>（含）起，所有對話的助理訊息 token 加總（設定首頁的本月／今天用量）。
+    /// 預設全 0，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task<TokenTotals> GetTokenTotalsAsync(DateTimeOffset since, CancellationToken ct = default) => Task.FromResult(TokenTotals.Zero);
+
+    /// <summary>
+    /// 跨對話最近的工具結果，由新到舊，最多 <paramref name="limit"/> 筆（設定首頁的「最近的動作」）。
+    /// 預設空清單，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task<IReadOnlyList<RecentToolAction>> ListRecentToolActionsAsync(int limit, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<RecentToolAction>>([]);
 }

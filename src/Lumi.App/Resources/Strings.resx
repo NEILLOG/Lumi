@@ -794,4 +794,100 @@
   <data name="Advanced_Title" xml:space="preserve"><value>進階</value></data>
   <data name="Advanced_ShowTokenUsage" xml:space="preserve"><value>在每則回答下方顯示 token 用量</value></data>
   <data name="Advanced_ShowTokenUsageNote" xml:space="preserve"><value>顯示這則回答的輸入與輸出 token 數（含命中快取的部分），用來估算費用。預設關閉。</value></data>
+  <data name="Usage_Title" xml:space="preserve"><value>本對話用量</value></data>
+  <data name="Usage_Context" xml:space="preserve"><value>上下文</value></data>
+  <data name="Usage_Ok" xml:space="preserve"><value>空間充足</value></data>
+  <data name="Usage_Half" xml:space="preserve"><value>已用超過一半</value></data>
+  <data name="Usage_Full" xml:space="preserve"><value>快滿了，建議開新對話</value></data>
+  <data name="Usage_RemainingFormat" xml:space="preserve"><value>還可以再用約 {0}</value></data>
+  <data name="Usage_UsedOfFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="Usage_Input" xml:space="preserve"><value>輸入</value></data>
+  <data name="Usage_Output" xml:space="preserve"><value>輸出</value></data>
+  <data name="Usage_Turns" xml:space="preserve"><value>回合</value></data>
+  <data name="Usage_CacheFormat" xml:space="preserve"><value>快取 {0}%</value></data>
+  <data name="Usage_Tokens" xml:space="preserve"><value>tokens</value></data>
+  <data name="Usage_RoundTrips" xml:space="preserve"><value>來回</value></data>
+  <data name="Usage_ConnectedFormat" xml:space="preserve"><value>已連線 · {0}</value></data>
+  <data name="Usage_Unknown" xml:space="preserve"><value>尚未確認</value></data>
+  <data name="Usage_Failed" xml:space="preserve"><value>連線失敗</value></data>
+  <data name="Usage_Retry" xml:space="preserve"><value>重試</value></data>
+  <data name="Usage_CostNote" xml:space="preserve"><value>費用由供應商依 token 用量計算，從你的帳號扣款。</value></data>
+  <data name="Usage_NearLimitNote" xml:space="preserve"><value>對話快超過模型上限，再聊下去較早的內容可能會被截掉。</value></data>
+  <data name="Usage_NewConversation" xml:space="preserve"><value>開新對話</value></data>
+  <data name="Usage_KeepGoing" xml:space="preserve"><value>繼續這則</value></data>
+  <data name="Usage_RingTipFormat" xml:space="preserve"><value>上下文 {0} · 點一下看詳情</value></data>
+  <data name="Usage_RingTipEmpty" xml:space="preserve"><value>尚無用量資料</value></data>
+  <data name="Usage_RingNameFormat" xml:space="preserve"><value>本對話用量：上下文 {0}</value></data>
+  <data name="Usage_RingNameEmpty" xml:space="preserve"><value>本對話用量：尚無資料</value></data>
+  <data name="Usage_LessThanOnePercent" xml:space="preserve"><value>&lt;1%</value></data>
+  <data name="Workbench_ConversationOptions" xml:space="preserve"><value>對話選項</value></data>
+  <data name="Workbench_RenameConversation" xml:space="preserve"><value>重新命名對話</value></data>
+  <data name="Workbench_ExportConversation" xml:space="preserve"><value>匯出為 Markdown</value></data>
+  <data name="Workbench_DeleteConversation" xml:space="preserve"><value>刪除這則對話</value></data>
+  <data name="Rename_Title" xml:space="preserve"><value>重新命名對話</value></data>
+  <data name="Rename_Label" xml:space="preserve"><value>對話名稱</value></data>
+  <data name="Rename_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Rename_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Export_DoneFormat" xml:space="preserve"><value>已匯出到 {0}</value></data>
+  <data name="Export_Failed" xml:space="preserve"><value>匯出失敗，請換個位置再試一次。</value></data>
+  <data name="Export_HeadingUser" xml:space="preserve"><value>你</value></data>
+  <data name="Export_HeadingAssistant" xml:space="preserve"><value>Lumi</value></data>
+  <data name="Export_ExportedAtFormat" xml:space="preserve"><value>匯出時間：{0}</value></data>
+  <data name="Export_ToolFormat" xml:space="preserve"><value>工具：{0}</value></data>
+  <data name="Export_ToolOk" xml:space="preserve"><value>成功</value></data>
+  <data name="Export_ToolFailed" xml:space="preserve"><value>失敗</value></data>
+  <data name="Export_ImageFormat" xml:space="preserve"><value>[圖片：{0}]</value></data>
+  <data name="Export_FileFormat" xml:space="preserve"><value>[附檔：{0}]</value></data>
+  <data name="Home_Eyebrow" xml:space="preserve"><value>設定首頁</value></data>
+  <data name="Home_PageTitle" xml:space="preserve"><value>Lumi 設定總覽</value></data>
+  <data name="Home_PendingTitleFormat" xml:space="preserve"><value>待處理 · {0}</value></data>
+  <data name="Home_AllGood" xml:space="preserve"><value>目前沒有需要處理的項目</value></data>
+  <data name="Home_KeySettings" xml:space="preserve"><value>重點設定</value></data>
+  <data name="Home_RecentActions" xml:space="preserve"><value>最近的動作</value></data>
+  <data name="Home_PendingGoSettings" xml:space="preserve"><value>前往設定</value></data>
+  <data name="Home_PendingTest" xml:space="preserve"><value>測試連線</value></data>
+  <data name="Home_PendingRetest" xml:space="preserve"><value>重新測試</value></data>
+  <data name="Home_PendingTesting" xml:space="preserve"><value>測試中…</value></data>
+  <data name="Home_PendingNoModelTitle" xml:space="preserve"><value>還沒有設定模型</value></data>
+  <data name="Home_PendingNoModelDesc" xml:space="preserve"><value>先新增 AI 連線與模型，Lumi 才能回答</value></data>
+  <data name="Home_PendingNoKeyTitle" xml:space="preserve"><value>AI 連線缺少金鑰</value></data>
+  <data name="Home_PendingNoKeyDescFormat" xml:space="preserve"><value>填入 {0} 的金鑰後才能開始對話</value></data>
+  <data name="Home_PendingFailedTitle" xml:space="preserve"><value>AI 連線失敗</value></data>
+  <data name="Home_PendingFailedDescFormat" xml:space="preserve"><value>無法連上 {0}，請確認金鑰與網址</value></data>
+  <data name="Home_PendingUntestedTitle" xml:space="preserve"><value>AI 連線尚未測試</value></data>
+  <data name="Home_PendingUntestedDescFormat" xml:space="preserve"><value>確認 {0} 的金鑰與 Base URL 能連上</value></data>
+  <data name="Home_PendingSpeechTitle" xml:space="preserve"><value>語音辨識尚未設定</value></data>
+  <data name="Home_PendingSpeechDesc" xml:space="preserve"><value>填入 Whisper 端點後，就能用麥克風輸入</value></data>
+  <data name="Home_ModelTitle" xml:space="preserve"><value>目前模型</value></data>
+  <data name="Home_Switch" xml:space="preserve"><value>切換</value></data>
+  <data name="Home_Manage" xml:space="preserve"><value>管理</value></data>
+  <data name="Home_ModelShared" xml:space="preserve"><value>工作台與小精靈共用這個模型</value></data>
+  <data name="Home_MemoryItemsLabel" xml:space="preserve"><value>記住的事</value></data>
+  <data name="Home_MemoryItemsFormat" xml:space="preserve"><value>{0} / {1} 則</value></data>
+  <data name="Home_MemoryCharsLabel" xml:space="preserve"><value>已用字數</value></data>
+  <data name="Home_MemoryCharsFormat" xml:space="preserve"><value>{0} / {1} 字</value></data>
+  <data name="Home_UsageTitle" xml:space="preserve"><value>本月用量</value></data>
+  <data name="Home_UsageTodayFormat" xml:space="preserve"><value>今天 {0}</value></data>
+  <data name="Home_UsageInputFormat" xml:space="preserve"><value>輸入 {0}</value></data>
+  <data name="Home_UsageOutputFormat" xml:space="preserve"><value>輸出 {0}</value></data>
+  <data name="Home_UsageUnavailable" xml:space="preserve"><value>暫時讀不到用量</value></data>
+  <data name="Home_ToolsBuiltin" xml:space="preserve"><value>內建工具</value></data>
+  <data name="Home_ToolsEnabledFormat" xml:space="preserve"><value>{0} / {1} 已啟用</value></data>
+  <data name="Home_ToolsMcp" xml:space="preserve"><value>MCP 伺服器</value></data>
+  <data name="Home_ToolsMcpConnectedFormat" xml:space="preserve"><value>{0} / {1} 已連線</value></data>
+  <data name="Home_McpToolCountFormat" xml:space="preserve"><value>{0} 個工具</value></data>
+  <data name="Home_McpOffline" xml:space="preserve"><value>未連線</value></data>
+  <data name="Home_McpReconnect" xml:space="preserve"><value>重新連線</value></data>
+  <data name="Home_McpMoreFormat" xml:space="preserve"><value>還有 {0} 個</value></data>
+  <data name="Home_RemindersPending" xml:space="preserve"><value>待觸發提醒</value></data>
+  <data name="Home_RemindersTimers" xml:space="preserve"><value>執行中計時器</value></data>
+  <data name="Home_RemindersNoneHint" xml:space="preserve"><value>沒有待觸發的提醒。對 Lumi 說「明天九點提醒我…」就能新增。</value></data>
+  <data name="Home_ActionAllowed" xml:space="preserve"><value>已允許</value></data>
+  <data name="Home_ActionDenied" xml:space="preserve"><value>你已拒絕</value></data>
+  <data name="Home_ActionFailed" xml:space="preserve"><value>失敗</value></data>
+  <data name="Home_ActionsEmpty" xml:space="preserve"><value>還沒有動作紀錄</value></data>
+  <data name="Home_TimeNow" xml:space="preserve"><value>剛剛</value></data>
+  <data name="Home_TimeMinutesFormat" xml:space="preserve"><value>{0} 分鐘前</value></data>
+  <data name="Home_TimeHoursFormat" xml:space="preserve"><value>{0} 小時前</value></data>
+  <data name="Home_TimeYesterday" xml:space="preserve"><value>昨天</value></data>
 </root>
