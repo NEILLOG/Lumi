@@ -60,7 +60,8 @@ internal sealed class SettingsHost : IDisposable
             new Lumi.Core.Reminders.ReminderOptions(), NullLogger<Lumi.Core.Reminders.ReminderService>.Instance);
         Reminders = new RemindersViewModel(ReminderService, Confirm, dispatcher, TimeProvider.System);
         Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
-        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Catalog, Confirm, WindowService)
+        Home = new HomeViewModel(Catalog, Status, dispatcher);
+        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Catalog, Confirm, WindowService)
         {
             // 產品預設落在「設定首頁」；既有的頁面測試都從 AI 連線開始，要測首頁的測試自己改回 Home
             CategoryIndex = (int)SettingsCategory.Connections,
@@ -74,6 +75,7 @@ internal sealed class SettingsHost : IDisposable
     public FakeDataLocationProvider DataLocations { get; } = new();
     public FakeClipboardService Clipboard { get; } = new();
     public DataPrivacyViewModel Privacy { get; }
+    public HomeViewModel Home { get; }
     public FakeSettingsWindowService WindowService { get; } = new();
     public InMemorySecretStore Secrets { get; } = new();
     public FakeConnectionTester Tester { get; } = new();

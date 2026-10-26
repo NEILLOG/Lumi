@@ -693,12 +693,12 @@
   <data name="Browser_ClearConfirmButton" xml:space="preserve"><value>清除</value></data>
   <data name="Browser_Cleared" xml:space="preserve"><value>已清除瀏覽器的登入狀態。</value></data>
   <data name="Browser_Privacy" xml:space="preserve"><value>頁面內容與截圖會送到你選擇的模型供應商。</value></data>
-  <data name="Settings_CategoryHomeSub" xml:space="preserve"><value>常用設定的快速入口</value></data>
+  <data name="Settings_CategoryHomeSub" xml:space="preserve"><value>目前的設定一覽</value></data>
   <data name="Settings_CategoryReminders" xml:space="preserve"><value>提醒排程</value></data>
   <data name="Settings_CategoryRemindersSub" xml:space="preserve"><value>查看與刪除提醒、計時器</value></data>
   <data name="Settings_CategoryPrivacySub" xml:space="preserve"><value>資料存放位置與隱私說明</value></data>
-  <data name="Settings_HeaderHomeTitle" xml:space="preserve"><value>常用設定</value></data>
-  <data name="Settings_HeaderHomeDescription" xml:space="preserve"><value>選一個項目，直接前往對應的設定。</value></data>
+  <data name="Settings_HeaderHomeTitle" xml:space="preserve"><value>目前的狀態</value></data>
+  <data name="Settings_HeaderHomeDescription" xml:space="preserve"><value>Lumi 現在的設定一覽；點卡片就能前往調整。</value></data>
   <data name="Settings_HeaderRemindersTitle" xml:space="preserve"><value>提醒與排程</value></data>
   <data name="Settings_HeaderRemindersDescription" xml:space="preserve"><value>這裡列出 Lumi 目前記得的提醒、計時器與週期排程。可以刪除不要的項目；要新增請直接在對話裡告訴 Lumi。</value></data>
   <data name="Settings_HeaderPrivacyTitle" xml:space="preserve"><value>資料存放與隱私</value></data>
@@ -780,4 +780,21 @@
   <data name="Privacy_CtlRemindersDesc" xml:space="preserve"><value>可以查看並刪除 Lumi 記得的提醒。</value></data>
   <data name="Privacy_CtlSpeech" xml:space="preserve"><value>語音服務</value></data>
   <data name="Privacy_CtlSpeechDesc" xml:space="preserve"><value>可以決定語音要送到哪個服務，或不設定就不會送出。</value></data>
+  <data name="Home_NoModel" xml:space="preserve"><value>尚未設定模型</value></data>
+  <data name="Home_ModelDetailFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Home_StatusOk" xml:space="preserve"><value>連線正常</value></data>
+  <data name="Home_StatusFailed" xml:space="preserve"><value>上次連線失敗</value></data>
+  <data name="Home_StatusUnknown" xml:space="preserve"><value>尚未測試連線</value></data>
+  <data name="Home_NoApiKey" xml:space="preserve"><value>尚未設定 API 金鑰</value></data>
+  <data name="Home_RemindersCountFormat" xml:space="preserve"><value>{0} 個待觸發</value></data>
+  <data name="Home_RemindersNone" xml:space="preserve"><value>沒有待觸發的提醒</value></data>
+  <data name="Home_RemindersNextFormat" xml:space="preserve"><value>最近：{0}</value></data>
+  <data name="Home_MemoryOn" xml:space="preserve"><value>已開啟</value></data>
+  <data name="Home_MemoryOff" xml:space="preserve"><value>已關閉，新對話不會帶入記憶</value></data>
+  <data name="Home_ToolsCountFormat" xml:space="preserve"><value>已啟用 {0}／{1} 個工具</value></data>
+  <data name="Home_AppearanceTitle" xml:space="preserve"><value>外觀與小精靈</value></data>
+  <data name="Home_AppearanceFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Home_SpriteFormat" xml:space="preserve"><value>小精靈：{0}</value></data>
+  <data name="Home_CardsName" xml:space="preserve"><value>目前的設定狀態</value></data>
+  <data name="Home_Attention" xml:space="preserve"><value>需要處理</value></data>
 </root>

@@ -769,4 +769,21 @@ public static class Strings
     public static string Privacy_CtlRemindersDesc => Get(nameof(Privacy_CtlRemindersDesc));
     public static string Privacy_CtlSpeech => Get(nameof(Privacy_CtlSpeech));
     public static string Privacy_CtlSpeechDesc => Get(nameof(Privacy_CtlSpeechDesc));
+    public static string Home_NoModel => Get(nameof(Home_NoModel));
+    public static string Home_ModelDetailFormat => Get(nameof(Home_ModelDetailFormat));
+    public static string Home_StatusOk => Get(nameof(Home_StatusOk));
+    public static string Home_StatusFailed => Get(nameof(Home_StatusFailed));
+    public static string Home_StatusUnknown => Get(nameof(Home_StatusUnknown));
+    public static string Home_NoApiKey => Get(nameof(Home_NoApiKey));
+    public static string Home_RemindersCountFormat => Get(nameof(Home_RemindersCountFormat));
+    public static string Home_RemindersNone => Get(nameof(Home_RemindersNone));
+    public static string Home_RemindersNextFormat => Get(nameof(Home_RemindersNextFormat));
+    public static string Home_MemoryOn => Get(nameof(Home_MemoryOn));
+    public static string Home_MemoryOff => Get(nameof(Home_MemoryOff));
+    public static string Home_ToolsCountFormat => Get(nameof(Home_ToolsCountFormat));
+    public static string Home_AppearanceTitle => Get(nameof(Home_AppearanceTitle));
+    public static string Home_AppearanceFormat => Get(nameof(Home_AppearanceFormat));
+    public static string Home_SpriteFormat => Get(nameof(Home_SpriteFormat));
+    public static string Home_CardsName => Get(nameof(Home_CardsName));
+    public static string Home_Attention => Get(nameof(Home_Attention));
 }

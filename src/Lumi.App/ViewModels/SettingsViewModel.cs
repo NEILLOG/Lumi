@@ -28,7 +28,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
-        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
@@ -44,6 +44,8 @@ public partial class SettingsViewModel : ObservableObject
         Browser = browser;
         Reminders = reminders;
         Privacy = privacy;
+        Home = home;
+        home.Attach(reminders, memory, tools, general, sprite);
         privacy.NavigateRequested += section => _ = NavigateAsync(new SettingsNavigation(section));
         _confirm = confirm;
         _windows = windows;
@@ -79,6 +81,9 @@ public partial class SettingsViewModel : ObservableObject
 
     /// <summary>「提醒排程」分類（M20）。</summary>
     public RemindersViewModel Reminders { get; }
+
+    /// <summary>設定首頁的狀態總覽（M20）。</summary>
+    public HomeViewModel Home { get; }
 
     /// <summary>「資料與隱私」分類（M20）。</summary>
     public DataPrivacyViewModel Privacy { get; }

@@ -61,6 +61,7 @@ public partial class SettingsWindow : Window
         // 記憶：取消對 store 變動的訂閱（設定視窗關了就丟掉，下次開啟重新建立）
         Closed += (_, _) => viewModel.Memory.Dispose();
         Closed += (_, _) => viewModel.Reminders.Dispose();
+        Closed += (_, _) => viewModel.Home.Dispose();
     }
 
     private static IReadOnlyList<RadioButton> SegmentsOf(Panel panel) => panel.Children.OfType<RadioButton>().ToList();
