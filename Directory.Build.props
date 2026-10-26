@@ -6,5 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- 版本號的唯一來源；發佈時用 -p:Version=x.y.z 覆寫（M20） -->
+    <Version>1.0.0</Version>
   </PropertyGroup>
 </Project>
