@@ -127,9 +127,25 @@ public sealed class SqliteScheduledItemStore(SqliteConversationStore database, I
         return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
-    public Task<bool> DeleteAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
+    public async Task<bool> DeleteAsync(string id, CancellationToken ct = default)
+    {
+        await using var connection = await database.OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM scheduled_items WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
+    }
 
-    public Task<int> DeleteFinishedAsync(CancellationToken ct = default) => throw new NotImplementedException();
+    public async Task<int> DeleteFinishedAsync(CancellationToken ct = default)
+    {
+        await using var connection = await database.OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            DELETE FROM scheduled_items
+            WHERE status IN ({(int)ScheduledStatus.Completed}, {(int)ScheduledStatus.Cancelled}, {(int)ScheduledStatus.Missed});
+            """;
+        return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
 
     private static void Bind(SqliteCommand command, ScheduledItem item)
     {

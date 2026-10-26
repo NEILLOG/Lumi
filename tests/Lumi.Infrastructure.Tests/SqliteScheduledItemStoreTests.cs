@@ -259,6 +259,89 @@ public sealed class SqliteScheduledItemStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Delete_ExistingId_ReturnsTrue()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("d1"));
+
+        Assert.True(await store.DeleteAsync("d1"));
+    }
+
+    [Fact]
+    public async Task Delete_ExistingId_MakesGetReturnNull()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("d1"));
+
+        await store.DeleteAsync("d1");
+
+        Assert.Null(await store.GetAsync("d1"));
+    }
+
+    [Fact]
+    public async Task Delete_MissingId_ReturnsFalse() =>
+        Assert.False(await NewStore().DeleteAsync("ghost"));
+
+    [Fact]
+    public async Task Delete_PendingItem_NoLongerAffectsNextFireAt()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("soon", nextFireAt: "2026-10-24T09:00+08:00"));
+        await store.AddAsync(Item("later", nextFireAt: "2026-10-25T09:00+08:00"));
+
+        await store.DeleteAsync("soon");
+
+        Assert.Equal(T("2026-10-25T09:00+08:00"), await store.GetNextFireAtAsync());
+    }
+
+    [Fact]
+    public async Task DeleteFinished_ReturnsNumberOfRemovedItems()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("p"));
+        await store.AddAsync(Item("c", status: ScheduledStatus.Completed));
+        await store.AddAsync(Item("x", status: ScheduledStatus.Cancelled));
+        await store.AddAsync(Item("m", status: ScheduledStatus.Missed));
+
+        Assert.Equal(3, await store.DeleteFinishedAsync());
+    }
+
+    [Fact]
+    public async Task DeleteFinished_RemovesOnlyFinishedItems()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("p"));
+        await store.AddAsync(Item("c", status: ScheduledStatus.Completed));
+        await store.AddAsync(Item("x", status: ScheduledStatus.Cancelled));
+        await store.AddAsync(Item("m", status: ScheduledStatus.Missed));
+
+        await store.DeleteFinishedAsync();
+
+        Assert.Equal(["p"], (await store.ListAsync(new ScheduledItemFilter())).Select(item => item.Id).ToList());
+    }
+
+    [Fact]
+    public async Task DeleteFinished_KeepsPendingItem()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("p"));
+        await store.AddAsync(Item("c", status: ScheduledStatus.Completed));
+
+        await store.DeleteFinishedAsync();
+
+        Assert.NotNull(await store.GetAsync("p"));
+    }
+
+    [Fact]
+    public async Task DeleteFinished_NothingFinished_ReturnsZero()
+    {
+        var store = NewStore();
+        await store.AddAsync(Item("p"));
+
+        Assert.Equal(0, await store.DeleteFinishedAsync());
+    }
+
+    [Fact]
     public async Task GetNextFireAt_NothingPending_ReturnsNull()
     {
         var store = NewStore();

@@ -106,9 +106,27 @@ public sealed class InMemoryScheduledItemStore : IScheduledItemStore
         }
     }
 
-    public Task<bool> DeleteAsync(string id, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<bool> DeleteAsync(string id, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            return Task.FromResult(_items.Remove(id));
+        }
+    }
 
-    public Task<int> DeleteFinishedAsync(CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<int> DeleteFinishedAsync(CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            var doomed = _items.Values
+                .Where(item => IsFinished(item.Status))
+                .Select(item => item.Id)
+                .ToList();
+            foreach (var id in doomed)
+                _items.Remove(id);
+            return Task.FromResult(doomed.Count);
+        }
+    }
 
     private static DateTimeOffset SortKey(ScheduledItem item) => item.NextFireAt ?? item.CreatedAt;
 

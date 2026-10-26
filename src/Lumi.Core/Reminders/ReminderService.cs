@@ -128,9 +128,41 @@ public sealed class ReminderService(
         return result;
     }
 
-    public Task<bool> DeleteAsync(string id, CancellationToken ct) => throw new NotImplementedException();
+    public async Task<bool> DeleteAsync(string id, CancellationToken ct)
+    {
+        bool deleted;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            deleted = await store.DeleteAsync(id, ct);
+        }
+        finally
+        {
+            _gate.Release();
+        }
 
-    public Task<int> DeleteFinishedAsync(CancellationToken ct) => throw new NotImplementedException();
+        if (deleted)
+            SignalChanged();
+        return deleted;
+    }
+
+    public async Task<int> DeleteFinishedAsync(CancellationToken ct)
+    {
+        int deleted;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            deleted = await store.DeleteFinishedAsync(ct);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        if (deleted > 0)
+            SignalChanged();
+        return deleted;
+    }
 
     public async Task<ScheduledItem?> SetEnabledAsync(string id, bool enabled, CancellationToken ct)
     {
