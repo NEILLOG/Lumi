@@ -34,7 +34,7 @@ public partial class CustomTitleBar : UserControl
     }
 
     /// <summary>
-    /// 是否顯示「小精靈模式」按鈕（與它旁邊的分隔線）。工作台預設顯示；設定視窗只要標誌與品牌，設成 false。
+    /// 是否顯示工作台專用的按鈕：「小精靈模式」與齒輪（以及它們旁邊的分隔線）。工作台預設顯示；設定視窗只要標誌與品牌，設成 false。
     /// 關閉時這條標題列不需要工作台的 DataContext（按鈕的繫結不會被評估到結果）。
     /// </summary>
     public bool ShowSpriteButton
@@ -60,6 +60,7 @@ public partial class CustomTitleBar : UserControl
         LeftSpacer.Width = layout.LeftInset;
         RightSpacer.Width = layout.RightInset;
         SpriteModeButton.IsVisible = ShowSpriteButton;
+        SettingsButton.IsVisible = ShowSpriteButton;
         Divider.IsVisible = layout.ShowDivider && ShowSpriteButton;
     }
 

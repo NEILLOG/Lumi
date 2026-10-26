@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        x:Class="Lumi.App.Views.RenameDialog"
+        Title="{x:Static res:Strings.Rename_Title}"
+        Width="420" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- 按鈕層級：取消 = secondary；儲存 = primary。Enter 儲存（IsDefault）、Esc 取消（IsCancel） -->
+  <StackPanel Margin="24" Spacing="16">
+    <TextBlock Text="{x:Static res:Strings.Rename_Label}" />
+    <TextBox x:Name="TitleBox" AutomationProperties.Name="{x:Static res:Strings.Rename_Label}" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="CancelButton" Classes="secondary" Padding="16,8" Content="{x:Static res:Strings.Rename_Cancel}" IsCancel="True" />
+      <Button x:Name="SaveButton" Classes="primary" Padding="16,8" Content="{x:Static res:Strings.Rename_Save}" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

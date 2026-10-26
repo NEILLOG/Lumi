@@ -58,7 +58,7 @@
     </Style>
   </UserControl.Styles>
 
-  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 「…」選單（設定、管理連線與模型） -->
+  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 「⋯」選單（重新命名、匯出、刪除這則對話） -->
   <Border Padding="12,8"
           Background="{DynamicResource LumiChromeBrush}"
           BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
@@ -119,17 +119,21 @@
         </Grid>
       </Button>
 
-      <!-- 「…」：設定、管理連線與模型 -->
+      <!-- 「⋯」：對話動作（重新命名、匯出、刪除）。設定在第一列的齒輪，管理連線與模型在模型選單底部 -->
       <Button x:Name="MoreButton" Grid.Column="2" Classes="tertiary toolbar iconOnly"
-              ToolTip.Tip="{x:Static res:Strings.Workbench_More}"
-              AutomationProperties.Name="{x:Static res:Strings.Workbench_More}">
+              ToolTip.Tip="{x:Static res:Strings.Workbench_ConversationOptions}"
+              AutomationProperties.Name="{x:Static res:Strings.Workbench_ConversationOptions}">
         <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
         <Button.Flyout>
           <MenuFlyout Placement="BottomEdgeAlignedRight">
-            <MenuItem x:Name="SettingsMenuItem" Header="{x:Static res:Strings.Workbench_Settings}"
-                      Command="{Binding OpenSettingsCommand}" />
-            <MenuItem x:Name="ManageModelsMenuItem" Header="{x:Static res:Strings.ModelPicker_Manage}"
-                      Command="{Binding ModelSwitcher.ManageCommand}" />
+            <!-- 回應中：只有重新命名可用；空對話（沒有任何訊息）三項全部停用 -->
+            <MenuItem x:Name="RenameMenuItem" Header="{x:Static res:Strings.Workbench_RenameConversation}"
+                      Command="{Binding RenameConversationCommand}" IsEnabled="{Binding RenameConversationEnabled}" />
+            <MenuItem x:Name="ExportMenuItem" Header="{x:Static res:Strings.Workbench_ExportConversation}"
+                      Command="{Binding ExportConversationCommand}" IsEnabled="{Binding ExportConversationEnabled}" />
+            <MenuItem x:Name="DeleteMenuItem" Header="{x:Static res:Strings.Workbench_DeleteConversation}"
+                      Foreground="{DynamicResource LumiDangerBrush}"
+                      Command="{Binding DeleteConversationCommand}" IsEnabled="{Binding DeleteConversationEnabled}" />
           </MenuFlyout>
         </Button.Flyout>
       </Button>

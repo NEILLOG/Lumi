@@ -68,7 +68,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         ConversationDeletionService? deletion = null,
         IConfirmService? confirm = null,
         ILogger<HistoryViewModel>? historyLogger = null,
-        NotificationCenter? notifications = null)
+        NotificationCenter? notifications = null,
+        IFilePickerService? filePicker = null,
+        IRenameService? rename = null)
     {
         _store = store;
         _catalog = catalog;
@@ -78,7 +80,13 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _clipboard = clipboard;
         _time = time;
         _logger = logger;
-        Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ShowWelcome));
+        _filePicker = filePicker;
+        _rename = rename;
+        Messages.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(ShowWelcome));
+            NotifyConversationActions();
+        };
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
         _session = session ?? new ChatSession(conversations, store, NullLogger<ChatSession>.Instance);
         _modes = modes;
@@ -235,6 +243,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     partial void OnIsRespondingChanged(bool value)
     {
         RaiseVoiceProperties();
+        NotifyConversationActions();
         History.HostStateChanged();
     }
 
