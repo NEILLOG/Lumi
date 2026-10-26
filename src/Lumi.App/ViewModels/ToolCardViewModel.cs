@@ -104,6 +104,11 @@ public partial class ToolCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(StatusText), nameof(Title))]
     private string? _summary;
 
+    /// <summary>執行中的進度文字（M19 D12）：只給畫面顯示，不存檔；等待確認或完成時清掉。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusText), nameof(Title))]
+    private string? _progress;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ResultDisplay), nameof(HasMoreResult), nameof(HasResult))]
     private string _resultText = "";
@@ -156,7 +161,7 @@ public partial class ToolCardViewModel : ObservableObject
     /// <summary>標題最後一段：結果摘要，或目前的狀態說明。</summary>
     public string StatusText => State switch
     {
-        ToolCardState.Running => Strings.Tool_Running,
+        ToolCardState.Running => string.IsNullOrWhiteSpace(Progress) ? Strings.Tool_Running : Progress,
         ToolCardState.AwaitingApproval => Strings.Tool_Awaiting,
         ToolCardState.Denied => Strings.Tool_Denied,
         ToolCardState.Failed => string.IsNullOrWhiteSpace(Summary) ? Strings.Tool_Failed : Summary,
@@ -227,8 +232,16 @@ public partial class ToolCardViewModel : ObservableObject
 
     public void SetAwaiting(ToolApprovalRequest request)
     {
+        Progress = null;
         Request = request;
         State = ToolCardState.AwaitingApproval;
+    }
+
+    /// <summary>執行中換成最新的進度文字（M19 D12）；只在執行中有效，等待確認與結束後不覆蓋。</summary>
+    public void SetProgress(string text)
+    {
+        if (State == ToolCardState.Running)
+            Progress = text;
     }
 
     /// <summary>套用最終結果（來自 <see cref="ToolCallCompleted"/> 或存檔的結果區塊）。</summary>
@@ -237,6 +250,7 @@ public partial class ToolCardViewModel : ObservableObject
         if (!string.IsNullOrEmpty(result.DisplayName))
             DisplayName = result.DisplayName;
         Target ??= result.Target;
+        Progress = null;
         Summary = result.Summary;
         ResultText = result.Content;
         DurationMs = result.DurationMs;
