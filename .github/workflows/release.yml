@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本號，例如 1.0.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - name: 取得版本號
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            v="${GITHUB_REF_NAME#v}"
+          else
+            v="$INPUT_VERSION"
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: 執行測試
+        run: dotnet test Lumi.sln -c Release --nologo
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - name: 取得版本號
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            v="${GITHUB_REF_NAME#v}"
+          else
+            v="$INPUT_VERSION"
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: 發佈 Windows x64
+        shell: pwsh
+        run: |
+          dotnet publish src/Lumi.App -p:PublishProfile=win-x64 "-p:Version=$env:VERSION" --nologo
+          New-Item -ItemType Directory -Force -Path artifacts/release | Out-Null
+          Copy-Item -Path artifacts/publish/win-x64/Lumi.App.exe -Destination "artifacts/release/Lumi-$env:VERSION-win-x64.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: win-x64
+          path: artifacts/release/*
+
+  macos:
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - name: 取得版本號
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            v="${GITHUB_REF_NAME#v}"
+          else
+            v="$INPUT_VERSION"
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: 發佈 macOS Apple Silicon
+        run: ./scripts/publish-release.sh --version "$VERSION" --only mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osx-arm64
+          path: artifacts/release/*
+
+  release:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得版本號
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            v="${GITHUB_REF_NAME#v}"
+          else
+            v="$INPUT_VERSION"
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release
+      - name: 建立或更新 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber
+          elif [ "$EVENT_NAME" = "push" ]; then
+            gh release create "$tag" release/* --title "Lumi $VERSION" --generate-notes --verify-tag
+          else
+            gh release create "$tag" release/* --title "Lumi $VERSION" --generate-notes
+          fi
