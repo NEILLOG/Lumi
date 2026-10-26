@@ -45,4 +45,8 @@ internal static partial class ObjC
 
     [LibraryImport(Lib, EntryPoint = "objc_msgSend")]
     internal static partial CGPoint SendRetPoint(nint receiver, nint selector);
+
+    /// <summary>用於 <c>+[NSData dataWithBytes:length:]</c>：第一個參數是指標，第二個是 NSUInteger 長度。</summary>
+    [LibraryImport(Lib, EntryPoint = "objc_msgSend")]
+    internal static partial nint SendPtrBytesLength(nint receiver, nint selector, nint bytes, nuint length);
 }

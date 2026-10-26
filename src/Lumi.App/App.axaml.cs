@@ -2,10 +2,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using Lumi.App.Services;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.Core.Models;
+using Lumi.Platform.Shell;
 using Lumi.Sprites.Assets;
 using Lumi.App.Views;
 using Avalonia.Threading;
@@ -50,9 +52,31 @@ public partial class App : Application
             {
                 StartNormally(desktop, _services);
             }
+
+            // macOS Dock 圖示（M20 20E）：應用程式層級設定，不依賴主視窗是否已建立；失敗不影響啟動
+            ApplyMacDockIcon();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void ApplyMacDockIcon()
+    {
+        if (!OperatingSystem.IsMacOS())
+            return;
+
+        try
+        {
+            using var stream = AssetLoader.Open(new Uri("avares://Lumi.App/Assets/Icons/lumi-1024.png"));
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            if (!MacDockIcon.TryApply(buffer.ToArray()))
+                _services?.GetService<ILogger<App>>()?.LogWarning("無法設定 macOS Dock 圖示");
+        }
+        catch (Exception ex)
+        {
+            _services?.GetService<ILogger<App>>()?.LogWarning(ex, "無法設定 macOS Dock 圖示");
+        }
     }
 
     private void StartNormally(IClassicDesktopStyleApplicationLifetime desktop, IServiceProvider services)
