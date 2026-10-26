@@ -150,6 +150,48 @@ internal sealed class InMemoryConversationStore : IConversationStore
         return Task.CompletedTask;
     }
 
+    public Task<TokenTotals> GetTokenTotalsAsync(DateTimeOffset since, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            var usages = _messages.Values.SelectMany(list => list)
+                .Where(m => m.Role == ChatRole.Assistant && m.Usage is not null && m.CreatedAt >= since)
+                .Select(m => m.Usage!)
+                .ToList();
+            var input = usages.Sum(u => (long)u.InputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens);
+            var cacheRead = usages.Sum(u => (long)u.CacheReadInputTokens);
+            var output = usages.Sum(u => (long)u.OutputTokens);
+            return Task.FromResult(new TokenTotals(input, cacheRead, output));
+        }
+    }
+
+    public Task<IReadOnlyList<RecentToolAction>> ListRecentToolActionsAsync(int limit, CancellationToken ct = default)
+    {
+        var actions = new List<RecentToolAction>();
+        if (limit <= 0)
+            return Task.FromResult<IReadOnlyList<RecentToolAction>>(actions);
+
+        lock (_lock)
+        {
+            var rows = _messages
+                .SelectMany(pair => pair.Value.Where(m => m.Role == ChatRole.Tool).Select(m => (ConversationId: pair.Key, Message: m)))
+                .OrderByDescending(row => row.Message.CreatedAt)
+                .ToList();
+            foreach (var row in rows)
+            {
+                foreach (var result in row.Message.Content.OfType<ToolResultBlock>().Reverse())
+                {
+                    if (actions.Count >= limit)
+                        break;
+                    actions.Add(new RecentToolAction(row.Message.CreatedAt, row.ConversationId, result));
+                }
+                if (actions.Count >= limit)
+                    break;
+            }
+        }
+        return Task.FromResult<IReadOnlyList<RecentToolAction>>(actions);
+    }
+
     public Conversation Get(string id)
     {
         lock (_lock)

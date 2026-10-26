@@ -291,6 +291,66 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    // ---- 用量與最近動作（設定首頁） ----
+
+    public async Task<TokenTotals> GetTokenTotalsAsync(DateTimeOffset since, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        // created_at 與 since 都用 FormatTime 的固定格式，字串比較就等於時間比較。Input 含快取寫入與快取讀取
+        command.CommandText = """
+            SELECT COALESCE(SUM(input_tokens + COALESCE(cache_creation_input_tokens, 0) + COALESCE(cache_read_input_tokens, 0)), 0),
+                   COALESCE(SUM(COALESCE(cache_read_input_tokens, 0)), 0),
+                   COALESCE(SUM(COALESCE(output_tokens, 0)), 0)
+            FROM messages
+            WHERE role = $role AND input_tokens IS NOT NULL AND created_at >= $since;
+            """;
+        command.Parameters.AddWithValue("$role", FormatRole(ChatRole.Assistant));
+        command.Parameters.AddWithValue("$since", FormatTime(since));
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await reader.ReadAsync(ct).ConfigureAwait(false);
+        return new TokenTotals(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2));
+    }
+
+    public async Task<IReadOnlyList<RecentToolAction>> ListRecentToolActionsAsync(int limit, CancellationToken ct = default)
+    {
+        var actions = new List<RecentToolAction>();
+        if (limit <= 0)
+            return actions;
+
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        // 一則工具訊息可能有多個 tool_result 區塊：逐則展開，取到 limit 筆就停止讀取
+        command.CommandText = "SELECT conversation_id, created_at, content_json FROM messages WHERE role = $role ORDER BY created_at DESC, seq DESC;";
+        command.Parameters.AddWithValue("$role", FormatRole(ChatRole.Tool));
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (actions.Count < limit && await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            List<ContentBlock>? blocks;
+            try
+            {
+                blocks = JsonSerializer.Deserialize<List<ContentBlock>>(reader.GetString(2));
+            }
+            catch (JsonException)
+            {
+                continue; // 損毀的內容略過，不影響其他訊息
+            }
+            if (blocks is null)
+                continue;
+
+            var at = ParseTime(reader.GetString(1));
+            var conversationId = reader.GetString(0);
+            // 同一則訊息裡，後面的區塊代表較晚執行，所以先取後面的
+            foreach (var result in blocks.OfType<ToolResultBlock>().Reverse())
+            {
+                if (actions.Count >= limit)
+                    break;
+                actions.Add(new RecentToolAction(at, conversationId, result));
+            }
+        }
+        return actions;
+    }
+
     // ---- 附件引用（IAttachmentReferences） ----
 
     public async Task<IReadOnlySet<string>> GetReferencedFileNamesAsync(CancellationToken ct = default)
