@@ -68,7 +68,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         ConversationDeletionService? deletion = null,
         IConfirmService? confirm = null,
         ILogger<HistoryViewModel>? historyLogger = null,
-        NotificationCenter? notifications = null)
+        NotificationCenter? notifications = null,
+        IFilePickerService? filePicker = null,
+        IRenameService? rename = null,
+        IConnectionTester? tester = null)
     {
         _store = store;
         _catalog = catalog;
@@ -78,7 +81,14 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _clipboard = clipboard;
         _time = time;
         _logger = logger;
-        Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ShowWelcome));
+        _filePicker = filePicker;
+        _rename = rename;
+        _tester = tester;
+        Messages.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(ShowWelcome));
+            NotifyConversationActions();
+        };
         _approvals = approvals ?? NullToolApprovalResponder.Instance;
         _session = session ?? new ChatSession(conversations, store, NullLogger<ChatSession>.Instance);
         _modes = modes;
@@ -100,7 +110,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Notifications = notifications is null
             ? new NotificationStripViewModel(new ObservableCollection<NotificationItemViewModel>(), () => { })
             : new NotificationStripViewModel(notifications.Items, notifications.DismissAll);
-        SyncSessionUsage();
+        Usage = new ConversationUsageViewModel(RetryConnectionAsync);
+        RefreshUsage();
 
         _session.ConversationChanged += OnConversationChanged;
         _session.RunStarted += OnRunStarted;
@@ -172,12 +183,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         OnPropertyChanged(nameof(ModelName));
         OnPropertyChanged(nameof(ContextWindow));
         OnPropertyChanged(nameof(ContextText));
-        SyncSessionUsage();
+        RefreshUsage();
         OnConnectionStatusChanged();
     }
-
-    /// <summary>把本對話的用量（輸入／輸出／回合、上下文）推給模型選單頂部的「本對話」區塊（底部狀態列已移除）。</summary>
-    private void SyncSessionUsage() => ModelSwitcher.UpdateSession(StatusText, ContextUsed, ContextWindow, ContextText);
 
     // ---- 連線狀態（模型選單的「本對話」區塊與膠囊 Tooltip 另用 ModelSwitcher 的同一份狀態） ----
 
@@ -203,6 +211,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         OnPropertyChanged(nameof(IsConnectionFailed));
         OnPropertyChanged(nameof(IsConnectionUnknown));
         OnPropertyChanged(nameof(ConnectionStatusText));
+        RefreshUsage();
     }
 
     [ObservableProperty]
@@ -235,6 +244,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     partial void OnIsRespondingChanged(bool value)
     {
         RaiseVoiceProperties();
+        NotifyConversationActions();
         History.HostStateChanged();
     }
 
@@ -272,7 +282,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private string? _errorMessage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StatusText), nameof(ContextUsed), nameof(ContextText))]
+    [NotifyPropertyChangedFor(nameof(ContextUsed), nameof(ContextText))]
     private TokenUsage? _lastUsage;
 
     /// <summary>設定 › 外觀與操作 › 進階：在每則回答下方顯示輸入／輸出 token 數（預設關閉）。</summary>
@@ -280,20 +290,15 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private bool _showTokenUsage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StatusText))]
     private int _turns;
 
-    partial void OnLastUsageChanged(TokenUsage? value) => SyncSessionUsage();
+    partial void OnLastUsageChanged(TokenUsage? value) => RefreshUsage();
 
-    partial void OnTurnsChanged(int value) => SyncSessionUsage();
+    partial void OnTurnsChanged(int value) => RefreshUsage();
 
     public bool HasError => ErrorMessage is not null;
 
     private int InputTokensTotal => LastUsage is { } u ? u.InputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens : 0;
-
-    public string StatusText => string.Format(
-        CultureInfo.CurrentCulture, Strings.Workbench_StatusFormat,
-        FormatTokens(InputTokensTotal), FormatTokens(LastUsage?.OutputTokens ?? 0), Turns);
 
     /// <summary>最後一次回應用掉的上下文：輸入（含快取）＋輸出。</summary>
     public int ContextUsed => InputTokensTotal + (LastUsage?.OutputTokens ?? 0);
@@ -477,6 +482,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson)))
             Messages.Add(item);
 
+        LoadUsageTally(messages);
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
@@ -792,11 +798,14 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 (_bubble ??= StartBubble()).AppendThinking(delta.Text, _time.GetUtcNow());
                 break;
             case UsageEvent usage:
+                _tally.ReportInFlight(usage.Tokens);   // 進行中請求的累計值（覆蓋，不相加）
                 LastUsage = usage.Tokens;
+                RefreshUsage();
                 break;
             case Completed completed when completed.Reason == StopReason.ToolUse:
                 // 這一輪還沒結束：有文字就定稿成一個氣泡，只有思考或只有工具呼叫的中間步驟不顯示（Q5）
                 LastUsage = completed.Message.Usage ?? LastUsage;
+                CommitUsage(completed);
                 if (completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0))
                     (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
                 else
@@ -807,6 +816,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
                 _bubble = null;
                 LastUsage = completed.Message.Usage ?? LastUsage;
+                CommitUsage(completed);
                 if (_runConnectionId is not null)
                     _status.Mark(_runConnectionId, ConnectionStatus.Ok);
                 break;
@@ -868,6 +878,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
         IsResponding = false;
         RefreshMessageState();
+
+        // 用量：沒有定稿的那次請求不計；失敗或中止時以資料庫實際存下來的為準重算
+        _tally.Abandon();
+        RefreshUsage();
+        if ((result.Cancelled || result.Unexpected || result.Failure is not null) && CurrentConversationId is { } usageConversation)
+            args.Defer(ReloadUsageAsync(usageConversation));
 
         // 有用到工具的這一輪被停止：ConversationService 已經補好「已停止」結果並存檔，畫面從資料庫重讀才和存檔一致
         if (result.Cancelled && _usedTools && CurrentConversationId is not null)

@@ -1,0 +1,152 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.UsageFlyout"
+             x:DataType="vm:WorkbenchViewModel"
+             Width="320">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <!-- 狀態文字與連線文字的顏色：只用既有 token，不新增色票（ui-usage-and-topbar.md 3、差異表） -->
+    <Style Selector="TextBlock.ok">
+      <Setter Property="Foreground" Value="{DynamicResource LumiSuccessBrush}" />
+    </Style>
+    <Style Selector="TextBlock.warn">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.danger">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
+    <Style Selector="Border.usage-box">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+    <Style Selector="Border.usage-box TextBlock.value">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.usage-box TextBlock.caption">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Border.usage-box TextBlock.label">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Padding="16" CornerRadius="14" Background="{DynamicResource LumiSurfaceBrush}"
+          BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="1">
+    <StackPanel Spacing="16">
+      <!-- 1. 標題列：本對話用量（左）、目前模型（右） -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock Text="{x:Static res:Strings.Usage_Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding Usage.ModelName}" Classes="muted" TextTrimming="CharacterEllipsis"
+                   MaxWidth="170" VerticalAlignment="Center" />
+      </Grid>
+
+      <!-- 2. 上下文區：大圓環（百分比）＋三行文字。沒有上限時只剩累計數字 -->
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+        <Grid Width="104" Height="104" IsVisible="{Binding Usage.HasContextLimit}">
+          <ctl:UsageRing Diameter="104" Thickness="10" Ratio="{Binding Usage.Ratio}" Level="{Binding Usage.Level}" />
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
+            <TextBlock Text="{Binding Usage.PercentText}" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="{x:Static res:Strings.Usage_Context}" Classes="muted" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Grid>
+        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Usage.UsedOfText}" FontSize="16" FontWeight="Medium" />
+          <TextBlock Text="{Binding Usage.RemainingText}" IsVisible="{Binding Usage.HasContextLimit}" Classes="muted" FontSize="13" />
+          <TextBlock Text="{Binding Usage.StatusText}" IsVisible="{Binding Usage.HasStatus}" FontSize="13" FontWeight="Medium"
+                     Classes.ok="{Binding Usage.IsNormalLevel}" Classes.warn="{Binding Usage.IsWarningLevel}"
+                     Classes.danger="{Binding Usage.IsDangerLevel}" />
+        </StackPanel>
+      </Grid>
+
+      <!-- 快滿提醒（Danger 才出現，插在上下文區與三個小方塊之間） -->
+      <Border IsVisible="{Binding Usage.IsDangerLevel}" CornerRadius="10" Padding="12" BorderThickness="1"
+              Background="{DynamicResource LumiWarningBackgroundBrush}" BorderBrush="{DynamicResource LumiWarningBorderBrush}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{x:Static res:Strings.Usage_NearLimitNote}" FontSize="13" TextWrapping="Wrap"
+                     Foreground="{DynamicResource LumiWarningTextBrush}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <!-- 回應中停用：開新對話會打斷正在進行的回應 -->
+            <Button x:Name="NewConversationInFlyout" Classes="primary" Height="32" Padding="12,0"
+                    Content="{x:Static res:Strings.Usage_NewConversation}" Command="{Binding NewConversationCommand}"
+                    IsEnabled="{Binding !IsResponding}" Click="OnDismissClick"
+                    AutomationProperties.Name="{x:Static res:Strings.Usage_NewConversation}" />
+            <Button x:Name="KeepGoingInFlyout" Classes="secondary" Height="32" Padding="12,0"
+                    Content="{x:Static res:Strings.Usage_KeepGoing}" Click="OnDismissClick"
+                    AutomationProperties.Name="{x:Static res:Strings.Usage_KeepGoing}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- 3. 三個小方塊：輸入（快取命中率或箭頭）、輸出、回合 -->
+      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+        <Border Grid.Column="0" Classes="usage-box">
+          <StackPanel Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Panel Width="18" Height="18" VerticalAlignment="Center">
+                <views:UsageCacheRing Diameter="18" Thickness="3" Ratio="{Binding Usage.CacheRatio}"
+                                      IsVisible="{Binding Usage.ShowCacheRing}" />
+                <ctl:LumiIcon Data="{StaticResource LumiIconArrowUp}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}"
+                              IsVisible="{Binding !Usage.ShowCacheRing}" />
+              </Panel>
+              <TextBlock Text="{x:Static res:Strings.Usage_Input}" Classes="label muted" />
+            </StackPanel>
+            <TextBlock Text="{Binding Usage.InputText}" Classes="value" />
+            <TextBlock Text="{Binding Usage.CacheRatioText}" Classes="caption ok" IsVisible="{Binding Usage.ShowCacheRing}" />
+            <TextBlock Text="{x:Static res:Strings.Usage_Tokens}" Classes="caption muted" IsVisible="{Binding !Usage.ShowCacheRing}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="usage-box">
+          <StackPanel Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconArrowDown}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" />
+              <TextBlock Text="{x:Static res:Strings.Usage_Output}" Classes="label muted" />
+            </StackPanel>
+            <TextBlock Text="{Binding Usage.OutputText}" Classes="value" />
+            <TextBlock Text="{x:Static res:Strings.Usage_Tokens}" Classes="caption muted" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="usage-box">
+          <StackPanel Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconRepeat}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" />
+              <TextBlock Text="{x:Static res:Strings.Usage_Turns}" Classes="label muted" />
+            </StackPanel>
+            <TextBlock Text="{Binding Usage.TurnsText}" Classes="value" />
+            <TextBlock Text="{x:Static res:Strings.Usage_RoundTrips}" Classes="caption muted" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <!-- 4. 連線列：狀態點＋文字；連線失敗時「重試」可點 -->
+      <StackPanel Spacing="12">
+        <Border Height="1" Background="{DynamicResource LumiBorderBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Panel Width="8" Height="8" VerticalAlignment="Center">
+            <Ellipse Width="8" Height="8" IsVisible="{Binding Usage.IsConnectionOk}" Fill="{DynamicResource LumiSuccessDotBrush}" />
+            <Ellipse Width="8" Height="8" IsVisible="{Binding Usage.IsConnectionFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
+            <Ellipse Width="8" Height="8" IsVisible="{Binding Usage.IsConnectionUnknown}" Fill="{DynamicResource LumiWarningDotBrush}" />
+          </Panel>
+          <TextBlock Text="{Binding Usage.ConnectionText}" FontSize="13" VerticalAlignment="Center"
+                     Classes.ok="{Binding Usage.IsConnectionOk}" Classes.warn="{Binding Usage.IsConnectionUnknown}"
+                     Classes.danger="{Binding Usage.IsConnectionFailed}" />
+          <StackPanel Orientation="Horizontal" IsVisible="{Binding Usage.ShowRetry}">
+            <TextBlock Text=" · " FontSize="13" VerticalAlignment="Center" Classes="danger" />
+            <Button Classes="tertiary small" Content="{x:Static res:Strings.Usage_Retry}" Command="{Binding Usage.RetryCommand}"
+                    Foreground="{DynamicResource LumiAccentBrush}" Padding="4,0"
+                    AutomationProperties.Name="{x:Static res:Strings.Usage_Retry}" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- 5. 費用說明 -->
+      <TextBlock Text="{x:Static res:Strings.Usage_CostNote}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</UserControl>

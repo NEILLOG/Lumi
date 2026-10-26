@@ -21,6 +21,21 @@
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
+    <!-- 用量按鈕（ui-usage-and-topbar.md 2.1）：快滿時底改 WarningBg、框改 WarningBorder；面板開啟中底 AccentSoft、框 Accent -->
+    <Style Selector="Button.usage.danger">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.usage.open">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- 面板的彈出層不另外留內距（內距在 UsageFlyout 自己的 Border 裡） -->
+    <Style Selector="FlyoutPresenter.usage-flyout">
+      <Setter Property="Padding" Value="0" />
+    </Style>
     <!-- 模型膠囊：圓角膠囊形的 secondary，文字過長時省略，不推走其他按鈕 -->
     <Style Selector="Button.capsule">
       <Setter Property="CornerRadius" Value="16" />
@@ -58,7 +73,7 @@
     </Style>
   </UserControl.Styles>
 
-  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 「…」選單（設定、管理連線與模型） -->
+  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 用量圓環、「⋯」選單（重新命名、匯出、刪除這則對話） -->
   <Border Padding="12,8"
           Background="{DynamicResource LumiChromeBrush}"
           BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
@@ -119,20 +134,43 @@
         </Grid>
       </Button>
 
-      <!-- 「…」：設定、管理連線與模型 -->
-      <Button x:Name="MoreButton" Grid.Column="2" Classes="tertiary toolbar iconOnly"
-              ToolTip.Tip="{x:Static res:Strings.Workbench_More}"
-              AutomationProperties.Name="{x:Static res:Strings.Workbench_More}">
-        <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
-        <Button.Flyout>
-          <MenuFlyout Placement="BottomEdgeAlignedRight">
-            <MenuItem x:Name="SettingsMenuItem" Header="{x:Static res:Strings.Workbench_Settings}"
-                      Command="{Binding OpenSettingsCommand}" />
-            <MenuItem x:Name="ManageModelsMenuItem" Header="{x:Static res:Strings.ModelPicker_Manage}"
-                      Command="{Binding ModelSwitcher.ManageCommand}" />
-          </MenuFlyout>
-        </Button.Flyout>
-      </Button>
+      <!-- 右側：用量圓環（點開面板看詳情）、「⋯」對話動作（重新命名、匯出、刪除）。設定在第一列的齒輪，管理連線與模型在模型選單底部 -->
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+        <Button x:Name="UsageButton" Classes="tertiary toolbar iconOnly usage" Classes.danger="{Binding Usage.IsNearLimit}"
+                ToolTip.Tip="{Binding Usage.RingTooltip}"
+                AutomationProperties.Name="{Binding Usage.RingAutomationName}">
+          <!-- 32×32 的內容框：小圓環置中（20、線寬 2.5）；快滿時右上角 10px 紅點，位移 -4,-4 -->
+          <Panel Width="32" Height="32">
+            <ctl:UsageRing Diameter="20" Thickness="2.5" Ratio="{Binding Usage.Ratio}" Level="{Binding Usage.Level}" />
+            <Ellipse Width="10" Height="10" Fill="{DynamicResource LumiDangerDotBrush}"
+                     Stroke="{DynamicResource LumiSurfaceBrush}" StrokeThickness="2"
+                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0"
+                     IsVisible="{Binding Usage.IsNearLimit}" />
+          </Panel>
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight" VerticalOffset="6" FlyoutPresenterClasses="usage-flyout">
+              <views:UsageFlyout />
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+        <Button x:Name="MoreButton" Classes="tertiary toolbar iconOnly"
+                ToolTip.Tip="{x:Static res:Strings.Workbench_ConversationOptions}"
+                AutomationProperties.Name="{x:Static res:Strings.Workbench_ConversationOptions}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <!-- 回應中：只有重新命名可用；空對話（沒有任何訊息）三項全部停用 -->
+              <MenuItem x:Name="RenameMenuItem" Header="{x:Static res:Strings.Workbench_RenameConversation}"
+                        Command="{Binding RenameConversationCommand}" IsEnabled="{Binding RenameConversationEnabled}" />
+              <MenuItem x:Name="ExportMenuItem" Header="{x:Static res:Strings.Workbench_ExportConversation}"
+                        Command="{Binding ExportConversationCommand}" IsEnabled="{Binding ExportConversationEnabled}" />
+              <MenuItem x:Name="DeleteMenuItem" Header="{x:Static res:Strings.Workbench_DeleteConversation}"
+                        Foreground="{DynamicResource LumiDangerBrush}"
+                        Command="{Binding DeleteConversationCommand}" IsEnabled="{Binding DeleteConversationEnabled}" />
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
     </Grid>
   </Border>
 </UserControl>

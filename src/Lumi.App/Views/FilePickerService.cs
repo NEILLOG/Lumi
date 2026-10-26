@@ -27,6 +27,20 @@ public sealed class FilePickerService : IFilePickerService
         return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> SaveFileAsync(string suggestedName, string extension)
+    {
+        if (Owner() is not { } owner)
+            return null;
+
+        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            SuggestedFileName = suggestedName,
+            DefaultExtension = extension,
+            ShowOverwritePrompt = true,
+        });
+        return file?.TryGetLocalPath();
+    }
+
     private static Window? Owner()
     {
         var lifetime = Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;

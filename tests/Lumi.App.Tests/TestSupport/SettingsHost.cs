@@ -1,5 +1,7 @@
 using Lumi.App.Services;
 using Lumi.App.ViewModels;
+using Lumi.Core.Chat;
+using Lumi.Core.Memory;
 using Lumi.Infrastructure.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -60,7 +62,7 @@ internal sealed class SettingsHost : IDisposable
             new Lumi.Core.Reminders.ReminderOptions(), NullLogger<Lumi.Core.Reminders.ReminderService>.Instance);
         Reminders = new RemindersViewModel(ReminderService, Confirm, dispatcher, TimeProvider.System);
         Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
-        Home = new HomeViewModel(Catalog, Status, dispatcher);
+        Home = new HomeViewModel(Catalog, Status, dispatcher, Store, McpSource, Tester, Clock, new MemoryOptions());
         Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Catalog, Confirm, WindowService)
         {
             // 產品預設落在「設定首頁」；既有的頁面測試都從 AI 連線開始，要測首頁的測試自己改回 Home
@@ -76,6 +78,8 @@ internal sealed class SettingsHost : IDisposable
     public FakeClipboardService Clipboard { get; } = new();
     public DataPrivacyViewModel Privacy { get; }
     public HomeViewModel Home { get; }
+    public FakeHomeStore Store { get; } = new();
+    public FakeTimeProvider Clock { get; } = new();
     public FakeSettingsWindowService WindowService { get; } = new();
     public InMemorySecretStore Secrets { get; } = new();
     public FakeConnectionTester Tester { get; } = new();
@@ -143,4 +147,55 @@ internal sealed class FakeDataLocationProvider : IDataLocationProvider
     public List<DataLocation> Locations { get; } = [];
 
     public IReadOnlyList<DataLocation> GetLocations() => Locations;
+}
+
+/// <summary>首頁用量與最近動作的假資料。首頁只用 <see cref="GetTokenTotalsAsync"/> 與 <see cref="ListRecentToolActionsAsync"/>，其餘成員不支援。</summary>
+internal sealed class FakeHomeStore : IConversationStore
+{
+    /// <summary>每筆是一則助理訊息的 token（發生時間、加總）。</summary>
+    public List<(DateTimeOffset At, TokenTotals Totals)> Usage { get; } = [];
+
+    public List<RecentToolAction> Actions { get; } = [];
+
+    /// <summary>每次用量查詢收到的 since（測試用來檢查邊界）。</summary>
+    public List<DateTimeOffset> SinceQueries { get; } = [];
+
+    /// <summary>為 true 時用量查詢丟例外（首頁應顯示「暫時讀不到用量」）。</summary>
+    public bool FailUsage { get; set; }
+
+    public Task<TokenTotals> GetTokenTotalsAsync(DateTimeOffset since, CancellationToken ct = default)
+    {
+        SinceQueries.Add(since);
+        if (FailUsage)
+            throw new IOException("測試用的讀取失敗");
+        var total = TokenTotals.Zero;
+        foreach (var (at, totals) in Usage.Where(u => u.At >= since))
+            total = new TokenTotals(total.Input + totals.Input, total.CacheRead + totals.CacheRead, total.Output + totals.Output);
+        return Task.FromResult(total);
+    }
+
+    public Task<IReadOnlyList<RecentToolAction>> ListRecentToolActionsAsync(int limit, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<RecentToolAction>>(Actions.OrderByDescending(a => a.At).Take(limit).ToList());
+
+    public Task<Conversation> CreateAsync(string title, CancellationToken ct = default) => throw new NotSupportedException();
+
+    public Task<Conversation?> GetLatestAsync(CancellationToken ct = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Conversation>> ListAsync(int limit, ConversationCursor? before, CancellationToken ct = default) =>
+        throw new NotSupportedException();
+
+    public Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<ConversationSearchHit>> SearchAsync(string query, int limit, CancellationToken ct = default) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<ChatMessage>> GetMessagesAsync(string conversationId, CancellationToken ct = default) =>
+        throw new NotSupportedException();
+
+    public Task AppendMessageAsync(string conversationId, ChatMessage message, CancellationToken ct = default) =>
+        throw new NotSupportedException();
+
+    public Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default) => throw new NotSupportedException();
+
+    public Task RenameAsync(string conversationId, string title, CancellationToken ct = default) => throw new NotSupportedException();
 }

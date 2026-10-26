@@ -127,19 +127,22 @@ public class CustomTitleBarTests
     }
 
     [AvaloniaFact]
-    public void Windows_TheSpriteButtonSitsLeftOfTheReservedSystemButtons_WithTheDividerBetween()
+    public void Windows_TheSpriteButtonSitsLeftOfTheReservedSystemButtons_WithTheGearAndDividerBetween()
     {
         var (window, bar) = Show(new Rig(), TitleBarPlatform.Windows);
         var button = bar.SpriteModeButton;
+        var gear = bar.SettingsButton;
         var divider = bar.FindByName<Border>("Divider");
         var brand = bar.FindByName<Avalonia.Controls.TextBlock>("Brand");
 
         var buttonBounds = BoundsIn(button, window);
+        var gearBounds = BoundsIn(gear, window);
         var dividerBounds = BoundsIn(divider, window);
         Assert.True(divider.IsVisible);
         Assert.Equal(window.Bounds.Width - TitleBarLayout.WindowsCaptionButtonsWidth, dividerBounds.Right);
-        var gap = dividerBounds.Left - buttonBounds.Right;
-        Assert.InRange(gap, 8, 12);                                              // 按鈕與系統按鈕之間 8～12
+        Assert.Equal(8, gearBounds.Left - buttonBounds.Right);                    // 小精靈與齒輪間距 8
+        Assert.InRange(dividerBounds.Left - gearBounds.Right, 8, 12);             // 齒輪與分隔線之間 8～12
+        Assert.True(gearBounds.Width == 32 && gearBounds.Height == 32);           // 齒輪 32×32
         Assert.True(buttonBounds.Width >= 36 && buttonBounds.Height >= 32);      // 最小點擊範圍
         Assert.Equal(16, BoundsIn(brand, window).Left);                          // 品牌靠左
         // 為系統按鈕保留的區域沒有任何互動控制項
@@ -149,7 +152,7 @@ public class CustomTitleBarTests
     }
 
     [AvaloniaFact]
-    public void MacOS_TheBrandMakesRoomForTheTrafficLights_AndTheSpriteButtonIsFarRight()
+    public void MacOS_TheBrandMakesRoomForTheTrafficLights_AndTheGearIsFarRight()
     {
         var (window, bar) = Show(new Rig(), TitleBarPlatform.MacOS);
         var button = bar.SpriteModeButton;
@@ -157,7 +160,8 @@ public class CustomTitleBarTests
 
         Assert.False(bar.FindByName<Border>("Divider").IsVisible);
         Assert.True(BoundsIn(brand, window).Left >= 80);                         // 紅綠燈佔左側 80
-        Assert.Equal(window.Bounds.Width - 16, BoundsIn(button, window).Right);  // 小精靈按鈕在最右
+        Assert.Equal(window.Bounds.Width - 16, BoundsIn(bar.SettingsButton, window).Right);   // 齒輪在最右
+        Assert.Equal(8, BoundsIn(bar.SettingsButton, window).Left - BoundsIn(button, window).Right);   // 小精靈在齒輪左邊，間距 8
         // 紅綠燈所在的區域沒有互動控制項
         Assert.False(CustomTitleBar.IsOnInteractiveControl(HitTest(window, new Point(40, TitleBarLayout.Height / 2))));
         window.Close();
@@ -226,6 +230,31 @@ public class CustomTitleBarTests
         await sending;
         Assert.True(button.IsEffectivelyEnabled);
         Assert.Equal(Strings.Workbench_SpriteMode, ToolTip.GetTip(button));
+        window.Close();
+    }
+
+    // ---- 齒輪 ----
+
+    [AvaloniaFact]
+    public async Task TheGear_OpensSettings_HasAName_AndStaysEnabledWhileResponding()
+    {
+        var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("好")) { HangOnCall = 1 });
+        var (window, bar) = Show(rig, TitleBarPlatform.Windows);
+        var gear = bar.SettingsButton;
+
+        Assert.Equal(Strings.Workbench_Settings, ToolTip.GetTip(gear));
+        Assert.Equal(Strings.Workbench_Settings, Avalonia.Automation.AutomationProperties.GetName(gear));
+        Assert.Same(rig.Vm.OpenSettingsCommand, gear.Command);
+        Assert.Contains(gear.GetVisualDescendants().OfType<Lumi.App.Controls.LumiIcon>(), icon => icon.Data is not null);
+
+        await rig.Vm.InitializeAsync();
+        rig.Vm.InputText = "x";
+        var sending = rig.Vm.SendCommand.ExecuteAsync(null);
+        await SettingsHost.WaitUntil(() => rig.Vm.IsResponding);
+        Assert.True(gear.IsEffectivelyEnabled);   // 回應中齒輪可用（ui-usage-and-topbar.md 第 6 節）
+
+        await rig.Vm.StopAndWaitAsync();
+        await sending;
         window.Close();
     }
 

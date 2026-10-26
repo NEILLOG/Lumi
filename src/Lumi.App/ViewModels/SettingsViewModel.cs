@@ -46,6 +46,7 @@ public partial class SettingsViewModel : ObservableObject
         Privacy = privacy;
         Home = home;
         home.Attach(reminders, memory, tools, general, sprite);
+        home.NavigateRequested += navigation => _ = NavigateAsync(navigation);   // 待處理與首頁卡片要求切頁
         privacy.NavigateRequested += section => _ = NavigateAsync(new SettingsNavigation(section));
         _confirm = confirm;
         _windows = windows;

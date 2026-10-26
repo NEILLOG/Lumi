@@ -215,10 +215,17 @@ internal sealed class OpenAIStreamAccumulator
         int Int(JsonElement e, string name) =>
             e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n) ? n : 0;
 
+        bool Has(JsonElement e, string name) =>
+            e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out _);
+
         var prompt = Int(usage, "prompt_tokens");
-        var cached = usage.TryGetProperty("prompt_tokens_details", out var details) && details.ValueKind == JsonValueKind.Object
-            ? Int(details, "cached_tokens")
-            : 0;
+        // 快取命中數：OpenAI 寫在 prompt_tokens_details.cached_tokens；DeepSeek 寫在頂層 prompt_cache_hit_tokens。兩者都沒有才是 0
+        var cached = 0;
+        if (usage.TryGetProperty("prompt_tokens_details", out var details) && details.ValueKind == JsonValueKind.Object
+            && Has(details, "cached_tokens"))
+            cached = Int(details, "cached_tokens");
+        else if (Has(usage, "prompt_cache_hit_tokens"))
+            cached = Int(usage, "prompt_cache_hit_tokens");
         // OpenAI 的 prompt_tokens 含快取；我們的 InputTokens 不含（和 Anthropic 一致），快取另外記
         return new TokenUsage(Math.Max(prompt - cached, 0), Int(usage, "completion_tokens"), 0, cached);
     }

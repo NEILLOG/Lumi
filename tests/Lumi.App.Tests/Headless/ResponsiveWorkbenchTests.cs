@@ -138,10 +138,12 @@ public class ResponsiveWorkbenchTests
         var new_ = BoundsIn(toolbar.NewConversationButton, window);
         var history = BoundsIn(toolbar.HistoryButton, window);
         var capsule = BoundsIn(toolbar.CapsuleButton, window);
+        var usage = BoundsIn(toolbar.UsageButton, window);
         var more = BoundsIn(toolbar.MoreButton, window);
         Assert.True(new_.Right <= history.Left + 0.5);
         Assert.True(history.Right <= capsule.Left + 0.5);
-        Assert.True(capsule.Right <= more.Left + 0.5);
+        Assert.True(capsule.Right <= usage.Left + 0.5);
+        Assert.True(usage.Right <= more.Left + 0.5);
         Assert.True(more.Right <= width + 0.5);
         window.Close();
     }

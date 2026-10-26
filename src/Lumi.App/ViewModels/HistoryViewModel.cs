@@ -301,19 +301,33 @@ public partial class HistoryViewModel : ObservableObject
         if (title is null || title == item.Title)
             return;
 
+        await SaveTitleAsync(item.Id, title, item);
+    }
+
+    /// <summary>
+    /// 工作台「⋯」的重新命名（標題要先經過 <see cref="NormalizeTitle"/>，呼叫端負責）。和清單內改名走同一條寫入路徑；
+    /// 清單裡找不到這則（例如還沒載入）也照樣寫入並同步工作台標題。
+    /// </summary>
+    public Task<bool> RenameConversationAsync(string id, string title) =>
+        SaveTitleAsync(id, title, Items.FirstOrDefault(i => i.Id == id));
+
+    /// <summary>寫入新標題，成功後更新清單列、快取與工作台標題。失敗記 log 並回 false。</summary>
+    private async Task<bool> SaveTitleAsync(string id, string title, ConversationListItem? item)
+    {
         try
         {
-            await _store.RenameAsync(item.Id, title);
+            await _store.RenameAsync(id, title);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "改名對話失敗");
-            return;
+            return false;
         }
-        item.SetTitle(title);
-        if (_byId.TryGetValue(item.Id, out var conversation))
-            _byId[item.Id] = conversation with { Title = title };
-        _host.TitleChanged(item.Id, title);
+        item?.SetTitle(title);
+        if (_byId.TryGetValue(id, out var conversation))
+            _byId[id] = conversation with { Title = title };
+        _host.TitleChanged(id, title);
+        return true;
     }
 
     /// <summary>放棄改名（Esc、失去焦點）。</summary>
@@ -346,8 +360,11 @@ public partial class HistoryViewModel : ObservableObject
 
     // ---- 刪除 ----
 
+    /// <summary>有刪除服務與確認服務時才能刪除（工作台的「⋯」用它決定要不要啟用刪除項目）。</summary>
+    public bool CanDeleteConversation => _deletion is not null && _confirm is not null;
+
     /// <summary>回應中（含小精靈回應中）不能刪除：不分是不是目前的對話，避免清附件時誤刪進行中的圖片。</summary>
-    private bool CanDelete(ConversationListItem? item) => item is not null && _deletion is not null && _confirm is not null && !_host.IsResponding;
+    private bool CanDelete(ConversationListItem? item) => item is not null && CanDeleteConversation && !_host.IsResponding;
 
     /// <summary>
     /// 刪除前經過確認。目前開著的對話會先導向清單中的下一則（沒有就開新的空白對話），再從資料庫刪除。
@@ -355,20 +372,45 @@ public partial class HistoryViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanDelete))]
     private async Task DeleteAsync(ConversationListItem? item)
     {
-        if (item is null || _deletion is null || _confirm is null || _host.IsResponding)
+        if (item is null || !CanDeleteConversation || _host.IsResponding)
             return;
-        var message = string.Format(CultureInfo.CurrentCulture, Strings.History_DeleteConfirmFormat, item.Title);
-        if (!await _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Delete))
+        if (!await ConfirmDeleteAsync(item.Title))
             return;
         // 確認期間可能開始回應或列表已經換過了
         if (_host.IsResponding || !Items.Contains(item))
             return;
+        await DeleteCoreAsync(item.Id, item);
+    }
 
-        var id = item.Id;
-        var next = id == _host.CurrentConversationId ? NextAfter(item) : null;
+    /// <summary>
+    /// 工作台「⋯」的刪除：和清單的刪除同一套確認、同一套「刪除後切到下一則」流程（<see cref="IHistoryHost.ConversationDeletedAsync"/>）。
+    /// </summary>
+    public async Task DeleteConversationAsync(string id, string title)
+    {
+        if (!CanDeleteConversation || _host.IsResponding)
+            return;
+        if (!await ConfirmDeleteAsync(title))
+            return;
+        if (_host.IsResponding)
+            return;
+        await DeleteCoreAsync(id, Items.FirstOrDefault(i => i.Id == id));
+    }
+
+    private Task<bool> ConfirmDeleteAsync(string title)
+    {
+        if (_confirm is null)
+            return Task.FromResult(false);
+        var message = string.Format(CultureInfo.CurrentCulture, Strings.History_DeleteConfirmFormat, title);
+        return _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Delete);
+    }
+
+    /// <summary>已確認：只有刪的是目前開著的對話才決定下一則；刪資料庫，更新清單，最後通知工作台。</summary>
+    private async Task DeleteCoreAsync(string id, ConversationListItem? item)
+    {
+        var next = id == _host.CurrentConversationId ? NextAfter(id) : null;
         try
         {
-            await _deletion.DeleteAsync(id);
+            await _deletion!.DeleteAsync(id);
         }
         catch (Exception ex)
         {
@@ -376,21 +418,28 @@ public partial class HistoryViewModel : ObservableObject
             return;
         }
 
-        if (item.IsEditing)
-            CancelRename(item);
-        if (ReferenceEquals(_selected, item))
-            _selected = null;
-        Items.Remove(item);
+        if (item is not null)
+        {
+            if (item.IsEditing)
+                CancelRename(item);
+            if (ReferenceEquals(_selected, item))
+                _selected = null;
+            Items.Remove(item);
+        }
         _byId.Remove(id);
         RebuildGroups();
         await _host.ConversationDeletedAsync(id, next);
     }
 
-    /// <summary>清單中緊接在後面的對話（目前清單的順序）；沒有就是 null。</summary>
-    private Conversation? NextAfter(ConversationListItem item)
+    /// <summary>清單中緊接在後面的對話（目前清單的順序）；沒有（或不在清單中）就是 null。</summary>
+    private Conversation? NextAfter(string id)
     {
-        var index = Items.IndexOf(item);
-        return index >= 0 && index + 1 < Items.Count && _byId.TryGetValue(Items[index + 1].Id, out var next) ? next : null;
+        for (var i = 0; i + 1 < Items.Count; i++)
+        {
+            if (Items[i].Id == id)
+                return _byId.TryGetValue(Items[i + 1].Id, out var next) ? next : null;
+        }
+        return null;
     }
 
     /// <summary>工作台的回應狀態變了：更新「不能刪除」的標記與命令的可用狀態。</summary>

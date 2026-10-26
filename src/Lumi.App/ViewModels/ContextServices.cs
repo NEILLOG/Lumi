@@ -8,6 +8,9 @@ public interface IFilePickerService
 
     /// <summary>選擇一個資料夾；使用者取消回 null。</summary>
     Task<string?> PickFolderAsync();
+
+    /// <summary>選擇要儲存的檔案位置（<paramref name="extension"/> 不含句點，例如 <c>md</c>）；使用者取消回 null。</summary>
+    Task<string?> SaveFileAsync(string suggestedName, string extension) => Task.FromResult<string?>(null);
 }
 
 /// <param name="MediaType">依內容判斷（例如 <c>image/png</c>）。</param>

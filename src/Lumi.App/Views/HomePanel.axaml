@@ -8,36 +8,30 @@
              x:DataType="vm:SettingsViewModel">
 
   <!--
-    設定首頁（M20 20G）：狀態總覽。6 張卡片（AI 連線、提醒排程、記憶、工具、外觀與操作、網路），
-    每張顯示目前的值與需要注意的地方；點卡片用 GoToCommand 切到對應分類。
-    寬視窗 2 欄、窄視窗（Window.narrow）1 欄。卡片沒有開關，只顯示狀態。
+    設定首頁（M21 21F，計畫 1A 範圍）：由上而下是「待處理」（有項目才顯示）、「重點設定」五張卡、「最近的動作」。
+    頁首由 SettingsWindow 的 SettingsPageHeader 提供，這裡不重複。
+    版面：寬視窗（Window.wide）第一排 3 卡、第二排 2 卡；中等（Window.compact）2 欄；窄視窗或設定視窗 stacked（寬 < 900）1 欄。
+    內容最大寬度 920。6 欄格子，卡片用 ColumnSpan 排版；斷點由樣式 Setter 改 Grid.Column／Row／ColumnSpan。
+    卡片沒有開關、沒有整張可點的按鈕；只有「切換 ›」「管理 ›」、待處理按鈕與 MCP 重新連線按鈕可以操作。
   -->
   <UserControl.Resources>
     <local:IconKeyConverter x:Key="IconKeyConverter" />
+    <local:PositiveCountConverter x:Key="PositiveCountConverter" />
+    <local:HomeActionStatusConverter x:Key="ActionStatusConverter" />
   </UserControl.Resources>
 
   <UserControl.Styles>
-    <!-- 一張卡片：Surface 底、1px 邊框、卡片圓角；整張是按鈕，hover／按下換成 Surface Alt 底與較強的邊框 -->
-    <Style Selector="Button.home-card">
-      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
-      <Setter Property="Padding" Value="16" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="VerticalAlignment" Value="Stretch" />
-      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <!-- 文字層級：區段標籤 14／600；卡片標題 11／600 次要色；卡片數值 14／600；大數字 20／700 -->
+    <Style Selector="TextBlock.home-label">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     </Style>
-    <Style Selector="Button.home-card:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
+    <Style Selector="TextBlock.home-warning">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
     </Style>
-    <Style Selector="Button.home-card:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
-    </Style>
-    <!-- 卡片標題（Caption 11、次要色、SemiBold）；數值 14／600 -->
     <Style Selector="TextBlock.card-title">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
       <Setter Property="FontWeight" Value="SemiBold" />
@@ -49,62 +43,443 @@
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
-    <!-- Warning 淡底：「需要處理」，文字一定寫出來（不只靠顏色）；同 MemoryPanel 的寫法 -->
-    <Style Selector="Border.warn-badge">
+    <Style Selector="TextBlock.big-number">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeTitle}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.home-mono">
+      <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+    </Style>
+
+    <!-- 待處理：Warning 淡底圓角容器；每列下緣 1px 分隔線（用 Warning 框色；最後一列的下線與容器下框重疊） -->
+    <Style Selector="Border.pending-box">
       <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    </Style>
+    <Style Selector="Border.pending-row">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="16,12" />
+    </Style>
+    <Style Selector="Border.pending-icon">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    </Style>
+
+    <!-- 卡片內的小區塊：程式碼底、統計格、用量小標籤、MCP 列、小標籤 -->
+    <Style Selector="Border.code-block">
+      <Setter Property="Background" Value="{DynamicResource LumiCodeBackgroundBrush}" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,12" />
+    </Style>
+    <Style Selector="Border.code-block TextBlock.home-mono">
+      <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
+    </Style>
+    <Style Selector="Border.stat-tile">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,12" />
+    </Style>
+    <Style Selector="Border.stat-chip">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="CornerRadius" Value="8" />
       <Setter Property="Padding" Value="8,4" />
     </Style>
-    <Style Selector="Border.warn-badge TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
-      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    <Style Selector="Border.mcp-row">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
     </Style>
-    <!-- RWD：寬視窗 2 欄、窄視窗 1 欄 -->
-    <Style Selector="Window.narrow UniformGrid.home-grid">
-      <Setter Property="Columns" Value="1" />
+    <Style Selector="Border.tag">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.tag TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+
+    <!-- 最近的動作：整個容器一個圓角框，列之間 1px 分隔 -->
+    <Style Selector="Border.list-box">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    </Style>
+    <Style Selector="Border.action-row">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+      <Setter Property="Padding" Value="16,12" />
+    </Style>
+
+    <!-- ===== RWD：卡片落點（6 欄格子）。預設＝寬視窗（≥ 1000）；中等 2 欄（Window.compact）；窄（Window.narrow 或 stacked，< 900）1 欄 ===== -->
+    <Style Selector="Border#HomeModelCard">
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="Border#HomeMemoryCard">
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.Column" Value="2" />
+      <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="Border#HomeUsageCard">
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.Column" Value="4" />
+      <Setter Property="Grid.ColumnSpan" Value="2" />
+    </Style>
+    <Style Selector="Border#HomeToolsCard">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="Border#HomeRemindersCard">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="3" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+
+    <Style Selector="Window.compact Border#HomeModelCard">
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="Window.compact Border#HomeMemoryCard">
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.Column" Value="3" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="Window.compact Border#HomeUsageCard">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="Window.compact Border#HomeToolsCard">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="3" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+    </Style>
+    <Style Selector="Window.compact Border#HomeRemindersCard">
+      <Setter Property="Grid.Row" Value="2" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="6" />
+    </Style>
+
+    <Style Selector="Window.narrow Border#HomeModelCard, Window.stacked Border#HomeModelCard">
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="6" />
+    </Style>
+    <Style Selector="Window.narrow Border#HomeMemoryCard, Window.stacked Border#HomeMemoryCard">
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="6" />
+    </Style>
+    <Style Selector="Window.narrow Border#HomeUsageCard, Window.stacked Border#HomeUsageCard">
+      <Setter Property="Grid.Row" Value="2" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="6" />
+    </Style>
+    <Style Selector="Window.narrow Border#HomeToolsCard, Window.stacked Border#HomeToolsCard">
+      <Setter Property="Grid.Row" Value="3" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="6" />
+    </Style>
+    <Style Selector="Window.narrow Border#HomeRemindersCard, Window.stacked Border#HomeRemindersCard">
+      <Setter Property="Grid.Row" Value="4" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="6" />
     </Style>
   </UserControl.Styles>
 
-  <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <ctl:FractionWidthLimiter MaxPixels="720" HorizontalAlignment="Stretch">
-      <ItemsControl x:Name="HomeCardList" ItemsSource="{Binding Home.Cards}"
-                    AutomationProperties.Name="{x:Static res:Strings.Home_CardsName}">
-        <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate>
-            <UniformGrid Columns="2" Classes="home-grid" />
-          </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ctl:FractionWidthLimiter MaxPixels="920" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="0">
 
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="vm:HomeCardViewModel">
-            <Button Classes="home-card" Margin="0,0,12,12"
-                    Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).GoToCommand}"
-                    CommandParameter="{Binding Section}"
-                    AutomationProperties.Name="{Binding Title}">
-              <StackPanel Spacing="4">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                  <ctl:LumiIcon Grid.Column="0" Data="{Binding IconKey, Converter={StaticResource IconKeyConverter}}" Size="18"
-                                Margin="0,0,8,0" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Classes="card-title" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                  <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16"
-                                Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-                </Grid>
-                <TextBlock Classes="card-value" Text="{Binding Value}" />
-                <TextBlock Classes="muted" Text="{Binding Detail}" TextWrapping="Wrap" IsVisible="{Binding HasDetail}" />
-                <Border Classes="warn-badge" HorizontalAlignment="Left" Margin="0,4,0,0" IsVisible="{Binding NeedsAttention}">
+        <!-- ===== 待處理（有項目才顯示「待處理 · N」與列；沒有時顯示一行說明） ===== -->
+        <StackPanel x:Name="HomePendingSection" Spacing="8" Margin="0,0,0,24"
+                    IsVisible="{Binding Home.HasPending}">
+          <TextBlock Classes="home-warning" Text="{Binding Home.PendingTitle}" />
+          <Border x:Name="HomePendingBox" Classes="pending-box" ClipToBounds="True">
+            <ItemsControl x:Name="HomePendingList" ItemsSource="{Binding Home.PendingItems}" Margin="0,0,0,-1"
+                          AutomationProperties.Name="{x:Static res:Strings.Home_Attention}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HomePendingItem">
+                  <Border Classes="pending-row">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <Border Grid.Column="0" Classes="pending-icon" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <ctl:LumiIcon Data="{Binding IconKey, Converter={StaticResource IconKeyConverter}}" Size="16"
+                                      Foreground="{DynamicResource LumiWarningIconBrush}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Classes="card-value" Text="{Binding Title}" />
+                        <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <Button Grid.Column="2" VerticalAlignment="Center"
+                              Classes.primary="{Binding IsPrimary}"
+                              Classes.secondary="{Binding IsPrimary, Converter={x:Static BoolConverters.Not}}"
+                              Command="{Binding ActionCommand}"
+                              Content="{Binding ActionText}"
+                              AutomationProperties.Name="{Binding ActionText}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+
+        <StackPanel x:Name="HomeNoPendingRow" Orientation="Horizontal" Spacing="8" Margin="0,0,0,24"
+                    IsVisible="{Binding Home.HasPending, Converter={x:Static BoolConverters.Not}}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconCheck}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}"
+                        VerticalAlignment="Center" />
+          <TextBlock x:Name="HomeNoPendingText" Classes="muted" Text="{Binding Home.NoPendingText}" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- ===== 重點設定：五張卡 ===== -->
+        <TextBlock Classes="home-label" Text="{x:Static res:Strings.Home_KeySettings}" Margin="0,0,0,8" />
+        <Grid x:Name="HomeCardGrid" ColumnDefinitions="*,*,*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
+
+          <!-- 目前模型 -->
+          <Border x:Name="HomeModelCard" Classes="card home-card">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconDiamond}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                  <TextBlock Classes="card-title" Text="{x:Static res:Strings.Home_ModelTitle}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Models"
+                        AutomationProperties.Name="{x:Static res:Strings.Home_Switch}">
                   <StackPanel Orientation="Horizontal" Spacing="4">
-                    <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="12" Foreground="{DynamicResource LumiWarningTextBrush}"
-                                  VerticalAlignment="Center" />
-                    <TextBlock Text="{x:Static res:Strings.Home_Attention}" />
+                    <TextBlock Text="{x:Static res:Strings.Home_Switch}" />
+                    <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+              <Border Classes="code-block">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="home-mono" Text="{Binding Home.ModelCard.MonoText}" TextWrapping="Wrap" />
+                  <TextBlock Classes="muted" Text="{Binding Home.ModelCard.DetailText}" TextWrapping="Wrap"
+                             IsVisible="{Binding Home.ModelCard.DetailText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+              </Border>
+              <StackPanel Orientation="Horizontal" Spacing="8"
+                          IsVisible="{Binding Home.ModelCard.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="12" VerticalAlignment="Center"
+                              Foreground="{DynamicResource LumiWarningTextBrush}"
+                              IsVisible="{Binding Home.ModelCard.NeedsAttention}" />
+                <TextBlock Classes="muted" Text="{Binding Home.ModelCard.StatusText}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource LumiWarningTextBrush}" IsVisible="{Binding Home.ModelCard.NeedsAttention}" />
+                <TextBlock Classes="muted" Text="{Binding Home.ModelCard.StatusText}" TextWrapping="Wrap"
+                           IsVisible="{Binding Home.ModelCard.NeedsAttention, Converter={x:Static BoolConverters.Not}}" />
+              </StackPanel>
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_ModelShared}" TextWrapping="Wrap"
+                         IsVisible="{Binding Home.ModelCard.ShowSharedNote}" />
+            </StackPanel>
+          </Border>
+
+          <!-- 記憶：沒有開關，只顯示狀態與兩條進度 -->
+          <Border x:Name="HomeMemoryCard" Classes="card home-card">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconBrain}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                  <TextBlock Classes="card-title" Text="{x:Static res:Strings.Settings_CategoryMemory}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Memory"
+                        AutomationProperties.Name="{x:Static res:Strings.Home_Manage}">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{x:Static res:Strings.Home_Manage}" />
+                    <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+              <TextBlock Classes="card-value" Text="{Binding Home.MemoryCard.StatusText}" />
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_MemoryItemsLabel}" />
+                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Home.MemoryCard.ItemsText}" />
+                </Grid>
+                <ProgressBar Minimum="0" Maximum="1" Height="6" Value="{Binding Home.MemoryCard.ItemsProgress}" />
+              </StackPanel>
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_MemoryCharsLabel}" />
+                  <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Home.MemoryCard.CharsText}" />
+                </Grid>
+                <ProgressBar Minimum="0" Maximum="1" Height="6" Value="{Binding Home.MemoryCard.CharsProgress}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- 本月用量：沒有金額與預算、沒有連結；載入中顯示 —，讀不到時顯示說明 -->
+          <Border x:Name="HomeUsageCard" Classes="card home-card">
+            <StackPanel Spacing="12">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                <TextBlock Classes="card-title" Text="{x:Static res:Strings.Home_UsageTitle}" VerticalAlignment="Center" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8"
+                          IsVisible="{Binding Home.UsageCard.IsUnavailable, Converter={x:Static BoolConverters.Not}}">
+                <TextBlock Classes="big-number" Text="{Binding Home.UsageCard.MonthText, TargetNullValue='—'}" VerticalAlignment="Bottom" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Usage_Tokens}" VerticalAlignment="Bottom" Margin="0,0,0,4"
+                           IsVisible="{Binding Home.UsageCard.MonthText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_UsageUnavailable}" TextWrapping="Wrap"
+                         IsVisible="{Binding Home.UsageCard.IsUnavailable}" />
+              <TextBlock Classes="muted" Text="{Binding Home.UsageCard.TodayText}" TextWrapping="Wrap"
+                         IsVisible="{Binding Home.UsageCard.TodayText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <WrapPanel Orientation="Horizontal"
+                         IsVisible="{Binding Home.UsageCard.InputText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <Border Classes="stat-chip" Margin="0,0,8,8">
+                  <TextBlock Classes="muted" Text="{Binding Home.UsageCard.InputText}" />
+                </Border>
+                <Border Classes="stat-chip" Margin="0,0,0,8">
+                  <TextBlock Classes="muted" Text="{Binding Home.UsageCard.OutputText}" />
+                </Border>
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- 工具：內建與 MCP 兩區；沒有 MCP 伺服器時 MCP 區整段隱藏 -->
+          <Border x:Name="HomeToolsCard" Classes="card home-card">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconWrench}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                  <TextBlock Classes="card-title" Text="{x:Static res:Strings.Tools_MenuTitle}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Tools"
+                        AutomationProperties.Name="{x:Static res:Strings.Home_Manage}">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{x:Static res:Strings.Home_Manage}" />
+                    <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel Grid.Column="0" Spacing="4">
+                  <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_ToolsBuiltin}" />
+                  <TextBlock Classes="card-value" Text="{Binding Home.ToolsCard.BuiltInText}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4"
+                            IsVisible="{Binding Home.ToolsCard.McpTotal, Converter={StaticResource PositiveCountConverter}}">
+                  <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_ToolsMcp}" />
+                  <TextBlock Classes="card-value" Text="{Binding Home.ToolsCard.McpText}" />
+                </StackPanel>
+              </Grid>
+              <StackPanel Spacing="8" IsVisible="{Binding Home.ToolsCard.McpTotal, Converter={StaticResource PositiveCountConverter}}">
+                <ItemsControl ItemsSource="{Binding Home.ToolsCard.McpServers}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:HomeMcpServerItem">
+                      <Border Classes="mcp-row" Margin="0,0,0,8">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                          <Grid Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <Ellipse Width="8" Height="8" Fill="{DynamicResource LumiSuccessDotBrush}"
+                                     IsVisible="{Binding IsConnected}" />
+                            <Ellipse Width="8" Height="8" Fill="{DynamicResource LumiTextMutedBrush}"
+                                     IsVisible="{Binding IsConnected, Converter={x:Static BoolConverters.Not}}" />
+                          </Grid>
+                          <TextBlock Grid.Column="1" Classes="home-mono" Text="{Binding Name}" VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis" />
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Classes="muted" Text="{Binding StatusText}" VerticalAlignment="Center" />
+                            <Button Classes="tertiary" Command="{Binding ReconnectCommand}"
+                                    IsVisible="{Binding CanReconnect}"
+                                    Content="{x:Static res:Strings.Home_McpReconnect}"
+                                    AutomationProperties.Name="{x:Static res:Strings.Home_McpReconnect}" />
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="muted" Text="{Binding Home.ToolsCard.MoreText}" TextWrapping="Wrap"
+                           IsVisible="{Binding Home.ToolsCard.MoreText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- 提醒排程：沒有 7 天圖、沒有連結 -->
+          <Border x:Name="HomeRemindersCard" Classes="card home-card">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                  <TextBlock Classes="card-title" Text="{x:Static res:Strings.Settings_CategoryReminders}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Reminders"
+                        AutomationProperties.Name="{x:Static res:Strings.Home_Manage}">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{x:Static res:Strings.Home_Manage}" />
+                    <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Border Grid.Column="0" Classes="stat-tile">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="big-number" Text="{Binding Home.RemindersCard.PendingCount}" />
+                    <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_RemindersPending}" TextWrapping="Wrap" />
                   </StackPanel>
                 </Border>
-              </StackPanel>
-            </Button>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+                <Border Grid.Column="1" Classes="stat-tile">
+                  <StackPanel Spacing="4">
+                    <TextBlock Classes="big-number" Text="{Binding Home.RemindersCard.TimerCount}" />
+                    <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_RemindersTimers}" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+              <TextBlock Classes="muted" Text="{Binding Home.RemindersCard.NextText}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <!-- ===== 最近的動作（沒有「查看全部紀錄」連結） ===== -->
+        <TextBlock Classes="home-label" Text="{x:Static res:Strings.Home_RecentActions}" Margin="0,24,0,8" />
+        <Border x:Name="HomeRecentActions" Classes="list-box">
+          <StackPanel>
+            <TextBlock Classes="muted" Text="{Binding Home.NoRecentActionsText}" Margin="16,12"
+                       IsVisible="{Binding Home.HasRecentActions, Converter={x:Static BoolConverters.Not}}" />
+            <ItemsControl ItemsSource="{Binding Home.RecentActions}" Margin="0,0,0,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HomeActionItem">
+                  <Border Classes="action-row">
+                    <Grid ColumnDefinitions="88,Auto,*,Auto">
+                      <TextBlock Grid.Column="0" Classes="muted" Text="{Binding RelativeTime}" TextWrapping="Wrap" Margin="0,4,12,0" />
+                      <ctl:LumiIcon Grid.Column="1" Size="16" Margin="0,0,12,0" VerticalAlignment="Top"
+                                    Data="{Binding Status, Converter={StaticResource ActionStatusConverter}, ConverterParameter=icon}"
+                                    Foreground="{Binding Status, Converter={StaticResource ActionStatusConverter}, ConverterParameter=brush}" />
+                      <WrapPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Classes="card-value" Text="{Binding DisplayName}" Margin="0,0,8,4" />
+                        <Border Classes="tag" Margin="0,0,8,4"
+                                IsVisible="{Binding Target, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                          <TextBlock Classes="home-mono" Text="{Binding Target}" FontSize="{DynamicResource LumiFontSizeCaption}" />
+                        </Border>
+                        <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,0,0,4"
+                                   IsVisible="{Binding Summary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                      </WrapPanel>
+                      <Border Grid.Column="3" Classes="tag" Margin="8,0,0,0" VerticalAlignment="Top"
+                              IsVisible="{Binding ApprovalBadge, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding ApprovalBadge}" />
+                      </Border>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
     </ctl:FractionWidthLimiter>
   </ScrollViewer>
 </UserControl>
