@@ -73,7 +73,8 @@ public sealed record ToolResult(bool IsError, string Content, string? Summary)
 public sealed record ToolImage(byte[] Data, string MediaType, string DisplayName);
 
 /// <summary>執行工具時的環境。<see cref="Scope"/> 是這則對話的檔案範圍；檔案類工具只能經由它存取檔案系統。</summary>
-public sealed record ToolContext(string ConversationId, ChatMode Mode, TimeProvider Time, IFileScope Scope);
+/// <param name="Progress">工具回報進度（顯示在卡片上，不存檔、不送給模型；M19 D12）。沒有畫面時是 null。</param>
+public sealed record ToolContext(string ConversationId, ChatMode Mode, TimeProvider Time, IFileScope Scope, IProgress<string>? Progress = null);
 
 public interface ITool
 {

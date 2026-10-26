@@ -32,6 +32,9 @@ public sealed record ToolCallStarted(
 /// <summary>需要使用者確認：在等待之前發出，畫面據此在卡片內顯示確認區。</summary>
 public sealed record ApprovalRequired(ToolApprovalRequest Request) : ChatEvent;
 
+/// <summary>工具執行中的進度（M19 D12）：只給畫面顯示，不存檔。同一個呼叫可能發很多次，以最後一次為準。</summary>
+public sealed record ToolCallProgress(string CallId, string Text) : ChatEvent;
+
 public sealed record ToolCallCompleted(string CallId, ToolResultBlock Result) : ChatEvent;
 
 public enum StopReason { EndTurn, MaxTokens, StopSequence, ToolUse, Other }
