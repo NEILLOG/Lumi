@@ -33,26 +33,6 @@
   </UserControl.Styles>
   <!-- 模型切換選單的內容：搜尋、依連線分組的清單、管理連線與模型。頂端膠囊與錯誤列的「換模型重試」共用 -->
   <StackPanel Spacing="8">
-    <!-- 本對話：用量、上下文進度條、連線狀態（文字＋狀態點）、費用說明。沒有本對話資料（錯誤列的重試選單）時隱藏 -->
-    <StackPanel x:Name="SessionSection" Spacing="8" IsVisible="{Binding HasSession}">
-      <TextBlock Text="{x:Static res:Strings.ModelPicker_Session}" Classes="muted" FontWeight="SemiBold" />
-      <TextBlock x:Name="UsageLine" Text="{Binding UsageText}" />
-      <StackPanel Spacing="4">
-        <ProgressBar x:Name="ContextProgress" Minimum="0" Maximum="{Binding ContextWindow}" Value="{Binding ContextUsed}" />
-        <TextBlock x:Name="ContextLine" Text="{Binding ContextLabel}" Classes="muted" />
-      </StackPanel>
-      <StackPanel x:Name="ConnectionLine" Orientation="Horizontal" Spacing="8">
-        <Panel Width="8" Height="8" VerticalAlignment="Center">
-          <Ellipse Width="8" Height="8" IsVisible="{Binding IsOk}" Fill="{DynamicResource LumiSuccessDotBrush}" />
-          <Ellipse Width="8" Height="8" IsVisible="{Binding IsFailed}" Fill="{DynamicResource LumiDangerDotBrush}" />
-          <Ellipse Width="8" Height="8" IsVisible="{Binding IsUnknown}" Fill="{DynamicResource LumiWarningDotBrush}" />
-        </Panel>
-        <TextBlock x:Name="ConnectionText" Text="{Binding StatusText}" VerticalAlignment="Center" />
-      </StackPanel>
-      <TextBlock x:Name="CostNote" Text="{x:Static res:Strings.Workbench_CostNote}" Classes="muted" TextWrapping="Wrap" />
-      <Border Classes="divider" Margin="0,4" />
-    </StackPanel>
-
     <TextBox x:Name="SearchBox" Text="{Binding SearchText}" Watermark="{x:Static res:Strings.ModelPicker_Search}" />
 
     <ListBox x:Name="EntryList" ItemsSource="{Binding Entries}" MaxHeight="320" Background="Transparent"
