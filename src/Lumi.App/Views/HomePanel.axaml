@@ -266,7 +266,7 @@
               </Grid>
               <Border Classes="code-block">
                 <StackPanel Spacing="4">
-                  <TextBlock Classes="home-mono" Text="{Binding Home.ModelCard.Name}" TextWrapping="Wrap" />
+                  <TextBlock Classes="home-mono" Text="{Binding Home.ModelCard.MonoText}" TextWrapping="Wrap" />
                   <TextBlock Classes="muted" Text="{Binding Home.ModelCard.DetailText}" TextWrapping="Wrap"
                              IsVisible="{Binding Home.ModelCard.DetailText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>

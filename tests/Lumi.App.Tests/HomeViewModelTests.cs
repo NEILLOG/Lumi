@@ -23,8 +23,6 @@ public sealed class HomeViewModelTests : IDisposable
 
     public void Dispose() => _host.Dispose();
 
-    private HomeCardViewModel Card(int index) => _host.Home.Cards[index];
-
     /// <summary>建一個有金鑰的連線與模型，設成工作台預設。</summary>
     private async Task UseWorkbenchModelAsync(string? apiKey = "sk-test")
     {
@@ -42,126 +40,6 @@ public sealed class HomeViewModelTests : IDisposable
                 ScheduledKind.Reminder, ScheduledCreator.User),
             default);
         await _host.Reminders.ReloadAsync();
-    }
-
-    [Fact]
-    public void Cards_AreSixInFixedOrder_AndEachSectionParses()
-    {
-        var sections = _host.Home.Cards.Select(c => c.Section).ToList();
-
-        Assert.Equal(SectionOrder, sections);
-        foreach (var section in sections)
-            Assert.True(Enum.TryParse<SettingsSection>(section, out _));
-    }
-
-    [Fact]
-    public async Task WithoutAModel_ConnectionsCardAsksForOneAndNeedsAttention()
-    {
-        // 沒有設定檔時預設會有一個模型（JsonModelCatalog.CreateInitialSettings），這裡把它刪掉
-        foreach (var model in _host.Catalog.Current.Models)
-            await _host.Catalog.DeleteModelAsync(model.Id);
-        await _host.Home.RefreshAsync();
-
-        Assert.Equal(Strings.Home_NoModel, Card(0).Value);
-        Assert.Null(Card(0).Detail);
-        Assert.True(Card(0).NeedsAttention);
-    }
-
-    [Fact]
-    public async Task WithModelKeyAndOkStatus_ShowsConnectionAndModel_AndNeedsNoAttention()
-    {
-        _host.Status.Mark("conn1", ConnectionStatus.Ok);
-
-        await UseWorkbenchModelAsync();
-
-        Assert.Equal("測試模型", Card(0).Value);
-        Assert.Contains("測試連線", Card(0).Detail);
-        Assert.Contains("claude-test-1", Card(0).Detail);
-        Assert.Contains(Strings.Home_StatusOk, Card(0).Detail);
-        Assert.False(Card(0).NeedsAttention);
-    }
-
-    [Fact]
-    public async Task FailedStatus_MarksConnectionsCardAsNeedingAttention()
-    {
-        await UseWorkbenchModelAsync();
-        Assert.False(Card(0).NeedsAttention);
-
-        _host.Status.Mark("conn1", ConnectionStatus.Failed);
-        await _host.Home.RefreshAsync();
-
-        Assert.True(Card(0).NeedsAttention);
-        Assert.Contains(Strings.Home_StatusFailed, Card(0).Detail);
-    }
-
-    [Fact]
-    public async Task MissingApiKey_ShowsNoKeyAndNeedsAttention()
-    {
-        await UseWorkbenchModelAsync(apiKey: null);
-
-        Assert.True(Card(0).NeedsAttention);
-        Assert.Contains(Strings.Home_NoApiKey, Card(0).Detail);
-    }
-
-    [Fact]
-    public async Task Reminders_CountAndNextTitleAppearAfterCreating()
-    {
-        Assert.Equal(Strings.Home_RemindersNone, Card(1).Value);
-        Assert.Null(Card(1).Detail);
-
-        await CreateOneTimeReminderAsync("喝水");
-        await _host.Home.RefreshAsync();
-
-        Assert.Equal(string.Format(CultureInfo.CurrentCulture, Strings.Home_RemindersCountFormat, 1), Card(1).Value);
-        Assert.Contains("喝水", Card(1).Detail);
-        Assert.False(Card(1).NeedsAttention);
-    }
-
-    [Fact]
-    public async Task Memory_TurningItOffChangesTheValue()
-    {
-        Assert.Equal(Strings.Home_MemoryOn, Card(2).Value);
-
-        _host.Memory.IsEnabled = false;
-        await SettingsHost.WaitUntil(() => !_host.Memory.IsEnabled);
-        await _host.Home.RefreshAsync();
-
-        Assert.Equal(Strings.Home_MemoryOff, Card(2).Value);
-    }
-
-    [Fact]
-    public void Tools_CountMatchesAllToolItems()
-    {
-        var items = _host.Tools.Groups.SelectMany(g => g.Items).ToList();
-        var enabled = items.Count(i => i.IsEnabled);
-
-        Assert.True(items.Count > 0);
-        Assert.Equal(string.Format(CultureInfo.CurrentCulture, Strings.Home_ToolsCountFormat, enabled, items.Count), Card(3).Value);
-    }
-
-    [Fact]
-    public void Appearance_ShowsThemeAndSprite()
-    {
-        Assert.Contains(Strings.Theme_System, Card(4).Value);
-        Assert.Contains(_host.Sprite.SelectedSprite.Name, Card(4).Detail);
-    }
-
-    [Fact]
-    public void Network_ShowsTheProxyModeWhichDefaultsToSystem()
-    {
-        Assert.Equal(Strings.Network_ModeSystem, Card(5).Value);
-        Assert.Null(Card(5).Detail);
-    }
-
-    [Fact]
-    public async Task AfterDispose_CardsNoLongerRefresh()
-    {
-        var before = Card(1).Value;
-
-        _host.Home.Dispose();
-        await CreateOneTimeReminderAsync("喝水");
-
-        Assert.Equal(before, Card(1).Value);
     }
 
     // ---- M21 21D：首頁資料 ----

@@ -16,43 +16,15 @@ using Lumi.Core.Web;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>設定首頁的一張狀態卡片。點了用 <see cref="SettingsViewModel.GoToCommand"/> 切到 <see cref="Section"/>。</summary>
-public sealed partial class HomeCardViewModel : ObservableObject
-{
-    public HomeCardViewModel(string section, string iconKey, string title)
-    {
-        Section = section;
-        IconKey = iconKey;
-        Title = title;
-    }
-
-    /// <summary><see cref="SettingsSection"/> 的名稱（例如 "Models"），給 GoToCommand 當參數。</summary>
-    public string Section { get; }
-
-    /// <summary>圖示資源的 key（例如 "LumiIconDiamond"），由 XAML 的 converter 取得幾何。</summary>
-    public string IconKey { get; }
-
-    public string Title { get; }
-
-    [ObservableProperty]
-    private string _value = "";
-
-    [NotifyPropertyChangedFor(nameof(HasDetail))]
-    [ObservableProperty]
-    private string? _detail;
-
-    [ObservableProperty]
-    private bool _needsAttention;
-
-    public bool HasDetail => !string.IsNullOrEmpty(Detail);
-}
-
 /// <summary>首頁「待處理」的一列。<see cref="ActionCommand"/> 已綁好：前往設定，或就地測試連線。</summary>
 public sealed record HomePendingItem(string Id, string IconKey, string Title, string Description, string ActionText, bool IsPrimary, ICommand ActionCommand);
 
 /// <summary>首頁「目前模型」卡片。<see cref="ShowSharedNote"/> 只在工作台與小精靈確定用同一個模型時為 true。</summary>
-public sealed record HomeModelCard(string Name, string? DetailText, string? StatusText, bool NeedsAttention, bool ShowSharedNote)
+public sealed record HomeModelCard(string Name, string? DetailText, string? StatusText, bool NeedsAttention, bool ShowSharedNote, string ModelId = "")
 {
+    /// <summary>卡片中央用等寬字顯示的文字：確切的 model ID；沒有模型時是提示文字。</summary>
+    public string MonoText => ModelId.Length > 0 ? ModelId : Name;
+
     public static HomeModelCard Empty { get; } = new("", null, null, false, false);
 }
 
@@ -92,9 +64,7 @@ public enum HomeActionStatus { Succeeded, Failed, Denied }
 public sealed record HomeActionItem(string RelativeTime, HomeActionStatus Status, string DisplayName, string? Target, string? Summary, string? ApprovalBadge);
 
 /// <summary>
-/// 設定首頁的狀態總覽。兩組資料：
-/// 1. <see cref="Cards"/>：M20 的 6 張舊卡片（舊的 HomePanel 還綁著它；M21 21F 會移除）。
-/// 2. M21 的首頁資料：待處理、目前模型、記憶、本月用量、工具、提醒排程、最近的動作，以及側欄橘點用的旗標。
+/// 設定首頁的狀態總覽：待處理、目前模型、記憶、本月用量、工具、提醒排程、最近的動作，以及側欄橘點用的旗標。
 /// 只讀（待處理的「測試連線」除外，它會寫入連線狀態快取），不新增任何設定開關。
 /// </summary>
 public sealed partial class HomeViewModel : ObservableObject, IDisposable
@@ -111,12 +81,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     private readonly IConnectionTester _tester;
     private readonly TimeProvider _time;
     private readonly MemoryOptions _memoryOptions;
-    private readonly HomeCardViewModel _connections;
-    private readonly HomeCardViewModel _reminders;
-    private readonly HomeCardViewModel _memory;
-    private readonly HomeCardViewModel _tools;
-    private readonly HomeCardViewModel _general;
-    private readonly HomeCardViewModel _network;
     private readonly EventHandler<AppSettings> _onCatalogChanged;
     private readonly EventHandler _onStatusChanged;
     private readonly EventHandler _onMcpChanged;
@@ -159,14 +123,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         _time = time;
         _memoryOptions = memoryOptions ?? new MemoryOptions();
 
-        _connections = new HomeCardViewModel(nameof(SettingsSection.Connections), "LumiIconDiamond", Strings.Settings_CategoryConnections);
-        _reminders = new HomeCardViewModel(nameof(SettingsSection.Reminders), "LumiIconBell", Strings.Settings_CategoryReminders);
-        _memory = new HomeCardViewModel(nameof(SettingsSection.Memory), "LumiIconBrain", Strings.Settings_CategoryMemory);
-        _tools = new HomeCardViewModel(nameof(SettingsSection.Tools), "LumiIconWrench", Strings.Tools_MenuTitle);
-        _general = new HomeCardViewModel(nameof(SettingsSection.General), "LumiIconSun", Strings.Home_AppearanceTitle);
-        _network = new HomeCardViewModel(nameof(SettingsSection.Network), "LumiIconGlobe", Strings.Settings_CategoryNetwork);
-        // M21 21F 會移除：舊的 HomePanel.axaml 仍綁 Home.Cards，改寫前先保留
-        Cards = [_connections, _reminders, _memory, _tools, _general, _network];
 
         _onCatalogChanged = (_, _) => _dispatcher.Post(OnExternalChange);
         _onStatusChanged = (_, _) => _dispatcher.Post(OnExternalChange);
@@ -194,9 +150,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         _mcp.Changed += _onMcpChanged;
         Refresh();
     }
-
-    /// <summary>舊的 6 張卡片，順序固定：AI 連線、提醒排程、記憶、工具、外觀與操作、網路。M21 21F 會移除。</summary>
-    public IReadOnlyList<HomeCardViewModel> Cards { get; }
 
     // ---- M21：首頁資料（View 只綁這些）----
 
@@ -418,12 +371,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     private void ApplyAll(AppSettings settings, bool hasApiKey)
     {
         _lastHasApiKey = hasApiKey;
-        ApplyConnections(settings, hasApiKey);
-        ApplyReminders();
-        ApplyMemory();
-        ApplyTools();
-        ApplyAppearance(settings);
-        ApplyNetwork(settings);
         ApplyModelCard(settings, hasApiKey);
         ApplyMemoryCard();
         ApplyToolsCard(settings);
@@ -437,120 +384,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         ConnectionStatus.Failed => Strings.Home_StatusFailed,
         _ => Strings.Home_StatusUnknown,
     };
-
-    private void ApplyConnections(AppSettings settings, bool hasApiKey)
-    {
-        var workbench = ResolveWorkbench(settings);
-        if (workbench is null)
-        {
-            _connections.Value = Strings.Home_NoModel;
-            _connections.Detail = null;
-            _connections.NeedsAttention = true;
-            return;
-        }
-
-        var (model, connection) = workbench.Value;
-        var status = _status.Get(connection.Id).Status;
-        var statusText = ConnectionStatusText(hasApiKey, status);
-
-        _connections.Value = model.DisplayName;
-        _connections.Detail = string.Format(CultureInfo.CurrentCulture, Strings.Home_ModelDetailFormat, connection.Name, model.ModelId)
-            + " · " + statusText;
-        _connections.NeedsAttention = !hasApiKey || status == ConnectionStatus.Failed;
-    }
-
-    private void ApplyReminders()
-    {
-        if (_remindersVm is null)
-        {
-            _reminders.Value = "";
-            _reminders.Detail = null;
-            _reminders.NeedsAttention = false;
-            return;
-        }
-
-        var pending = _remindersVm.Pending;
-        var first = pending.FirstOrDefault();
-        _reminders.Value = pending.Count > 0
-            ? string.Format(CultureInfo.CurrentCulture, Strings.Home_RemindersCountFormat, pending.Count)
-            : Strings.Home_RemindersNone;
-
-        string? detail = null;
-        if (first is not null)
-        {
-            detail = string.Format(CultureInfo.CurrentCulture, Strings.Home_RemindersNextFormat, first.Title);
-            if (!string.IsNullOrEmpty(first.ScheduleText))
-                detail += " · " + first.ScheduleText;
-        }
-        _reminders.Detail = detail;
-        _reminders.NeedsAttention = false;
-    }
-
-    private void ApplyMemory()
-    {
-        if (_memoryVm is null)
-        {
-            _memory.Value = "";
-            _memory.Detail = null;
-            _memory.NeedsAttention = false;
-            return;
-        }
-
-        _memory.Value = _memoryVm.IsEnabled ? Strings.Home_MemoryOn : Strings.Home_MemoryOff;
-        _memory.Detail = _memoryVm.UsageText;
-        _memory.NeedsAttention = false;
-    }
-
-    private void ApplyTools()
-    {
-        if (_toolsVm is null)
-        {
-            _tools.Value = "";
-            _tools.Detail = null;
-            _tools.NeedsAttention = false;
-            return;
-        }
-
-        var items = _toolsVm.Groups.SelectMany(g => g.Items).ToList();
-        var enabled = items.Count(i => i.IsEnabled);
-        _tools.Value = string.Format(CultureInfo.CurrentCulture, Strings.Home_ToolsCountFormat, enabled, items.Count);
-        _tools.Detail = null;
-        _tools.NeedsAttention = false;
-    }
-
-    private void ApplyAppearance(AppSettings settings)
-    {
-        if (_generalVm is null || _spriteVm is null)
-        {
-            _general.Value = "";
-            _general.Detail = null;
-            _general.NeedsAttention = false;
-            return;
-        }
-
-        var theme = settings.Theme switch
-        {
-            ThemePreference.Light => Strings.Theme_Light,
-            ThemePreference.Dark => Strings.Theme_Dark,
-            _ => Strings.Theme_System,
-        };
-        _general.Value = string.Format(CultureInfo.CurrentCulture, Strings.Home_AppearanceFormat, _generalVm.SelectedPalette.Text, theme);
-        _general.Detail = string.Format(CultureInfo.CurrentCulture, Strings.Home_SpriteFormat, _spriteVm.SelectedSprite.Name);
-        _general.NeedsAttention = false;
-    }
-
-    private void ApplyNetwork(AppSettings settings)
-    {
-        _network.Value = settings.Network.Mode switch
-        {
-            ProxyMode.Pac => Strings.Network_ModePac,
-            ProxyMode.Manual => Strings.Network_ModeManual,
-            ProxyMode.None => Strings.Network_ModeNone,
-            _ => Strings.Network_ModeSystem,
-        };
-        _network.Detail = null;
-        _network.NeedsAttention = false;
-    }
 
     // ---- M21 首頁資料 ----
 
@@ -571,7 +404,8 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
             StatusText: ConnectionStatusText(hasApiKey, status),
             NeedsAttention: !hasApiKey || status == ConnectionStatus.Failed,
             // 小精靈與工作台都走 ConversationService.ResolveModel，只用 WorkbenchModelId（SpriteModelId 已不使用），所以一定共用
-            ShowSharedNote: true);
+            ShowSharedNote: true,
+            ModelId: model.ModelId);
     }
 
     private void ApplyMemoryCard()
