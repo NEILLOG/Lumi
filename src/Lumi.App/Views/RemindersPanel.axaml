@@ -62,7 +62,7 @@
           <StackPanel Classes="reminder-actions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
             <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
                     Command="{Binding DeleteCommand}" AutomationProperties.Name="{x:Static res:Strings.Reminders_Delete}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
                 <ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" />
                 <TextBlock Text="{x:Static res:Strings.Reminders_Delete}" />
               </StackPanel>
