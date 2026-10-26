@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- 圖示產生工具：不加進 Lumi.sln，像 poc/ 一樣獨立。用法見 Program.cs 檔頭 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Lumi.IconGen</RootNamespace>
+    <AssemblyName>Lumi.IconGen</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 版本由 Directory.Packages.props 集中管理；SkiaSharp 經由 Avalonia.Skia 間接引用 -->
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+</Project>
