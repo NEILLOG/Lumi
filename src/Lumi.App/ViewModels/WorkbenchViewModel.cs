@@ -822,6 +822,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 if (_cards.TryGetValue(approval.Request.CallId, out var waiting))
                     waiting.SetAwaiting(approval.Request);
                 break;
+            case ToolCallProgress progress:
+                if (_cards.TryGetValue(progress.CallId, out var progressCard))
+                    progressCard.SetProgress(progress.Text);
+                break;
             case ToolCallCompleted finished:
                 if (_cards.TryGetValue(finished.CallId, out var finishedCard))
                     finishedCard.Complete(finished.Result);
