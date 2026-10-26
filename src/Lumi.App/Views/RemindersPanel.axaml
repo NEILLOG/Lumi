@@ -1,0 +1,106 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.RemindersPanel"
+             x:DataType="vm:RemindersViewModel">
+
+  <!--
+    提醒排程面板（M20 20B）：說明 → 訊息 → 待觸發 → 已結束（右側「清除已結束」）。不提供新增。
+    待觸發與已結束共用同一個列樣式；窄視窗（Window.narrow）時刪除鈕移到內容下方、靠左（同記憶面板的規則）。
+  -->
+  <UserControl.Styles>
+    <!-- 清單的一列：分隔線分開，不是卡片 -->
+    <Style Selector="Border.reminder-row">
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="Padding" Value="0,12" />
+    </Style>
+    <Style Selector="TextBlock.item-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <!-- RWD：窄視窗時刪除鈕移到內容下方（第 2 列，靠左） -->
+    <Style Selector="StackPanel.reminder-actions">
+      <Setter Property="(Grid.Row)" Value="0" />
+      <Setter Property="(Grid.Column)" Value="1" />
+    </Style>
+    <Style Selector="Window.narrow StackPanel.reminder-actions">
+      <Setter Property="(Grid.Row)" Value="1" />
+      <Setter Property="(Grid.Column)" Value="0" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- 一列：標題、種類與狀態徽章、訊息、排程與建立者；右側刪除 -->
+    <DataTemplate x:Key="ReminderRowTemplate" x:DataType="vm:ReminderRowViewModel">
+      <Border Classes="reminder-row">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="0">
+          <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+            <WrapPanel>
+              <TextBlock Classes="item-title" Margin="0,0,8,4" Text="{Binding Title}" TextWrapping="Wrap" />
+              <Border Classes="badge" Margin="0,0,8,4">
+                <TextBlock Text="{Binding KindText}" />
+              </Border>
+              <Border Classes="badge" Margin="0,0,8,4" IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Text="{Binding StatusText}" />
+              </Border>
+            </WrapPanel>
+            <TextBlock Classes="muted" Text="{Binding Message}" TextWrapping="Wrap"
+                       IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <WrapPanel>
+              <TextBlock Classes="muted" Margin="0,0,12,0" Text="{Binding ScheduleText}"
+                         IsVisible="{Binding ScheduleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <TextBlock Classes="muted" Text="{Binding CreatedByText}" />
+            </WrapPanel>
+          </StackPanel>
+
+          <StackPanel Classes="reminder-actions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Command="{Binding DeleteCommand}" AutomationProperties.Name="{x:Static res:Strings.Reminders_Delete}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Reminders_Delete}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="0">
+
+        <TextBlock Classes="muted" Text="{x:Static res:Strings.Reminders_RunningNote}" TextWrapping="Wrap" />
+
+        <TextBlock x:Name="RemindersMessage" Classes="muted" Classes.error="{Binding MessageIsError}" Margin="0,12,0,0"
+                   Text="{Binding Message}" TextWrapping="Wrap" IsVisible="{Binding HasMessage}" />
+
+        <!-- 待觸發 -->
+        <TextBlock Classes="section-title" Margin="0,24,0,8" Text="{x:Static res:Strings.Reminders_PendingTitle}" />
+        <TextBlock x:Name="RemindersEmptyPending" Classes="muted" Margin="0,0,0,8" Text="{x:Static res:Strings.Reminders_EmptyPending}"
+                   TextWrapping="Wrap" IsVisible="{Binding ShowPendingEmpty}" />
+        <ItemsControl x:Name="PendingList" ItemsSource="{Binding Pending}" ItemTemplate="{StaticResource ReminderRowTemplate}" />
+
+        <!-- 已結束：標題在左，清除在右（沒有已結束的項目時停用） -->
+        <Grid ColumnDefinitions="*,Auto" Margin="0,24,0,0" ColumnSpacing="16">
+          <TextBlock Grid.Column="0" Classes="section-title" VerticalAlignment="Center" Text="{x:Static res:Strings.Reminders_FinishedTitle}" />
+          <Button x:Name="RemindersClearFinishedButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}"
+                  Padding="16,8" Content="{x:Static res:Strings.Reminders_ClearFinished}" Command="{Binding ClearFinishedCommand}"
+                  AutomationProperties.Name="{x:Static res:Strings.Reminders_ClearFinished}" />
+        </Grid>
+        <TextBlock Classes="muted" Margin="0,4,0,8" Text="{x:Static res:Strings.Reminders_FinishedNote}" TextWrapping="Wrap" />
+        <TextBlock x:Name="RemindersEmptyFinished" Classes="muted" Margin="0,0,0,8" Text="{x:Static res:Strings.Reminders_EmptyFinished}"
+                   TextWrapping="Wrap" IsVisible="{Binding ShowFinishedEmpty}" />
+        <ItemsControl x:Name="FinishedList" ItemsSource="{Binding Finished}" ItemTemplate="{StaticResource ReminderRowTemplate}" />
+
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </ScrollViewer>
+</UserControl>
