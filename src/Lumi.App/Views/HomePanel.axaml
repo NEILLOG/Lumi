@@ -53,7 +53,7 @@
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
     </Style>
 
-    <!-- 待處理：Warning 淡底圓角容器；列之間 1px 分隔線（用 Warning 框色，第一列的上線與容器上框重疊） -->
+    <!-- 待處理：Warning 淡底圓角容器；每列下緣 1px 分隔線（用 Warning 框色；最後一列的下線與容器下框重疊） -->
     <Style Selector="Border.pending-box">
       <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
@@ -62,7 +62,7 @@
     </Style>
     <Style Selector="Border.pending-row">
       <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
-      <Setter Property="BorderThickness" Value="0,1,0,0" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="Padding" Value="16,12" />
     </Style>
     <Style Selector="Border.pending-icon">
@@ -207,8 +207,8 @@
         <StackPanel x:Name="HomePendingSection" Spacing="8" Margin="0,0,0,24"
                     IsVisible="{Binding Home.HasPending}">
           <TextBlock Classes="home-warning" Text="{Binding Home.PendingTitle}" />
-          <Border x:Name="HomePendingBox" Classes="pending-box">
-            <ItemsControl x:Name="HomePendingList" ItemsSource="{Binding Home.PendingItems}" Margin="0,0,0,0"
+          <Border x:Name="HomePendingBox" Classes="pending-box" ClipToBounds="True">
+            <ItemsControl x:Name="HomePendingList" ItemsSource="{Binding Home.PendingItems}" Margin="0,0,0,-1"
                           AutomationProperties.Name="{x:Static res:Strings.Home_Attention}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:HomePendingItem">
@@ -246,7 +246,7 @@
 
         <!-- ===== 重點設定：五張卡 ===== -->
         <TextBlock Classes="home-label" Text="{x:Static res:Strings.Home_KeySettings}" Margin="0,0,0,8" />
-        <Grid x:Name="HomeCardGrid" ColumnDefinitions="*,*,*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+        <Grid x:Name="HomeCardGrid" ColumnDefinitions="*,*,*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="16">
 
           <!-- 目前模型 -->
           <Border x:Name="HomeModelCard" Classes="card home-card">
