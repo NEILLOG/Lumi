@@ -76,7 +76,7 @@
     <Style Selector="Border.code-block">
       <Setter Property="Background" Value="{DynamicResource LumiCodeBackgroundBrush}" />
       <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
-      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="Padding" Value="12,12" />
     </Style>
     <Style Selector="Border.code-block TextBlock.home-mono">
       <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
@@ -84,7 +84,7 @@
     <Style Selector="Border.stat-tile">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
       <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
-      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="Padding" Value="12,12" />
     </Style>
     <Style Selector="Border.stat-chip">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
@@ -94,12 +94,12 @@
     <Style Selector="Border.mcp-row">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
       <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
-      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="Padding" Value="12,8" />
     </Style>
     <Style Selector="Border.tag">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
       <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Padding" Value="6,2" />
+      <Setter Property="Padding" Value="8,4" />
     </Style>
     <Style Selector="Border.tag TextBlock">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
@@ -208,7 +208,7 @@
                     IsVisible="{Binding Home.HasPending}">
           <TextBlock Classes="home-warning" Text="{Binding Home.PendingTitle}" />
           <Border x:Name="HomePendingBox" Classes="pending-box">
-            <ItemsControl x:Name="HomePendingList" ItemsSource="{Binding Home.PendingItems}" Margin="0,-1,0,0"
+            <ItemsControl x:Name="HomePendingList" ItemsSource="{Binding Home.PendingItems}" Margin="0,0,0,0"
                           AutomationProperties.Name="{x:Static res:Strings.Home_Attention}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:HomePendingItem">
@@ -219,7 +219,7 @@
                                       Foreground="{DynamicResource LumiWarningIconBrush}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
-                      <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                      <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center" Margin="0,0,12,0">
                         <TextBlock Classes="card-value" Text="{Binding Title}" />
                         <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" />
                       </StackPanel>
@@ -258,7 +258,7 @@
                 </StackPanel>
                 <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Models"
                         AutomationProperties.Name="{x:Static res:Strings.Home_Switch}">
-                  <StackPanel Orientation="Horizontal" Spacing="2">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="{x:Static res:Strings.Home_Switch}" />
                     <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
                   </StackPanel>
@@ -271,7 +271,7 @@
                              IsVisible="{Binding Home.ModelCard.DetailText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>
               </Border>
-              <StackPanel Orientation="Horizontal" Spacing="6"
+              <StackPanel Orientation="Horizontal" Spacing="8"
                           IsVisible="{Binding Home.ModelCard.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                 <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="12" VerticalAlignment="Center"
                               Foreground="{DynamicResource LumiWarningTextBrush}"
@@ -296,21 +296,21 @@
                 </StackPanel>
                 <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Memory"
                         AutomationProperties.Name="{x:Static res:Strings.Home_Manage}">
-                  <StackPanel Orientation="Horizontal" Spacing="2">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="{x:Static res:Strings.Home_Manage}" />
                     <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
               </Grid>
               <TextBlock Classes="card-value" Text="{Binding Home.MemoryCard.StatusText}" />
-              <StackPanel Spacing="6">
+              <StackPanel Spacing="8">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_MemoryItemsLabel}" />
                   <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Home.MemoryCard.ItemsText}" />
                 </Grid>
                 <ProgressBar Minimum="0" Maximum="1" Height="6" Value="{Binding Home.MemoryCard.ItemsProgress}" />
               </StackPanel>
-              <StackPanel Spacing="6">
+              <StackPanel Spacing="8">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_MemoryCharsLabel}" />
                   <TextBlock Grid.Column="1" Classes="muted" Text="{Binding Home.MemoryCard.CharsText}" />
@@ -322,15 +322,15 @@
 
           <!-- 本月用量：沒有金額與預算、沒有連結；載入中顯示 —，讀不到時顯示說明 -->
           <Border x:Name="HomeUsageCard" Classes="card home-card">
-            <StackPanel Spacing="10">
+            <StackPanel Spacing="12">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
                 <TextBlock Classes="card-title" Text="{x:Static res:Strings.Home_UsageTitle}" VerticalAlignment="Center" />
               </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6"
+              <StackPanel Orientation="Horizontal" Spacing="8"
                           IsVisible="{Binding Home.UsageCard.IsUnavailable, Converter={x:Static BoolConverters.Not}}">
                 <TextBlock Classes="big-number" Text="{Binding Home.UsageCard.MonthText, TargetNullValue='—'}" VerticalAlignment="Bottom" />
-                <TextBlock Classes="muted" Text="{x:Static res:Strings.Usage_Tokens}" VerticalAlignment="Bottom" Margin="0,0,0,3"
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Usage_Tokens}" VerticalAlignment="Bottom" Margin="0,0,0,4"
                            IsVisible="{Binding Home.UsageCard.MonthText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               </StackPanel>
               <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_UsageUnavailable}" TextWrapping="Wrap"
@@ -359,30 +359,30 @@
                 </StackPanel>
                 <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Tools"
                         AutomationProperties.Name="{x:Static res:Strings.Home_Manage}">
-                  <StackPanel Orientation="Horizontal" Spacing="2">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="{x:Static res:Strings.Home_Manage}" />
                     <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
               </Grid>
               <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                <StackPanel Grid.Column="0" Spacing="2">
+                <StackPanel Grid.Column="0" Spacing="4">
                   <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_ToolsBuiltin}" />
                   <TextBlock Classes="card-value" Text="{Binding Home.ToolsCard.BuiltInText}" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="2"
+                <StackPanel Grid.Column="1" Spacing="4"
                             IsVisible="{Binding Home.ToolsCard.McpTotal, Converter={StaticResource PositiveCountConverter}}">
                   <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_ToolsMcp}" />
                   <TextBlock Classes="card-value" Text="{Binding Home.ToolsCard.McpText}" />
                 </StackPanel>
               </Grid>
-              <StackPanel Spacing="6" IsVisible="{Binding Home.ToolsCard.McpTotal, Converter={StaticResource PositiveCountConverter}}">
+              <StackPanel Spacing="8" IsVisible="{Binding Home.ToolsCard.McpTotal, Converter={StaticResource PositiveCountConverter}}">
                 <ItemsControl ItemsSource="{Binding Home.ToolsCard.McpServers}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:HomeMcpServerItem">
-                      <Border Classes="mcp-row" Margin="0,0,0,6">
+                      <Border Classes="mcp-row" Margin="0,0,0,8">
                         <Grid ColumnDefinitions="Auto,*,Auto">
-                          <Grid Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                          <Grid Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,12,0">
                             <Ellipse Width="8" Height="8" Fill="{DynamicResource LumiSuccessDotBrush}"
                                      IsVisible="{Binding IsConnected}" />
                             <Ellipse Width="8" Height="8" Fill="{DynamicResource LumiTextMutedBrush}"
@@ -418,7 +418,7 @@
                 </StackPanel>
                 <Button Grid.Column="1" Classes="tertiary" Command="{Binding GoToCommand}" CommandParameter="Reminders"
                         AutomationProperties.Name="{x:Static res:Strings.Home_Manage}">
-                  <StackPanel Orientation="Horizontal" Spacing="2">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="{x:Static res:Strings.Home_Manage}" />
                     <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
                   </StackPanel>
@@ -426,13 +426,13 @@
               </Grid>
               <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                 <Border Grid.Column="0" Classes="stat-tile">
-                  <StackPanel Spacing="2">
+                  <StackPanel Spacing="4">
                     <TextBlock Classes="big-number" Text="{Binding Home.RemindersCard.PendingCount}" />
                     <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_RemindersPending}" TextWrapping="Wrap" />
                   </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Classes="stat-tile">
-                  <StackPanel Spacing="2">
+                  <StackPanel Spacing="4">
                     <TextBlock Classes="big-number" Text="{Binding Home.RemindersCard.TimerCount}" />
                     <TextBlock Classes="muted" Text="{x:Static res:Strings.Home_RemindersTimers}" TextWrapping="Wrap" />
                   </StackPanel>
@@ -449,12 +449,12 @@
           <StackPanel>
             <TextBlock Classes="muted" Text="{Binding Home.NoRecentActionsText}" Margin="16,12"
                        IsVisible="{Binding Home.HasRecentActions, Converter={x:Static BoolConverters.Not}}" />
-            <ItemsControl ItemsSource="{Binding Home.RecentActions}" Margin="0,-1,0,0">
+            <ItemsControl ItemsSource="{Binding Home.RecentActions}" Margin="0,0,0,0">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:HomeActionItem">
                   <Border Classes="action-row">
                     <Grid ColumnDefinitions="88,Auto,*,Auto">
-                      <TextBlock Grid.Column="0" Classes="muted" Text="{Binding RelativeTime}" TextWrapping="Wrap" Margin="0,2,12,0" />
+                      <TextBlock Grid.Column="0" Classes="muted" Text="{Binding RelativeTime}" TextWrapping="Wrap" Margin="0,4,12,0" />
                       <ctl:LumiIcon Grid.Column="1" Size="16" Margin="0,0,12,0" VerticalAlignment="Top"
                                     Data="{Binding Status, Converter={StaticResource ActionStatusConverter}, ConverterParameter=icon}"
                                     Foreground="{Binding Status, Converter={StaticResource ActionStatusConverter}, ConverterParameter=brush}" />
