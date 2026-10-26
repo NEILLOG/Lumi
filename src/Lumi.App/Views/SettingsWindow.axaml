@@ -202,12 +202,16 @@
                 </Grid>
               </ListBoxItem>
               <ListBoxItem x:Name="CategoryConnections" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryConnections}">
-                <Grid ColumnDefinitions="Auto,*">
+                <Grid ColumnDefinitions="Auto,*,Auto">
                   <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconDiamond}" Size="18" Margin="0,0,12,0" />
                   <StackPanel Grid.Column="1">
                     <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryConnections}" />
                     <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryConnectionsSub}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
+                  <!-- 需要處理的橘點（不只靠顏色：有 AutomationProperties.HelpText） -->
+                  <Ellipse x:Name="ConnectionsAttentionDot" Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center" Margin="8,0,0,0"
+                           Fill="{DynamicResource LumiWarningDotBrush}" IsVisible="{Binding Home.AttentionConnections}"
+                           AutomationProperties.HelpText="{x:Static res:Strings.Home_Attention}" />
                 </Grid>
               </ListBoxItem>
               <ListBoxItem x:Name="CategoryPersona" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPersona}">
@@ -265,12 +269,16 @@
                 </Grid>
               </ListBoxItem>
               <ListBoxItem x:Name="CategorySpeech" AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySpeech}">
-                <Grid ColumnDefinitions="Auto,*">
+                <Grid ColumnDefinitions="Auto,*,Auto">
                   <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconMic}" Size="18" Margin="0,0,12,0" />
                   <StackPanel Grid.Column="1">
                     <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategorySpeech}" />
                     <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategorySpeechSub}" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
+                  <!-- 需要處理的橘點（不只靠顏色：有 AutomationProperties.HelpText） -->
+                  <Ellipse x:Name="SpeechAttentionDot" Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center" Margin="8,0,0,0"
+                           Fill="{DynamicResource LumiWarningDotBrush}" IsVisible="{Binding Home.AttentionSpeech}"
+                           AutomationProperties.HelpText="{x:Static res:Strings.Home_Attention}" />
                 </Grid>
               </ListBoxItem>
               <ListBoxItem x:Name="CategoryNetwork" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryNetwork}">
