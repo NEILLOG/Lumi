@@ -4,10 +4,11 @@ namespace Lumi.Browser;
 
 /// <summary>
 /// 單一檔案發佈（M20）時讓 Playwright 找得到 driver（node 與 JS 套件）。
-/// 單檔把 <c>.playwright</c> 包在執行檔裡，啟動時和原生函式庫一起解壓到 <c>.net/&lt;程式名稱&gt;/&lt;雜湊&gt;/</c>，
-/// 但 Playwright 只在執行檔旁邊找，找不到；解壓出來的 <c>node</c> 在 macOS 也沒有執行權限。
-/// 這裡找出解壓資料夾、補上執行權限，並用 <c>PLAYWRIGHT_DRIVER_SEARCH_PATH</c> 指給 Playwright。
-/// 一般建置（driver 就在執行檔旁邊）不做任何事。
+/// 發佈設定有 <c>IncludeAllContentForSelfExtract</c>：<c>.playwright</c>（node 與 JS 套件）和原生函式庫一起包在執行檔裡，
+/// 啟動時解壓到 <c>.net/&lt;程式名稱&gt;/&lt;雜湊&gt;/</c>，這時 <see cref="AppContext.BaseDirectory"/> 就是那個資料夾，Playwright 找得到；
+/// 但解壓出來的 <c>node</c> 在 macOS 沒有執行權限（Permission denied），這裡補上。
+/// 如果 <c>BaseDirectory</c> 不是解壓資料夾（沒有 node），再掃描解壓位置找，並用 <c>PLAYWRIGHT_DRIVER_SEARCH_PATH</c> 指給 Playwright。
+/// 一般建置（driver 就在執行檔旁邊、已有執行權限）不會有任何改動。
 /// </summary>
 public static class PlaywrightDriverLocator
 {
@@ -25,8 +26,15 @@ public static class PlaywrightDriverLocator
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(SearchPathVariable)))
             return;
         var platform = PlatformFolder();
-        if (platform is null || File.Exists(NodePath(AppContext.BaseDirectory, platform)))
+        if (platform is null)
             return;
+
+        var baseDirectory = AppContext.BaseDirectory;
+        if (File.Exists(NodePath(baseDirectory, platform)))
+        {
+            EnsureExecutable(NodePath(baseDirectory, platform));
+            return;
+        }
 
         var root = FindExtractionRoot(ExtractionBases(), Path.GetFileNameWithoutExtension(Environment.ProcessPath), platform);
         if (root is null)
@@ -66,15 +74,17 @@ public static class PlaywrightDriverLocator
     internal static string NodePath(string root, string platform) =>
         Path.Combine(root, ".playwright", "node", platform, OperatingSystem.IsWindows() ? "node.exe" : "node");
 
-    private static void EnsureExecutable(string nodePath)
+    /// <summary>補上 node 的執行權限（只在 Unix，且還沒有使用者執行權限時）。</summary>
+    internal static void EnsureExecutable(string nodePath)
     {
         if (OperatingSystem.IsWindows() || !File.Exists(nodePath))
             return;
         try
         {
-            File.SetUnixFileMode(nodePath,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
-                | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            var mode = File.GetUnixFileMode(nodePath);
+            if (mode.HasFlag(UnixFileMode.UserExecute))
+                return;
+            File.SetUnixFileMode(nodePath, mode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

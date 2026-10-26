@@ -55,4 +55,25 @@ public sealed class PlaywrightDriverLocatorTests : IDisposable
         Assert.Null(PlaywrightDriverLocator.FindExtractionRoot([_root], null, "darwin-arm64"));
         Assert.Null(PlaywrightDriverLocator.FindExtractionRoot([Path.Combine(_root, "missing")], "Lumi", "darwin-arm64"));
     }
+
+    [SkippableFact]
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    public void EnsureExecutable_AddsTheExecuteBit_OnUnix()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "Windows 沒有執行權限位元");
+        var node = Path.Combine(_root, "node");
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(node, "node");
+        File.SetUnixFileMode(node, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+
+        PlaywrightDriverLocator.EnsureExecutable(node);
+
+        Assert.True(File.GetUnixFileMode(node).HasFlag(UnixFileMode.UserExecute));
+    }
+
+    [Fact]
+    public void EnsureExecutable_IgnoresAMissingFile()
+    {
+        PlaywrightDriverLocator.EnsureExecutable(Path.Combine(_root, "missing-node"));
+    }
 }
