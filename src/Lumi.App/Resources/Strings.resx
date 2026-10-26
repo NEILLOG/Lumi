@@ -703,9 +703,6 @@
   <data name="Settings_HeaderRemindersDescription" xml:space="preserve"><value>這裡列出 Lumi 目前記得的提醒、計時器與週期排程。可以刪除不要的項目；要新增請直接在對話裡告訴 Lumi。</value></data>
   <data name="Settings_HeaderPrivacyTitle" xml:space="preserve"><value>資料存放與隱私</value></data>
   <data name="Settings_HeaderPrivacyDescription" xml:space="preserve"><value>看看 Lumi 把資料放在哪裡、哪些內容會送出去，以及怎麼控制。</value></data>
-  <data name="Home_ListName" xml:space="preserve"><value>常用設定連結</value></data>
-  <data name="Home_LinkModels" xml:space="preserve"><value>模型設定</value></data>
-  <data name="Home_LinkModelsSub" xml:space="preserve"><value>選擇與調整使用的模型</value></data>
   <data name="Reminders_PendingTitle" xml:space="preserve"><value>待觸發</value></data>
   <data name="Reminders_FinishedTitle" xml:space="preserve"><value>已結束</value></data>
   <data name="Reminders_FinishedNote" xml:space="preserve"><value>完成、錯過或取消的項目，系統會保留 30 天後自動清除。</value></data>

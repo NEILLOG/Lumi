@@ -133,7 +133,7 @@ public class SettingsWindowShellTests
         Assert.Equal(11, list.ItemCount);
         var expected = new[]
         {
-            ("CategoryHome", "設定首頁", "常用設定的快速入口"),
+            ("CategoryHome", "設定首頁", "目前的設定一覽"),
             ("CategoryConnections", "AI 連線", "供應商、金鑰與模型"),
             ("CategoryPersona", "人格與主動性", "回答風格與主動程度"),
             ("CategoryMemory", "記憶", "Lumi 記得的事"),

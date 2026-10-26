@@ -692,9 +692,6 @@ public static class Strings
     public static string Settings_HeaderRemindersDescription => Get(nameof(Settings_HeaderRemindersDescription));
     public static string Settings_HeaderPrivacyTitle => Get(nameof(Settings_HeaderPrivacyTitle));
     public static string Settings_HeaderPrivacyDescription => Get(nameof(Settings_HeaderPrivacyDescription));
-    public static string Home_ListName => Get(nameof(Home_ListName));
-    public static string Home_LinkModels => Get(nameof(Home_LinkModels));
-    public static string Home_LinkModelsSub => Get(nameof(Home_LinkModelsSub));
     public static string Reminders_PendingTitle => Get(nameof(Reminders_PendingTitle));
     public static string Reminders_FinishedTitle => Get(nameof(Reminders_FinishedTitle));
     public static string Reminders_FinishedNote => Get(nameof(Reminders_FinishedNote));
