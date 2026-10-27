@@ -27,13 +27,13 @@ public partial class SettingsViewModel : ObservableObject
     private readonly IConfirmService _confirm;
     private readonly ISettingsWindowService? _windows;
 
-    public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
+    public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, ImageGenerationViewModel imageGeneration, PersonaViewModel persona, MemoryViewModel memory,
         ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
         Models = models;
-        AiSettings = new AiSettingsViewModel(connections, models);
+        AiSettings = new AiSettingsViewModel(connections, models, imageGeneration);
         Persona = persona;
         Memory = memory;
         Tools = tools;
@@ -144,7 +144,7 @@ public partial class SettingsViewModel : ObservableObject
             await _windows.ReturnToWorkbench();
     }
 
-    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty || Speech.IsDirty || Network.IsDirty || McpServers.IsDirty;
+    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || AiSettings.ImageGeneration.IsDirty || Persona.IsDirty || Speech.IsDirty || Network.IsDirty || McpServers.IsDirty;
 
     /// <summary>設定首頁的連結：參數是 <see cref="SettingsSection"/> 的名稱（例如 "Models"）。</summary>
     [RelayCommand]

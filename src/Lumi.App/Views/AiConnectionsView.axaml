@@ -87,6 +87,21 @@
                   </Grid>
                 </Border>
               </DataTemplate>
+              <!-- 清單最下方的固定列「圖片生成」：字首圖示、標題、目前設定的摘要（或「尚未設定」） -->
+              <DataTemplate DataType="vm:AiImageGenerationItem">
+                <Border Classes="card" Margin="0,8,0,0" Padding="12" ToolTip.Tip="{Binding Summary}">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <Border Grid.Column="0" Width="40" Height="40" Margin="0,0,12,0" CornerRadius="{StaticResource LumiRadiusInput}"
+                            Background="{DynamicResource LumiAccentSoftBrush}">
+                      <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="20" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="{x:Static res:Strings.ImageGen_Title}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" Text="{Binding Summary}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
               <!-- 連線底下最後一列：虛線「＋ 新增模型」（選到它就在這個連線底下新增） -->
               <DataTemplate DataType="vm:AiAddModelItem">
                 <Panel Classes="add-model" Margin="24,0,0,0" MinHeight="40">
@@ -108,6 +123,7 @@
                      TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32" />
           <views:ConnectionsPanel x:Name="ConnectionsPanel" DataContext="{Binding Connections}" />
           <views:ModelsPanel x:Name="ModelsPanel" DataContext="{Binding Models}" />
+          <views:ImageGenerationPanel x:Name="ImageGenerationPanel" DataContext="{Binding ImageGeneration}" />
         </Panel>
       </Grid>
     </StackPanel>

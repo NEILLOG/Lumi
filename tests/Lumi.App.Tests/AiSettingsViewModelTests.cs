@@ -32,6 +32,7 @@ public sealed class AiSettingsViewModelTests
             expected.AddRange(host.Models.Items.Where(m => m.ConnectionId == connection.Id).Select(m => $"model:{m.Id}"));
             expected.Add($"add-model:{connection.Id}");
         }
+        expected.Add(AiImageGenerationItem.FixedKey);   // 清單最下方的固定列
         Assert.Equal(expected, ai.Items.Select(i => i.Key).ToList());
 
         // Ollama 這一組：連線、模型（依顯示名稱排序）、新增模型
@@ -262,7 +263,7 @@ public sealed class AiSettingsViewModelTests
             await host.Catalog.DeleteConnectionAsync(connection.Id);
 
         Assert.True(ai.IsEmpty);
-        Assert.Empty(ai.Items);
+        Assert.Equal(AiImageGenerationItem.FixedKey, Assert.Single(ai.Items).Key);   // 沒有連線時只剩固定的「圖片生成」列（清單本身隱藏）
         Assert.True(ai.ShowPlaceholder);
     }
 
@@ -279,6 +280,128 @@ public sealed class AiSettingsViewModelTests
         Assert.DoesNotContain(ai.Items, i => i is AiModelItem { Id: "gemma-a" });
         Assert.Null(ai.SelectedItem);
         Assert.True(ai.ShowPlaceholder);
+    }
+
+    [Fact]
+    public async Task TheImageGenerationRow_IsTheLastRow_AndShowsNotConfiguredAtFirst()
+    {
+        using var host = new SettingsHost();
+        await AddOllamaAsync(host);
+        var image = Assert.IsType<AiImageGenerationItem>(host.Settings.AiSettings.Items[^1]);
+
+        Assert.Equal(Strings.ImageGen_NotConfigured, image.Summary);
+        Assert.Contains(Strings.ImageGen_Title, image.AutomationName);
+        Assert.Contains(Strings.ImageGen_NotConfigured, image.AutomationName);
+    }
+
+    [Fact]
+    public async Task SelectingImageGeneration_OpensItsEditor_AndClosesTheOthers()
+    {
+        using var host = new SettingsHost();
+        await AddOllamaAsync(host);
+        var ai = host.Settings.AiSettings;
+        var image = ai.Items.OfType<AiImageGenerationItem>().Single();
+        await ai.SelectAsync(ai.Items.OfType<AiModelItem>().First());
+
+        Assert.True(await ai.SelectAsync(image));
+
+        Assert.True(ai.ShowImageEditor);
+        Assert.False(ai.ShowModelEditor);
+        Assert.False(ai.ShowConnectionEditor);
+        Assert.False(ai.ShowPlaceholder);
+        Assert.False(host.Models.HasEditor);
+        Assert.Equal(image, ai.SelectedItem);
+
+        // 選到別的列：圖片表單關掉
+        Assert.True(await ai.SelectAsync(ai.Items.OfType<AiConnectionItem>().First()));
+        Assert.False(ai.ImageGeneration.HasEditor);
+        Assert.False(ai.ShowImageEditor);
+    }
+
+    [Fact]
+    public async Task SavingImageGeneration_UpdatesTheRowSummary()
+    {
+        using var host = new SettingsHost();
+        var ai = host.Settings.AiSettings;
+        var connection = host.Catalog.Current.Connections[0];
+        var image = ai.Items.OfType<AiImageGenerationItem>().Single();
+        await ai.SelectAsync(image);
+
+        ai.ImageGeneration.SelectedConnection = ai.ImageGeneration.Connections.Single(c => c.Id == connection.Id);
+        ai.ImageGeneration.ModelId = "gpt-image-1";
+        Assert.True(ai.ImageGeneration.IsDirty);
+        await ai.ImageGeneration.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(new ImageGenerationSettings(connection.Id, "gpt-image-1", ImageGenerationSettings.DefaultSize), host.Catalog.Current.ImageGeneration);
+        Assert.False(ai.ImageGeneration.IsDirty);
+        Assert.Equal(string.Format(Strings.ImageGen_SummaryFormat, connection.Name, "gpt-image-1"), image.Summary);
+        Assert.Contains(image.Summary, image.AutomationName);
+    }
+
+    [Fact]
+    public async Task DeletingTheConnection_ClearsTheImageGenerationConnection_AndTheRowGoesBackToNotConfigured()
+    {
+        using var host = new SettingsHost();
+        await AddOllamaAsync(host);
+        var ai = host.Settings.AiSettings;
+        var image = ai.Items.OfType<AiImageGenerationItem>().Single();
+        await ai.SelectAsync(image);
+        ai.ImageGeneration.SelectedConnection = ai.ImageGeneration.Connections.Single(c => c.Id == OllamaId);
+        ai.ImageGeneration.ModelId = "llama3";
+        await ai.ImageGeneration.SaveCommand.ExecuteAsync(null);
+        Assert.Equal(OllamaId, host.Catalog.Current.ImageGeneration.ConnectionId);
+        Assert.NotEqual(Strings.ImageGen_NotConfigured, image.Summary);
+
+        await ai.SelectAsync(ai.Items.OfType<AiConnectionItem>().Single(c => c.Id == OllamaId));
+        await host.Connections.DeleteCommand.ExecuteAsync(null);
+
+        Assert.Null(host.Catalog.Current.ImageGeneration.ConnectionId);
+        Assert.Equal(Strings.ImageGen_NotConfigured, image.Summary);
+    }
+
+    [Fact]
+    public async Task SwitchingWithUnsavedImageChanges_AsksFirst_AndCancelKeepsTheEditor()
+    {
+        using var host = new SettingsHost();
+        var ai = host.Settings.AiSettings;
+        var connection = ai.Items.OfType<AiConnectionItem>().First();
+        await ai.SelectAsync(ai.Items.OfType<AiImageGenerationItem>().Single());
+        ai.ImageGeneration.ModelId = "改到一半";
+
+        host.Confirm.Answer = false;
+        Assert.False(await ai.SelectAsync(connection));
+        Assert.Single(host.Confirm.Asked);
+        Assert.True(ai.ImageGeneration.HasEditor);
+        Assert.Equal("改到一半", ai.ImageGeneration.ModelId);
+        Assert.False(host.Connections.HasEditor);
+
+        host.Confirm.Answer = true;
+        Assert.True(await ai.SelectAsync(connection));
+        Assert.False(ai.ImageGeneration.HasEditor);
+        Assert.Equal(2, host.Confirm.Asked.Count);
+    }
+
+    [Fact]
+    public async Task ImageGenerationModelList_LoadsOnOpen_UsesTheCache_AndRefreshes()
+    {
+        using var host = new SettingsHost();
+        var ai = host.Settings.AiSettings;
+        await host.Catalog.SetImageGenerationAsync(new ImageGenerationSettings(host.Catalog.Current.Connections[0].Id, "gpt-image-1"));
+        host.Tester.Result = ConnectionTestResult.Ok(["gpt-image-1", "dall-e-3"]);
+
+        await ai.SelectAsync(ai.Items.OfType<AiImageGenerationItem>().Single());
+        Assert.Equal(["gpt-image-1", "dall-e-3"], ai.ImageGeneration.AvailableModelIds);
+        Assert.Single(host.Tester.Calls);
+
+        // 同一個連線的測試結果還在快取裡：再開表單不重新測試
+        await ai.SelectAsync(ai.Items.OfType<AiConnectionItem>().First());
+        await ai.SelectAsync(ai.Items.OfType<AiImageGenerationItem>().Single());
+        Assert.Single(host.Tester.Calls);
+
+        host.Tester.Result = ConnectionTestResult.Ok(["gpt-image-2"]);
+        await ai.ImageGeneration.RefreshModelListCommand.ExecuteAsync(null);
+        Assert.Equal(["gpt-image-2"], ai.ImageGeneration.AvailableModelIds);
+        Assert.Equal(2, host.Tester.Calls.Count);
     }
 
     [Fact]

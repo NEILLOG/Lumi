@@ -48,6 +48,7 @@ internal sealed class SettingsHost : IDisposable
         var dispatcher = uiDispatcher ?? new SyncUiDispatcher();
         Connections = new ConnectionsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
+        ImageGeneration = new ImageGenerationViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Persona = new PersonaViewModel(Catalog, dispatcher);
         Memory = new MemoryViewModel(MemoryStore, Catalog, Confirm, dispatcher, new FakeTimeProvider());
         Tools = new ToolsViewModel(new FakeToolCatalog(
@@ -66,7 +67,7 @@ internal sealed class SettingsHost : IDisposable
         Reminders = new RemindersViewModel(ReminderService, Confirm, dispatcher, TimeProvider.System);
         Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
         Home = new HomeViewModel(Catalog, Status, dispatcher, Store, McpSource, Tester, Clock, new MemoryOptions());
-        Settings = new SettingsViewModel(Connections, Models, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Catalog, Confirm, WindowService)
+        Settings = new SettingsViewModel(Connections, Models, ImageGeneration, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Catalog, Confirm, WindowService)
         {
             // 產品預設落在「設定首頁」；既有的頁面測試都從 AI 連線開始，要測首頁的測試自己改回 Home
             CategoryIndex = (int)SettingsCategory.Connections,
@@ -107,6 +108,7 @@ internal sealed class SettingsHost : IDisposable
     public JsonModelCatalog Catalog { get; }
     public ConnectionsViewModel Connections { get; }
     public ModelsViewModel Models { get; }
+    public ImageGenerationViewModel ImageGeneration { get; }
     public PersonaViewModel Persona { get; }
     public FakeMemoryStore MemoryStore { get; } = new();
     public MemoryViewModel Memory { get; }

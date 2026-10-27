@@ -251,7 +251,7 @@ public class ConnectionsPageTests
         var items = rig.Host.Settings.AiSettings.Items;
         for (var i = 0; i < items.Count; i++)
             if (items[i] is AiAddModelItem)
-                Assert.True(i == items.Count - 1 || items[i + 1] is AiConnectionItem);
+                Assert.True(items[i + 1] is AiConnectionItem or AiImageGenerationItem);   // 最後一個連線的下一列是固定的「圖片生成」
     }
 
     [AvaloniaFact]
@@ -923,5 +923,25 @@ public class ConnectionsPageTests
         Assert.Equal(connectionId, rig.Host.Models.SelectedConnection?.Id);
         Assert.Equal("改名後", rig.Host.Models.SelectedConnection?.Name);
         Assert.True(rig.Host.Models.CanSave);
+    }
+    [AvaloniaFact]
+    public async Task ImageGeneration_IsTheLastRow_AndItsPanelShowsWhenSelected()
+    {
+        using var rig = new Rig();
+        var image = rig.Host.Settings.AiSettings.Items.OfType<AiImageGenerationItem>().Single();
+        Assert.Same(image, rig.Host.Settings.AiSettings.Items[^1]);
+        var row = RowOf(rig.List, image);
+        Assert.NotNull(row.GetVisualDescendants().OfType<TextBlock>().SingleOrDefault(t => t.Text == Strings.ImageGen_NotConfigured));
+
+        await rig.Host.Settings.AiSettings.SelectAsync(image);
+        rig.Settle();
+
+        var panel = rig.Window.FindByName<ImageGenerationPanel>("ImageGenerationPanel");
+        Assert.True(panel.FindByName<Border>("ImageDetailCard").IsEffectivelyVisible);
+        Assert.False(rig.Connections.FindByName<Border>("DetailCard").IsEffectivelyVisible);
+        Assert.False(rig.Models.FindByName<Border>("DetailCard").IsEffectivelyVisible);
+        Assert.False(rig.Window.FindByName<TextBlock>("DetailPlaceholder").IsEffectivelyVisible);
+        Assert.NotNull(panel.FindByName<Button>("ImageSaveButton"));
+        Assert.False(panel.FindByName<Button>("ImageCancelButton").IsEnabled);   // 沒有未儲存的變更：取消不能按
     }
 }
