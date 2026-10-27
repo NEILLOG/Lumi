@@ -60,6 +60,13 @@ public class EmojiTextBlock : SelectableTextBlock
         var text = string.IsNullOrEmpty(SelectedText) ? PlainText() : SelectedText;
         if (string.IsNullOrEmpty(text) || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
             return;
-        await clipboard.SetTextAsync(text);
+        try
+        {
+            await clipboard.SetTextAsync(text);
+        }
+        catch (Exception)
+        {
+            // 剪貼簿被其他程式佔用時放棄這次複製；async void 的例外不能讓程式結束
+        }
     }
 }
