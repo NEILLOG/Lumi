@@ -14,21 +14,33 @@ namespace Lumi.App.ViewModels;
 public sealed partial class AiSettingsViewModel : ObservableObject
 {
     private bool _rebuilding;   // 重建清單時，清單控制項會把選取寫成 null：這時不能當成使用者取消選取
+    private readonly AiImageGenerationItem _imageItem;
 
-    public AiSettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models)
+    public AiSettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, ImageGenerationViewModel imageGeneration)
     {
         Connections = connections;
         Models = models;
+        ImageGeneration = imageGeneration;
+        _imageItem = new AiImageGenerationItem(imageGeneration.Summary);
         connections.Items.CollectionChanged += (_, _) => Rebuild();
         models.Items.CollectionChanged += (_, _) => Rebuild();
         connections.PropertyChanged += (_, e) => OnEditorChanged(e.PropertyName);
         models.PropertyChanged += (_, e) => OnEditorChanged(e.PropertyName);
+        imageGeneration.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ImageGenerationViewModel.Summary))
+                _imageItem.Summary = ImageGeneration.Summary;
+            OnEditorChanged(e.PropertyName);   // HasEditor 與 Connections 的 HasEditor 同名，走同一條路
+        };
         Rebuild();
     }
 
     public ConnectionsViewModel Connections { get; }
 
     public ModelsViewModel Models { get; }
+
+    /// <summary>「圖片生成」固定列的表單（M22 22G）。</summary>
+    public ImageGenerationViewModel ImageGeneration { get; }
 
     /// <summary>清單的所有列（依連線分組，順序就是畫面順序）。</summary>
     public ObservableCollection<AiListItem> Items { get; } = [];
@@ -50,8 +62,10 @@ public sealed partial class AiSettingsViewModel : ObservableObject
 
     public bool ShowModelEditor => Models.HasEditor;
 
+    public bool ShowImageEditor => ImageGeneration.HasEditor;
+
     /// <summary>詳細區沒有表單：顯示「請先選擇…」。</summary>
-    public bool ShowPlaceholder => !Connections.HasEditor && !Models.HasEditor;
+    public bool ShowPlaceholder => !Connections.HasEditor && !Models.HasEditor && !ImageGeneration.HasEditor;
 
     /// <summary>選取清單的一列。有未儲存的變更先詢問（放棄才切換）；使用者取消回 false，維持原狀。</summary>
     public async Task<bool> SelectAsync(AiListItem? item)
@@ -59,16 +73,23 @@ public sealed partial class AiSettingsViewModel : ObservableObject
         switch (item)
         {
             case AiConnectionItem connection:
-                return await Models.CloseEditorAsync() && await Connections.SelectAsync(connection.Connection);
+                return await Models.CloseEditorAsync() && await ImageGeneration.CloseEditorAsync() && await Connections.SelectAsync(connection.Connection);
             case AiModelItem model:
-                return await Connections.CloseEditorAsync() && await Models.SelectAsync(model.Model);
+                return await Connections.CloseEditorAsync() && await ImageGeneration.CloseEditorAsync() && await Models.SelectAsync(model.Model);
             case AiAddModelItem add:
-                if (!await Connections.CloseEditorAsync())
+                if (!await Connections.CloseEditorAsync() || !await ImageGeneration.CloseEditorAsync())
                     return false;
                 await Models.StartNewAsync(add.ConnectionId);
                 return true;
+            case AiImageGenerationItem when ImageGeneration.HasEditor:
+                return true;
+            case AiImageGenerationItem:
+                if (!await Connections.CloseEditorAsync() || !await Models.CloseEditorAsync())
+                    return false;
+                await ImageGeneration.OpenAsync();
+                return true;
             default:
-                return await Connections.CloseEditorAsync() && await Models.CloseEditorAsync();
+                return await Connections.CloseEditorAsync() && await Models.CloseEditorAsync() && await ImageGeneration.CloseEditorAsync();
         }
     }
 
@@ -76,14 +97,14 @@ public sealed partial class AiSettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task NewConnectionAsync()
     {
-        if (await Models.CloseEditorAsync())
+        if (await Models.CloseEditorAsync() && await ImageGeneration.CloseEditorAsync())
             await Connections.NewConnectionCommand.ExecuteAsync(null);
     }
 
     /// <summary>從外部（缺金鑰流程、首頁的待處理）導到某個連線；<paramref name="focusApiKey"/> 時聚焦金鑰輸入框。</summary>
     public async Task NavigateToConnectionAsync(string? connectionId, bool focusApiKey, string? notice)
     {
-        if (await Models.CloseEditorAsync())
+        if (await Models.CloseEditorAsync() && await ImageGeneration.CloseEditorAsync())
             await Connections.NavigateAsync(connectionId, focusApiKey, notice);
     }
 
@@ -101,6 +122,7 @@ public sealed partial class AiSettingsViewModel : ObservableObject
                     Items.Add(new AiModelItem(model));
                 Items.Add(new AiAddModelItem(connection.Id));
             }
+            Items.Add(_imageItem);   // 清單最下方的固定列
         }
         finally
         {
@@ -118,11 +140,14 @@ public sealed partial class AiSettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedItem));
         OnPropertyChanged(nameof(ShowConnectionEditor));
         OnPropertyChanged(nameof(ShowModelEditor));
+        OnPropertyChanged(nameof(ShowImageEditor));
         OnPropertyChanged(nameof(ShowPlaceholder));
     }
 
     private AiListItem? FindSelected()
     {
+        if (ImageGeneration.HasEditor)
+            return _imageItem;
         var key = Models.HasEditor
             ? (Models.IsNew
                 ? (Models.SelectedConnection is { } connection ? AiAddModelItem.KeyOf(connection.Id) : null)

@@ -63,6 +63,31 @@ public sealed class AiModelItem(ModelListItem model) : AiListItem
     public static string KeyOf(string modelSettingsId) => $"model:{modelSettingsId}";
 }
 
+/// <summary>
+/// 清單最下方的固定列「圖片生成」（M22 22G）：字首圖示、標題、目前設定的摘要（「連線 · 模型」或「尚未設定」）。
+/// 選到它開啟圖片生成設定；摘要存好後由 <see cref="AiSettingsViewModel"/> 更新這一列。
+/// </summary>
+public sealed class AiImageGenerationItem(string summary) : AiListItem
+{
+    public const string FixedKey = "image-generation";
+
+    private string _summary = summary;
+
+    public string Summary
+    {
+        get => _summary;
+        set
+        {
+            if (SetProperty(ref _summary, value))
+                OnPropertyChanged(nameof(AutomationName));
+        }
+    }
+
+    public override string Key => FixedKey;
+
+    public override string AutomationName => $"{Strings.ImageGen_Title}，{Summary}";
+}
+
 /// <summary>每個連線最後一列的「＋ 新增模型」：選到它就在這個連線底下開始新增模型設定。</summary>
 public sealed class AiAddModelItem(string connectionId) : AiListItem
 {

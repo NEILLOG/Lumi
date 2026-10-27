@@ -26,7 +26,7 @@ internal sealed class SettingsRig : IDisposable
     [
         "connections-list", "connections-form", "connections-advanced", "connections-errors", "connections-key-stored",
         "connections-test-ok", "connections-test-fail",
-        "models-form", "models-advanced",
+        "models-form", "models-advanced", "image-generation",
         "persona", "persona-dirty", "memory", "memory-new", "memory-editing", "general", "sprite", "sprite-issues",
         "speech", "speech-token-stored", "speech-test-ok", "speech-test-fail",
     ];
@@ -107,6 +107,10 @@ internal sealed class SettingsRig : IDisposable
                 Settle();
                 if (state == "models-advanced")
                     ExpandAdvanced("ModelsPanel");
+                break;
+            case "image-generation":
+                await Host.Catalog.SetImageGenerationAsync(new ImageGenerationSettings(Host.Catalog.Current.Connections[0].Id, "gpt-image-1"));   // 已設定：模型 ID 不空白
+                await Host.Settings.AiSettings.SelectAsync(Host.Settings.AiSettings.Items.OfType<AiImageGenerationItem>().Single());
                 break;
             case "persona":
                 settings.CategoryIndex = 2;
