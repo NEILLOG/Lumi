@@ -37,7 +37,7 @@ public class ConversationServiceTests
         Assert.Equal(2, messages.Count);
         Assert.Equal(ChatRole.User, messages[0].Role);
         Assert.Equal("嗨", Assert.IsType<TextBlock>(messages[0].Content[0]).Text);
-        Assert.Same(reply, messages[1]);   // thinking 與 signature 原樣保存
+        Assert.Equal(reply with { Seq = 2 }, messages[1]);   // thinking 與 signature 原樣保存（Seq 是儲存讀出時填的順序號）
         var request = Assert.Single(provider.Requests);
         Assert.Equal(FakeModelCatalog.Model, request.Model.Model);
         Assert.Equal(FakeModelCatalog.Connection, request.Model.Connection);
@@ -169,7 +169,7 @@ public class ConversationServiceTests
         Assert.IsType<Completed>(events[^1]);
         var messages = await store.GetMessagesAsync(conversation.Id);
         Assert.Equal(2, messages.Count);
-        Assert.Same(question, messages[0]);
+        Assert.Equal(question with { Seq = 1 }, messages[0]);
         Assert.Equal("新答案", Assert.IsType<TextBlock>(messages[1].Content[^1]).Text);
         // 送出的歷史只有使用者那則：舊答案已經不在了
         Assert.Equal(ChatRole.User, Assert.Single(Assert.Single(provider.Requests).Messages).Role);

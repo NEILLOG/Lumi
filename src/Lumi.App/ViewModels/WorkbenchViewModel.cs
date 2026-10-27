@@ -482,7 +482,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson)))
             Messages.Add(item);
 
-        LoadUsageTally(messages);
+        LoadUsageTally(messages, await _store.GetCompactionUsageAsync(CurrentConversationId!));
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
@@ -746,6 +746,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     private void OnRunStarted(object? sender, RunStartedArgs args)
     {
+        _inCompaction = false;
         ErrorMessage = null;
         IsResponding = true;
 
@@ -799,8 +800,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 break;
             case UsageEvent usage:
                 _tally.ReportInFlight(usage.Tokens);   // 進行中請求的累計值（覆蓋，不相加）
-                LastUsage = usage.Tokens;
+                if (!_inCompaction)
+                    LastUsage = usage.Tokens;   // 摘要呼叫的用量不是目前的上下文大小
                 RefreshUsage();
+                break;
+            case CompactionStarted or CompactionCompleted or CompactionFailed:
+                OnCompactionEvent(chatEvent);
                 break;
             case Completed completed when completed.Reason == StopReason.ToolUse:
                 // 這一輪還沒結束：有文字就定稿成一個氣泡，只有思考或只有工具呼叫的中間步驟不顯示（Q5）

@@ -70,6 +70,14 @@ public interface IChatSession
     /// <summary>移除最後一輪助理回應後再要一次（畫面上的移除由觀察者在 <see cref="RunStarted"/> 做）。</summary>
     Task<ChatRunResult> RegenerateAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// 手動整理上下文（M22）：直接做摘要（第二層），不看門檻。整理期間 <see cref="IsResponding"/> 為 true（不能送出、重試或重新產生），
+    /// <see cref="StopAndWaitAsync"/> 會取消它。只發 <see cref="CompactionStarted"/>、<see cref="CompactionCompleted"/>、<see cref="CompactionFailed"/>
+    /// 與摘要呼叫的 <see cref="UsageEvent"/> 這幾種事件（<see cref="EventReceived"/>），不發 <see cref="RunStarted"/>／<see cref="RunFinished"/>。
+    /// 回應進行中或還沒有對話時丟 <see cref="InvalidOperationException"/>；被停止時回傳沒有整理、也沒有失敗的結果（此時只有 <see cref="CompactionStarted"/>，沒有結束事件）；其他例外轉成失敗結果。
+    /// </summary>
+    Task<CompactionResult> CompactAsync(CancellationToken ct = default);
+
     void Stop();
 
     /// <summary>取消目前的回應，並等收尾全部做完才回來；沒有回應進行中就直接回來。</summary>

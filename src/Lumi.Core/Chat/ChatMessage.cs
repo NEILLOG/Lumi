@@ -20,5 +20,11 @@ public sealed record ChatMessage(
     TokenUsage? Usage = null,
     string? TurnSuffix = null)
 {
+    /// <summary>
+    /// 訊息在這則對話裡的順序號（從 1 起算），由儲存在讀出時填入；還沒存檔的訊息或不提供順序號的儲存是 0。
+    /// 上下文壓縮（<see cref="CompactionState"/>）用它標記「到哪一則為止已經整理過」。
+    /// </summary>
+    public int Seq { get; init; }
+
     public static string NewId() => Guid.CreateVersion7().ToString();
 }

@@ -29,6 +29,17 @@ public sealed class ConversationService
     /// <summary>工具進度文字的上限（M19 D12）。</summary>
     public const int ProgressMaxChars = 100;
 
+    /// <summary>估算超過上下文上限的這個比例就開始整理（M22）：先做第一層（清掉舊的工具結果）。</summary>
+    public const double CompactAtRatio = 0.8;
+
+    /// <summary>第一層之後重新估算仍超過這個比例，再做第二層（LLM 摘要）。</summary>
+    public const double SummaryAtRatio = 0.7;
+
+    /// <summary>摘要那次呼叫的輸出上限。</summary>
+    public const int SummaryMaxOutputTokens = 4000;
+
+    private const string ContextTooLongMessage = "這則對話太長，整理後仍超過模型能處理的長度。請開新對話繼續。";
+    private const string EmptySummaryMessage = "整理對話時沒有取得摘要內容。";
     private const string NoModelMessage = "還沒有可用的模型，請先到設定加入連線與模型。";
     private const string InterruptedMessage = "對話被中斷，沒有取得這個工具的結果。";
     private const string StoppedMessage = "使用者已停止。";
@@ -209,6 +220,8 @@ public sealed class ConversationService
         // 小精靈的輸出上限較低；thinking 參數不因模式改變（改了訊息快取會失效，M5 的 Q4）
         int? maxOutputTokens = mode == ChatMode.Sprite ? Math.Min(model.Model.MaxOutputTokens, _promptOptions.SpriteMaxOutputTokens) : null;
 
+        var contextRetried = false;   // 超過上限後已經整理並重送過一次（成功拿到回應後重設）
+
         for (var iteration = 1; iteration <= _options.MaxIterations; iteration++)
         {
             // 每一輪重新取得對話目前的範圍（使用者加入的檔案與資料夾）。需要範圍的工具定義一律照送，不因為有沒有範圍而增減：
@@ -219,7 +232,38 @@ public sealed class ConversationService
             var context = new ToolContext(conversationId, mode, _time, scope);
 
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
-            var requestMessages = BuildRequestMessages(history);
+
+            // ---- 上下文整理（M22）：估算超過上限的 80% 先清舊工具結果，仍超過 70% 再做 LLM 摘要。只影響送出的內容，存檔不變 ----
+            var compaction = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
+            if (model.Model.ContextWindow > 0)
+            {
+                var window = model.Model.ContextWindow;
+                var overhead = ContextEstimator.EstimateText(await _store.GetSystemPromptAsync(conversationId, ct).ConfigureAwait(false))
+                               + (offered.Count > 0 ? ContextEstimator.EstimateText(ToolSnapshotJson.Serialize(offered)) : 0);
+                var estimate = ContextEstimator.Estimate(CompactionApplier.Apply(history, compaction), compaction, overhead);
+                if (estimate > window * CompactAtRatio)
+                {
+                    var boundary = CompactionApplier.ToolResultsBoundary(history);
+                    if (boundary > (compaction.ToolResultsUptoSeq ?? 0))
+                    {
+                        await foreach (var compactionEvent in CompactToolResultsAsync(conversationId, boundary, model, ct).ConfigureAwait(false))
+                            yield return compactionEvent;
+                        compaction = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
+                        estimate = ContextEstimator.Estimate(CompactionApplier.Apply(history, compaction), compaction, overhead);
+                    }
+
+                    if (estimate > window * SummaryAtRatio)
+                    {
+                        var outcome = new CompactionOutcome();
+                        await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, compaction, outcome, ct).ConfigureAwait(false))
+                            yield return compactionEvent;
+                        if (outcome.Completed)
+                            compaction = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
+                    }
+                }
+            }
+
+            var requestMessages = BuildRequestMessages(CompactionApplier.Apply(history, compaction));
             if (requestMessages.Count == 0 || requestMessages[^1].Role is not (ChatRole.User or ChatRole.Tool))
                 throw new InvalidOperationException("最後一則訊息必須是使用者訊息或工具結果才能要求回應。");
 
@@ -256,12 +300,42 @@ public sealed class ConversationService
             Completed? completed = null;
             var failed = false;
 
+            Failed? tooLong = null;
+
             await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model, ct).ConfigureAwait(false))
             {
+                // 超過上限：先不轉發，下面整理後重送一次（還是失敗才回報）
+                if (chatEvent is Failed { Failure.Kind: ChatFailureKind.ContextTooLong } overLimit && !contextRetried)
+                {
+                    tooLong = overLimit;
+                    continue;
+                }
                 if (chatEvent is Completed c) completed = c;
                 if (chatEvent is Failed) failed = true;
-                yield return chatEvent;
+                // 整理後重送仍然超過上限：請使用者開新對話
+                yield return chatEvent is Failed { Failure.Kind: ChatFailureKind.ContextTooLong } again
+                    ? new Failed(again.Failure with { Message = ContextTooLongMessage })
+                    : chatEvent;
             }
+
+            if (tooLong is not null)
+            {
+                contextRetried = true;
+                var outcome = new CompactionOutcome();
+                var latest = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
+                await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, latest, outcome, ct).ConfigureAwait(false))
+                    yield return compactionEvent;
+                if (outcome.Completed)
+                {
+                    iteration--;   // 不算一次迴圈，用整理後的歷史再送一次
+                    continue;
+                }
+                yield return new Failed(tooLong.Failure with { Message = ContextTooLongMessage });
+                yield break;
+            }
+
+            if (completed is not null)
+                contextRetried = false;
 
             var uses = completed?.Message.Content.OfType<ToolUseBlock>().ToList() ?? [];
             if (failed || completed is null || uses.Count == 0 || completed.Reason != StopReason.ToolUse)
@@ -470,6 +544,106 @@ public sealed class ConversationService
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
             $"工具呼叫已達到 {_options.MaxIterations} 次上限，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+    }
+
+    /// <summary>手動整理（M22）：直接做第二層（LLM 摘要），不看門檻。沒有東西可整理時不發任何事件。</summary>
+    public async IAsyncEnumerable<ChatEvent> CompactAsync(string conversationId, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        Begin(conversationId);
+        try
+        {
+            var model = ResolveModel();
+            if (model is null)
+            {
+                yield return new CompactionFailed(CompactionKind.Summary, new ChatFailure(ChatFailureKind.ModelNotConfigured, NoModelMessage, Retryable: false));
+                yield break;
+            }
+
+            var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+            var state = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
+            await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, state, new CompactionOutcome(), ct).ConfigureAwait(false))
+                yield return compactionEvent;
+        }
+        finally
+        {
+            End(conversationId);
+        }
+    }
+
+    private sealed class CompactionOutcome
+    {
+        public bool Completed { get; set; }
+    }
+
+    /// <summary>第一層：不呼叫模型，只記下邊界。</summary>
+    private async IAsyncEnumerable<ChatEvent> CompactToolResultsAsync(
+        string conversationId, int boundary, ResolvedModel model, [EnumeratorCancellation] CancellationToken ct)
+    {
+        yield return new CompactionStarted(CompactionKind.ToolResults);
+        await _store.AddCompactionAsync(conversationId,
+            new CompactionRecord(CompactionRecord.NewId(), CompactionKind.ToolResults, boundary, null, model.Model.ModelId, _time.GetUtcNow()),
+            CancellationToken.None).ConfigureAwait(false);
+        yield return new CompactionCompleted(CompactionKind.ToolResults, boundary);
+    }
+
+    /// <summary>
+    /// 第二層：用同一個模型（不帶工具、不要求 thinking、輸出上限 <see cref="SummaryMaxOutputTokens"/>）把邊界之前的內容整理成摘要並存檔。
+    /// 邊界沒有比上次往前（沒有新的東西可整理）時什麼都不做。失敗不存任何東西，發 <see cref="CompactionFailed"/>。
+    /// 摘要那次呼叫的用量以 <see cref="UsageEvent"/> 轉發，並存進整理紀錄與 <see cref="CompactionCompleted.Usage"/>。
+    /// </summary>
+    private async IAsyncEnumerable<ChatEvent> CompactSummaryAsync(
+        string conversationId, ResolvedModel model, IReadOnlyList<ChatMessage> history, CompactionState state,
+        CompactionOutcome outcome, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var boundary = CompactionApplier.SummaryBoundary(history);
+        if (boundary <= (state.SummaryUptoSeq ?? 0))
+            yield break;
+
+        yield return new CompactionStarted(CompactionKind.Summary);
+
+        var input = CompactionApplier.BuildSummaryInput(history, state, boundary);
+        var summaryModel = new ResolvedModel(model.Model with { ShowThinking = false }, model.Connection);
+        var request = new ChatRequest(summaryModel, input, null, null, null, Math.Min(SummaryMaxOutputTokens, model.Model.MaxOutputTokens));
+
+        Completed? completed = null;
+        ChatFailure? failure = null;
+        TokenUsage? lastUsage = null;
+        await foreach (var chatEvent in _provider.StreamAsync(request, ct).ConfigureAwait(false))
+        {
+            switch (chatEvent)
+            {
+                case UsageEvent usage:
+                    lastUsage = usage.Tokens;
+                    yield return usage;
+                    break;
+                case Completed c:
+                    completed = c;
+                    break;
+                case Failed f:
+                    failure = DecorateFailure(f.Failure, model);
+                    break;
+                // 文字與思考不轉發：摘要不是一則助理回應，不能出現在畫面上
+            }
+        }
+
+        var summary = completed is null
+            ? ""
+            : string.Concat(completed.Message.Content.OfType<TextBlock>().Select(t => t.Text)).Trim();
+        if (failure is null && summary.Length == 0)
+            failure = new ChatFailure(ChatFailureKind.Unknown, EmptySummaryMessage, Retryable: true);
+        if (failure is not null)
+        {
+            _logger.LogWarning("對話整理失敗：{Kind}", failure.Kind);
+            yield return new CompactionFailed(CompactionKind.Summary, failure);
+            yield break;
+        }
+
+        var usageToStore = completed!.Message.Usage ?? lastUsage;
+        await _store.AddCompactionAsync(conversationId,
+            new CompactionRecord(CompactionRecord.NewId(), CompactionKind.Summary, boundary, summary, model.Model.ModelId, _time.GetUtcNow(), usageToStore),
+            CancellationToken.None).ConfigureAwait(false);
+        outcome.Completed = true;
+        yield return new CompactionCompleted(CompactionKind.Summary, boundary, usageToStore);
     }
 
     /// <summary>

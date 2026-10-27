@@ -37,4 +37,17 @@ public sealed record ToolCallProgress(string CallId, string Text) : ChatEvent;
 
 public sealed record ToolCallCompleted(string CallId, ToolResultBlock Result) : ChatEvent;
 
+/// <summary>
+/// 上下文壓縮（M22）開始：畫面據此顯示「正在整理對話…」。<see cref="CompactionKind.ToolResults"/> 不呼叫模型、瞬間完成，
+/// <see cref="CompactionKind.Summary"/> 要等一次模型呼叫。這三個事件不屬於 <see cref="Completed"/>／<see cref="Failed"/> 的約定，
+/// 可以出現在一輪回應之前或中間（自動整理），手動整理（<see cref="IChatSession.CompactAsync"/>）時則整段只有它們。
+/// </summary>
+public sealed record CompactionStarted(CompactionKind Kind) : ChatEvent;
+
+/// <summary>整理完成並已存檔。<paramref name="UptoSeq"/> 是整理涵蓋到的訊息順序號；<paramref name="Usage"/> 是摘要那次呼叫的用量（第一層為 null）。</summary>
+public sealed record CompactionCompleted(CompactionKind Kind, int UptoSeq, TokenUsage? Usage = null) : ChatEvent;
+
+/// <summary>整理失敗，對話內容沒有改變（沒有存任何東西）。自動整理失敗時回應照常繼續；手動整理的失敗也會從 <see cref="CompactionResult"/> 拿到。</summary>
+public sealed record CompactionFailed(CompactionKind Kind, ChatFailure Failure) : ChatEvent;
+
 public enum StopReason { EndTurn, MaxTokens, StopSequence, ToolUse, Other }

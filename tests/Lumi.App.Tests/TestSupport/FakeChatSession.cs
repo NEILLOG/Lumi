@@ -58,6 +58,7 @@ internal sealed class FakeChatSession : IChatSession
     public Task<ChatRunResult> SendAsync(string text, CancellationToken ct = default) => throw new NotSupportedException();
     public Task<ChatRunResult> RetryAsync(CancellationToken ct = default) => throw new NotSupportedException();
     public Task<ChatRunResult> RegenerateAsync(CancellationToken ct = default) => throw new NotSupportedException();
+    public Task<CompactionResult> CompactAsync(CancellationToken ct = default) => throw new NotSupportedException();
     public void Stop() { }
     public Task StopAndWaitAsync() => Task.CompletedTask;
     public bool TrySetMode(ChatMode mode) => false;

@@ -20,7 +20,7 @@ public interface IConversationStore
     Task<IReadOnlyList<Conversation>> ListAsync(int limit, ConversationCursor? before, CancellationToken ct = default);
 
     /// <summary>
-    /// 刪除整個對話：訊息、上下文項目隨外鍵一併刪除。不存在時回 false。
+    /// 刪除整個對話：訊息、上下文項目、整理紀錄隨外鍵一併刪除。不存在時回 false。
     /// 附件檔案不在這裡處理（由 <c>ConversationDeletionService</c> 在刪除之後清理）。
     /// </summary>
     Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default);
@@ -60,6 +60,19 @@ public interface IConversationStore
 
     /// <summary>記下這則對話的工具快照。只在第一次送出時呼叫一次。預設什麼都不做。</summary>
     Task SetToolSnapshotAsync(string conversationId, string snapshotJson, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>
+    /// 存一筆上下文整理紀錄（M22）。儲存實作順便記下當下對話最後一則訊息的順序號
+    /// （<see cref="CompactionState.AppliedAtSeq"/>）。預設什麼都不做，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task AddCompactionAsync(string conversationId, CompactionRecord record, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>這則對話目前的整理狀態（第一層、第二層各取最新一筆）。預設回空狀態。</summary>
+    Task<CompactionState> GetCompactionStateAsync(string conversationId, CancellationToken ct = default) =>
+        Task.FromResult(CompactionState.Empty);
+
+    /// <summary>這則對話所有摘要呼叫的 token 用量加總（計入本對話累計）。預設全 0。</summary>
+    Task<TokenUsage> GetCompactionUsageAsync(string conversationId, CancellationToken ct = default) => Task.FromResult(TokenUsage.Zero);
 
     /// <summary>
     /// 移除最後一則訊息（「重新產生」用）。從尾端移除不會讓前面任何一則的內容改變，所以不影響 thinking 簽章的一致性；

@@ -126,6 +126,7 @@ public class ConnectionStatusCacheTests
     [InlineData(ChatFailureKind.ModelNotConfigured)]
     [InlineData(ChatFailureKind.AppFilesMissing)]
     [InlineData(ChatFailureKind.Unknown)]
+    [InlineData(ChatFailureKind.ContextTooLong)]
     public void StatusAfterFailure_Unchanged(ChatFailureKind kind) =>
         Assert.Null(ConnectionStatusCache.StatusAfterFailure(kind));
 }
