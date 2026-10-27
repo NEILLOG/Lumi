@@ -451,8 +451,9 @@ public sealed class ConversationService
                     }
 
                     var images = await SaveToolImagesAsync(toolResult).ConfigureAwait(false);
+                    var imageFiles = toolResult.ImageFiles.Count > 0 ? toolResult.ImageFiles : null;
                     block = new ToolResultBlock(use.Id, toolResult.Content, toolResult.IsError, descriptor.DisplayName,
-                        preview.Target, toolResult.Summary, ToolExecutor.ElapsedMilliseconds(started, _time), approval, images);
+                        preview.Target, toolResult.Summary, ToolExecutor.ElapsedMilliseconds(started, _time), approval, images, imageFiles);
                 }
 
                 results.Add(block);

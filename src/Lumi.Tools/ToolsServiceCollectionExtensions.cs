@@ -1,7 +1,9 @@
 using Lumi.Core.Context;
+using Lumi.Core.Images;
 using Lumi.Core.Notes;
 using Lumi.Core.Tools;
 using Lumi.Tools.Browser;
+using Lumi.Tools.Images;
 using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
 using Lumi.Tools.Reminders;
@@ -69,6 +71,13 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<DownloadFileTool>();
         services.AddLumiTool<NetCheckTool>();
         services.AddLumiTool<WebCrawlTool>();   // 爬取網站（M19）：HTTP 或 Lumi 的瀏覽器，進度顯示在卡片上
+
+        // 圖片生成與編輯（22F）：IImageGenerator 由 Lumi.Providers 註冊；圖片存到「圖片／Lumi」
+        services.TryAddSingleton<IImageGenerator, NullImageGenerator>();
+        services.TryAddSingleton<IAttachmentStore, NullAttachmentStore>();
+        services.AddSingleton(_ => new GeneratedImageStore(GeneratedImageStore.DefaultFolder));
+        services.AddLumiTool<GenerateImageTool>();
+        services.AddLumiTool<EditImageTool>();
 
         // 瀏覽器工具（M18）：IBrowserSessions 由 Lumi.Browser 的 AddLumiBrowser 註冊（沒註冊時用 Core 的 NullBrowserSessions）
         services.AddLumiTool<BrowserOpenTool>();
