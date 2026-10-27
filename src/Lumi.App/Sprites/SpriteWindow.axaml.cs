@@ -249,6 +249,7 @@ public partial class SpriteWindow : Window
         SpriteHost.Width = _spriteOptions.Outer.Width;
         SpriteHost.Height = _spriteOptions.Outer.Height;
         BubbleArea.Height = _layout.BubbleBottom;
+        Bubble.MaxHeight = Math.Max(0, _layout.BubbleBottom - SpriteBubbleView.ShadowTop);   // 氣泡再高也不頂到視窗頂端（陰影會被切）
         InputBar.Margin = new Thickness(_layout.InputBar.X, _layout.InputBar.Y, 0, 0);
         InputBar.Width = _layout.InputBar.Width;
         InputBar.Height = _layout.InputBar.Height;

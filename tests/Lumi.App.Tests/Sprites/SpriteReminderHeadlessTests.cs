@@ -39,12 +39,12 @@ public class SpriteReminderHeadlessTests
 
     private sealed class Rig
     {
-        public Rig()
+        public Rig(SpriteShellOptions? options = null)
         {
             Center = new NotificationCenter(new SyncUiDispatcher(), () => Windows, () => throw new InvalidOperationException("不應該要求小精靈"),
                 NullLogger<NotificationCenter>.Instance);
             var catalog = new SpriteCatalog([new OrbSpriteFactory()]);
-            Window = new SpriteWindow(catalog, new QuietOverlay(), Settings, new SpriteShellOptions(), Time, NullLogger<SpriteWindow>.Instance,
+            Window = new SpriteWindow(catalog, new QuietOverlay(), Settings, options ?? new SpriteShellOptions(), Time, NullLogger<SpriteWindow>.Instance,
                 notifications: Center);
             Windows.ShowSprite();   // 小精靈可見：提醒顯示在小精靈上，不要求別的視窗
             Window.Show();
@@ -74,6 +74,23 @@ public class SpriteReminderHeadlessTests
         public Border Card => Bubble.FindControl<Border>("ReminderCard")!;
 
         public Button CloseButton => Bubble.FindControl<Button>("ReminderDismissButton")!;
+    }
+
+    [AvaloniaFact]
+    public void AVeryTallBubble_StaysBelowTheWindowTop_SoItsShadowIsNotCut()
+    {
+        // 預留給氣泡的高度設得很小，讓一般的提醒卡片就超過上限
+        var rig = new Rig(new SpriteShellOptions { BubbleReserve = 60 });
+        rig.Center.ShowAsync(new AppNotification("long", "提醒", string.Concat(Enumerable.Repeat("內容 ", 200)), At, NotificationKind.Reminder), default);
+        rig.Poll();
+
+        var top = rig.Bubble.TranslatePoint(new Point(0, 0), rig.Window)!.Value.Y;
+        Assert.True(top >= SpriteBubbleView.ShadowTop - 0.5, $"氣泡上緣 {top} 太靠近視窗頂端");
+        Assert.True(rig.Bubble.Bounds.Height <= rig.Bubble.MaxHeight + 0.5);
+        var scroll = rig.Bubble.FindControl<ScrollViewer>("BubbleScroll")!;
+        Assert.True(scroll.Extent.Height > scroll.Viewport.Height, "內容比上限高時要能捲動");
+        Assert.Equal(scroll.Extent.Height - scroll.Viewport.Height, scroll.Offset.Y, 1);   // 停在最下面
+        rig.Window.Close();
     }
 
     [AvaloniaFact]

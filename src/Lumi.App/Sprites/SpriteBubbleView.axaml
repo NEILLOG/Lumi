@@ -50,6 +50,9 @@
     </Style>
   </UserControl.Styles>
 
+  <!-- 氣泡太高時（提醒卡片＋長回答＋按鈕）不超出預留區：高度上限由 SpriteWindow 設，超過的部分在這裡捲動，捲到最下面（最新內容與按鈕）。
+       捲動區向外擴、內容向內縮各一圈陰影的寬度（code-behind），陰影不會被捲動區切掉 -->
+  <ScrollViewer x:Name="BubbleScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
   <StackPanel x:Name="Root">
     <!--
       提醒（M10 10E）：獨立的卡片，在回應氣泡上方；不自動消失，按關閉才收起（只有關閉鈕可以點，卡片其他部分穿透）。
@@ -162,4 +165,5 @@
     </Border>
     <Path Data="M0,0 L14,0 L7,8 Z" Fill="{DynamicResource LumiSurfaceBrush}" HorizontalAlignment="Center" IsVisible="{Binding HasTail}" />
   </StackPanel>
+  </ScrollViewer>
 </UserControl>
