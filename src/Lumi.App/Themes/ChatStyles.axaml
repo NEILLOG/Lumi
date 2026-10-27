@@ -32,7 +32,7 @@
     <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
     <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
-  <Style Selector="TextBlock.muted">
+  <Style Selector="TextBlock.muted, SelectableTextBlock.muted">
     <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
     <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
   </Style>

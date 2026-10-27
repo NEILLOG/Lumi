@@ -96,7 +96,7 @@
             <ctl:LumiIcon IsVisible="{Binding IsAwaiting}" Data="{StaticResource LumiIconAlertTriangle}" Foreground="{DynamicResource LumiWarningIconBrush}" />
             <ctl:LumiIcon IsVisible="{Binding IsDenied}" Data="{StaticResource LumiIconBan}" Foreground="{DynamicResource LumiTextMutedBrush}" />
           </Panel>
-          <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" MaxLines="1"
+          <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding Title}" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" MaxLines="1"
                               VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
           <TextBlock Grid.Column="2" IsVisible="{Binding HasDuration}" Text="{Binding DurationText}" Classes="muted"
                      Margin="12,0,0,0" VerticalAlignment="Center" />

@@ -65,7 +65,7 @@
                 <ctl:LumiIcon IsVisible="{Binding GroupHasFailure}" Data="{StaticResource LumiIconX}" Foreground="{DynamicResource LumiDangerBrush}" />
                 <ctl:LumiIcon IsVisible="{Binding GroupHasAwaiting}" Data="{StaticResource LumiIconAlertTriangle}" Foreground="{DynamicResource LumiWarningIconBrush}" />
               </Panel>
-              <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding GroupTitle}" TextTrimming="CharacterEllipsis" MaxLines="1"
+              <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding GroupTitle}" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" MaxLines="1"
                                   VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
               <Panel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center">
                 <ctl:LumiIcon IsVisible="{Binding !GroupIsOpen}" Data="{StaticResource LumiIconChevronRight}" Foreground="{DynamicResource LumiTextMutedBrush}" />
