@@ -623,14 +623,14 @@
        </StackPanel>
       </ScrollViewer>
 
-      <!-- ===== 小精靈：預覽（左 240，< 900 改放上方）＋ 角色卡片清單、尺寸、語氣、狀態預覽（選了立即生效，沒有 Primary） ===== -->
-      <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSprite}">
-       <StackPanel Margin="32">
-        <views:SettingsPageHeader x:Name="SpriteHeader"
+      <!-- ===== 小精靈：預覽（左 240，< 900 改放上方）＋ 角色卡片清單、尺寸、語氣、狀態預覽（選了立即生效，沒有 Primary） =====
+           標題與預覽區固定不捲；只有右欄（設定內容）在自己的 ScrollViewer 裡捲動，所以捲到底預覽仍在視野內 -->
+      <Grid Grid.Row="1" IsVisible="{Binding ShowSprite}" Margin="32" RowDefinitions="Auto,*">
+        <views:SettingsPageHeader x:Name="SpriteHeader" Grid.Row="0"
                                   Eyebrow="{x:Static res:Strings.Settings_CategorySprite}"
                                   Title="{x:Static res:Strings.Settings_HeaderSpriteTitle}"
                                   Description="{x:Static res:Strings.Settings_HeaderSpriteDescription}" />
-        <Grid x:Name="SpritePanel" ColumnDefinitions="Auto,*" RowDefinitions="Auto,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
+        <Grid x:Name="SpritePanel" Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,*" DataContext="{Binding Sprite}" x:DataType="vm:SpriteSettingsViewModel">
 
           <!-- 預覽區（一個物件，所以是卡片）：用同一個角色即時播放所選的狀態。master／detail 的版面規則見 Themes/Controls.axaml -->
           <Panel x:Name="SpritePreviewArea" Classes="master" VerticalAlignment="Top">
@@ -639,7 +639,8 @@
             </Border>
           </Panel>
 
-          <ctl:FractionWidthLimiter x:Name="SpriteDetail" Classes="detail" MaxPixels="560" HorizontalAlignment="Stretch">
+          <ScrollViewer x:Name="SpriteScroll" Classes="detail" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <ctl:FractionWidthLimiter x:Name="SpriteDetail" MaxPixels="560" HorizontalAlignment="Stretch">
             <StackPanel>
 
               <!-- 角色 -->
@@ -760,9 +761,9 @@
               <TextBlock Classes="error" Margin="0,16,0,0" Text="{Binding Error}" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
             </StackPanel>
           </ctl:FractionWidthLimiter>
+          </ScrollViewer>
         </Grid>
-       </StackPanel>
-      </ScrollViewer>
+      </Grid>
 
       <!-- ===== 語音：服務（端點、語言、逾時）→ Token → 測試結果與動作列（測試連線 secondary、還原 secondary、儲存 primary） ===== -->
       <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowSpeech}">
