@@ -60,6 +60,7 @@ public class ConnectionStatusCacheTests
     [InlineData(ChatFailureKind.MissingApiKey)]
     [InlineData(ChatFailureKind.SecretUnreadable)]
     [InlineData(ChatFailureKind.ModelNotConfigured)]
+    [InlineData(ChatFailureKind.AppFilesMissing)]
     [InlineData(ChatFailureKind.Unknown)]
     public void StatusAfterFailure_Unchanged(ChatFailureKind kind) =>
         Assert.Null(ConnectionStatusCache.StatusAfterFailure(kind));

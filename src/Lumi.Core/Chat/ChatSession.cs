@@ -6,6 +6,9 @@ namespace Lumi.Core.Chat;
 /// <inheritdoc cref="IChatSession"/>
 public sealed class ChatSession : IChatSession
 {
+    /// <summary>程式檔案不完整時給使用者看的說明；Core 不能用 App 的資源檔，和 <c>Strings.Chat_ErrorAppFilesMissing</c> 同字（App.Tests 守住一致）。</summary>
+    public const string AppFilesMissingMessage = "Lumi 的程式檔案不完整，請重新啟動 Lumi；仍然發生請重新下載安裝。";
+
     private readonly ConversationService _conversations;
     private readonly IConversationStore _store;
     private readonly ILogger<ChatSession> _logger;
@@ -139,6 +142,12 @@ public sealed class ChatSession : IChatSession
             {
                 cancelled = true;
             }
+            catch (Exception ex) when (IsMissingFile(ex))
+            {
+                // 程式檔案（組件）載入不到：不是使用者能處理的一般錯誤，給一句明確的說明（M22）
+                _logger.LogError(ex, "對話回應時找不到程式檔案");
+                failure = new ChatFailure(ChatFailureKind.AppFilesMissing, AppFilesMissingMessage, Retryable: false);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "對話回應發生未預期的錯誤");
@@ -166,6 +175,15 @@ public sealed class ChatSession : IChatSession
         }
         return result;
     }
+
+    /// <summary>例外鏈（含內層例外與彙總例外）裡有沒有 <see cref="FileNotFoundException"/>／<see cref="FileLoadException"/>。</summary>
+    private static bool IsMissingFile(Exception? exception) => exception switch
+    {
+        null => false,
+        FileNotFoundException or FileLoadException => true,
+        AggregateException aggregate => aggregate.InnerExceptions.Any(IsMissingFile),
+        _ => IsMissingFile(exception.InnerException),
+    };
 
     private async Task WaitForDeferredAsync(RunFinishedArgs args)
     {

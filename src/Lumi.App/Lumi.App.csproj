@@ -49,4 +49,33 @@
     <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!--
+    單檔發佈（M22）：Playwright driver（.playwright：node 與 JS 套件）不放在執行檔旁邊，也不再靠整包自我解壓（受控 DLL 會被解到暫存資料夾，被清掉就缺檔）。
+    改成把目前平台的 .playwright 壓成 zip 內嵌（資源名稱 Lumi.Playwright.<SHA-256 前 16 碼>.zip），執行時由 Lumi.Browser 的 PlaywrightDriverLocator 解到使用者資料夾。
+    一般 build／run 不受影響，driver 照舊在輸出資料夾。
+  -->
+  <Target Name="LumiEmbedPlaywrightDriver" AfterTargets="CopyPlaywrightFilesToOutput" BeforeTargets="AssignTargetPaths" Condition="'$(PublishSingleFile)' == 'true'">
+    <PropertyGroup>
+      <_LumiPlaywrightStage>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)playwright-embed/</_LumiPlaywrightStage>
+      <_LumiPlaywrightZip>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)playwright-driver.zip</_LumiPlaywrightZip>
+    </PropertyGroup>
+    <RemoveDir Directories="$(_LumiPlaywrightStage)" />
+    <Copy SourceFiles="@(_PlaywrightCopyItems)" DestinationFiles="@(_PlaywrightCopyItems->'$(_LumiPlaywrightStage).playwright/%(PlaywrightFolder)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Delete Files="$(_LumiPlaywrightZip)" />
+    <ZipDirectory SourceDirectory="$(_LumiPlaywrightStage)" DestinationFile="$(_LumiPlaywrightZip)" />
+    <GetFileHash Files="$(_LumiPlaywrightZip)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_LumiPlaywrightHash" />
+    </GetFileHash>
+    <ItemGroup>
+      <EmbeddedResource Include="$(_LumiPlaywrightZip)" LogicalName="Lumi.Playwright.$(_LumiPlaywrightHash.Substring(0, 16).ToLowerInvariant()).zip" />
+    </ItemGroup>
+  </Target>
+
+  <!-- 單檔發佈時 .playwright 與 playwright.ps1 不放進輸出（已內嵌在執行檔裡） -->
+  <Target Name="LumiRemovePlaywrightFromPublish" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(PublishSingleFile)' == 'true'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\', '/').StartsWith('.playwright/')) Or '%(ResolvedFileToPublish.RelativePath)' == 'playwright.ps1'" />
+    </ItemGroup>
+  </Target>
+
 </Project>
