@@ -313,53 +313,25 @@
         <TextBlock Text="{Binding LoadProblem}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
       </Border>
 
-      <!-- ===== AI 連線：頁首（主要動作隨分段切換）→ 分段切換（連線／模型設定）→ 清單＋詳細 ===== -->
-      <Grid x:Name="ConnectionsPage" Grid.Row="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding ShowConnectionsAndModels}" Margin="32">
+      <!-- ===== AI 連線（M22 22D：連線與模型合成一頁）：頁首（主要動作固定是「新增連線」）→ 預設模型 → 清單＋詳細，整頁一起捲 ===== -->
+      <Grid x:Name="ConnectionsPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowConnectionsAndModels}" Margin="32">
         <views:SettingsPageHeader x:Name="ConnectionsHeader" Grid.Row="0"
                                   Eyebrow="{x:Static res:Strings.Settings_CategoryConnections}"
                                   Title="{x:Static res:Strings.Settings_HeaderConnectionsTitle}"
                                   Description="{x:Static res:Strings.Settings_HeaderConnectionsDescription}">
           <views:SettingsPageHeader.Actions>
-            <!-- 頁首這一區只有一個 Primary：兩個按鈕一次只顯示一個 -->
-            <Panel>
-              <Button x:Name="NewConnectionButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
-                      IsVisible="{Binding ShowConnectionsTab}" Command="{Binding Connections.NewConnectionCommand}"
-                      AutomationProperties.Name="{x:Static res:Strings.Conn_New}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
-                  <TextBlock Text="{x:Static res:Strings.Conn_New}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-              <Button x:Name="NewModelButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
-                      IsVisible="{Binding ShowModelsTab}" Command="{Binding Models.NewModelCommand}"
-                      AutomationProperties.Name="{x:Static res:Strings.Models_New}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                  <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
-                  <TextBlock Text="{x:Static res:Strings.Models_New}" VerticalAlignment="Center" />
-                </StackPanel>
-              </Button>
-            </Panel>
+            <Button x:Name="NewConnectionButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Command="{Binding AiSettings.NewConnectionCommand}"
+                    AutomationProperties.Name="{x:Static res:Strings.Conn_New}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Conn_New}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
           </views:SettingsPageHeader.Actions>
         </views:SettingsPageHeader>
 
-        <!-- 分段切換（取代 TabControl）：綁 TabIndex，0 = 連線、1 = 模型設定 -->
-        <Border x:Name="TabSwitch" Grid.Row="1" Classes="segmented" HorizontalAlignment="Left" Margin="0,0,0,24">
-          <!-- 單選群組只有一個 Tab 停靠點（停在已選的那一段），段與段之間用方向鍵切換（SettingsWindow.axaml.cs） -->
-          <StackPanel x:Name="TabSwitchPanel" Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once"
-                      AutomationProperties.Name="{x:Static res:Strings.Settings_TabsName}">
-            <RadioButton x:Name="TabConnections" GroupName="ConnectionsTabs" Content="{x:Static res:Strings.Settings_TabConnections}"
-                         IsChecked="{Binding TabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=0}" />
-            <RadioButton x:Name="TabModels" GroupName="ConnectionsTabs" Content="{x:Static res:Strings.Settings_TabModels}"
-                         IsChecked="{Binding TabIndex, Mode=TwoWay, Converter={x:Static views:TabIndexConverter.Instance}, ConverterParameter=1}" />
-          </StackPanel>
-        </Border>
-
-        <Panel Grid.Row="2" IsVisible="{Binding ShowConnectionsTab}">
-          <views:ConnectionsPanel x:Name="ConnectionsPanel" DataContext="{Binding Connections}" />
-        </Panel>
-        <Panel Grid.Row="2" IsVisible="{Binding ShowModelsTab}">
-          <views:ModelsPanel x:Name="ModelsPanel" DataContext="{Binding Models}" />
-        </Panel>
+        <views:AiConnectionsView x:Name="AiPage" Grid.Row="1" DataContext="{Binding AiSettings}" />
       </Grid>
 
       <!-- ===== 人格與主動性：區段標題＋分隔線的表單（欄位不包卡片）；底部 重設（secondary）／儲存（primary） ===== -->

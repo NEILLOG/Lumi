@@ -6,7 +6,7 @@ namespace Lumi.App.Tests;
 public sealed class SettingsViewModelTests
 {
     [Fact]
-    public async Task Navigate_SwitchesCategoryAndTab()
+    public async Task Navigate_SwitchesCategory_AndSelectsTheConnection()
     {
         using var host = new SettingsHost();
         var vm = host.Settings;
@@ -22,10 +22,8 @@ public sealed class SettingsViewModelTests
 
         await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Models));
         Assert.True(vm.ShowConnectionsAndModels);
-        Assert.Equal(1, vm.TabIndex);
 
         await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Connections, "dev-anthropic", FocusApiKey: true, Notice: "提示"));
-        Assert.Equal(0, vm.TabIndex);
         Assert.Equal("dev-anthropic", vm.Connections.SelectedItem!.Id);
         Assert.Equal("提示", vm.Connections.Notice);
     }
@@ -117,7 +115,6 @@ public sealed class SettingsViewModelTests
         Assert.True(vm.ShowReminders);
         await vm.GoToCommand.ExecuteAsync("Models");
         Assert.True(vm.ShowConnectionsAndModels);
-        Assert.True(vm.ShowModelsTab);
         await vm.GoToCommand.ExecuteAsync("Nope");
         Assert.True(vm.ShowConnectionsAndModels);
     }

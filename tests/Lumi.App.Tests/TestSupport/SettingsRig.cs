@@ -26,7 +26,7 @@ internal sealed class SettingsRig : IDisposable
     [
         "connections-list", "connections-form", "connections-advanced", "connections-errors", "connections-key-stored",
         "connections-test-ok", "connections-test-fail",
-        "models-list", "models-form", "models-advanced",
+        "models-form", "models-advanced",
         "persona", "persona-dirty", "memory", "memory-new", "memory-editing", "general", "sprite", "sprite-issues",
         "speech", "speech-token-stored", "speech-test-ok", "speech-test-fail",
     ];
@@ -101,13 +101,8 @@ internal sealed class SettingsRig : IDisposable
             case "connections-test-fail":
                 await ApplyConnectionStateAsync(state);
                 break;
-            case "models-list":
-                settings.TabIndex = 1;
-                break;
             case "models-form":
             case "models-advanced":
-                settings.TabIndex = 1;
-                Settle();
                 await Host.Models.SelectAsync(Host.Models.Items[0]);
                 Settle();
                 if (state == "models-advanced")
