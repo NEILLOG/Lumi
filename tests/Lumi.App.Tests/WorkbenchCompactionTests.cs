@@ -69,6 +69,23 @@ public sealed class WorkbenchCompactionTests
     }
 
     [Fact]
+    public async Task ManualCompaction_ShrinksTheContextUsage_BeforeTheNextResponse()
+    {
+        var store = await SeedAsync(turns: 3);
+        var conversation = (await store.ListAsync(10)).Single();
+        await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("問3")], DateTimeOffset.UtcNow));
+        await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("答3")],
+            DateTimeOffset.UtcNow, Usage: new TokenUsage(90_000, 1_000, 0, 0)));
+        var rig = new Rig(new SequenceChatProvider(Summary("摘要")), store);
+        await rig.Vm.InitializeAsync();
+        Assert.Equal(91_000, rig.Vm.ContextUsed);
+
+        await rig.Vm.CompactAndContinueCommand.ExecuteAsync(null);
+
+        Assert.InRange(rig.Vm.ContextUsed, 1, 1_000);   // 整理後的估算，不是舊的 91K
+    }
+
+    [Fact]
     public async Task TheDivider_ToggleTextFollowsTheExpansion()
     {
         var store = await SeedAsync(turns: 3);

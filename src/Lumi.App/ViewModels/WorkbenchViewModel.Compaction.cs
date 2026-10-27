@@ -83,6 +83,15 @@ public partial class WorkbenchViewModel
             args.Defer(ReloadAfterCompactionAsync(conversationId));
     }
 
+    /// <summary>整理後下一次請求的估算（只有輸入，沒有輸出）：套用整理後的歷史，加上這則對話固定的 system prompt 與工具定義。</summary>
+    private async Task<TokenUsage> EstimateCompactedUsageAsync(string conversationId, IReadOnlyList<ChatMessage> messages, CompactionState compaction)
+    {
+        var overhead = ContextEstimator.EstimateText(await _store.GetSystemPromptAsync(conversationId))
+            + ContextEstimator.EstimateText(await _store.GetToolSnapshotAsync(conversationId));
+        var estimate = ContextEstimator.Estimate(CompactionApplier.Apply(messages, compaction), compaction, overhead);
+        return new TokenUsage(estimate, 0, 0, 0);
+    }
+
     /// <summary>整理完成後重讀訊息（只在還是當初那則對話時）。</summary>
     private async Task ReloadAfterCompactionAsync(string conversationId)
     {

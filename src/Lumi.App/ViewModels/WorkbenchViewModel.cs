@@ -488,7 +488,11 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         HasCompactionFailure = false;
 
         LoadUsageTally(messages, await _store.GetCompactionUsageAsync(CurrentConversationId!));
-        LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
+        var lastWithUsage = messages.LastOrDefault(m => m.Usage is not null);
+        LastUsage = lastWithUsage?.Usage;
+        // 整理過、而且還沒有整理之後的回應：舊的用量不代表現在送出的大小，改用估算，用量圓環整理完就變小（M22）
+        if (!compaction.IsEmpty && (lastWithUsage is null || lastWithUsage.Seq <= compaction.AppliedAtSeq))
+            LastUsage = await EstimateCompactedUsageAsync(CurrentConversationId!, messages, compaction);
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
         Context.ContextWindow = ContextWindow;
