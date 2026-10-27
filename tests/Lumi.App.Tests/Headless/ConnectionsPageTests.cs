@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -321,6 +322,36 @@ public class ConnectionsPageTests
         Assert.True(rig.Models.FindByName<Border>("DetailCard").IsEffectivelyVisible);
         Assert.Equal(rig.OllamaId, Assert.IsType<ConnectionOption>(rig.Models.FindByName<ComboBox>("ConnectionBox").SelectedItem).Id);   // 預先選好這個連線
         Assert.Equal(add, rig.List.SelectedItem);
+    }
+
+    [AvaloniaFact]
+    public async Task ArrowingOntoAnAddModelRow_DoesNotOpenIt_UntilEnter()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var model = rig.Host.Settings.AiSettings.Items.OfType<AiModelItem>().Single(m => m.Id == "llama-model");
+        rig.List.SelectedItem = model;
+        rig.Settle();
+        Assert.IsType<ListBoxItem>(rig.List.ContainerFromItem(model)).Focus();
+        rig.Settle();
+
+        PressKey(rig, Key.Down);
+
+        Assert.IsType<AiAddModelItem>(rig.List.SelectedItem);   // 清單停在「＋ 新增模型」
+        Assert.False(rig.Host.Models.IsNew);                     // 但還沒開新增
+        Assert.Equal(model, rig.Host.Settings.AiSettings.SelectedItem);
+
+        PressKey(rig, Key.Enter);
+
+        Assert.True(rig.Host.Models.IsNew);
+        Assert.Equal(rig.OllamaId, rig.Host.Models.SelectedConnection?.Id);
+    }
+
+    private static void PressKey(Rig rig, Key key)
+    {
+        var physical = key switch { Key.Down => PhysicalKey.ArrowDown, Key.Enter => PhysicalKey.Enter, _ => PhysicalKey.None };
+        rig.Window.KeyPress(key, RawInputModifiers.None, physical, null);
+        rig.Settle();
     }
 
     [AvaloniaFact]
