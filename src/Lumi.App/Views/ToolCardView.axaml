@@ -4,6 +4,7 @@
              xmlns:ctl="using:Lumi.App.Controls"
              xmlns:res="using:Lumi.App.Resources"
              xmlns:md="using:Lumi.App.Markdown"
+             xmlns:views="using:Lumi.App.Views"
              x:Class="Lumi.App.Views.ToolCardView"
              x:DataType="vm:ToolCardViewModel">
   <!--
@@ -96,7 +97,7 @@
             <ctl:LumiIcon IsVisible="{Binding IsAwaiting}" Data="{StaticResource LumiIconAlertTriangle}" Foreground="{DynamicResource LumiWarningIconBrush}" />
             <ctl:LumiIcon IsVisible="{Binding IsDenied}" Data="{StaticResource LumiIconBan}" Foreground="{DynamicResource LumiTextMutedBrush}" />
           </Panel>
-          <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" MaxLines="1"
+          <ctl:EmojiTextBlock Grid.Column="1" Text="{Binding Title}" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" MaxLines="1"
                               VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCard}" />
           <TextBlock Grid.Column="2" IsVisible="{Binding HasDuration}" Text="{Binding DurationText}" Classes="muted"
                      Margin="12,0,0,0" VerticalAlignment="Center" />
@@ -166,6 +167,34 @@
             <Button Classes="tertiary small" Content="{Binding CopyLabel}" Command="{Binding CopyResultCommand}" />
           </StackPanel>
         </StackPanel>
+
+        <!-- 圖片（22F）：縮圖最寬 320、等比；點縮圖或「開啟圖片」用系統的看圖程式開啟（放大、平移在那裡做）；檔案不在了顯示檔名與說明 -->
+        <ItemsControl IsVisible="{Binding HasImages}" ItemsSource="{Binding Images}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="8" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ToolCardImage">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding FileName}" Classes="cardlabel" />
+                <Button Padding="0" Background="Transparent" BorderThickness="0" IsVisible="{Binding Exists}" Click="OpenImage_Click"
+                        HorizontalAlignment="Left">
+                  <Border CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
+                    <Image Source="{Binding FilePath, Converter={x:Static views:PathToBitmapConverter.Instance}, ConverterParameter=320}"
+                           MaxWidth="320" Stretch="Uniform" />
+                  </Border>
+                </Button>
+                <TextBlock IsVisible="{Binding !Exists}" Text="{x:Static res:Strings.ToolCard_ImageMissing}" Classes="muted" />
+                <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding Exists}">
+                  <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenImage}" Click="OpenImage_Click" />
+                  <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenFolder}" Click="OpenFolder_Click" />
+                </StackPanel>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
     </StackPanel>
   </Border>

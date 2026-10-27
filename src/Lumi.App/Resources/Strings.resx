@@ -890,4 +890,36 @@
   <data name="Home_TimeMinutesFormat" xml:space="preserve"><value>{0} 分鐘前</value></data>
   <data name="Home_TimeHoursFormat" xml:space="preserve"><value>{0} 小時前</value></data>
   <data name="Home_TimeYesterday" xml:space="preserve"><value>昨天</value></data>
+  <data name="Chat_ErrorAppFilesMissing" xml:space="preserve"><value>Lumi 的程式檔案不完整，請重新啟動 Lumi；仍然發生請重新下載安裝。</value></data>
+  <data name="Chat_ErrorContextTooLong" xml:space="preserve"><value>這則對話太長，整理後仍超過模型能處理的長度。請開新對話繼續。</value></data>
+  <data name="Models_DefaultReplaced" xml:space="preserve"><value>原本的預設模型無法使用，已改用「{0}」。</value></data>
+  <data name="AiSettings_ListName" xml:space="preserve"><value>連線與模型</value></data>
+  <data name="AiSettings_AddModel" xml:space="preserve"><value>新增模型</value></data>
+  <data name="AiSettings_DefaultModel" xml:space="preserve"><value>預設模型</value></data>
+  <data name="AiSettings_DefaultTag" xml:space="preserve"><value>預設</value></data>
+  <data name="AiSettings_Empty" xml:space="preserve"><value>還沒有任何連線。先新增一個 AI 連線，再在它底下加入要使用的模型。</value></data>
+  <data name="AiSettings_ConnectionSavedHint" xml:space="preserve"><value>連線已儲存。接著在清單中這個連線底下「新增模型」。</value></data>
+  <data name="ToolCard_OpenImage" xml:space="preserve"><value>開啟圖片</value></data>
+  <data name="ToolCard_OpenFolder" xml:space="preserve"><value>開啟資料夾</value></data>
+  <data name="ToolCard_ImageMissing" xml:space="preserve"><value>檔案已移動或刪除</value></data>
+  <data name="ImageGen_Title" xml:space="preserve"><value>圖片生成</value></data>
+  <data name="ImageGen_NotConfigured" xml:space="preserve"><value>尚未設定</value></data>
+  <data name="ImageGen_Description" xml:space="preserve"><value>對話中要求畫圖或修改圖片時，Lumi 會用這個模型處理，圖片存到「圖片／Lumi」。會產生 API 費用。</value></data>
+  <data name="ImageGen_Connection" xml:space="preserve"><value>連線</value></data>
+  <data name="ImageGen_ModelId" xml:space="preserve"><value>模型 ID</value></data>
+  <data name="ImageGen_Size" xml:space="preserve"><value>預設尺寸</value></data>
+  <data name="ImageGen_SizeSquare" xml:space="preserve"><value>正方形 1024 x 1024</value></data>
+  <data name="ImageGen_SizeLandscape" xml:space="preserve"><value>橫向 1536 x 1024</value></data>
+  <data name="ImageGen_SizePortrait" xml:space="preserve"><value>直向 1024 x 1536</value></data>
+  <data name="ImageGen_SummaryFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Compact_InProgress" xml:space="preserve"><value>正在整理對話…</value></data>
+  <data name="Compact_Divider" xml:space="preserve"><value>以上內容已整理成摘要</value></data>
+  <data name="Compact_ShowSummary" xml:space="preserve"><value>查看摘要</value></data>
+  <data name="Compact_HideSummary" xml:space="preserve"><value>收起摘要</value></data>
+  <data name="Compact_Failed" xml:space="preserve"><value>整理對話失敗，對話內容沒有改變。可以稍後再試，或開新對話。</value></data>
+  <data name="Usage_CompactAndContinue" xml:space="preserve"><value>整理並繼續</value></data>
+  <data name="Sprite_ConversationTitle" xml:space="preserve"><value>與小精靈的對話</value></data>
+  <data name="History_SpriteTag" xml:space="preserve"><value>小精靈</value></data>
+  <data name="Workbench_ClearConversation" xml:space="preserve"><value>清除內容</value></data>
+  <data name="Confirm_ClearSpriteConversation" xml:space="preserve"><value>清除與小精靈的全部對話內容？這個動作無法復原。</value></data>
 </root>

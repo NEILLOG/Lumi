@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             x:Class="Lumi.App.Views.ImageGenerationPanel"
+             x:DataType="vm:ImageGenerationViewModel">
+
+  <!-- 圖片生成設定（AI 連線頁的詳細區之一，M22 22G）：一個容器卡片（只一層）。沒有內層捲動，卡片照內容長高，由 AI 連線頁整頁一起捲 -->
+  <Border x:Name="ImageDetailCard" Classes="card" Padding="24" VerticalAlignment="Top" IsVisible="{Binding HasEditor}">
+    <Grid RowDefinitions="Auto,Auto,Auto">
+      <!-- 視覺樹（也就是 Tab）順序：標頭 → 欄位 → 底部動作列；Grid 的列與子元素順序無關，所以動作列寫在最後 -->
+      <!-- 標頭：圖示、標題、目前設定的摘要 -->
+      <Grid x:Name="ImageDetailHeader" Grid.Row="0" ColumnDefinitions="Auto,*" Margin="0,0,0,16">
+        <Border Grid.Column="0" Width="48" Height="48" Margin="0,0,16,0" CornerRadius="{StaticResource LumiRadiusInput}"
+                Background="{DynamicResource LumiAccentSoftBrush}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="24" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock x:Name="ImageHeaderTitleText" Text="{x:Static res:Strings.ImageGen_Title}" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold"
+                     Foreground="{DynamicResource LumiTextBrush}" TextTrimming="CharacterEllipsis" />
+          <TextBlock x:Name="ImageHeaderSummaryText" Classes="muted" Text="{Binding Summary}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Row="1" Spacing="16" Margin="0,0,0,16">
+
+        <ctl:FormField x:Name="ImageConnectionField" Label="{x:Static res:Strings.ImageGen_Connection}" Requirement="Required">
+          <ComboBox x:Name="ImageConnectionBox" ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{x:Static res:Strings.ImageGen_Connection}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ConnectionOption"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </ctl:FormField>
+
+        <!-- 模型 ID：可編輯下拉＋重新整理；說明列顯示可用模型數或取不到的原因 -->
+        <ctl:FormField x:Name="ImageModelIdField" Label="{x:Static res:Strings.ImageGen_ModelId}" Requirement="Required"
+                       Hint="{Binding ListStatusText}" Error="{Binding ModelIdError}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <ComboBox x:Name="ImageModelIdBox" Grid.Column="0" IsEditable="True" HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding AvailableModelIds}" Text="{Binding ModelId}"
+                      Classes.error="{Binding ModelIdError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                      AutomationProperties.Name="{x:Static res:Strings.ImageGen_ModelId}" />
+            <Button x:Name="ImageRefreshModelsButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Command="{Binding RefreshModelListCommand}" AutomationProperties.Name="{x:Static res:Strings.Models_Refresh}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconRefresh}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Models_Refresh}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </Grid>
+        </ctl:FormField>
+
+        <ctl:FormField x:Name="ImageSizeField" Label="{x:Static res:Strings.ImageGen_Size}">
+          <ComboBox x:Name="ImageSizeBox" ItemsSource="{Binding SizeOptions}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{x:Static res:Strings.ImageGen_Size}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ImageSizeOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </ctl:FormField>
+
+        <!-- 費用說明（會產生 API 費用，要讓使用者清楚） -->
+        <TextBlock x:Name="ImageCostNote" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.ImageGen_Description}" />
+      </StackPanel>
+
+      <!-- 底部：錯誤、分隔線、動作列（取消｜儲存 primary） -->
+      <StackPanel Grid.Row="2" Spacing="8">
+        <TextBlock x:Name="ImageFieldErrorsText" Classes="error" Text="{x:Static res:Strings.Form_FixErrors}" IsVisible="{Binding HasFieldErrors}" />
+        <TextBlock x:Name="ImageSaveErrorText" Classes="error" Text="{Binding SaveError}" IsVisible="{Binding HasSaveError}" />
+        <Border Classes="divider" />
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+          <Button x:Name="ImageCancelButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  Content="{x:Static res:Strings.Confirm_Cancel}" Command="{Binding RevertCommand}" IsEnabled="{Binding IsDirty}" />
+          <Button x:Name="ImageSaveButton" Grid.Column="2" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  Content="{x:Static res:Strings.Conn_Save}" Command="{Binding SaveCommand}" />
+        </Grid>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

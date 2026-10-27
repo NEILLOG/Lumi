@@ -8,6 +8,8 @@ internal sealed class InMemoryConversationStore : IConversationStore
     private readonly Dictionary<string, List<ChatMessage>> _messages = [];
     private readonly Dictionary<string, string> _systemPrompts = [];
     private readonly Dictionary<string, string> _toolSnapshots = [];
+    private readonly Dictionary<string, List<(CompactionRecord Record, int AtSeq)>> _compactions = [];
+    private readonly Dictionary<string, string> _meta = [];
     private readonly object _lock = new();
 
     public Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
@@ -47,6 +49,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
         {
             var existed = _conversations.Remove(conversationId);
             _messages.Remove(conversationId);
+            _compactions.Remove(conversationId);
             return Task.FromResult(existed);
         }
     }
@@ -91,7 +94,41 @@ internal sealed class InMemoryConversationStore : IConversationStore
     {
         ct.ThrowIfCancellationRequested();
         lock (_lock)
-            return Task.FromResult<IReadOnlyList<ChatMessage>>(_messages[conversationId].ToList());
+            return Task.FromResult<IReadOnlyList<ChatMessage>>(_messages[conversationId].Select((m, i) => m with { Seq = i + 1 }).ToList());
+    }
+
+    public Task AddCompactionAsync(string conversationId, CompactionRecord record, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (!_compactions.TryGetValue(conversationId, out var list))
+                _compactions[conversationId] = list = [];
+            list.Add((record, _messages[conversationId].Count));
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<CompactionState> GetCompactionStateAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (!_compactions.TryGetValue(conversationId, out var list) || list.Count == 0)
+                return Task.FromResult(CompactionState.Empty);
+            var tool = list.LastOrDefault(r => r.Record.Kind == CompactionKind.ToolResults).Record;
+            var summary = list.LastOrDefault(r => r.Record.Kind == CompactionKind.Summary).Record;
+            return Task.FromResult(new CompactionState(tool?.UptoSeq, summary?.UptoSeq, summary?.Summary, list.Max(r => r.AtSeq)));
+        }
+    }
+
+    public Task<TokenUsage> GetCompactionUsageAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            var usages = _compactions.GetValueOrDefault(conversationId)?.Select(r => r.Record.Usage).OfType<TokenUsage>().ToList() ?? [];
+            return Task.FromResult(new TokenUsage(
+                usages.Sum(u => u.InputTokens), usages.Sum(u => u.OutputTokens),
+                usages.Sum(u => u.CacheCreationInputTokens), usages.Sum(u => u.CacheReadInputTokens)));
+        }
     }
 
     public Task AppendMessageAsync(string conversationId, ChatMessage message, CancellationToken ct = default)
@@ -147,6 +184,38 @@ internal sealed class InMemoryConversationStore : IConversationStore
     {
         lock (_lock)
             _conversations[conversationId] = _conversations[conversationId] with { Title = title };
+        return Task.CompletedTask;
+    }
+
+    public Task<Conversation?> GetConversationAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_conversations.GetValueOrDefault(conversationId));
+    }
+
+    public Task ClearMessagesAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (_messages.TryGetValue(conversationId, out var list))
+                list.Clear();
+            _compactions.Remove(conversationId);
+            _systemPrompts.Remove(conversationId);
+            _toolSnapshots.Remove(conversationId);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetMetaAsync(string key, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_meta.GetValueOrDefault(key));
+    }
+
+    public Task SetMetaAsync(string key, string value, CancellationToken ct = default)
+    {
+        lock (_lock)
+            _meta[key] = value;
         return Task.CompletedTask;
     }
 

@@ -39,6 +39,20 @@ public class SpriteShellRulesTests
         Assert.True(layout.BubbleBottom > 0 && layout.BubbleBottom < layout.SpriteCenter.Y);   // 氣泡尖端在角色上半部
     }
 
+    [Theory]
+    [InlineData(64)]
+    [InlineData(80)]
+    [InlineData(104)]
+    public void TheInputBar_HasRoomForItsShadowOnEverySide(double tier)
+    {
+        // 陰影：左右模糊半徑 24，下方 y 位移 8＋模糊 24；超出透明視窗的部分會被切掉
+        var layout = LayoutFor(tier);
+
+        Assert.True(layout.InputBar.X >= 24);
+        Assert.True(layout.WindowSize.Width - layout.InputBar.Right >= 24);
+        Assert.True(layout.WindowSize.Height - layout.InputBar.Bottom >= 32);
+    }
+
     [Fact]
     public void TheSpriteIsHorizontallyCentered_AndTheCenterMatchesTheOuterRect()
     {

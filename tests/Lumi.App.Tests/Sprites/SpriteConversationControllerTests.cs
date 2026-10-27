@@ -41,8 +41,11 @@ public class SpriteConversationControllerTests
         public SpriteBubbleViewModel Bubble => Window.BubbleViewModel;
         public AppModeCoordinator Modes { get; }
         public SequenceChatProvider Provider { get; }
+        public SpriteConversationService? Sprite { get; }
+        public SpriteConversationSwitcher? Switcher { get; }
 
-        public Rig(SequenceChatProvider provider, ToolPermission permission = ToolPermission.Write, bool keySaved = false, Action? onKeySaved = null)
+        public Rig(SequenceChatProvider provider, ToolPermission permission = ToolPermission.Write, bool keySaved = false, Action? onKeySaved = null,
+            bool dedicatedConversation = false)
         {
             Provider = provider;
             Tool = new LambdaTool("save", "儲存", permission);
@@ -50,12 +53,16 @@ public class SpriteConversationControllerTests
             var time = new FakeTimeProvider();
             var service = new ConversationService(provider, Store, catalog, new ToolRegistry([Tool]), Approvals, new ToolPermissionMemory(),
                 new ToolLoopOptions(), time, NullLogger<ConversationService>.Instance);
-            Session = new ChatSession(service, Store);
+            if (dedicatedConversation)
+                Sprite = new SpriteConversationService(Store);   // M22 22J：小精靈用自己的專屬對話
+            Session = new ChatSession(service, Store, sprite: Sprite);
+            if (Sprite is not null)
+                Switcher = new SpriteConversationSwitcher(Session, Sprite, Store, NullLogger<SpriteConversationSwitcher>.Instance);
             KeyPrompt = new FakeApiKeyPrompt(keySaved) { OnSaved = onKeySaved };
             var options = new SpriteShellOptions();
             var mapper = new SpriteStateMapper(options, time);
             var bubble = new SpriteBubbleViewModel(options, time, Approvals);
-            Modes = new AppModeCoordinator(Session, Host, catalog, options, time, NullLogger<AppModeCoordinator>.Instance);
+            Modes = new AppModeCoordinator(Session, Host, catalog, options, time, NullLogger<AppModeCoordinator>.Instance, Switcher);
             Window = new SpriteWindow(new SpriteCatalog([new OrbSpriteFactory()]), new NoNativeOverlay(), catalog, options, time,
                 NullLogger<SpriteWindow>.Instance, null, mapper, bubble, Modes, Session, SettingsWindow);
             new SpriteConversationController(Session, mapper, bubble, Approvals, Window, Modes, KeyPrompt, SettingsWindow,
@@ -66,6 +73,8 @@ public class SpriteConversationControllerTests
         {
             await Session.InitializeAsync("新對話");
             Session.TrySetMode(ChatMode.Sprite);
+            if (Switcher is not null)
+                await Switcher.WhenIdleAsync();
         }
 
         public void Type(string text) => Window.FindControl<TextBox>("Input")!.Text = text;
@@ -227,6 +236,29 @@ public class SpriteConversationControllerTests
         Assert.Contains("scroll:t1", rig.Host.Log);
         rig.Approvals.Resolve("t1", ApprovalDecision.Deny);
         await SettingsHost.WaitUntil(() => !rig.Session.IsResponding);
+    }
+
+    [AvaloniaFact]
+    public async Task ViewInWorkbench_ShowsTheSpriteConversation_NotTheWorkbenchOne()
+    {
+        var rig = new Rig(ToolThenAnswer(), dedicatedConversation: true);
+        await rig.StartAsync();
+        var spriteId = rig.Session.ConversationId;
+        Assert.Equal(spriteId, await rig.Sprite!.GetIdAsync());
+        rig.Type("存");
+        rig.Submit();
+        await SettingsHost.WaitUntil(() => rig.Bubble.IsApproval);
+        rig.Click(rig.BubbleButton("MoreLink"));
+
+        rig.Click(rig.BubbleButton("ViewLink"));   // 回應中：查看中，工作台看的是小精靈的對話
+        Assert.Equal(spriteId, rig.Session.ConversationId);
+        rig.Approvals.Resolve("t1", ApprovalDecision.Deny);
+        await SettingsHost.WaitUntil(() => !rig.Session.IsResponding);
+        await rig.Switcher!.WhenIdleAsync();
+
+        Assert.Equal(ChatMode.Workbench, rig.Session.ActiveMode);   // 回應結束後切到工作台模式，但對話仍是小精靈的（要看完整內容）
+        Assert.Equal(spriteId, rig.Session.ConversationId);
+        Assert.Contains("scroll:t1", rig.Host.Log);
     }
 
     // ---- 錯誤與重試 ----

@@ -64,6 +64,11 @@ public sealed record ToolResult(bool IsError, string Content, string? Summary)
     /// <summary>工具附的圖片（M18 D12，例如網頁截圖）；對話迴圈會存進附件資料夾，不放在 <see cref="Content"/> 裡。</summary>
     public IReadOnlyList<ToolImage> Images { get; init; } = [];
 
+    /// <summary>
+    /// 只給畫面顯示、不送給模型的圖片檔（22F：生成或編輯的圖片，完整路徑）。不存進附件資料夾，結果區塊直接記路徑。
+    /// </summary>
+    public IReadOnlyList<string> ImageFiles { get; init; } = [];
+
     public static ToolResult Ok(string content, string? summary = null) => new(false, content, summary);
 
     public static ToolResult Error(string message, string? summary = null) => new(true, message, summary ?? message);

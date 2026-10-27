@@ -90,6 +90,11 @@
             <DataTemplate x:DataType="vm:ConversationListItem">
               <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
                 <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                  <!-- 小精靈的專屬對話（釘在最上方）：小精靈圖示加「小精靈」標籤 -->
+                  <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSprite}">
+                    <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                    <TextBlock Text="{Binding SpriteTagText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" VerticalAlignment="Center" />
+                  </StackPanel>
                   <!-- 標題：命中字加粗；改名中換成輸入框 -->
                   <ItemsControl ItemsSource="{Binding TitleSegments}" IsVisible="{Binding !IsEditing}">
                     <ItemsControl.ItemsPanel>
@@ -125,6 +130,10 @@
                         <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconPencil}" Size="16" /></MenuItem.Icon>
                       </MenuItem>
                       <MenuItem Tag="delete" Header="{x:Static res:Strings.History_Delete}">
+                        <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
+                      </MenuItem>
+                      <!-- 小精靈的專屬對話沒有刪除，改成「清除內容」（OnRowMenuOpening 依列切換顯示） -->
+                      <MenuItem Tag="clear" IsVisible="False" Header="{x:Static res:Strings.Workbench_ClearConversation}">
                         <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
                       </MenuItem>
                     </MenuFlyout>

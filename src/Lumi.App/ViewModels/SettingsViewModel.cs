@@ -21,18 +21,19 @@ public enum SettingsCategory
     Privacy = 10,
 }
 
-/// <summary>設定視窗：左側分類（設定首頁、AI 連線、人格與主動性、記憶、提醒排程、工具、外觀與操作、小精靈、語音、網路、資料與隱私），「AI 連線」內分連線、模型設定兩個分頁。</summary>
+/// <summary>設定視窗：左側分類（設定首頁、AI 連線、人格與主動性、記憶、提醒排程、工具、外觀與操作、小精靈、語音、網路、資料與隱私），「AI 連線」是一頁：連線與模型合在一份清單（<see cref="AiSettingsViewModel"/>）。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
     private readonly ISettingsWindowService? _windows;
 
-    public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, PersonaViewModel persona, MemoryViewModel memory,
+    public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, ImageGenerationViewModel imageGeneration, PersonaViewModel persona, MemoryViewModel memory,
         ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
         Models = models;
+        AiSettings = new AiSettingsViewModel(connections, models, imageGeneration);
         Persona = persona;
         Memory = memory;
         Tools = tools;
@@ -56,6 +57,9 @@ public partial class SettingsViewModel : ObservableObject
     public ConnectionsViewModel Connections { get; }
 
     public ModelsViewModel Models { get; }
+
+    /// <summary>「AI 連線」頁的清單與選取：連線、模型合成一份清單，詳細區重用 <see cref="Connections"/>、<see cref="Models"/> 的表單。</summary>
+    public AiSettingsViewModel AiSettings { get; }
 
     public PersonaViewModel Persona { get; }
 
@@ -97,16 +101,6 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>左側分類，值是 <see cref="SettingsCategory"/>（預設 0＝設定首頁）。</summary>
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowHome), nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowReminders), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech), nameof(ShowNetwork), nameof(ShowPrivacy))]
     private int _categoryIndex;
-
-    /// <summary>「AI 連線」內的分頁：0 = 連線、1 = 模型設定。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowConnectionsTab), nameof(ShowModelsTab))]
-    private int _tabIndex;
-
-    /// <summary>分段切換「連線」被選取（頁首的主要動作是「新增連線」）。</summary>
-    public bool ShowConnectionsTab => TabIndex == 0;
-
-    /// <summary>分段切換「模型設定」被選取（頁首的主要動作是「新增模型設定」）。</summary>
-    public bool ShowModelsTab => TabIndex == 1;
 
     /// <summary>「工具」內的分段：0 = 工具清單、1 = MCP 伺服器（M16）。</summary>
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowToolsListTab), nameof(ShowMcpTab))]
@@ -150,7 +144,7 @@ public partial class SettingsViewModel : ObservableObject
             await _windows.ReturnToWorkbench();
     }
 
-    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || Persona.IsDirty || Speech.IsDirty || Network.IsDirty || McpServers.IsDirty;
+    public bool HasUnsavedChanges => Connections.IsDirty || Models.IsDirty || AiSettings.ImageGeneration.IsDirty || Persona.IsDirty || Speech.IsDirty || Network.IsDirty || McpServers.IsDirty;
 
     /// <summary>設定首頁的連結：參數是 <see cref="SettingsSection"/> 的名稱（例如 "Models"）。</summary>
     [RelayCommand]
@@ -200,13 +194,11 @@ public partial class SettingsViewModel : ObservableObject
                 CategoryIndex = (int)SettingsCategory.Privacy;
                 break;
             case SettingsSection.Models:
-                CategoryIndex = (int)SettingsCategory.Connections;
-                TabIndex = 1;
+                CategoryIndex = (int)SettingsCategory.Connections;   // 連線與模型已合成一頁：預設模型選單就在頁首下方
                 break;
             default:
                 CategoryIndex = (int)SettingsCategory.Connections;
-                TabIndex = 0;
-                await Connections.NavigateAsync(navigation.ConnectionId, navigation.FocusApiKey, navigation.Notice);
+                await AiSettings.NavigateToConnectionAsync(navigation.ConnectionId, navigation.FocusApiKey, navigation.Notice);
                 break;
         }
     }

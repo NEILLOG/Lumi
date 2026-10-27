@@ -15,6 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 模擬 Lumi.App 內嵌的 driver zip（名稱格式 Lumi.Playwright.<雜湊>.zip），測試 FindEmbedded -->
+    <EmbeddedResource Include="TestData\embedded-driver-sample.bin" LogicalName="Lumi.Playwright.0123456789abcdef.zip" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Lumi.Browser\Lumi.Browser.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Tools\Lumi.Tools.csproj" />
     <ProjectReference Include="..\..\src\Lumi.Web\Lumi.Web.csproj" />

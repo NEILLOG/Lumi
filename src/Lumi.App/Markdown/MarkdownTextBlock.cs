@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media;
 using Lumi.App.Controls;
 
 namespace Lumi.App.Markdown;
@@ -26,12 +25,17 @@ public sealed class MarkdownTextBlock : EmojiTextBlock
         set
         {
             _links = value;
-            // 沒有背景的 TextBlock 不會被滑鼠命中測試（點擊會被下面的 Panel 接走）；有連結的段落要給透明背景才收得到事件
-            Background = value.Count > 0 ? Brushes.Transparent : null;
         }
     }
 
     public event Action<Uri>? LinkClicked;
+
+    /// <summary>點擊與拖曳的分界（像素）：移動超過這個距離就不算點擊。</summary>
+    private const double ClickSlop = 4;
+
+    private static readonly Cursor HandCursor = new(StandardCursorType.Hand);
+
+    private Point? _pressPoint;
 
     /// <summary>某個點（相對於這個控制項）上的連結；沒有就 null。</summary>
     public LinkRange? LinkAt(Point point)
@@ -69,13 +73,32 @@ public sealed class MarkdownTextBlock : EmojiTextBlock
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        Cursor = LinkAt(e.GetPosition(this)) is null ? null : new Cursor(StandardCursorType.Hand);
+        // 選取（SelectableTextBlock）會自己設游標，只有在連結上才換成手形，離開連結時還原
+        if (LinkAt(e.GetPosition(this)) is not null)
+            Cursor = HandCursor;
+        else if (ReferenceEquals(Cursor, HandCursor))
+            Cursor = null;
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            _pressPoint = e.GetPosition(this);
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
-        if (e.InitialPressMouseButton == MouseButton.Left && LinkAt(e.GetPosition(this)) is { } link)
+        if (e.InitialPressMouseButton != MouseButton.Left || _pressPoint is not { } press)
+            return;
+        _pressPoint = null;
+
+        // 按下後拖曳超過一點點就是在選取文字，不是點連結
+        var moved = e.GetPosition(this) - press;
+        if (Math.Sqrt(moved.X * moved.X + moved.Y * moved.Y) > ClickSlop)
+            return;
+        if (LinkAt(e.GetPosition(this)) is { } link)
         {
             e.Handled = true;
             LinkClicked?.Invoke(link.Uri);

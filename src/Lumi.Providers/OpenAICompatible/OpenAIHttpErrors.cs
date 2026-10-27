@@ -6,14 +6,16 @@ namespace Lumi.Providers.OpenAICompatible;
 internal static class OpenAIHttpErrors
 {
     /// <summary>
-    /// 依 HTTP 狀態碼分類。不把伺服器回的錯誤內文放進訊息（可能含敏感資訊）；
+    /// 依 HTTP 狀態碼分類（400／413／422 再看內文是否為超過上下文長度）。不把伺服器回的錯誤內文放進訊息（可能含敏感資訊）；
     /// 公司 Gateway 或 Ollama 的細節看 log 裡的狀態碼與 request id 即可。
     /// </summary>
-    public static ChatFailure FromResponse(HttpResponseMessage response, bool requestHadTools = false, bool requestHadImages = false)
+    public static ChatFailure FromResponse(HttpResponseMessage response, bool requestHadTools = false, bool requestHadImages = false, string? errorBody = null)
     {
         var status = (int)response.StatusCode;
         return status switch
         {
+            // 超過上下文長度（內文只用來辨認，不放進訊息）：對話會先整理再重送
+            400 or 413 or 422 when ContextLengthErrors.Matches(errorBody) => new(ChatFailureKind.ContextTooLong, ContextLengthErrors.Message, false),
             401 => new(ChatFailureKind.InvalidApiKey, "金鑰無效或已失效，請重新輸入。", false),
             403 => new(ChatFailureKind.PermissionDenied, "這個帳號沒有權限使用此模型。", false),
             404 => new(ChatFailureKind.ModelNotFound, "找不到指定的模型，或 Base URL 不正確（通常需要包含 /v1）。", false),

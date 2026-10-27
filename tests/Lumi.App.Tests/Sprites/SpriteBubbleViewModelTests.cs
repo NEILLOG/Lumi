@@ -518,6 +518,21 @@ public class SpriteBubbleViewModelTests
     }
 
     [Fact]
+    public void MissingProgramFiles_ShowTheirOwnSentence_WithoutRetry()
+    {
+        var rig = new Rig();
+        rig.Bubble.OnRunStarted();
+
+        // ChatSession 在例外時只回報結果（沒有 Failed 事件）
+        rig.Bubble.OnRunFinished(Ev.Finished(Ev.Failure(ChatFailureKind.AppFilesMissing, ChatSession.AppFilesMissingMessage, retryable: false)));
+
+        Assert.Equal(SpriteBubbleKind.Error, rig.Bubble.Kind);
+        Assert.Equal(Strings.Chat_ErrorAppFilesMissing, rig.Bubble.ErrorText);
+        Assert.False(rig.Bubble.CanRetry);
+        Assert.False(rig.Bubble.CanOpenSettings);
+    }
+
+    [Fact]
     public void ANonRetryableFailure_HasNoRetryButton()
     {
         var rig = new Rig();

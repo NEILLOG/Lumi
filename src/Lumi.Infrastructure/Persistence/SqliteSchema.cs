@@ -125,6 +125,27 @@ internal static class SqliteSchema
           updated_at TEXT NOT NULL
         );
         """,
+
+        // 11：上下文壓縮紀錄（M22）。kind 是 'tool_results'（第一層）或 'summary'（第二層）；upto_seq 以前的訊息已整理。
+        // at_seq 是整理當下對話最後一則訊息的 seq（之前回報的 token 用量不再代表請求大小）；
+        // token 欄位是摘要那次呼叫的用量（第一層為 NULL），計入對話與本月用量。
+        """
+        CREATE TABLE conversation_compactions (
+          id              TEXT PRIMARY KEY,
+          conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          kind            TEXT NOT NULL,
+          upto_seq        INTEGER NOT NULL,
+          summary         TEXT,
+          model_id        TEXT,
+          created_at      TEXT NOT NULL,
+          at_seq          INTEGER NOT NULL DEFAULT 0,
+          input_tokens    INTEGER,
+          output_tokens   INTEGER,
+          cache_creation_input_tokens INTEGER,
+          cache_read_input_tokens     INTEGER
+        );
+        CREATE INDEX ix_conversation_compactions_conversation ON conversation_compactions(conversation_id, created_at);
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

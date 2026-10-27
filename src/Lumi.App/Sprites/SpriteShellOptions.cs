@@ -46,8 +46,8 @@ public sealed class SpriteShellOptions
 
     // ---- 版面（DIP） ----
 
-    /// <summary>視窗最小寬度：容納氣泡（280）與輸入列（300）。</summary>
-    public double MinWindowWidth { get; init; } = 340;
+    /// <summary>視窗最小寬度：輸入列（300）左右各留 24（陰影的模糊半徑），氣泡（280）在內。</summary>
+    public double MinWindowWidth { get; init; } = 348;
 
     /// <summary>角色上方預留給氣泡的高度。固定預留，不隨內容改視窗大小（避免拖曳與動畫時視窗一直變形）。</summary>
     public double BubbleReserve { get; init; } = 260;
@@ -57,8 +57,8 @@ public sealed class SpriteShellOptions
     /// <summary>輸入列與角色框之間的間距。</summary>
     public double InputGap { get; init; } = 6;
 
-    /// <summary>輸入列下方留的邊（陰影）。</summary>
-    public double BottomMargin { get; init; } = 12;
+    /// <summary>輸入列下方留的邊：陰影 y 位移 8＋模糊半徑 24，不留足會被透明視窗邊緣切掉。</summary>
+    public double BottomMargin { get; init; } = 32;
 
     // ---- 幀率 ----
 

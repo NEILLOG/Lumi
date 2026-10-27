@@ -6,18 +6,24 @@ namespace Lumi.Core.Chat;
 /// <inheritdoc cref="IChatSession"/>
 public sealed class ChatSession : IChatSession
 {
+    /// <summary>程式檔案不完整時給使用者看的說明；Core 不能用 App 的資源檔，和 <c>Strings.Chat_ErrorAppFilesMissing</c> 同字（App.Tests 守住一致）。</summary>
+    public const string AppFilesMissingMessage = "Lumi 的程式檔案不完整，請重新啟動 Lumi；仍然發生請重新下載安裝。";
+
     private readonly ConversationService _conversations;
     private readonly IConversationStore _store;
     private readonly ILogger<ChatSession> _logger;
+    private readonly SpriteConversationService? _sprite;
 
     private CancellationTokenSource? _responseCts;
     private TaskCompletionSource? _responseDone;
 
-    public ChatSession(ConversationService conversations, IConversationStore store, ILogger<ChatSession>? logger = null)
+    public ChatSession(
+        ConversationService conversations, IConversationStore store, ILogger<ChatSession>? logger = null, SpriteConversationService? sprite = null)
     {
         _conversations = conversations;
         _store = store;
         _logger = logger ?? NullLogger<ChatSession>.Instance;
+        _sprite = sprite;
     }
 
     public string? ConversationId { get; private set; }
@@ -40,7 +46,13 @@ public sealed class ChatSession : IChatSession
 
     public async Task<Conversation> InitializeAsync(string newConversationTitle, CancellationToken ct = default)
     {
-        var conversation = await _store.GetLatestAsync(ct) ?? await _store.CreateAsync(newConversationTitle, ct);
+        var latest = await _store.GetLatestAsync(ct);
+        if (latest is not null && _sprite is not null && latest.Id == await _sprite.GetIdAsync(ct))
+        {
+            // 最近的是小精靈專屬對話（M22）：工作台不接手它，改開最近一則有內容的其他對話
+            latest = (await _store.ListAsync(2, ct)).FirstOrDefault(c => c.Id != latest.Id);
+        }
+        var conversation = latest ?? await _store.CreateAsync(newConversationTitle, ct);
         Select(conversation);
         return conversation;
     }
@@ -94,6 +106,52 @@ public sealed class ChatSession : IChatSession
     public Task<ChatRunResult> RegenerateAsync(CancellationToken ct = default) =>
         RunAsync(ChatRunKind.Regenerate, null, ct, (id, mode, token) => _conversations.RegenerateAsync(id, token, mode));
 
+    public async Task<CompactionResult> CompactAsync(CancellationToken ct = default)
+    {
+        var conversationId = ConversationId ?? throw new InvalidOperationException("還沒有載入任何對話。");
+        if (IsResponding)
+            throw new InvalidOperationException("上一輪回應還沒結束。");
+
+        var done = new TaskCompletionSource();
+        _responseDone = done;
+        IsResponding = true;
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _responseCts = cts;
+        var compacted = false;
+        ChatFailure? failure = null;
+        try
+        {
+            await foreach (var chatEvent in _conversations.CompactAsync(conversationId, cts.Token))
+            {
+                if (chatEvent is CompactionCompleted)
+                    compacted = true;
+                else if (chatEvent is CompactionFailed failed)
+                    failure = failed.Failure;
+                Raise(EventReceived, chatEvent);
+            }
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            // 被停止（例如切換對話）：沒有存任何東西
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "對話整理發生未預期的錯誤");
+            failure = new ChatFailure(ChatFailureKind.Unknown, "整理對話時發生未預期的錯誤。", Retryable: true);
+            Raise(EventReceived, new CompactionFailed(CompactionKind.Summary, failure));
+        }
+        finally
+        {
+            _responseCts = null;
+            IsResponding = false;
+            done.TrySetResult();
+            if (ReferenceEquals(_responseDone, done))
+                _responseDone = null;
+        }
+        return new CompactionResult(compacted, failure);
+    }
+
     public void Stop() => _responseCts?.Cancel();
 
     public async Task StopAndWaitAsync()
@@ -138,6 +196,12 @@ public sealed class ChatSession : IChatSession
             catch (OperationCanceledException) when (cts.IsCancellationRequested)
             {
                 cancelled = true;
+            }
+            catch (Exception ex) when (MissingAppFiles.Is(ex))
+            {
+                // 程式檔案（組件）載入不到：不是使用者能處理的一般錯誤，給一句明確的說明（M22）
+                _logger.LogError(ex, "對話回應時找不到程式檔案");
+                failure = new ChatFailure(ChatFailureKind.AppFilesMissing, AppFilesMissingMessage, Retryable: false);
             }
             catch (Exception ex)
             {

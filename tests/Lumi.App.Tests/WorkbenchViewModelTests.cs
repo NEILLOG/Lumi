@@ -164,6 +164,32 @@ public class WorkbenchViewModelTests
         Assert.Single(vm.Messages);
     }
 
+    private sealed class MissingFileProvider : IChatProvider
+    {
+        public async IAsyncEnumerable<ChatEvent> StreamAsync(ChatRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        {
+            await Task.Yield();
+            throw new FileNotFoundException("找不到 System.Net.ServerSentEvents");
+#pragma warning disable CS0162
+            yield break;
+#pragma warning restore CS0162
+        }
+    }
+
+    [Fact]
+    public async Task MissingProgramFile_ShowsTheAppFilesMissingMessage()
+    {
+        var (vm, _) = Create(new MissingFileProvider());
+        await vm.InitializeAsync();
+        vm.InputText = "問";
+
+        await vm.SendCommand.ExecuteAsync(null);
+
+        Assert.Equal(Strings.Chat_ErrorAppFilesMissing, vm.ErrorMessage);
+        Assert.NotEqual(Strings.Workbench_UnexpectedError, vm.ErrorMessage);
+        Assert.Single(vm.Messages);
+    }
+
     [Fact]
     public async Task Failure_ShowsErrorRow_AndRetrySucceeds()
     {

@@ -186,27 +186,4 @@ public sealed class ConnectionsPageViewModelTests
         Assert.True(vm.HasFieldErrors);
         Assert.False(vm.SaveCommand.CanExecute(null));
     }
-
-    // ---- 設定視窗：分段切換 ----
-
-    [Fact]
-    public async Task Settings_SegmentFlags_FollowTabIndex()
-    {
-        using var host = new SettingsHost();
-        var vm = host.Settings;
-        var changed = new List<string?>();
-        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
-
-        Assert.True(vm.ShowConnectionsTab);
-        Assert.False(vm.ShowModelsTab);
-
-        vm.TabIndex = 1;
-        Assert.False(vm.ShowConnectionsTab);
-        Assert.True(vm.ShowModelsTab);
-        Assert.Contains(nameof(SettingsViewModel.ShowConnectionsTab), changed);
-        Assert.Contains(nameof(SettingsViewModel.ShowModelsTab), changed);
-
-        await vm.NavigateAsync(new SettingsNavigation(SettingsSection.Connections));
-        Assert.True(vm.ShowConnectionsTab);
-    }
 }

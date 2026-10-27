@@ -56,6 +56,7 @@ public static class HistoryGrouping
 
 /// <summary>
 /// 歷史對話抽屜：分組清單、搜尋（節流、舊查詢取消）、載入更多（游標分頁）、改名、刪除。
+/// 小精靈的專屬對話（M22）固定在清單最上方，不參與日期分組與分頁，沒有刪除、只有「清除內容」。
 /// 工作台的動作（切換對話、目前對話被刪、標題同步）經 <see cref="IHistoryHost"/> 交給工作台。
 /// </summary>
 public partial class HistoryViewModel : ObservableObject
@@ -67,6 +68,7 @@ public partial class HistoryViewModel : ObservableObject
     private readonly ConversationDeletionService? _deletion;
     private readonly IConfirmService? _confirm;
     private readonly ILogger<HistoryViewModel> _logger;
+    private readonly SpriteConversationService? _sprite;
     private readonly Dictionary<string, Conversation> _byId = new(StringComparer.Ordinal);
     private ConversationListItem? _selected;
     private ConversationListItem? _editing;
@@ -78,7 +80,8 @@ public partial class HistoryViewModel : ObservableObject
     private CancellationTokenSource? _searchCts;
 
     public HistoryViewModel(IConversationStore store, IHistoryHost host, TimeProvider time, HistoryOptions? options = null,
-        ConversationDeletionService? deletion = null, IConfirmService? confirm = null, ILogger<HistoryViewModel>? logger = null)
+        ConversationDeletionService? deletion = null, IConfirmService? confirm = null, ILogger<HistoryViewModel>? logger = null,
+        SpriteConversationService? sprite = null)
     {
         _store = store;
         _host = host;
@@ -87,6 +90,7 @@ public partial class HistoryViewModel : ObservableObject
         _deletion = deletion;
         _confirm = confirm;
         _logger = logger ?? NullLogger<HistoryViewModel>.Instance;
+        _sprite = sprite;
     }
 
     /// <summary>目前列出的對話（browse 時是已載入的各頁，搜尋時是命中的結果），依清單順序。</summary>
@@ -161,13 +165,16 @@ public partial class HistoryViewModel : ObservableObject
 
         var generation = ++_generation;
         var page = await _store.ListAsync(_options.PageSize);
+        var sprite = _sprite is null ? null : await _sprite.GetAsync();
         if (generation != _generation || IsSearchMode)
             return;   // 等待期間又重新載入或開始搜尋了：丟掉這次的結果
 
         CancelEditing();
         _byId.Clear();
         Items.Clear();
-        foreach (var conversation in page)
+        if (sprite is not null)
+            AddItem(sprite, "", "");   // 固定在最上方；還沒建立時不顯示
+        foreach (var conversation in page.Where(c => c.Id != sprite?.Id))
             AddItem(conversation, "", "");
         _cursor = page.Count > 0 ? CursorOf(page[^1]) : null;
         HasMore = page.Count == _options.PageSize;
@@ -199,7 +206,7 @@ public partial class HistoryViewModel : ObservableObject
                 return;
             foreach (var conversation in page)
             {
-                if (!_byId.ContainsKey(conversation.Id))   // 游標分頁不會重複，這裡是保險
+                if (!_byId.ContainsKey(conversation.Id) && !IsSpriteId(conversation.Id))   // 游標分頁不會重複，這裡是保險；小精靈的對話已經固定在最上方
                     AddItem(conversation, "", "");
             }
             if (page.Count > 0)
@@ -262,7 +269,8 @@ public partial class HistoryViewModel : ObservableObject
         CancelEditing();
         _byId.Clear();
         Items.Clear();
-        foreach (var hit in hits)
+        // 小精靈的對話符合才出現，出現時仍在最上方
+        foreach (var hit in hits.OrderBy(h => IsSpriteId(h.Conversation.Id) ? 0 : 1))
             AddItem(hit.Conversation, hit.Snippet, query);
         _cursor = null;
         HasMore = false;
@@ -364,7 +372,7 @@ public partial class HistoryViewModel : ObservableObject
     public bool CanDeleteConversation => _deletion is not null && _confirm is not null;
 
     /// <summary>回應中（含小精靈回應中）不能刪除：不分是不是目前的對話，避免清附件時誤刪進行中的圖片。</summary>
-    private bool CanDelete(ConversationListItem? item) => item is not null && CanDeleteConversation && !_host.IsResponding;
+    private bool CanDelete(ConversationListItem? item) => item is not null && !item.IsSprite && CanDeleteConversation && !_host.IsResponding;
 
     /// <summary>
     /// 刪除前經過確認。目前開著的對話會先導向清單中的下一則（沒有就開新的空白對話），再從資料庫刪除。
@@ -372,7 +380,7 @@ public partial class HistoryViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanDelete))]
     private async Task DeleteAsync(ConversationListItem? item)
     {
-        if (item is null || !CanDeleteConversation || _host.IsResponding)
+        if (item is null || item.IsSprite || !CanDeleteConversation || _host.IsResponding)
             return;
         if (!await ConfirmDeleteAsync(item.Title))
             return;
@@ -387,13 +395,52 @@ public partial class HistoryViewModel : ObservableObject
     /// </summary>
     public async Task DeleteConversationAsync(string id, string title)
     {
-        if (!CanDeleteConversation || _host.IsResponding)
-            return;
+        if (!CanDeleteConversation || _host.IsResponding || IsSpriteId(id))
+            return;   // 小精靈的專屬對話不能刪除，只能清除內容
         if (!await ConfirmDeleteAsync(title))
             return;
         if (_host.IsResponding)
             return;
         await DeleteCoreAsync(id, Items.FirstOrDefault(i => i.Id == id));
+    }
+
+    // ---- 清除小精靈對話的內容（M22；取代刪除） ----
+
+    /// <summary>這個 id 是小精靈的專屬對話（固定在清單最上方，沒有刪除）。</summary>
+    public bool IsSpriteId(string? id) => _sprite?.IsSpriteConversation(id) == true;
+
+    /// <summary>有刪除服務與確認服務時才能清除內容。</summary>
+    public bool CanClearConversation => CanDeleteConversation;
+
+    private bool CanClearSprite(ConversationListItem? item) => item is { IsSprite: true } && CanClearConversation && !_host.IsResponding;
+
+    /// <summary>清單列「⋯」的「清除內容」。</summary>
+    [RelayCommand(CanExecute = nameof(CanClearSprite))]
+    private Task ClearSpriteConversationAsync(ConversationListItem? item) =>
+        item is { IsSprite: true } ? ClearConversationAsync(item.Id) : Task.CompletedTask;
+
+    /// <summary>
+    /// 清除小精靈對話的內容：確認後刪掉全部訊息與整理紀錄，保留對話與 id（標題不變），再通知工作台重新載入。
+    /// 工作台第二列「⋯」的「清除內容」走同一條路。回應中不能清除（和刪除相同）。
+    /// </summary>
+    public async Task ClearConversationAsync(string id)
+    {
+        if (!CanClearConversation || _host.IsResponding || !IsSpriteId(id))
+            return;
+        if (!await _confirm!.ConfirmDestructiveAsync(Strings.Confirm_ClearSpriteConversation, Strings.Confirm_Clear))
+            return;
+        if (_host.IsResponding)
+            return;   // 確認期間開始回應了
+        try
+        {
+            await _deletion!.ClearAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "清除小精靈對話的內容失敗");
+            return;
+        }
+        await _host.ConversationClearedAsync(id);
     }
 
     private Task<bool> ConfirmDeleteAsync(string title)
@@ -448,6 +495,7 @@ public partial class HistoryViewModel : ObservableObject
         foreach (var item in Items)
             item.DeleteBlocked = _host.IsResponding;
         DeleteCommand.NotifyCanExecuteChanged();
+        ClearSpriteConversationCommand.NotifyCanExecuteChanged();
     }
 
     // ---- 分組與列 ----
@@ -460,6 +508,7 @@ public partial class HistoryViewModel : ObservableObject
         {
             DeleteBlocked = _host.IsResponding,
             TitleMaxLength = _options.TitleMaxLength,
+            IsSprite = IsSpriteId(conversation.Id),
         });
     }
 
@@ -485,9 +534,12 @@ public partial class HistoryViewModel : ObservableObject
             {
                 var now = _time.GetUtcNow();
                 var zone = _time.LocalTimeZone;
+                var pinned = Items.Where(i => i.IsSprite).ToList();   // 小精靈的對話：沒有群組標題，固定在最上方
+                if (pinned.Count > 0)
+                    AddGroup(null, pinned);
                 foreach (var bucket in Enum.GetValues<HistoryBucket>())
                 {
-                    var members = Items.Where(i => _byId.TryGetValue(i.Id, out var c)
+                    var members = Items.Where(i => !i.IsSprite && _byId.TryGetValue(i.Id, out var c)
                                                   && HistoryGrouping.BucketOf(c.UpdatedAt, now, zone) == bucket).ToList();
                     if (members.Count > 0)
                         AddGroup(HistoryGrouping.TitleOf(bucket), members);

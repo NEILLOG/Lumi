@@ -21,15 +21,14 @@ public partial class SettingsWindow : Window
         ResponsiveClasses.Track(this, trackStacked: true);
         // 色票卡片排在可換行的 WrapPanel：左右鍵由 ListBox 處理，上下鍵要自己找「上一列／下一列」的卡片
         PaletteBox.AddHandler(KeyDownEvent, OnPaletteKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        // 分段切換（連線／模型設定）是單選群組：Tab 只停在已選的那一段，方向鍵換段
-        TabSwitchPanel.AddHandler(KeyDownEvent, OnSegmentKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        // 分段切換是單選群組：Tab 只停在已選的那一段，方向鍵換段
         ToolsTabSwitchPanel.AddHandler(KeyDownEvent, OnSegmentKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);   // 工具：工具清單／MCP 伺服器（M16）
         UpdateSegmentTabStop();
         // 筆記資料夾（M10 10B）：沒有儲存鈕，Enter 或離開欄位時套用
         NotesFolderBox.KeyDown += OnNotesFolderKeyDown;
         NotesFolderBox.LostFocus += (_, _) => viewModel.General.CommitNotesFolderCommand.Execute(null);
         viewModel.Connections.FocusApiKeyRequested += () =>
-            Dispatcher.UIThread.Post(() => ConnectionsPanel.FocusKeyBox(), DispatcherPriority.Loaded);
+            Dispatcher.UIThread.Post(() => AiPage.FocusKeyBox(), DispatcherPriority.Loaded);
 
         // 「小精靈」分頁的預覽區：角色或狀態一變就更新；只在這個分頁可見時才驅動畫面
         _preview = new SpritePreviewHost(SpritePreviewHost, this);
@@ -50,7 +49,7 @@ public partial class SettingsWindow : Window
         {
             if (e.PropertyName == nameof(SettingsViewModel.ShowSprite))
                 UpdatePreviewRunning();
-            else if (e.PropertyName is nameof(SettingsViewModel.TabIndex) or nameof(SettingsViewModel.ToolsTabIndex))
+            else if (e.PropertyName is nameof(SettingsViewModel.ToolsTabIndex))
                 UpdateSegmentTabStop();
         };
         _preview.Show(viewModel.Sprite.PreviewFactory);
@@ -66,15 +65,12 @@ public partial class SettingsWindow : Window
 
     private static IReadOnlyList<RadioButton> SegmentsOf(Panel panel) => panel.Children.OfType<RadioButton>().ToList();
 
-    /// <summary>Tab 進入分段切換時落在已選的那一段（沒有選取時落在第一段）。兩組分段：AI 連線（連線／模型設定）、工具（工具清單／MCP 伺服器）。</summary>
+    /// <summary>Tab 進入分段切換時落在已選的那一段（沒有選取時落在第一段）。分段：工具（工具清單／MCP 伺服器）。</summary>
     private void UpdateSegmentTabStop()
     {
-        foreach (var panel in new Panel[] { TabSwitchPanel, ToolsTabSwitchPanel })
-        {
-            var segments = SegmentsOf(panel);
-            var current = segments.FirstOrDefault(s => s.IsChecked == true) ?? segments[0];
-            KeyboardNavigation.SetTabOnceActiveElement(panel, current);
-        }
+        var segments = SegmentsOf(ToolsTabSwitchPanel);
+        var current = segments.FirstOrDefault(s => s.IsChecked == true) ?? segments[0];
+        KeyboardNavigation.SetTabOnceActiveElement(ToolsTabSwitchPanel, current);
     }
 
     private void OnSegmentKeyDown(object? sender, KeyEventArgs e)

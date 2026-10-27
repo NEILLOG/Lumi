@@ -20,7 +20,7 @@ public interface IConversationStore
     Task<IReadOnlyList<Conversation>> ListAsync(int limit, ConversationCursor? before, CancellationToken ct = default);
 
     /// <summary>
-    /// 刪除整個對話：訊息、上下文項目隨外鍵一併刪除。不存在時回 false。
+    /// 刪除整個對話：訊息、上下文項目、整理紀錄隨外鍵一併刪除。不存在時回 false。
     /// 附件檔案不在這裡處理（由 <c>ConversationDeletionService</c> 在刪除之後清理）。
     /// </summary>
     Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default);
@@ -62,6 +62,19 @@ public interface IConversationStore
     Task SetToolSnapshotAsync(string conversationId, string snapshotJson, CancellationToken ct = default) => Task.CompletedTask;
 
     /// <summary>
+    /// 存一筆上下文整理紀錄（M22）。儲存實作順便記下當下對話最後一則訊息的順序號
+    /// （<see cref="CompactionState.AppliedAtSeq"/>）。預設什麼都不做，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task AddCompactionAsync(string conversationId, CompactionRecord record, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>這則對話目前的整理狀態（第一層、第二層各取最新一筆）。預設回空狀態。</summary>
+    Task<CompactionState> GetCompactionStateAsync(string conversationId, CancellationToken ct = default) =>
+        Task.FromResult(CompactionState.Empty);
+
+    /// <summary>這則對話所有摘要呼叫的 token 用量加總（計入本對話累計）。預設全 0。</summary>
+    Task<TokenUsage> GetCompactionUsageAsync(string conversationId, CancellationToken ct = default) => Task.FromResult(TokenUsage.Zero);
+
+    /// <summary>
     /// 移除最後一則訊息（「重新產生」用）。從尾端移除不會讓前面任何一則的內容改變，所以不影響 thinking 簽章的一致性；
     /// 對話的更新時間不變，之後再加訊息時順序號接著剩下的最後一則。
     /// </summary>
@@ -69,6 +82,30 @@ public interface IConversationStore
     Task<bool> RemoveLastMessageAsync(string conversationId, CancellationToken ct = default);
 
     Task RenameAsync(string conversationId, string title, CancellationToken ct = default);
+
+    /// <summary>
+    /// 依 id 取一則對話（不論有沒有訊息）；不存在回 null。小精靈專屬對話（M22）要確認 id 還對得到。
+    /// 預設回 null，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task<Conversation?> GetConversationAsync(string conversationId, CancellationToken ct = default) => Task.FromResult<Conversation?>(null);
+
+    /// <summary>
+    /// 清除這則對話的全部內容（M22「清除內容」）：所有訊息與整理紀錄，連同第一次送出時凍結的 system prompt 與工具快照
+    /// （清完等於一則新對話，下次送出重新記）。對話本身與 id、標題、更新時間都保留。
+    /// 預設逐則從尾端移除訊息；有整理紀錄、system prompt 的實作要覆寫。
+    /// </summary>
+    async Task ClearMessagesAsync(string conversationId, CancellationToken ct = default)
+    {
+        while (await RemoveLastMessageAsync(conversationId, ct).ConfigureAwait(false))
+        {
+        }
+    }
+
+    /// <summary>讀一個應用程式層級的小設定（<c>app_meta</c>）；沒有回 null。預設永遠回 null。</summary>
+    Task<string?> GetMetaAsync(string key, CancellationToken ct = default) => Task.FromResult<string?>(null);
+
+    /// <summary>寫入一個應用程式層級的小設定（<c>app_meta</c>），已有就覆蓋。預設什麼都不做。</summary>
+    Task SetMetaAsync(string key, string value, CancellationToken ct = default) => Task.CompletedTask;
 
     /// <summary>
     /// 從 <paramref name="since"/>（含）起，所有對話的助理訊息 token 加總（設定首頁的本月／今天用量）。

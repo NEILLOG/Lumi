@@ -45,6 +45,12 @@ public interface IAppModeCoordinator
     /// </summary>
     void OpenWorkbench(string? scrollToCallId = null);
 
+    /// <summary>
+    /// 小精靈的氣泡要在工作台看「小精靈那則對話」（完整內容、確認、錯誤的「在工作台開啟」，M22）：
+    /// 和 <see cref="OpenWorkbench"/> 一樣，但工作台顯示小精靈的專屬對話，不切回原本工作台的對話。預設等同 <see cref="OpenWorkbench"/>。
+    /// </summary>
+    void OpenWorkbenchForSpriteConversation(string? scrollToCallId = null) => OpenWorkbench(scrollToCallId);
+
     /// <summary>工作台要送出訊息之前：在工作台送出就等於切換到工作台模式（小精靈隱藏）。</summary>
     void WorkbenchWillSend();
 
@@ -75,12 +81,13 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
     private readonly SpriteShellOptions _options;
     private readonly TimeProvider _time;
     private readonly ILogger<AppModeCoordinator> _logger;
+    private readonly SpriteConversationSwitcher? _conversations;
     private CancellationTokenSource? _hideTimer;
     private bool _switchToWorkbenchWhenIdle;   // 回應中從小精靈打開工作台（查看中）：回應結束再切換
 
     public AppModeCoordinator(
         IChatSession session, IWindowHost windows, IModelCatalog settings, SpriteShellOptions options, TimeProvider time,
-        ILogger<AppModeCoordinator> logger)
+        ILogger<AppModeCoordinator> logger, SpriteConversationSwitcher? conversations = null)
     {
         _session = session;
         _windows = windows;
@@ -88,6 +95,7 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
         _options = options;
         _time = time;
         _logger = logger;
+        _conversations = conversations;
         _session.ModeChanged += (_, mode) => _ = SaveModeAsync(mode);
         _session.EventReceived += OnEvent;
         _session.RunFinished += OnRunFinished;
@@ -129,6 +137,13 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
             _windows.ScrollWorkbenchToCall(scrollToCallId);
     }
 
+    public void OpenWorkbenchForSpriteConversation(string? scrollToCallId = null)
+    {
+        if (_session.ActiveMode == ChatMode.Sprite)
+            _conversations?.KeepSpriteConversationOnNextWorkbench();   // 切到工作台模式時不換掉對話
+        OpenWorkbench(scrollToCallId);
+    }
+
     public void WorkbenchWillSend()
     {
         if (_session.ActiveMode == ChatMode.Workbench || !_session.TrySetMode(ChatMode.Workbench))
@@ -147,6 +162,7 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
         }
         // 只有查看中才會在小精靈模式下看到工作台：關掉就回到小精靈，回應結束後也不再切換
         _switchToWorkbenchWhenIdle = false;
+        _conversations?.KeepSpriteConversationOnNextWorkbench(false);
         _windows.ShowSprite();
         return false;
     }
@@ -156,6 +172,7 @@ public sealed class AppModeCoordinator : IAppModeCoordinator
         if (_session.ActiveMode == ChatMode.Sprite)
         {
             _switchToWorkbenchWhenIdle = false;
+            _conversations?.KeepSpriteConversationOnNextWorkbench(false);
             CancelTemporaryHide();
             _windows.HideWorkbench();
             _windows.ShowSprite();

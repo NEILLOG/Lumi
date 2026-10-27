@@ -55,5 +55,11 @@ public enum ChatFailureKind
     /// <summary>工具迴圈達到次數上限；已完成的步驟都保留，使用者可以「重試」接著跑。</summary>
     ToolLoopLimit,
 
+    /// <summary>程式檔案不完整（載入組件時 <see cref="System.IO.FileNotFoundException"/>／<see cref="System.IO.FileLoadException"/>，M22）。</summary>
+    AppFilesMissing,
+
+    /// <summary>請求超過模型能處理的長度（M22 上下文壓縮會先自動整理再重送一次）。</summary>
+    ContextTooLong,
+
     Unknown,
 }

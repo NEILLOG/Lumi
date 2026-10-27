@@ -309,7 +309,7 @@ public partial class ModelsViewModel : ObservableObject
         try
         {
             var settings = _catalog.Current;
-            var selectedId = _selectedItem?.Id;
+            var selectedId = _selectedItem?.Id ?? (HasEditor && !_isNew ? _editingId : null);   // 儲存後清單還沒重建就先指到舊清單時，用正在編輯的模型找回選取
             var editingConnectionId = SelectedConnection?.Id;
             var connectionNames = settings.Connections.ToDictionary(c => c.Id, c => c.Name);
             var connectionFormats = settings.Connections.ToDictionary(c => c.Id, c => c.Format);
@@ -325,7 +325,7 @@ public partial class ModelsViewModel : ObservableObject
             {
                 Items.Add(new ModelListItem(m.Id, connectionNames.GetValueOrDefault(m.ConnectionId, ""), m.DisplayName, m.ModelId,
                     m.Id == settings.WorkbenchModelId,
-                    connectionFormats.GetValueOrDefault(m.ConnectionId, ProviderFormat.OpenAICompatible), _status.Get(m.ConnectionId).Status));
+                    connectionFormats.GetValueOrDefault(m.ConnectionId, ProviderFormat.OpenAICompatible), _status.Get(m.ConnectionId).Status, m.ConnectionId));
             }
 
             DefaultOptions.Clear();
@@ -379,17 +379,39 @@ public partial class ModelsViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanAddModel))]
-    private async Task NewModelAsync()
+    private Task NewModelAsync() => StartNewAsync(null);
+
+    /// <summary>
+    /// 開始新增一個模型設定。<paramref name="connectionId"/> 是預先選好的連線（合併頁清單中連線底下的「新增模型」）；
+    /// 沒指定或找不到就用第一個連線。沒有任何連線時什麼都不做。
+    /// </summary>
+    public async Task StartNewAsync(string? connectionId)
     {
+        if (!CanAddModel)
+            return;
         if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
             return;
 
         _selectedItem = null;
         OnPropertyChanged(nameof(SelectedItem));
-        var connection = _catalog.Current.Connections[0];
+        var connection = _catalog.Current.Connections.FirstOrDefault(c => c.Id == connectionId) ?? _catalog.Current.Connections[0];
         var (maxOutput, context, thinking) = DefaultsFor(connection.Format);
         StartEditing(ModelSettings.NewId(), isNew: true, connection.Id, "", "", maxOutput, context, thinking, toolsEnabled: true, displayNameFollows: true);
         await LoadAvailableModelsAsync(forceRefresh: false);
+    }
+
+    /// <summary>關閉詳細區的編輯器（切到連線表單時用）。有未儲存的變更先詢問，使用者取消回 false；原本就沒有編輯器回 true。</summary>
+    public async Task<bool> CloseEditorAsync()
+    {
+        if (!HasEditor)
+            return true;
+        if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
+            return false;
+
+        _selectedItem = null;
+        OnPropertyChanged(nameof(SelectedItem));
+        ClearEditor();
+        return true;
     }
 
     private void StartEditing(string id, bool isNew, string connectionId, string modelId, string displayName,
@@ -473,6 +495,9 @@ public partial class ModelsViewModel : ObservableObject
         var model = new ModelSettings(id, SelectedConnection!.Id, ModelId.Trim(), DisplayName.Trim(),
             (int)MaxOutputTokens!.Value, (int)ContextWindow!.Value, ShowThinking, ToolsEnabled);
 
+        // 新增模型時，原本的預設模型若已無法使用，就把新模型設成預設（22B）
+        var replacesDefault = _isNew && await IsDefaultUnusableAsync();
+
         IsSaving = true;
         try
         {
@@ -484,12 +509,34 @@ public partial class ModelsViewModel : ObservableObject
             IsSaving = false;
         }
 
+        if (replacesDefault && await RunAsync(() => _catalog.SetWorkbenchModelAsync(id)))
+            DefaultChangedNotice = string.Format(CultureInfo.CurrentCulture, Strings.Models_DefaultReplaced, model.DisplayName);
+
         // 第一個模型設定時，預設模型會由目錄自動指定
         var item = Items.FirstOrDefault(i => i.Id == id);
         _selectedItem = item;
         OnPropertyChanged(nameof(SelectedItem));
         StartEditing(id, isNew: false, model.ConnectionId, model.ModelId, model.DisplayName, model.MaxOutputTokens,
             model.ContextWindow, model.ShowThinking, model.ToolsEnabled, displayNameFollows: model.DisplayName == model.ModelId);
+    }
+
+    /// <summary>預設模型存在但無法使用：找不到，或它的連線沒有金鑰。一個模型都沒有（沒有預設）不算。</summary>
+    private async Task<bool> IsDefaultUnusableAsync()
+    {
+        var workbenchId = _catalog.Current.WorkbenchModelId;
+        if (workbenchId is null)
+            return false;
+        var resolved = _catalog.Resolve(workbenchId);
+        if (resolved is null)
+            return true;
+        try
+        {
+            return !await _catalog.HasApiKeyAsync(resolved.Connection.Id);
+        }
+        catch (SecretStoreException)
+        {
+            return false;   // 讀不出來不代表模型壞了，不動預設
+        }
     }
 
     [RelayCommand(CanExecute = nameof(HasEditor))]

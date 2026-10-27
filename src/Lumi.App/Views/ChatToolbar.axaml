@@ -73,7 +73,7 @@
     </Style>
   </UserControl.Styles>
 
-  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 用量圓環、「⋯」選單（重新命名、匯出、刪除這則對話） -->
+  <!-- 工具列：新對話、歷史對話 | 模型膠囊 | 用量圓環、「⋯」選單（重新命名、匯出、刪除這則對話；小精靈的專屬對話是「清除內容」） -->
   <Border Padding="12,8"
           Background="{DynamicResource LumiChromeBrush}"
           BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
@@ -165,8 +165,12 @@
               <MenuItem x:Name="ExportMenuItem" Header="{x:Static res:Strings.Workbench_ExportConversation}"
                         Command="{Binding ExportConversationCommand}" IsEnabled="{Binding ExportConversationEnabled}" />
               <MenuItem x:Name="DeleteMenuItem" Header="{x:Static res:Strings.Workbench_DeleteConversation}"
-                        Foreground="{DynamicResource LumiDangerBrush}"
+                        Foreground="{DynamicResource LumiDangerBrush}" IsVisible="{Binding ShowDeleteConversation}"
                         Command="{Binding DeleteConversationCommand}" IsEnabled="{Binding DeleteConversationEnabled}" />
+              <!-- 小精靈的專屬對話沒有刪除，改成「清除內容」（M22） -->
+              <MenuItem x:Name="ClearMenuItem" Header="{x:Static res:Strings.Workbench_ClearConversation}"
+                        Foreground="{DynamicResource LumiDangerBrush}" IsVisible="{Binding IsSpriteConversation}"
+                        Command="{Binding ClearConversationCommand}" IsEnabled="{Binding ClearConversationEnabled}" />
             </MenuFlyout>
           </Button.Flyout>
         </Button>

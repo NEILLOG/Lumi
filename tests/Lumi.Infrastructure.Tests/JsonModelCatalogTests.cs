@@ -32,21 +32,16 @@ public sealed class JsonModelCatalogTests : IDisposable
         new(ModelSettings.NewId(), connectionId, modelId, modelId, 4096, 128_000, false);
 
     [Fact]
-    public void FirstRun_CreatesFile_WithMigratedAnthropicConnection()
+    public void FirstRun_CreatesFile_Empty_WithoutClaudeDefault()
     {
         var catalog = NewCatalog();
 
         Assert.True(File.Exists(SettingsPath));
         Assert.Null(catalog.LoadProblem);
-        var connection = Assert.Single(catalog.Current.Connections);
-        Assert.Equal(JsonModelCatalog.MigratedConnectionId, connection.Id);
-        Assert.Equal(ProviderFormat.Anthropic, connection.Format);
-        var model = Assert.Single(catalog.Current.Models);
-        Assert.Equal("claude-opus-5-5", model.ModelId);
-        Assert.Equal(model.Id, catalog.Current.WorkbenchModelId);
-        Assert.Equal(model.Id, catalog.Current.SpriteModelId);
-        // M1 的金鑰名稱不變，不用搬
-        Assert.Equal("connection/dev-anthropic/api-key", ConnectionSecrets.ApiKey(connection.Id).Name);
+        Assert.Empty(catalog.Current.Connections);
+        Assert.Empty(catalog.Current.Models);
+        Assert.Null(catalog.Current.WorkbenchModelId);
+        Assert.Null(catalog.Current.SpriteModelId);
     }
 
     [Fact]
@@ -123,6 +118,7 @@ public sealed class JsonModelCatalogTests : IDisposable
         Assert.True(await catalog.HasApiKeyAsync(connection.Id));
 
         // M1 搬家的情況：金鑰在鑰匙圈，但設定檔沒有末 4 碼提示
+        await catalog.SaveConnectionAsync(new ConnectionSettings(JsonModelCatalog.MigratedConnectionId, "Anthropic", ProviderFormat.Anthropic, "https://api.anthropic.com"), null);
         _secrets.Items["connection/dev-anthropic/api-key"] = "old-m1-key";
         Assert.True(await catalog.HasApiKeyAsync("dev-anthropic"));
         Assert.Null(catalog.Current.Connections.Single(c => c.Id == "dev-anthropic").ApiKeyHint);
@@ -157,22 +153,30 @@ public sealed class JsonModelCatalogTests : IDisposable
         var model = Model(connection.Id);
         await catalog.SaveModelAsync(model);
         await catalog.SetWorkbenchModelAsync(model.Id);
+        var other = OpenAiConnection();
+        await catalog.SaveConnectionAsync(other, null);
+        var otherModel = Model(other.Id, "qwen");
+        await catalog.SaveModelAsync(otherModel);
 
         await catalog.DeleteConnectionAsync(connection.Id);
 
         Assert.DoesNotContain(catalog.Current.Connections, c => c.Id == connection.Id);
         Assert.DoesNotContain(catalog.Current.Models, m => m.ConnectionId == connection.Id);
         Assert.Empty(_secrets.Items);
-        // 預設模型改回剩下的第一個（搬家建立的 Anthropic 模型）
-        Assert.Equal(catalog.Current.Models[0].Id, catalog.Current.WorkbenchModelId);
+        // 預設模型改回剩下的第一個
+        Assert.Equal(otherModel.Id, catalog.Current.WorkbenchModelId);
     }
 
     [Fact]
     public async Task DeletingEveryModel_LeavesDefaultsNull()
     {
         var catalog = NewCatalog();
+        var connection = OpenAiConnection();
+        await catalog.SaveConnectionAsync(connection, null);
+        var model = Model(connection.Id);
+        await catalog.SaveModelAsync(model);
 
-        await catalog.DeleteModelAsync(catalog.Current.Models[0].Id);
+        await catalog.DeleteModelAsync(model.Id);
 
         Assert.Empty(catalog.Current.Models);
         Assert.Null(catalog.Current.WorkbenchModelId);
@@ -195,14 +199,19 @@ public sealed class JsonModelCatalogTests : IDisposable
     }
 
     [Fact]
-    public void Resolve_ReturnsModelWithItsConnection()
+    public async Task Resolve_ReturnsModelWithItsConnection()
     {
         var catalog = NewCatalog();
+        var connection = OpenAiConnection();
+        await catalog.SaveConnectionAsync(connection, null);
+        var model = Model(connection.Id);
+        await catalog.SaveModelAsync(model);
 
         var resolved = catalog.Resolve(catalog.Current.WorkbenchModelId);
 
         Assert.NotNull(resolved);
-        Assert.Equal(JsonModelCatalog.MigratedConnectionId, resolved.Connection.Id);
+        Assert.Equal(model.Id, resolved.Model.Id);
+        Assert.Equal(connection.Id, resolved.Connection.Id);
         Assert.Null(catalog.Resolve("no-such-model"));
         Assert.Null(catalog.Resolve(null));
     }
@@ -247,7 +256,7 @@ public sealed class JsonModelCatalogTests : IDisposable
         Assert.NotNull(catalog.LoadProblem);
         var broken = Assert.Single(Directory.GetFiles(_directory, "settings.json.broken-*"));
         Assert.Equal("{ not json", File.ReadAllText(broken));
-        Assert.Single(catalog.Current.Connections);
+        Assert.Empty(catalog.Current.Connections);
         Assert.True(File.Exists(SettingsPath));
     }
 

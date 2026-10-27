@@ -30,8 +30,12 @@
       <Setter Property="Background" Value="{DynamicResource LumiBackgroundBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     </Style>
-    <Style Selector="TextBlock">
+    <Style Selector="TextBlock, SelectableTextBlock">
       <Setter Property="FontFamily" Value="{DynamicResource LumiUiFont}" />
+    </Style>
+    <!-- 文字選取的底色：用邊框色（淺色與深色主題都看得清楚；淡底色在深色的助理氣泡上幾乎看不見） -->
+    <Style Selector="SelectableTextBlock">
+      <Setter Property="SelectionBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
     </Style>
     <Style Selector="TextBox">
       <Setter Property="FontFamily" Value="{DynamicResource LumiUiFont}" />
@@ -39,7 +43,7 @@
     <StyleInclude Source="avares://Lumi.App/Themes/Controls.axaml" />
     <StyleInclude Source="avares://Lumi.App/Themes/Markdown.axaml" />
 
-    <Style Selector="TextBlock.mono">
+    <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
       <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
     </Style>
   </Application.Styles>

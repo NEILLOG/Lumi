@@ -71,7 +71,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         NotificationCenter? notifications = null,
         IFilePickerService? filePicker = null,
         IRenameService? rename = null,
-        IConnectionTester? tester = null)
+        IConnectionTester? tester = null,
+        SpriteConversationService? spriteConversation = null)
     {
         _store = store;
         _catalog = catalog;
@@ -84,6 +85,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _filePicker = filePicker;
         _rename = rename;
         _tester = tester;
+        _spriteConversation = spriteConversation;
         Messages.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowWelcome));
@@ -98,7 +100,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
-        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger);
+        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
         ModelSwitcher.PropertyChanged += (_, e) =>
         {
@@ -222,8 +224,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip), nameof(AddFileTip), nameof(AddFolderTip))]
-    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip), nameof(AddFileTip), nameof(AddFolderTip), nameof(CanCompactAndContinue))]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand), nameof(CompactAndContinueCommand))]
     private bool _isResponding;
 
     /// <summary>
@@ -343,7 +345,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
     }
 
-    private bool CanSend() => !IsResponding && !IsVoiceActive && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
+    private bool CanSend() => !IsResponding && !IsCompacting && !IsVoiceActive && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
 
     [RelayCommand(CanExecute = nameof(CanRetry))]
     private Task RetryAsync()
@@ -352,7 +354,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         return RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
     }
 
-    private bool CanRetry() => !IsResponding && HasError;
+    private bool CanRetry() => !IsResponding && !IsCompacting && HasError;
 
     /// <summary>「換模型重試」：模型已經切好了，接著重送（只有最後一則是使用者訊息時才有東西可重送）。</summary>
     private Task RetryAfterModelSwitchAsync() => RetryCommand.CanExecute(null) ? RetryAsync() : Task.CompletedTask;
@@ -366,7 +368,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         return RunResponseAsync(() => _session.RegenerateAsync(), reloadOnFailure: true);
     }
 
-    private bool CanRegenerate() => !IsResponding && CurrentConversationId is not null && Messages.LastOrDefault() is { IsUser: false };
+    private bool CanRegenerate() => !IsResponding && !IsCompacting && CurrentConversationId is not null && Messages.LastOrDefault() is { IsUser: false };
 
     [RelayCommand(CanExecute = nameof(IsResponding))]
     private void Stop() => _session.Stop();
@@ -379,8 +381,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     [RelayCommand]
     private async Task NewConversationAsync()
     {
-        // 目前這則還沒有任何訊息：已經是空白的了，不重複建立
-        if (Messages.Count == 0 && CurrentConversationId is not null)
+        // 目前這則還沒有任何訊息：已經是空白的了，不重複建立（小精靈的專屬對話不算：它要留給小精靈）
+        if (Messages.Count == 0 && CurrentConversationId is not null && !IsSpriteConversation)
             return;
 
         await CreateNewConversationAsync();
@@ -472,17 +474,20 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Title = conversation.Title;
         ErrorMessage = null;
         await ReloadMessagesAsync();
+        NotifySpriteConversation();   // 小精靈的專屬對話：「⋯」換成「清除內容」（M22）
     }
 
     /// <summary>從資料庫重讀目前對話的訊息（讓畫面和資料庫一致）。</summary>
     private async Task ReloadMessagesAsync()
     {
         var messages = await _store.GetMessagesAsync(CurrentConversationId!);
+        var compaction = await _store.GetCompactionStateAsync(CurrentConversationId!);
         Messages.Clear();
-        foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson)))
+        foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson), compaction))
             Messages.Add(item);
+        HasCompactionFailure = false;
 
-        LoadUsageTally(messages);
+        LoadUsageTally(messages, await _store.GetCompactionUsageAsync(CurrentConversationId!));
         LastUsage = messages.LastOrDefault(m => m.Usage is not null)?.Usage;
         RefreshMessageState();
         SendCommand.NotifyCanExecuteChanged();
@@ -501,6 +506,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         var answered = true;
         foreach (var item in Messages)
         {
+            if (item is CompactionDividerViewModel)
+                continue;   // 整理的分隔線不是回應
             if (item.IsUser)
                 answered = false;
             else if (!answered && !item.IsStreaming)
@@ -746,6 +753,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     private void OnRunStarted(object? sender, RunStartedArgs args)
     {
+        _inCompaction = false;
         ErrorMessage = null;
         IsResponding = true;
 
@@ -799,8 +807,13 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 break;
             case UsageEvent usage:
                 _tally.ReportInFlight(usage.Tokens);   // 進行中請求的累計值（覆蓋，不相加）
-                LastUsage = usage.Tokens;
+                if (!_inCompaction)
+                    LastUsage = usage.Tokens;   // 摘要呼叫的用量不是目前的上下文大小
                 RefreshUsage();
+                break;
+            case CompactionStarted or CompactionCompleted or CompactionFailed:
+                OnCompactionEvent(chatEvent);
+                OnCompactionDisplayEvent(chatEvent);
                 break;
             case Completed completed when completed.Reason == StopReason.ToolUse:
                 // 這一輪還沒結束：有文字就定稿成一個氣泡，只有思考或只有工具呼叫的中間步驟不顯示（Q5）
@@ -878,6 +891,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
         IsResponding = false;
         RefreshMessageState();
+        OnCompactionRunFinished(args);
 
         // 用量：沒有定稿的那次請求不計；失敗或中止時以資料庫實際存下來的為準重算
         _tally.Abandon();

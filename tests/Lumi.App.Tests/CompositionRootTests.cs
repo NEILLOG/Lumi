@@ -63,7 +63,7 @@ public sealed class CompositionRootTests : IDisposable
     }
 
     [SkippableFact]
-    public async Task AllServicesResolve_AndFirstRunMigratesM1Connection()
+    public async Task AllServicesResolve_AndFirstRunStartsEmpty()
     {
         Skip.IfNot(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
         using var host = BuildHost();
@@ -79,7 +79,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
         Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
-        Assert.Equal(["add_note", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "download_file", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
+        Assert.Equal(["add_note", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "download_file", "edit_image", "generate_image", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
         // 長期記憶（M14）：SQLite 版取代 Core 預設的記憶體版；第 5 層、清理服務都要能解析
         Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMemoryStore>(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>());
@@ -138,6 +138,9 @@ public sealed class CompositionRootTests : IDisposable
         var modes = services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>();
         Assert.Same(modes, services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>());
         Assert.IsType<Lumi.App.Views.WindowHost>(services.GetRequiredService<Lumi.App.Services.IWindowHost>());
+        // M22 22J：小精靈專屬對話——切換規則與 id 管理都是單例（工作台、歷史清單、切換器共用同一份 id 快取）
+        Assert.Same(services.GetRequiredService<Lumi.App.Services.SpriteConversationSwitcher>(), services.GetRequiredService<Lumi.App.Services.SpriteConversationSwitcher>());
+        Assert.Same(services.GetRequiredService<SpriteConversationService>(), services.GetRequiredService<SpriteConversationService>());
         // UD-1：設定視窗的「回到對話」要用協調者開工作台；設定視窗服務與設定 ViewModel 能解析（沒有循環相依）
         Assert.IsType<Lumi.App.Views.SettingsWindowService>(services.GetRequiredService<Lumi.App.ViewModels.ISettingsWindowService>());
         Assert.NotNull(services.GetRequiredService<Lumi.App.ViewModels.SettingsViewModel>());
@@ -159,8 +162,10 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotNull(session.ConversationId);   // 工作台初始化走的是共用的會話，不是自己建一個
 
         Assert.True(File.Exists(Path.Combine(_directory, "settings.json")));
-        Assert.Equal(JsonModelCatalog.MigratedConnectionId, catalog.Resolve(catalog.Current.WorkbenchModelId)!.Connection.Id);
-        Assert.Equal("Claude Opus 5.5", vm.ModelName);
+        // 22B：第一次啟動沒有 Claude 預設，工作台顯示「沒有模型」，首頁會引導去設定
+        Assert.Empty(catalog.Current.Connections);
+        Assert.Null(catalog.Resolve(catalog.Current.WorkbenchModelId));
+        Assert.Equal(Lumi.App.Resources.Strings.Workbench_NoModel, vm.ModelName);
         Assert.NotNull(await services.GetRequiredService<IConversationStore>().GetLatestAsync());
     }
 }

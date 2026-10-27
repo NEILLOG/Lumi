@@ -5,7 +5,7 @@ using Lumi.App.ViewModels;
 namespace Lumi.App.Views;
 
 /// <summary>
-/// 「AI 連線」頁的模型設定分段：預設模型、清單卡片＋詳細表單。DataContext 是 <see cref="ModelsViewModel"/>。
+/// 「AI 連線」頁詳細區的模型表單。DataContext 是 <see cref="ModelsViewModel"/>。
 /// code-behind 只放視覺行為：「進階」（最大輸出、上下文上限）有錯誤時自動展開，不讓錯誤藏在收合的區段裡。
 /// </summary>
 public partial class ModelsPanel : UserControl
