@@ -53,7 +53,16 @@ internal sealed class FakeChatSession : IChatSession
     }
 
     public Task<Conversation> InitializeAsync(string newConversationTitle, CancellationToken ct = default) => throw new NotSupportedException();
-    public Task<Conversation> OpenConversationAsync(Conversation conversation) => throw new NotSupportedException();
+    /// <summary>被要求開啟過的對話（依序）。</summary>
+    public List<string> Opened { get; } = [];
+
+    public Task<Conversation> OpenConversationAsync(Conversation conversation)
+    {
+        Opened.Add(conversation.Id);
+        ConversationId = conversation.Id;
+        ConversationChanged?.Invoke(this, new ConversationChangedArgs(conversation));
+        return Task.FromResult(conversation);
+    }
     public Task<Conversation> NewConversationAsync(string title) => throw new NotSupportedException();
     public Task<ChatRunResult> SendAsync(string text, CancellationToken ct = default) => throw new NotSupportedException();
     public Task<ChatRunResult> RetryAsync(CancellationToken ct = default) => throw new NotSupportedException();

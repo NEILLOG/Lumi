@@ -31,17 +31,21 @@ public class ChatToolbarTests
         public WorkbenchWindow Window { get; }
         public ChatToolbar Toolbar { get; }
         public FakeModelCatalog Catalog { get; } = new();
+        public InMemoryConversationStore Store { get; } = new();
+        public SpriteConversationService Sprite { get; }
 
         public Rig(SequenceChatProvider? provider = null)
         {
             provider ??= new SequenceChatProvider(SequenceChatProvider.Answer("好"));
-            var store = new InMemoryConversationStore();
+            var store = Store;
             var catalog = Catalog;
+            Sprite = new SpriteConversationService(store);
             var service = new ConversationService(provider, store, catalog);
             Vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), SettingsWindow,
                 new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
                 NullLogger<WorkbenchViewModel>.Instance, deletion: HistoryTestSupport.Deletion(store), confirm: new FakeConfirmService(),
-                filePicker: new FakeFilePicker(), rename: new StubRename());
+                filePicker: new FakeFilePicker(), rename: new StubRename(),
+                session: new ChatSession(service, store, sprite: Sprite), spriteConversation: Sprite);
             Window = new WorkbenchWindow(Vm);
             Window.Show();
             Window.UpdateLayout();
@@ -163,13 +167,34 @@ public class ChatToolbarTests
         Assert.Equal(Strings.Workbench_ConversationOptions, Avalonia.Automation.AutomationProperties.GetName(more));
         Assert.Contains(more.GetVisualDescendants().OfType<LumiIcon>(), i => i.Data is not null);
         var menu = Assert.IsType<MenuFlyout>(more.Flyout);
-        var items = OpenMenu(rig).Items.OfType<MenuItem>().ToList();
+        var items = OpenMenu(rig).Items.OfType<MenuItem>().Where(i => i.IsVisible).ToList();   // 「清除內容」只在小精靈的專屬對話顯示
         // 設定與「管理連線與模型」不在這裡：設定是第一列的齒輪，管理在模型選單底部
         Assert.Equal([Strings.Workbench_RenameConversation, Strings.Workbench_ExportConversation, Strings.Workbench_DeleteConversation],
             items.Select(i => i.Header));
         Assert.Same(rig.Vm.RenameConversationCommand, items[0].Command);
         Assert.Same(rig.Vm.ExportConversationCommand, items[1].Command);
         Assert.Same(rig.Vm.DeleteConversationCommand, items[2].Command);
+        menu.Hide();
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task OnTheSpriteConversation_TheMenuHasClearContentInsteadOfDelete()
+    {
+        var rig = new Rig();
+        await rig.Vm.InitializeAsync();
+        var sprite = await rig.Sprite.GetOrCreateAsync(Strings.Sprite_ConversationTitle);
+        await rig.Store.AppendMessageAsync(sprite.Id,
+            new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new Lumi.Core.Chat.TextBlock("嗨")], DateTimeOffset.UtcNow));
+        await rig.Vm.OpenConversationAsync(sprite);
+
+        var menu = OpenMenu(rig);
+        var items = menu.Items.OfType<MenuItem>().Where(i => i.IsVisible).ToList();
+
+        Assert.Equal([Strings.Workbench_RenameConversation, Strings.Workbench_ExportConversation, Strings.Workbench_ClearConversation],
+            items.Select(i => i.Header));
+        Assert.Same(rig.Vm.ClearConversationCommand, items[2].Command);
+        Assert.All(items, i => Assert.True(i.IsEnabled));
         menu.Hide();
         rig.Window.Close();
     }
@@ -206,7 +231,7 @@ public class ChatToolbarTests
         await rig.Vm.StopAndWaitAsync();
         await sending;
         menu = OpenMenu(rig);
-        Assert.All(menu.Items.OfType<MenuItem>(), i => Assert.True(i.IsEnabled));
+        Assert.All(menu.Items.OfType<MenuItem>().Where(i => i.IsVisible), i => Assert.True(i.IsEnabled));
         menu.Hide();
         rig.Window.Close();
     }

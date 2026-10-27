@@ -367,6 +367,58 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    // ---- 小精靈專屬對話（M22） ----
+
+    public async Task<Conversation?> GetConversationAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, title, created_at, updated_at FROM conversations WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", conversationId);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+            return null;
+        return new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
+    }
+
+    public async Task ClearMessagesAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            // 訊息與整理紀錄全刪；凍結的 system prompt 與工具快照一併清掉，下次送出重新記。更新時間不動
+            command.CommandText = """
+                DELETE FROM messages WHERE conversation_id = $id;
+                DELETE FROM conversation_compactions WHERE conversation_id = $id;
+                UPDATE conversations SET system_prompt = NULL, tool_snapshot = NULL WHERE id = $id;
+                """;
+            command.Parameters.AddWithValue("$id", conversationId);
+            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+        await transaction.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<string?> GetMetaAsync(string key, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT value FROM app_meta WHERE key = $key;";
+        command.Parameters.AddWithValue("$key", key);
+        return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+    }
+
+    public async Task SetMetaAsync(string key, string value, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "INSERT OR REPLACE INTO app_meta (key, value) VALUES ($key, $value);";
+        command.Parameters.AddWithValue("$key", key);
+        command.Parameters.AddWithValue("$value", value);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
     // ---- 用量與最近動作（設定首頁） ----
 
     public async Task<TokenTotals> GetTokenTotalsAsync(DateTimeOffset since, CancellationToken ct = default)

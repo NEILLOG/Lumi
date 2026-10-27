@@ -26,13 +26,22 @@ public class HistoryDrawerTests
     {
         public InMemoryConversationStore Store { get; } = new();
         public FakeConfirmService Confirm { get; } = new() { Answer = false };
+        public SpriteConversationService Sprite { get; }
         public WorkbenchViewModel Vm { get; }
         public WorkbenchWindow Window { get; }
 
         /// <summary>先建立資料，再開視窗（視窗開啟時會載入最近的對話；之後才塞資料，目前的對話就不對了）。</summary>
-        public static async Task<Rig> CreateAsync(int conversations = 0, string prefix = "對話")
+        public static async Task<Rig> CreateAsync(int conversations = 0, string prefix = "對話", bool withSpriteConversation = false)
         {
             var rig = new Rig(seeded: false);
+            if (withSpriteConversation)
+            {
+                // 小精靈的專屬對話（M22 22J）：最舊，仍然固定在清單最上方
+                var sprite = await rig.Sprite.GetOrCreateAsync(Strings.Sprite_ConversationTitle);
+                await rig.Store.AppendMessageAsync(sprite.Id,
+                    new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new Lumi.Core.Chat.TextBlock("小精靈你好")], DateTimeOffset.UtcNow));
+                await Task.Delay(3);
+            }
             await rig.SeedAsync(conversations, prefix);
             rig.ShowWindow();
             return rig;
@@ -41,10 +50,13 @@ public class HistoryDrawerTests
         private Rig(bool seeded = true)
         {
             var catalog = new FakeModelCatalog();
-            Vm = new WorkbenchViewModel(new ConversationService(new SequenceChatProvider(), Store, catalog), Store, catalog,
+            Sprite = new SpriteConversationService(Store);
+            var service = new ConversationService(new SequenceChatProvider(), Store, catalog);
+            Vm = new WorkbenchViewModel(service, Store, catalog,
                 new FakeApiKeyPrompt(false), new FakeSettingsWindowService(), new ConnectionStatusCache(), new FakeClipboardService(),
                 new SyncUiDispatcher(), new FakeTimeProvider(), NullLogger<WorkbenchViewModel>.Instance,
-                deletion: HistoryTestSupport.Deletion(Store), confirm: Confirm);
+                deletion: HistoryTestSupport.Deletion(Store), confirm: Confirm,
+                session: new ChatSession(service, Store, sprite: Sprite), spriteConversation: Sprite);
             Window = new WorkbenchWindow(Vm);
             if (seeded)
                 ShowWindow();
@@ -257,14 +269,63 @@ public class HistoryDrawerTests
         var button = rig.RowMoreButtons.Single();
         var menu = Assert.IsType<MenuFlyout>(button.Flyout);
         var items = menu.Items.OfType<MenuItem>().ToList();
-        Assert.Equal(new[] { Strings.History_Rename, Strings.History_Delete }, items.Select(i => i.Header as string).ToArray());
+        Assert.Equal(new[] { Strings.History_Rename, Strings.History_Delete, Strings.Workbench_ClearConversation },
+            items.Select(i => i.Header as string).ToArray());
 
-        // 開啟時才接上這一列的命令（Flyout 內容不繼承 DataContext）
+        // 開啟時才接上這一列的命令（Flyout 內容不繼承 DataContext）；一般對話沒有「清除內容」
         menu.ShowAt(button);
-        Assert.All(items, i => Assert.NotNull(i.Command));
+        Assert.Equal([Strings.History_Rename, Strings.History_Delete], items.Where(i => i.IsVisible).Select(i => i.Header as string));
+        Assert.All(items.Where(i => i.IsVisible), i => Assert.NotNull(i.Command));
         Assert.Same(rig.Vm.History.Items[0], items[0].CommandParameter);
         Assert.Same(rig.Vm.History.Items[0], items[1].CommandParameter);
         menu.Hide();
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task TheSpriteConversationRow_IsPinnedFirst_WithTheIconAndTag_AndItsMenuHasClearInsteadOfDelete()
+    {
+        var rig = await Rig.CreateAsync(2, withSpriteConversation: true);
+        await rig.OpenAsync();
+        var spriteItem = rig.Vm.History.Items[0];
+        Assert.True(spriteItem.IsSprite);
+        Assert.Same(spriteItem, rig.Vm.History.Rows[0]);
+
+        await rig.Pump(() => rig.RowMoreButtons.Count() == 3);
+        var row = rig.RowFor(spriteItem);
+        // 標籤與小精靈圖示
+        Assert.Contains(row.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>(),
+            t => t.Text == Strings.History_SpriteTag && t.IsEffectivelyVisible);
+        Assert.Contains(row.GetVisualDescendants().OfType<Lumi.App.Controls.LumiIcon>(), i => i.IsEffectivelyVisible && i.Data is not null);
+        // 一般列沒有標籤
+        var ordinaryRow = rig.RowFor(rig.Vm.History.Items[1]);
+        Assert.DoesNotContain(ordinaryRow.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>(),
+            t => t.Text == Strings.History_SpriteTag && t.IsEffectivelyVisible);
+
+        var button = row.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("row-more"));
+        var menu = Assert.IsType<MenuFlyout>(button.Flyout);
+        menu.ShowAt(button);
+        var visible = menu.Items.OfType<MenuItem>().Where(i => i.IsVisible).ToList();
+        Assert.Equal([Strings.History_Rename, Strings.Workbench_ClearConversation], visible.Select(i => i.Header as string));
+        Assert.Same(rig.Vm.History.ClearSpriteConversationCommand, visible[1].Command);
+        menu.Hide();
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task DeleteKeyOnTheSpriteConversationRow_DoesNothing()
+    {
+        var rig = await Rig.CreateAsync(1, withSpriteConversation: true);
+        await rig.OpenAsync();
+        var spriteItem = rig.Vm.History.Items[0];
+        Assert.True(spriteItem.IsSprite);
+
+        KeyDown(rig.RowFor(spriteItem), Key.Delete);
+        await Task.Delay(50);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Empty(rig.Confirm.Asked);
+        Assert.NotNull(await rig.Store.GetConversationAsync(spriteItem.Id));
         rig.Window.Close();
     }
 

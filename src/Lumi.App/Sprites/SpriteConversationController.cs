@@ -60,7 +60,7 @@ public sealed class SpriteConversationController
         _window.StopRequested += () => _session.Stop();
         _bubble.RetryRequested += () => _ = RetryAsync();
         _bubble.OpenSettingsRequested += () => _ = OpenSettingsAsync();
-        _bubble.OpenWorkbenchRequested += callId => _modes.OpenWorkbench(callId);
+        _bubble.OpenWorkbenchRequested += callId => _modes.OpenWorkbenchForSpriteConversation(callId);   // 氣泡指的是小精靈那則對話（M22）
 
         _voice.PropertyChanged += OnVoicePropertyChanged;
         _voice.Transcribed += OnVoiceTranscribed;

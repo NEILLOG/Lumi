@@ -71,7 +71,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         NotificationCenter? notifications = null,
         IFilePickerService? filePicker = null,
         IRenameService? rename = null,
-        IConnectionTester? tester = null)
+        IConnectionTester? tester = null,
+        SpriteConversationService? spriteConversation = null)
     {
         _store = store;
         _catalog = catalog;
@@ -84,6 +85,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _filePicker = filePicker;
         _rename = rename;
         _tester = tester;
+        _spriteConversation = spriteConversation;
         Messages.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowWelcome));
@@ -98,7 +100,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
-        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger);
+        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
         ModelSwitcher.PropertyChanged += (_, e) =>
         {
@@ -379,8 +381,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     [RelayCommand]
     private async Task NewConversationAsync()
     {
-        // 目前這則還沒有任何訊息：已經是空白的了，不重複建立
-        if (Messages.Count == 0 && CurrentConversationId is not null)
+        // 目前這則還沒有任何訊息：已經是空白的了，不重複建立（小精靈的專屬對話不算：它要留給小精靈）
+        if (Messages.Count == 0 && CurrentConversationId is not null && !IsSpriteConversation)
             return;
 
         await CreateNewConversationAsync();
@@ -472,6 +474,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Title = conversation.Title;
         ErrorMessage = null;
         await ReloadMessagesAsync();
+        NotifySpriteConversation();   // 小精靈的專屬對話：「⋯」換成「清除內容」（M22）
     }
 
     /// <summary>從資料庫重讀目前對話的訊息（讓畫面和資料庫一致）。</summary>

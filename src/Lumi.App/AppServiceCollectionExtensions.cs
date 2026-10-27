@@ -89,6 +89,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<TrayService>();
         // 模式與視窗：兩種模式互斥，規則集中在協調者；真的視窗由 WindowHost 延遲取得
         services.AddSingleton<IWindowHost, WindowHost>();
+        services.AddSingleton<SpriteConversationSwitcher>();   // 切模式時切對話：小精靈用自己的專屬對話（M22）
         services.AddSingleton<IAppModeCoordinator, AppModeCoordinator>();
         // 角色語氣（prompt 第 4 層）：取代 Core 預設的「沒有語氣」
         services.Replace(ServiceDescriptor.Singleton<Lumi.Core.Prompts.ISpriteVoiceProvider, SpriteVoiceProvider>());

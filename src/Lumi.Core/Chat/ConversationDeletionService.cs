@@ -24,6 +24,18 @@ public sealed class ConversationDeletionService(
         return deleted;
     }
 
+    /// <summary>
+    /// 清除對話內容（M22，小精靈專屬對話用）：清掉全部訊息與整理紀錄、權限記憶、瀏覽器分頁與不再被引用的附件，
+    /// 但保留對話本身（id、標題）。順序同 <see cref="DeleteAsync"/>：資料庫清不掉就不動後面。
+    /// </summary>
+    public async Task ClearAsync(string conversationId, CancellationToken ct = default)
+    {
+        await store.ClearMessagesAsync(conversationId, ct).ConfigureAwait(false);
+        memory.Clear(conversationId);
+        await CloseBrowserTabsAsync(conversationId, ct).ConfigureAwait(false);
+        await cleaner.CleanAsync(ct).ConfigureAwait(false);
+    }
+
     /// <summary>關閉瀏覽器失敗不能讓刪除對話失敗，所以例外一律吞掉（使用者取消除外）。</summary>
     private async Task CloseBrowserTabsAsync(string conversationId, CancellationToken ct)
     {
