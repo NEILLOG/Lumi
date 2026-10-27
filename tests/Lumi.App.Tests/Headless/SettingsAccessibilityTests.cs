@@ -17,7 +17,7 @@ namespace Lumi.App.Tests.Headless;
 
 /// <summary>
 /// UE-2：設定視窗的可存取性掃描、Tab 順序與鍵盤操作（RWD原則 第 7 節、plan/12 驗收標準第 5、7 條）。
-/// 每個分類頁（AI 連線的「連線」「模型設定」兩個分段、人格與主動性、外觀與操作、小精靈）在寬（1040）與 stacked（800）兩種寬度各掃一次。
+/// 每個分類頁（AI 連線的連線表單與模型表單、人格與主動性、外觀與操作、小精靈）在寬（1040）與 stacked（800）兩種寬度各掃一次。
 /// </summary>
 public class SettingsAccessibilityTests
 {
@@ -141,18 +141,17 @@ public class SettingsAccessibilityTests
     }
 
     [AvaloniaFact]
-    public async Task ConnectionAndModelCards_AreNamedWithTheirStatus()
+    public async Task ConnectionModelAndAddRows_AreNamed()
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
-        var connection = rig.Window.FindByName<ListBox>("ConnectionList").GetVisualDescendants().OfType<ListBoxItem>().First();
-        var item = rig.Host.Connections.Items[0];
-        Assert.Equal($"{item.Name}，{item.Subtitle}，{item.StatusText}", AutomationProperties.GetName(connection));
-
-        rig.Host.Settings.TabIndex = 1;
-        rig.Settle();
-        var model = rig.Window.FindByName<ListBox>("ModelList").GetVisualDescendants().OfType<ListBoxItem>().First();
-        var modelItem = rig.Host.Models.Items[0];
-        Assert.Equal($"{modelItem.DisplayName}，{modelItem.CardSubtitle}，{modelItem.StatusText}", AutomationProperties.GetName(model));
+        var rows = rig.Window.FindByName<ListBox>("AiList").GetVisualDescendants().OfType<ListBoxItem>().ToList();
+        var items = rig.Host.Settings.AiSettings.Items;
+        Assert.Equal(items.Count, rows.Count);
+        for (var i = 0; i < rows.Count; i++)
+            Assert.Equal(items[i].AutomationName, AutomationProperties.GetName(rows[i]));
+        Assert.Contains(items, i => i is AiConnectionItem);
+        Assert.Contains(items, i => i is AiModelItem);
+        Assert.Contains(items, i => i is AiAddModelItem);
     }
 
     [AvaloniaFact]
@@ -203,17 +202,16 @@ public class SettingsAccessibilityTests
     /// <summary>各畫面狀態在 Tab 鏈上必須依序出現的控制項（簡稱見 <see cref="Label"/>）；中間可以夾其他停靠點。</summary>
     private static readonly Dictionary<string, string[]> ExpectedOrder = new()
     {
-        ["connections-list"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "TabConnections", "item:ConnectionList", "AddConnectionButton"],
-        ["connections-form"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "TabConnections", "item:ConnectionList", "AddConnectionButton",
+        ["connections-list"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "WorkbenchDefaultBox", "item:AiList"],
+        ["connections-form"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "WorkbenchDefaultBox", "item:AiList",
             "NameBox", "KeyBox", "RevealKeyButton", "ExpanderHeader", "DeleteButton", "TestButton", "SaveButton"],
-        ["connections-advanced"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "TabConnections", "item:ConnectionList", "AddConnectionButton",
+        ["connections-advanced"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "WorkbenchDefaultBox", "item:AiList",
             "NameBox", "KeyBox", "RevealKeyButton", "ExpanderHeader", "FormatBox", "BaseUrlBox", "DeleteButton", "TestButton", "SaveButton"],
-        ["connections-key-stored"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "TabConnections", "item:ConnectionList", "AddConnectionButton",
+        ["connections-key-stored"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "WorkbenchDefaultBox", "item:AiList",
             "NameBox", "更換", "清除", "ExpanderHeader", "DeleteButton", "TestButton", "SaveButton"],
-        ["models-list"] = ["BackToChatButton", "CategoryConnections", "NewModelButton", "TabModels", "WorkbenchDefaultBox", "item:ModelList", "AddModelButton"],
-        ["models-form"] = ["BackToChatButton", "CategoryConnections", "NewModelButton", "TabModels", "WorkbenchDefaultBox", "item:ModelList", "AddModelButton",
+        ["models-form"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "WorkbenchDefaultBox", "item:AiList",
             "ConnectionBox", "PART_EditableTextBox", "RefreshModelsButton", "DisplayNameBox", "ShowThinkingCheckBox", "ToolsEnabledCheckBox", "ExpanderHeader", "DeleteButton", "SaveButton"],
-        ["models-advanced"] = ["BackToChatButton", "CategoryConnections", "NewModelButton", "TabModels", "WorkbenchDefaultBox", "item:ModelList", "AddModelButton",
+        ["models-advanced"] = ["BackToChatButton", "CategoryConnections", "NewConnectionButton", "WorkbenchDefaultBox", "item:AiList",
             "ConnectionBox", "PART_EditableTextBox", "RefreshModelsButton", "DisplayNameBox", "ShowThinkingCheckBox", "ToolsEnabledCheckBox", "ExpanderHeader", "PART_TextBox", "DeleteButton", "SaveButton"],
         ["persona"] = ["BackToChatButton", "CategoryPersona", "PersonaStyleBox", "PersonaProactivityBox", "PersonaCustomBox", "PersonaResetButton"],
         ["persona-dirty"] = ["BackToChatButton", "CategoryPersona", "PersonaStyleBox", "PersonaProactivityBox", "PersonaCustomBox", "PersonaResetButton", "PersonaSaveButton"],
@@ -278,7 +276,7 @@ public class SettingsAccessibilityTests
     [AvaloniaTheory]
     [InlineData("connections-form", "NewConnectionButton", "NameBox", "DeleteButton")]
     [InlineData("connections-advanced", "NewConnectionButton", "BaseUrlBox", "SaveButton")]
-    [InlineData("models-form", "NewModelButton", "DisplayNameBox", "SaveButton")]
+    [InlineData("models-form", "NewConnectionButton", "DisplayNameBox", "SaveButton")]
     [InlineData("persona-dirty", "PersonaStyleBox", "PersonaCustomBox", "PersonaSaveButton")]
     public async Task HeaderActionsComeBeforeTheFields_AndSaveAndDeleteComeAfter(string page, string first, string field, string buttons)
     {
@@ -300,18 +298,25 @@ public class SettingsAccessibilityTests
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
         var settings = rig.Host.Settings;
+        settings.CategoryIndex = (int)SettingsCategory.Tools;   // 目前只有「工具」頁還有分段切換（AI 連線已合成一頁）
+        rig.Settle();
         var chain = TabChain(rig.Window);
         Assert.Single(chain, e => e is RadioButton);
-        Assert.Equal("TabConnections", Label(chain.Single(e => e is RadioButton)));
+        Assert.Equal("TabToolsList", Label(chain.Single(e => e is RadioButton)));
 
-        settings.TabIndex = 1;
+        settings.ToolsTabIndex = 1;
         rig.Settle();
         chain = TabChain(rig.Window);
         Assert.Single(chain, e => e is RadioButton);
-        Assert.Equal("TabModels", Label(chain.Single(e => e is RadioButton)));
-        // 頁首的主要動作仍在分段切換之前
-        var labels = chain.Select(Label).ToList();
-        Assert.True(labels.IndexOf("NewModelButton") < labels.IndexOf("TabModels"));
+        Assert.Equal("TabToolsMcp", Label(chain.Single(e => e is RadioButton)));
+    }
+
+    [AvaloniaFact]
+    public async Task TheAiConnectionsPage_HasNoSegmentedSwitch()
+    {
+        using var rig = await SettingsRig.CreateAsync("connections-list");
+        Assert.Empty(TabChain(rig.Window).OfType<RadioButton>());
+        Assert.DoesNotContain(rig.Window.FindByName<Grid>("ConnectionsPage").GetVisualDescendants().OfType<Border>(), b => b.Classes.Contains("segmented"));
     }
 
     [AvaloniaFact]
@@ -375,29 +380,30 @@ public class SettingsAccessibilityTests
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
         var settings = rig.Host.Settings;
-        var connections = rig.Window.FindByName<RadioButton>("TabConnections");
-        var models = rig.Window.FindByName<RadioButton>("TabModels");
-        connections.Focus();
+        settings.CategoryIndex = (int)SettingsCategory.Tools;
+        rig.Settle();
+        var list = rig.Window.FindByName<RadioButton>("TabToolsList");
+        var mcp = rig.Window.FindByName<RadioButton>("TabToolsMcp");
+        list.Focus();
 
         PressKey(rig, Key.Right);
-        Assert.Equal(1, settings.TabIndex);
-        Assert.True(models.IsChecked);
-        Assert.False(connections.IsChecked);
-        Assert.True(models.IsFocused);
-        Assert.True(rig.Window.FindByName<ModelsPanel>("ModelsPanel").IsEffectivelyVisible);
+        Assert.Equal(1, settings.ToolsTabIndex);
+        Assert.True(mcp.IsChecked);
+        Assert.False(list.IsChecked);
+        Assert.True(mcp.IsFocused);
 
         PressKey(rig, Key.Right);   // 到頭接回第一段（單選群組的慣例）
-        Assert.Equal(0, settings.TabIndex);
-        Assert.True(connections.IsFocused);
+        Assert.Equal(0, settings.ToolsTabIndex);
+        Assert.True(list.IsFocused);
         PressKey(rig, Key.Left);
-        Assert.Equal(1, settings.TabIndex);
+        Assert.Equal(1, settings.ToolsTabIndex);
         PressKey(rig, Key.Down);
-        Assert.Equal(0, settings.TabIndex);
+        Assert.Equal(0, settings.ToolsTabIndex);
         PressKey(rig, Key.Up);
-        Assert.Equal(1, settings.TabIndex);
+        Assert.Equal(1, settings.ToolsTabIndex);
 
         // 換段之後，Tab 再進來停在新選的那一段
-        Assert.Equal("TabModels", Label(TabChain(rig.Window).Single(e => e is RadioButton)));
+        Assert.Equal("TabToolsMcp", Label(TabChain(rig.Window).Single(e => e is RadioButton)));
     }
 
     [AvaloniaFact]

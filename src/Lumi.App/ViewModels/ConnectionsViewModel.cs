@@ -195,10 +195,10 @@ public partial class ConnectionsViewModel : ObservableObject
     /// <summary>從外部（缺金鑰流程）導到某個連線。</summary>
     public async Task NavigateAsync(string? connectionId, bool focusApiKey, string? notice)
     {
-        Notice = notice;
         var item = Items.FirstOrDefault(i => i.Id == connectionId);
         if (item is not null && !await SelectAsync(item))
             return;
+        Notice = notice;   // 切換連線時會清掉舊的說明，所以選好之後才放
         if (focusApiKey && HasEditor)
         {
             ReplacingKey = true;
@@ -215,6 +215,7 @@ public partial class ConnectionsViewModel : ObservableObject
 
         _selectedItem = item;
         OnPropertyChanged(nameof(SelectedItem));
+        Notice = null;
         if (item is null)
             ClearEditor();
         else
@@ -230,8 +231,24 @@ public partial class ConnectionsViewModel : ObservableObject
 
         _selectedItem = null;
         OnPropertyChanged(nameof(SelectedItem));
+        Notice = null;
         StartEditing(ConnectionSettings.NewId(), isNew: true, Strings.Conn_NewName, ProviderFormat.OpenAICompatible,
             OpenAITemplateUrl, hasKey: false, hint: null);
+    }
+
+    /// <summary>關閉詳細區的編輯器（切到模型表單時用；新增到一半的連線也會被關掉）。有未儲存的變更先詢問，使用者取消回 false。</summary>
+    public async Task<bool> CloseEditorAsync()
+    {
+        if (!HasEditor)
+            return true;
+        if (IsDirty && !await _confirm.ConfirmDestructiveAsync(Strings.Confirm_DiscardChanges, Strings.Confirm_Discard))
+            return false;
+
+        _selectedItem = null;
+        OnPropertyChanged(nameof(SelectedItem));
+        Notice = null;
+        ClearEditor();
+        return true;
     }
 
     private async Task LoadAsync(ConnectionSettings connection)
@@ -276,6 +293,7 @@ public partial class ConnectionsViewModel : ObservableObject
         BaseUrl = "";
         NewApiKey = "";
         TestResultText = null;
+        Notice = null;
         NotifyEditorStateChanged();
     }
 
@@ -301,7 +319,7 @@ public partial class ConnectionsViewModel : ObservableObject
     private void RefreshItems()
     {
         var settings = _catalog.Current;
-        var selectedId = _selectedItem?.Id;
+        var selectedId = _selectedItem?.Id ?? (HasEditor && !IsNew ? _editingId : null);   // 儲存後清單還沒重建就先指到舊清單時，用正在編輯的連線找回選取
         _rebuildingItems = true;
         try
         {
@@ -362,6 +380,7 @@ public partial class ConnectionsViewModel : ObservableObject
     private async Task SaveAsync()
     {
         var id = _editingId!;
+        var wasNew = IsNew;
         var connection = new ConnectionSettings(id, Name.Trim(), Format.Format, BaseUrl.Trim());
         var key = NewApiKey.Trim() is { Length: > 0 } typed ? new SecretValue(typed) : null;
         var previous = _catalog.Current.Connections.FirstOrDefault(c => c.Id == id);
@@ -390,6 +409,7 @@ public partial class ConnectionsViewModel : ObservableObject
         _selectedItem = Items.FirstOrDefault(i => i.Id == id);
         OnPropertyChanged(nameof(SelectedItem));
         StartEditing(id, isNew: false, stored.Name, stored.Format, stored.BaseUrl, await _catalog.HasApiKeyAsync(id), stored.ApiKeyHint);
+        Notice = wasNew ? Strings.AiSettings_ConnectionSavedHint : null;   // 新連線存好了：提示接著在它底下新增模型
     }
 
     [RelayCommand(CanExecute = nameof(HasEditor))]

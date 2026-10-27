@@ -5,7 +5,7 @@ using Lumi.App.ViewModels;
 namespace Lumi.App.Views;
 
 /// <summary>
-/// 「AI 連線」頁的連線分段：清單卡片＋詳細表單。DataContext 是 <see cref="ConnectionsViewModel"/>。
+/// 「AI 連線」頁詳細區的連線表單。DataContext 是 <see cref="ConnectionsViewModel"/>。
 /// code-behind 只放視覺行為：把焦點放到金鑰輸入框；「進階」收合時若有錯誤或警告就自動展開。
 /// </summary>
 public partial class ConnectionsPanel : UserControl

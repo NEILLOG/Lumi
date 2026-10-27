@@ -12,9 +12,10 @@ namespace Lumi.App.ViewModels;
 public sealed partial class ModelListItem : ObservableObject
 {
     public ModelListItem(string id, string connectionName, string displayName, string modelId, bool isWorkbenchDefault,
-        ProviderFormat format = ProviderFormat.OpenAICompatible, ConnectionStatus status = ConnectionStatus.Unknown)
+        ProviderFormat format = ProviderFormat.OpenAICompatible, ConnectionStatus status = ConnectionStatus.Unknown, string connectionId = "")
     {
         Id = id;
+        ConnectionId = connectionId;
         ConnectionName = connectionName;
         DisplayName = displayName;
         ModelId = modelId;
@@ -24,6 +25,9 @@ public sealed partial class ModelListItem : ObservableObject
     }
 
     public string Id { get; }
+
+    /// <summary>所屬連線的 Id（合併後的 AI 連線頁依它把模型放在連線底下）。</summary>
+    public string ConnectionId { get; }
 
     public string ConnectionName { get; }
 

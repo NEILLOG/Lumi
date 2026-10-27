@@ -17,7 +17,7 @@ using Lumi.Core.Models;
 
 namespace Lumi.App.Tests.Headless;
 
-/// <summary>UD-2：「AI 連線」頁——分段切換、清單卡片＋詳細、進階收合、按鈕層級、錯誤文字、費用說明、&lt; 900 上下排。</summary>
+/// <summary>UD-2、M22 22D：「AI 連線」頁——連線與模型合成一份清單、清單卡片＋詳細、進階收合、按鈕層級、錯誤文字、費用說明、&lt; 900 上下排。</summary>
 public class ConnectionsPageTests
 {
     private sealed class Rig : IDisposable
@@ -49,6 +49,8 @@ public class ConnectionsPageTests
             Window.UpdateLayout();
         }
 
+        public AiConnectionsView Page => Window.FindByName<AiConnectionsView>("AiPage");
+        public ListBox List => Window.FindByName<ListBox>("AiList");
         public ConnectionsPanel Connections => Window.FindByName<ConnectionsPanel>("ConnectionsPanel");
         public ModelsPanel Models => Window.FindByName<ModelsPanel>("ModelsPanel");
 
@@ -95,103 +97,94 @@ public class ConnectionsPageTests
     private static TextBlock ErrorTextOf(FormField field) =>
         field.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "PART_Error");
 
-    // ---- 分段切換與頁首主要動作 ----
+    private static IEnumerable<Border> CardsIn(ListBox list) =>
+        list.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("card"));
+
+    private static ListBoxItem RowOf(ListBox list, AiListItem item) =>
+        list.GetVisualDescendants().OfType<ListBoxItem>().Single(i => ReferenceEquals(i.DataContext, item));
+
+    private static AiConnectionItem ConnectionRow(Rig rig, string id) => rig.Host.Settings.AiSettings.Items.OfType<AiConnectionItem>().Single(c => c.Id == id);
+
+    // ---- 頁首與預設模型 ----
 
     [AvaloniaFact]
-    public void TabControl_IsReplacedBySegmentedControl_WithTwoSegments()
+    public void TheSegmentedSwitch_IsGone_AndTheHeaderHasOneNewConnectionPrimary()
     {
         using var rig = new Rig();
         Assert.Empty(rig.Window.GetVisualDescendants().OfType<TabControl>());
+        Assert.DoesNotContain(rig.Window.FindByName<Grid>("ConnectionsPage").GetVisualDescendants().OfType<Border>(), b => b.Classes.Contains("segmented"));
+        Assert.DoesNotContain(rig.Window.GetVisualDescendants().OfType<Control>(), c => c.Name is "TabSwitch" or "TabConnections" or "TabModels" or "NewModelButton");
 
-        var segmented = rig.Window.FindByName<Border>("TabSwitch");
-        Assert.Contains("segmented", segmented.Classes);
-        var connections = rig.Window.FindByName<RadioButton>("TabConnections");
-        var models = rig.Window.FindByName<RadioButton>("TabModels");
-        Assert.Equal("連線", connections.Content);
-        Assert.Equal("模型設定", models.Content);
-
-        // 選取＝Soft 底＋OnSoft 文字，圓角 10；沒選取的不是 Soft 底
-        Assert.True(connections.IsChecked);
-        Assert.False(models.IsChecked);
-        var segment = (RadioButton r) => r.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "PART_Segment");
-        Assert.Equal(new CornerRadius(10), segment(connections).CornerRadius);
-        Assert.Equal(TokenColor(rig.Window, "LumiAccentSoftBrush"), ColorOf(segment(connections).Background));
-        Assert.Equal(TokenColor(rig.Window, "LumiTextOnSoftBrush"), ColorOf(connections.Foreground));
-        Assert.NotEqual(TokenColor(rig.Window, "LumiAccentSoftBrush"), (segment(models).Background as ISolidColorBrush)?.Color);
-        Assert.Equal(TokenColor(rig.Window, "LumiTextMutedBrush"), ColorOf(models.Foreground));
-    }
-
-    [AvaloniaFact]
-    public void Segments_FollowTabIndex_InBothDirections_AndSwapThePanels()
-    {
-        using var rig = new Rig();
-        var connections = rig.Window.FindByName<RadioButton>("TabConnections");
-        var models = rig.Window.FindByName<RadioButton>("TabModels");
-        Assert.Equal(0, rig.Host.Settings.TabIndex);
-        Assert.True(rig.Connections.IsEffectivelyVisible);
-        Assert.False(rig.Models.IsEffectivelyVisible);
-
-        models.IsChecked = true;   // 使用者點「模型設定」
-        rig.Settle();
-        Assert.Equal(1, rig.Host.Settings.TabIndex);
-        Assert.False(connections.IsChecked);
-        Assert.False(rig.Connections.IsEffectivelyVisible);
-        Assert.True(rig.Models.IsEffectivelyVisible);
-
-        rig.Host.Settings.TabIndex = 0;   // 程式導覽（例如「管理連線與模型」）
-        rig.Settle();
-        Assert.True(connections.IsChecked);
-        Assert.False(models.IsChecked);
-        Assert.True(rig.Connections.IsEffectivelyVisible);
-    }
-
-    [AvaloniaFact]
-    public async Task HeaderPrimaryAction_FollowsTheSegment()
-    {
-        using var rig = new Rig();
         var header = rig.Window.FindByName<SettingsPageHeader>("ConnectionsHeader");
         var newConnection = rig.Window.FindByName<Button>("NewConnectionButton");
-        var newModel = rig.Window.FindByName<Button>("NewModelButton");
-
         Assert.Contains("primary", newConnection.Classes);
-        Assert.Contains("primary", newModel.Classes);
         Assert.True(newConnection.IsEffectivelyVisible);
-        Assert.False(newModel.IsEffectivelyVisible);
         Assert.Contains("新增連線", TextsIn(newConnection));
-        Assert.Same(rig.Host.Connections.NewConnectionCommand, newConnection.Command);
+        Assert.Same(rig.Host.Settings.AiSettings.NewConnectionCommand, newConnection.Command);
         Assert.Single(header.GetVisualDescendants().OfType<Button>(), b => b.Classes.Contains("primary") && b.IsEffectivelyVisible);
-
-        await rig.Host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Models));
-        rig.Settle();
-        Assert.False(newConnection.IsEffectivelyVisible);
-        Assert.True(newModel.IsEffectivelyVisible);
-        Assert.Contains("新增模型設定", TextsIn(newModel));
-        Assert.Same(rig.Host.Models.NewModelCommand, newModel.Command);
-        Assert.Single(header.GetVisualDescendants().OfType<Button>(), b => b.Classes.Contains("primary") && b.IsEffectivelyVisible);
-
-        // 在動作區（頁首）旁邊的主要動作標頭在標題的右邊
-        Assert.True(newModel.TranslatePoint(default, header)!.Value.X > header.FindByName<TextBlock>("TitleText").TranslatePoint(default, header)!.Value.X);
+        // 頁首說明沿用現有的字串
+        Assert.Equal(Strings.Settings_HeaderConnectionsTitle, header.FindByName<TextBlock>("TitleText").Text);
+        // 主要動作在標題的右邊
+        Assert.True(newConnection.TranslatePoint(default, header)!.Value.X > header.FindByName<TextBlock>("TitleText").TranslatePoint(default, header)!.Value.X);
     }
 
     [AvaloniaFact]
-    public async Task HeaderPrimaryAction_StartsANewConnection_OrANewModel()
+    public async Task HeaderPrimaryAction_StartsANewConnection_EvenFromTheModelForm()
     {
         using var rig = new Rig();
+        await rig.Host.Models.SelectAsync(rig.Host.Models.Items[0]);
+        rig.Settle();
+        Assert.True(rig.Models.FindByName<Border>("DetailCard").IsEffectivelyVisible);
+
         rig.Window.FindByName<Button>("NewConnectionButton").Command!.Execute(null);
         await SettingsHost.WaitUntil(() => rig.Host.Connections.HasEditor);
-        Assert.True(rig.Host.Connections.IsNew);
+        rig.Settle();
 
-        await rig.Host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Models));
-        rig.Host.Connections.DeleteCommand.Execute(null);   // 放棄還沒儲存的新連線
-        rig.Window.FindByName<Button>("NewModelButton").Command!.Execute(null);
-        await SettingsHost.WaitUntil(() => rig.Host.Models.HasEditor);
-        Assert.True(rig.Host.Models.IsNew);
+        Assert.True(rig.Host.Connections.IsNew);
+        Assert.True(rig.Connections.FindByName<Border>("DetailCard").IsEffectivelyVisible);
+        Assert.False(rig.Models.FindByName<Border>("DetailCard").IsEffectivelyVisible);
     }
 
-    // ---- 清單卡片 ----
+    [AvaloniaFact]
+    public async Task TheDefaultModelBox_SitsBelowTheHeader_AboveTheList_WithTheCostNote()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var page = rig.Page;
+
+        var field = page.FindByName<FormField>("WorkbenchDefaultField");
+        Assert.Equal("預設模型", field.Label);
+        Assert.Null(page.FindControl<FormField>("SpriteDefaultField"));   // 小精靈不另外選模型
+        var box = page.FindByName<ComboBox>("WorkbenchDefaultBox");
+        Assert.Same(rig.Host.Models.DefaultOptions, box.ItemsSource);
+        Assert.Equal(Strings.Models_WorkbenchDefaultHint, field.Hint);
+        var label = field.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "PART_Label");
+        Assert.True(label.TranslatePoint(default, page)!.Value.Y < box.TranslatePoint(default, page)!.Value.Y);   // 標籤在上方
+
+        // 費用說明：預設模型下方的一行 Caption；整段在清單之前、頁首之後
+        var cost = page.FindByName<TextBlock>("CostNote");
+        Assert.Equal(Strings.Workbench_CostNote, cost.Text);
+        Assert.Equal(11, cost.FontSize);
+        Assert.True(cost.TranslatePoint(default, page)!.Value.Y > box.TranslatePoint(default, page)!.Value.Y);
+        Assert.True(cost.TranslatePoint(default, page)!.Value.Y < page.FindByName<TextBlock>("ListCaption").TranslatePoint(default, page)!.Value.Y);
+        var header = rig.Window.FindByName<SettingsPageHeader>("ConnectionsHeader");
+        Assert.True(box.TranslatePoint(default, rig.Window)!.Value.Y > header.TranslatePoint(default, rig.Window)!.Value.Y + header.Bounds.Height - 0.5);
+
+        // 改了立即生效
+        var llama = rig.Host.Models.DefaultOptions.Single(o => o.Id == "llama-model");
+        box.SelectedItem = llama;
+        rig.Settle();
+        await SettingsHost.WaitUntil(() => rig.Host.Catalog.Current.WorkbenchModelId == "llama-model");
+        rig.Settle();
+        // 清單上的「預設」標籤跟著移動
+        var tagged = rig.Host.Settings.AiSettings.Items.OfType<AiModelItem>().Single(m => m.HasTag);
+        Assert.Equal("llama-model", tagged.Id);
+    }
+
+    // ---- 清單：連線 → 模型 → 新增模型 ----
 
     [AvaloniaFact]
-    public async Task ConnectionList_ShowsCards_WithInitialSubtitleAndStatusText()
+    public async Task List_ShowsConnectionsWithTheirModelsAndAnAddRow_InOrder()
     {
         using var rig = new Rig();
         await rig.AddOllamaAsync();
@@ -200,34 +193,196 @@ public class ConnectionsPageTests
         rig.Host.Status.Set(anthropicId, FakeConnectionTester.Failure(Lumi.Core.Chat.ChatFailureKind.Network, "連不上"));
         rig.Settle();
 
-        var panel = rig.Connections;
-        Assert.Equal("我的連線 · 2", panel.FindByName<TextBlock>("ListCaption").Text);
-        var list = panel.FindByName<ListBox>("ConnectionList");
-        Assert.Contains("cards", list.Classes);
-        var cards = list.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("card")).ToList();
-        Assert.Equal(2, cards.Count);
+        Assert.Equal("連線與模型", rig.Page.FindByName<TextBlock>("ListCaption").Text);
+        Assert.Contains("cards", rig.List.Classes);
+        Assert.False(rig.Page.FindByName<TextBlock>("AiEmptyText").IsEffectivelyVisible);
+        var items = rig.Host.Settings.AiSettings.Items;
+        var rows = rig.List.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+        Assert.Equal(items.Count, rows.Count);
+        Assert.Equal(items, rows.Select(r => (AiListItem)r.DataContext!));   // 畫面順序＝清單順序
 
-        var ollama = cards.Single(c => TextsIn(c).Contains("Ollama"));
+        // 連線：字首方塊（不是商標）、名稱、狀態點加文字
+        var ollama = CardsIn(rig.List).Single(c => c.DataContext is AiConnectionItem { Id: "ollama" });
         Assert.Equal(new Thickness(12), ollama.Padding);
-        Assert.Equal(new CornerRadius(14), ollama.CornerRadius);
-        Assert.Equal("O", ollama.GetVisualDescendants().OfType<ProviderMark>().Single().Text);   // 字首方塊（不是商標）
-        Assert.Contains("OpenAI 相容 · 1 個模型", TextsIn(ollama));
-        var status = ollama.GetVisualDescendants().OfType<StatusIndicator>().Single();
-        Assert.Contains("連線正常", TextsIn(status));
+        Assert.Equal("O", ollama.GetVisualDescendants().OfType<ProviderMark>().Single().Text);
         var title = ollama.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Ollama");
         Assert.Equal(14, title.FontSize);
         Assert.Equal(FontWeight.SemiBold, title.FontWeight);
-
-        var anthropic = cards.Single(c => TextsIn(c).Contains("Anthropic"));
-        Assert.Equal("A", anthropic.GetVisualDescendants().OfType<ProviderMark>().Single().Text);
-        Assert.Contains("Anthropic 原生 · 1 個模型", TextsIn(anthropic));
+        Assert.Contains("連線正常", TextsIn(ollama.GetVisualDescendants().OfType<StatusIndicator>().Single()));
+        var anthropic = CardsIn(rig.List).Single(c => c.DataContext is AiConnectionItem { Id: var id } && id == anthropicId);
         Assert.Contains("連線失敗", TextsIn(anthropic));   // 狀態有文字，不只靠顏色
 
-        // 尚未測試：尚未確認
+        // 模型：縮排在連線底下，只有名稱（預設的才有「預設」標籤）
+        var llama = CardsIn(rig.List).Single(c => c.DataContext is AiModelItem { Id: "llama-model" });
+        Assert.Equal(24, llama.Margin.Left);
+        Assert.Contains("Llama 3", TextsIn(llama));
+        Assert.DoesNotContain("預設", TextsIn(llama));
+        var claude = CardsIn(rig.List).Single(c => c.DataContext is AiModelItem { HasTag: true });
+        Assert.Contains("預設", TextsIn(claude));
+        Assert.Contains(claude.GetVisualDescendants().OfType<Border>(), b => b.Classes.Contains("badge"));
+
+        // 連線狀態更新只換文字，不重建清單、不清掉表單
+        await rig.Host.Models.SelectAsync(rig.Host.Models.Items.Single(i => i.Id == "llama-model"));
         rig.Host.Status.Remove(rig.OllamaId);
         rig.Settle();
-        Assert.Contains("尚未確認", TextsIn(list));
+        Assert.Contains("尚未確認", TextsIn(CardsIn(rig.List).Single(c => c.DataContext is AiConnectionItem { Id: "ollama" })));
+        Assert.True(rig.Host.Models.HasEditor);
+        Assert.Equal("llama-model", rig.Host.Models.SelectedItem?.Id);
+        Assert.Equal("llama-model", Assert.IsType<AiModelItem>(rig.Host.Settings.AiSettings.SelectedItem).Id);
     }
+
+    [AvaloniaFact]
+    public async Task EachConnection_EndsWithADashedAddModelRow()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var addRows = rig.List.GetVisualDescendants().OfType<ListBoxItem>().Where(r => r.DataContext is AiAddModelItem).ToList();
+        Assert.Equal(rig.Host.Connections.Items.Count, addRows.Count);
+
+        foreach (var row in addRows)
+        {
+            Assert.Contains("新增模型", TextsIn(row));
+            var dash = row.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Rectangle>().Single();
+            Assert.NotNull(dash.StrokeDashArray);   // 虛線框
+            Assert.NotEmpty(dash.StrokeDashArray!);
+            Assert.DoesNotContain(row.GetVisualDescendants().OfType<Button>(), _ => true);   // 它是清單的一列，不是另一個 Tab 停靠點
+        }
+        // 每個連線的最後一列
+        var items = rig.Host.Settings.AiSettings.Items;
+        for (var i = 0; i < items.Count; i++)
+            if (items[i] is AiAddModelItem)
+                Assert.True(i == items.Count - 1 || items[i + 1] is AiConnectionItem);
+    }
+
+    [AvaloniaFact]
+    public async Task SelectedRows_UseSoftBackgroundAndAccentBorder_ForConnectionsAndModels()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var soft = TokenColor(rig.Window, "LumiAccentSoftBrush");
+        var accentBorder = TokenColor(rig.Window, "LumiAccentBorderBrush");
+
+        await rig.Host.Settings.AiSettings.SelectAsync(ConnectionRow(rig, rig.OllamaId));
+        rig.Settle();
+        var selected = CardsIn(rig.List).Single(b => b.DataContext is AiConnectionItem { Id: "ollama" });
+        var other = CardsIn(rig.List).First(b => b.DataContext is AiConnectionItem { Id: not "ollama" });
+        Assert.Equal(soft, ColorOf(selected.Background));
+        Assert.Equal(accentBorder, ColorOf(selected.BorderBrush));
+        Assert.NotEqual(soft, ColorOf(other.Background));
+        Assert.Equal(TokenColor(rig.Window, "LumiTextOnSoftBrush"), ColorOf(selected.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Ollama").Foreground));
+
+        await rig.Host.Settings.AiSettings.SelectAsync(rig.Host.Settings.AiSettings.Items.OfType<AiModelItem>().Single(m => m.Id == "llama-model"));
+        rig.Settle();
+        var model = CardsIn(rig.List).Single(b => b.DataContext is AiModelItem { Id: "llama-model" });
+        Assert.Equal(soft, ColorOf(model.Background));
+        Assert.Equal(accentBorder, ColorOf(model.BorderBrush));
+        Assert.NotEqual(soft, ColorOf(CardsIn(rig.List).Single(b => b.DataContext is AiConnectionItem { Id: "ollama" }).Background));   // 連線那列不再是選取
+    }
+
+    [AvaloniaFact]
+    public async Task ClickingRows_SwapsTheDetail_BetweenConnectionForm_ModelForm_AndPlaceholder()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var placeholder = rig.Window.FindByName<TextBlock>("DetailPlaceholder");
+        var connectionCard = rig.Connections.FindByName<Border>("DetailCard");
+        var modelCard = rig.Models.FindByName<Border>("DetailCard");
+        Assert.True(placeholder.IsEffectivelyVisible);
+        Assert.Equal(Strings.Conn_Select, placeholder.Text);
+        Assert.False(connectionCard.IsEffectivelyVisible);
+        Assert.False(modelCard.IsEffectivelyVisible);
+
+        rig.List.SelectedItem = ConnectionRow(rig, rig.OllamaId);   // 使用者點連線
+        rig.Settle();
+        Assert.False(placeholder.IsEffectivelyVisible);
+        Assert.True(connectionCard.IsEffectivelyVisible);
+        Assert.False(modelCard.IsEffectivelyVisible);
+        Assert.Equal("Ollama", rig.Connections.FindByName<TextBlock>("HeaderTitleText").Text);
+
+        rig.List.SelectedItem = rig.Host.Settings.AiSettings.Items.OfType<AiModelItem>().Single(m => m.Id == "llama-model");   // 再點模型
+        rig.Settle();
+        Assert.False(connectionCard.IsEffectivelyVisible);
+        Assert.True(modelCard.IsEffectivelyVisible);
+        Assert.Equal("Llama 3", rig.Models.FindByName<TextBlock>("HeaderTitleText").Text);
+        Assert.Equal("Ollama", rig.Models.FindByName<TextBlock>("HeaderProviderText").Text);
+    }
+
+    [AvaloniaFact]
+    public async Task ClickingAnAddModelRow_OpensANewModelOnThatConnection()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var add = rig.Host.Settings.AiSettings.Items.OfType<AiAddModelItem>().Single(a => a.ConnectionId == rig.OllamaId);
+
+        rig.List.SelectedItem = add;
+        rig.Settle();
+
+        Assert.True(rig.Host.Models.IsNew);
+        Assert.True(rig.Models.FindByName<Border>("DetailCard").IsEffectivelyVisible);
+        Assert.Equal(rig.OllamaId, Assert.IsType<ConnectionOption>(rig.Models.FindByName<ComboBox>("ConnectionBox").SelectedItem).Id);   // 預先選好這個連線
+        Assert.Equal(add, rig.List.SelectedItem);
+    }
+
+    [AvaloniaFact]
+    public async Task SwitchingRows_WithUnsavedChanges_AsksFirst_AndDecliningRestoresTheSelection()
+    {
+        using var rig = new Rig();
+        await rig.AddOllamaAsync();
+        var ollama = ConnectionRow(rig, rig.OllamaId);
+        rig.List.SelectedItem = ollama;
+        rig.Settle();
+        rig.Host.Connections.Name = "改到一半";
+
+        rig.Host.Confirm.Answer = false;
+        rig.List.SelectedItem = rig.Host.Settings.AiSettings.Items.OfType<AiModelItem>().Single(m => m.Id == "llama-model");
+        rig.Settle();
+        Assert.Single(rig.Host.Confirm.Asked);
+        Assert.Equal(ollama, rig.List.SelectedItem);   // 清單回到原本的選取
+        Assert.True(rig.Host.Connections.HasEditor);
+        Assert.Equal("改到一半", rig.Host.Connections.Name);
+
+        rig.Host.Confirm.Answer = true;
+        rig.List.SelectedItem = rig.Host.Settings.AiSettings.Items.OfType<AiModelItem>().Single(m => m.Id == "llama-model");
+        rig.Settle();
+        Assert.Equal(2, rig.Host.Confirm.Asked.Count);
+        Assert.True(rig.Host.Models.HasEditor);
+        Assert.False(rig.Host.Connections.HasEditor);
+    }
+
+    [AvaloniaFact]
+    public async Task SavingANewConnection_SelectsItsRow_AndShowsTheAddModelHint()
+    {
+        using var rig = new Rig();
+        rig.Window.FindByName<Button>("NewConnectionButton").Command!.Execute(null);
+        await SettingsHost.WaitUntil(() => rig.Host.Connections.HasEditor);
+        rig.Host.Connections.Name = "公司 AI Gateway";
+        rig.Host.Connections.BaseUrl = "https://gateway.example.com/v1";
+        await rig.Host.Connections.SaveCommand.ExecuteAsync(null);
+        rig.Settle();
+
+        var selected = Assert.IsType<AiConnectionItem>(rig.List.SelectedItem);
+        Assert.Equal("公司 AI Gateway", selected.Connection.Name);
+        Assert.Contains(Strings.AiSettings_ConnectionSavedHint, TextsIn(rig.Connections));   // 既有的說明列樣式
+        var notice = rig.Connections.GetVisualDescendants().OfType<Border>().First(b => b.IsEffectivelyVisible && b.Child is TextBlock { Text: var t } && t == Strings.AiSettings_ConnectionSavedHint);
+        Assert.Equal(TokenColor(rig.Window, "LumiAccentSoftBrush"), ColorOf(notice.Background));
+    }
+
+    [AvaloniaFact]
+    public async Task WithoutAnyConnection_TheListShowsTheEmptyExplanation_AndTheHeaderStillOffersNewConnection()
+    {
+        using var rig = new Rig();
+        foreach (var connection in rig.Host.Catalog.Current.Connections.ToList())
+            await rig.Host.Catalog.DeleteConnectionAsync(connection.Id);
+        rig.Settle();
+
+        var empty = rig.Page.FindByName<TextBlock>("AiEmptyText");
+        Assert.True(empty.IsEffectivelyVisible);
+        Assert.Equal(Strings.AiSettings_Empty, empty.Text);
+        Assert.False(rig.List.IsEffectivelyVisible);
+        Assert.True(rig.Window.FindByName<Button>("NewConnectionButton").IsEffectivelyEnabled);
+    }
+
+    // ---- 清單卡片 ----
 
     [AvaloniaFact]
     public async Task StatusIndicator_UsesTheFixedSemanticDots_AndAlwaysHasText()
@@ -260,89 +415,17 @@ public class ConnectionsPageTests
         await Task.CompletedTask;
     }
 
-    [AvaloniaFact]
-    public async Task SelectedConnectionCard_UsesSoftBackground_AndAccentBorder()
-    {
-        using var rig = new Rig();
-        await rig.AddOllamaAsync();
-        var list = rig.Connections.FindByName<ListBox>("ConnectionList");
-        await rig.Host.Connections.SelectAsync(rig.Host.Connections.Items.Single(i => i.Id == rig.OllamaId));
-        rig.Settle();
-
-        var soft = TokenColor(rig.Window, "LumiAccentSoftBrush");
-        var selected = list.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("card") && TextsIn(b).Contains("Ollama"));
-        var other = list.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("card") && TextsIn(b).Contains("Anthropic"));
-        Assert.Equal(soft, ColorOf(selected.Background));
-        Assert.Equal(TokenColor(rig.Window, "LumiAccentBorderBrush"), ColorOf(selected.BorderBrush));
-        Assert.NotEqual(soft, ColorOf(other.Background));
-        Assert.Equal(TokenColor(rig.Window, "LumiTextOnSoftBrush"), ColorOf(selected.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Ollama").Foreground));
-    }
-
-    [AvaloniaFact]
-    public void AddEntry_IsADashedTertiaryStyleButton_NotAPrimary()
-    {
-        using var rig = new Rig();
-        var add = rig.Connections.FindByName<Button>("AddConnectionButton");
-        Assert.Contains("dashed", add.Classes);
-        Assert.DoesNotContain("primary", add.Classes);
-        Assert.Same(rig.Host.Connections.NewConnectionCommand, add.Command);
-        Assert.Contains("新增連線", TextsIn(add));
-        var dash = add.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Rectangle>().Single();
-        Assert.NotNull(dash.StrokeDashArray);   // 虛線框
-        Assert.NotEmpty(dash.StrokeDashArray!);
-
-        rig.Host.Settings.TabIndex = 1;
-        rig.Settle();
-        var addModel = rig.Models.FindByName<Button>("AddModelButton");
-        Assert.Contains("dashed", addModel.Classes);
-        Assert.DoesNotContain("primary", addModel.Classes);
-        Assert.Same(rig.Host.Models.NewModelCommand, addModel.Command);
-    }
-
-    [AvaloniaFact]
-    public async Task ModelList_ShowsCards_WithModelIdAndDefaultLabel_AndTheConnectionStatus()
-    {
-        using var rig = new Rig();
-        await rig.AddOllamaAsync();
-        rig.Host.Status.Set(rig.OllamaId, ConnectionTestResult.Ok(["llama3"]));
-        rig.Host.Settings.TabIndex = 1;
-        rig.Settle();
-
-        var panel = rig.Models;
-        Assert.Equal("我的模型設定 · 2", panel.FindByName<TextBlock>("ListCaption").Text);
-        var cards = panel.FindByName<ListBox>("ModelList").GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("card")).ToList();
-        Assert.Equal(2, cards.Count);
-
-        var llama = cards.Single(c => TextsIn(c).Contains("Llama 3"));
-        Assert.Contains("llama3", TextsIn(llama));   // 不是預設：只有 model ID
-        Assert.Equal("O", llama.GetVisualDescendants().OfType<ProviderMark>().Single().Text);
-        Assert.Contains("連線正常", TextsIn(llama));
-
-        var claude = cards.Single(c => TextsIn(c).Contains("Claude Opus 5.5"));
-        Assert.Contains("claude-opus-5-5 · 預設", TextsIn(claude));
-        Assert.Contains("尚未確認", TextsIn(claude));
-
-        // 測試連線的結果更新卡片的狀態，但不重建清單、不清掉表單
-        await rig.Host.Models.SelectAsync(rig.Host.Models.Items.Single(i => i.Id == "llama-model"));
-        var anthropicId = rig.Host.Catalog.Current.Connections.First(c => c.Format == ProviderFormat.Anthropic).Id;
-        rig.Host.Status.Set(anthropicId, ConnectionTestResult.Ok(["claude-opus-5-5"]));
-        rig.Settle();
-        Assert.Contains("連線正常", TextsIn(cards.Single(c => TextsIn(c).Contains("Claude Opus 5.5"))));
-        Assert.True(rig.Host.Models.HasEditor);
-        Assert.Equal("llama-model", rig.Host.Models.SelectedItem?.Id);
-    }
-
-    // ---- 清單＋詳細：寬度 ----
+    // ---- 清單＋詳細：寬度與整頁捲動 ----
 
     [AvaloniaFact]
     public void Wide_PutsTheListAt260_AndTheDetailInTheRest()
     {
         using var rig = new Rig(1040, 760);
         Assert.DoesNotContain("stacked", rig.Window.Classes);
-        var layout = rig.Connections.FindByName<Grid>("Layout");
+        var layout = rig.Page.FindByName<Grid>("Layout");
         Assert.Equal(260, layout.ColumnDefinitions[0].Width.Value);
-        var master = rig.Connections.FindByName<DockPanel>("MasterHost");
-        var detail = rig.Connections.FindByName<Panel>("DetailHost");
+        var master = rig.Page.FindByName<StackPanel>("MasterHost");
+        var detail = rig.Page.FindByName<Panel>("DetailHost");
         Assert.Equal(0, Grid.GetColumn(master));
         Assert.Equal(1, Grid.GetColumn(detail));
         Assert.True(detail.Bounds.Left > master.Bounds.Right - 0.5);
@@ -352,35 +435,85 @@ public class ConnectionsPageTests
     }
 
     [AvaloniaFact]
-    public async Task Below900_StacksTheListAboveTheDetail_ForBothSegments()
+    public async Task Below900_StacksTheListAboveTheDetail()
     {
         using var rig = new Rig(1040, 760);
         await rig.Host.Connections.SelectAsync(rig.Host.Connections.Items[0]);
         rig.Resize(800, 760);
         Assert.Contains("stacked", rig.Window.Classes);
 
-        var master = rig.Connections.FindByName<DockPanel>("MasterHost");
-        var detail = rig.Connections.FindByName<Panel>("DetailHost");
+        var master = rig.Page.FindByName<StackPanel>("MasterHost");
+        var detail = rig.Page.FindByName<Panel>("DetailHost");
         Assert.Equal(0, Grid.GetRow(master));
         Assert.Equal(1, Grid.GetRow(detail));
         Assert.Equal(2, Grid.GetColumnSpan(master));
         Assert.Equal(2, Grid.GetColumnSpan(detail));
         Assert.True(detail.TranslatePoint(default, rig.Window)!.Value.Y >= master.TranslatePoint(default, rig.Window)!.Value.Y + master.Bounds.Height - 0.5);
         Assert.Equal(master.Bounds.Left, detail.Bounds.Left, 0.5);
-        // 上下排時整頁捲動（並排時不捲動，清單與詳細各自捲動）
-        Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, rig.Connections.FindByName<ScrollViewer>("PanelScroll").VerticalScrollBarVisibility);
-
-        rig.Host.Settings.TabIndex = 1;
-        rig.Settle();
-        var modelMaster = rig.Models.FindByName<DockPanel>("MasterHost");
-        var modelDetail = rig.Models.FindByName<Panel>("DetailHost");
-        Assert.Equal(0, Grid.GetRow(modelMaster));
-        Assert.Equal(1, Grid.GetRow(modelDetail));
 
         rig.Resize(1040, 760);
         Assert.DoesNotContain("stacked", rig.Window.Classes);
-        Assert.Equal(1, Grid.GetColumn(rig.Models.FindByName<Panel>("DetailHost")));
-        Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, rig.Models.FindByName<ScrollViewer>("PanelScroll").VerticalScrollBarVisibility);
+        Assert.Equal(1, Grid.GetColumn(rig.Page.FindByName<Panel>("DetailHost")));
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1040.0)]
+    [InlineData(800.0)]
+    public async Task TheDetailHasNoInnerScroller_AndTheWholePageScrollsWithTheButtonsFollowingTheForm(double width)
+    {
+        using var rig = new Rig(width, 480);   // 矮視窗：表單一定比視窗高
+        await rig.Host.Connections.SelectAsync(rig.Host.Connections.Items[0]);
+        rig.Settle();
+        var scroll = rig.Page.FindByName<ScrollViewer>("PageScroll");
+        var card = rig.Connections.FindByName<Border>("DetailCard");
+
+        // 詳細卡片裡沒有自己的捲動區（文字框範本內的不算）
+        Assert.DoesNotContain(card.GetVisualDescendants().OfType<ScrollViewer>(), v => v.FindAncestorOfType<TextBox>() is null);
+        Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, scroll.VerticalScrollBarVisibility);
+        // 卡片高度＝內容高度（Padding 24＋邊框 1，上下各一）
+        var inner = Assert.IsAssignableFrom<Control>(card.Child);
+        Assert.Equal(inner.Bounds.Height + 2 * 24 + 2, card.Bounds.Height, 1.0);
+
+        // 整頁比視窗高，所以整頁一起捲；底部按鈕列跟著表單走（不固定在視窗底）
+        Assert.True(scroll.Extent.Height > scroll.Viewport.Height + 1);
+        var save = rig.Connections.FindByName<Button>("SaveButton");
+        double BottomInViewport() => save.TranslatePoint(new Point(0, save.Bounds.Height), scroll)!.Value.Y;
+        Assert.True(BottomInViewport() > scroll.Viewport.Height);   // 還沒捲：儲存鈕在可視範圍下面
+        scroll.ScrollToEnd();
+        rig.Settle();
+        Assert.True(BottomInViewport() <= scroll.Viewport.Height + 1);   // 捲到底看得到
+        Assert.True(scroll.Offset.Y > 0);
+    }
+
+    [AvaloniaFact]
+    public async Task TheModelFormIsAlsoFullHeight_WithoutAnInnerScroller()
+    {
+        using var rig = new Rig(1040, 480);
+        await rig.Host.Models.SelectAsync(rig.Host.Models.Items[0]);
+        rig.Models.FindByName<Expander>("AdvancedExpander").IsExpanded = true;
+        rig.Settle();
+        var card = rig.Models.FindByName<Border>("DetailCard");
+
+        Assert.DoesNotContain(card.GetVisualDescendants().OfType<ScrollViewer>(), v => v.FindAncestorOfType<TextBox>() is null && v.FindAncestorOfType<NumericUpDown>() is null);
+        var inner = Assert.IsAssignableFrom<Control>(card.Child);
+        Assert.Equal(inner.Bounds.Height + 2 * 24 + 2, card.Bounds.Height, 1.0);
+        Assert.True(rig.Page.FindByName<ScrollViewer>("PageScroll").Extent.Height > rig.Page.FindByName<ScrollViewer>("PageScroll").Viewport.Height);
+    }
+
+    [AvaloniaFact]
+    public async Task AListTallerThanTheWindow_ScrollsWithThePage_NotOnItsOwn()
+    {
+        using var rig = new Rig(1040, 480);
+        await rig.AddOllamaAsync();
+        for (var i = 0; i < 6; i++)
+            await rig.Host.Catalog.SaveModelAsync(new ModelSettings($"extra-{i}", rig.OllamaId, $"m{i}", $"額外 {i}", 4096, 128_000, false));
+        rig.Settle();
+
+        var scroll = rig.Page.FindByName<ScrollViewer>("PageScroll");
+        var innerList = rig.List.GetVisualDescendants().OfType<ScrollViewer>().First();
+        Assert.Equal(Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, innerList.VerticalScrollBarVisibility);
+        Assert.True(rig.List.Bounds.Height > scroll.Viewport.Height);   // 清單比視窗高
+        Assert.True(scroll.Extent.Height >= rig.List.Bounds.Height);    // 由整頁的捲動區容納
     }
 
     [AvaloniaFact]
@@ -424,7 +557,7 @@ public class ConnectionsPageTests
         var card = panel.FindByName<Border>("DetailCard");
         Assert.Contains("card", card.Classes);
         Assert.True(card.IsEffectivelyVisible);
-        Assert.False(panel.FindByName<TextBlock>("DetailPlaceholder").IsEffectivelyVisible);
+        Assert.False(rig.Window.FindByName<TextBlock>("DetailPlaceholder").IsEffectivelyVisible);
         // 容器卡片裡不再有卡片（欄位與表單不包卡片）
         Assert.DoesNotContain(card.GetVisualDescendants().OfType<Border>(), b => b.Classes.Contains("card"));
 
@@ -583,7 +716,6 @@ public class ConnectionsPageTests
     public async Task ModelActions_HaveDangerDeleteAndPrimarySave_AndNoTestButton()
     {
         using var rig = new Rig();
-        rig.Host.Settings.TabIndex = 1;
         await rig.Host.Models.SelectAsync(rig.Host.Models.Items[0]);
         rig.Settle();
         var panel = rig.Models;
@@ -700,7 +832,7 @@ public class ConnectionsPageTests
     }
 
     [AvaloniaFact]
-    public async Task FocusApiKeyRequest_FocusesTheKeyBox_OnTheConnectionsSegment()
+    public async Task FocusApiKeyRequest_SelectsTheConnection_AndFocusesTheKeyBox()
     {
         using var rig = new Rig();
         await rig.Host.Settings.NavigateAsync(new SettingsNavigation(SettingsSection.Connections,
@@ -713,41 +845,12 @@ public class ConnectionsPageTests
         Assert.True(keyBox.IsFocused);
     }
 
-    // ---- 模型設定 ----
-
-    [AvaloniaFact]
-    public async Task ModelsPage_ShowsDefaultsAboveTheList_WithLabelsCaptionsAndTheCostNote()
-    {
-        using var rig = new Rig();
-        rig.Host.Settings.TabIndex = 1;
-        rig.Settle();
-        var panel = rig.Models;
-
-        var workbench = panel.FindByName<FormField>("WorkbenchDefaultField");
-        Assert.Equal("預設模型", workbench.Label);
-        Assert.Null(panel.FindControl<FormField>("SpriteDefaultField"));   // 小精靈不另外選模型
-        Assert.Same(rig.Host.Models.DefaultOptions, panel.FindByName<ComboBox>("WorkbenchDefaultBox").ItemsSource);
-        Assert.Equal(Strings.Models_WorkbenchDefaultHint, workbench.Hint);
-        var label = workbench.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "PART_Label");
-        var box = panel.FindByName<ComboBox>("WorkbenchDefaultBox");
-        Assert.True(label.TranslatePoint(default, panel)!.Value.Y < box.TranslatePoint(default, panel)!.Value.Y);   // 標籤在上方
-        Assert.Equal(11, workbench.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "PART_Hint").FontSize);
-
-        // 費用說明：預設模型下方的一行 Caption，重用 Workbench_CostNote；在清單之前
-        var cost = panel.FindByName<TextBlock>("CostNote");
-        Assert.True(cost.IsEffectivelyVisible);
-        Assert.Equal(Strings.Workbench_CostNote, cost.Text);
-        Assert.Equal(11, cost.FontSize);
-        Assert.True(cost.TranslatePoint(default, panel)!.Value.Y > box.TranslatePoint(default, panel)!.Value.Y);
-        Assert.True(cost.TranslatePoint(default, panel)!.Value.Y < panel.FindByName<TextBlock>("ListCaption").TranslatePoint(default, panel)!.Value.Y);
-        await Task.CompletedTask;
-    }
+    // ---- 模型表單 ----
 
     [AvaloniaFact]
     public async Task ModelForm_HasTheFieldsWithTheirNames_AndTechnicalFieldsInACollapsedAdvancedSection()
     {
         using var rig = new Rig();
-        rig.Host.Settings.TabIndex = 1;
         await rig.Host.Models.SelectAsync(rig.Host.Models.Items[0]);
         rig.Settle();
         var panel = rig.Models;
@@ -779,7 +882,6 @@ public class ConnectionsPageTests
     public async Task ModelErrors_ShowAsText_AndTheAdvancedSectionOpensForTechnicalErrors()
     {
         using var rig = new Rig();
-        rig.Host.Settings.TabIndex = 1;
         await rig.Host.Models.SelectAsync(rig.Host.Models.Items[0]);
         rig.Settle();
         var panel = rig.Models;
@@ -807,25 +909,9 @@ public class ConnectionsPageTests
     }
 
     [AvaloniaFact]
-    public async Task NewModelButton_IsDisabledWithoutAConnection_AndTheReasonIsWrittenOut()
-    {
-        using var rig = new Rig();
-        var connectionId = rig.Host.Catalog.Current.Connections[0].Id;
-        await rig.Host.Catalog.DeleteConnectionAsync(connectionId);
-        rig.Host.Settings.TabIndex = 1;
-        rig.Settle();
-        Assert.False(rig.Window.FindByName<Button>("NewModelButton").IsEffectivelyEnabled);
-        Assert.False(rig.Models.FindByName<Button>("AddModelButton").IsEffectivelyEnabled);
-        var hint = rig.Models.FindByName<TextBlock>("NeedConnectionHint");
-        Assert.True(hint.IsEffectivelyVisible);
-        Assert.Equal(Strings.Models_NeedConnection, hint.Text);
-    }
-
-    [AvaloniaFact]
     public async Task EditingAModel_KeepsTheEditorWhenAConnectionChangesElsewhere()
     {
         using var rig = new Rig();
-        rig.Host.Settings.TabIndex = 1;
         await rig.Host.Models.SelectAsync(rig.Host.Models.Items[0]);
         rig.Settle();
         var connectionId = rig.Host.Models.SelectedConnection!.Id;
