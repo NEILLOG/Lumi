@@ -14,6 +14,8 @@ using Lumi.Providers;
 using Lumi.Speech;
 using Lumi.Tools;
 using Lumi.Web;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -57,6 +59,7 @@ internal static class Program
             Args = args,
             ContentRootPath = AppContext.BaseDirectory,
         });
+        ApplyDefaultSettings(builder.Configuration);
         builder.Logging.AddLumiFileLog();   // 記錄檔寫進使用者資料夾的 logs/（M9 9C）
         builder.Services.AddLumiCore();
         builder.Services.AddLumiPlatform(configureOverlay: options =>
@@ -80,6 +83,24 @@ internal static class Program
             ShowSpriteHud = bool.TryParse(builder.Configuration["Lumi:Developer:ShowSpriteHud"], out var showHud) && showHud,
         });
         return builder.Build();
+    }
+
+    /// <summary>
+    /// 內建的預設設定（M22）。單檔發佈後執行檔旁邊不一定有 <c>appsettings.json</c>，所以預設值寫在程式裡；
+    /// 放在所有設定來源的最前面，旁邊的 <c>appsettings.json</c>、環境變數、命令列都還是可以覆寫。
+    /// </summary>
+    internal static void ApplyDefaultSettings(ConfigurationManager configuration)
+    {
+        ((IConfigurationBuilder)configuration).Sources.Insert(0, new MemoryConfigurationSource
+        {
+            InitialData = new Dictionary<string, string?>
+            {
+                ["Logging:LogLevel:Default"] = "Information",
+                ["Logging:LogLevel:Microsoft"] = "Warning",
+                ["Lumi:Developer:ShowSpriteHud"] = "false",
+                ["Lumi:Developer:OverlayLayered"] = "true",
+            },
+        });
     }
 
     private static int RunStartupFailure(Exception exception, string[] args)

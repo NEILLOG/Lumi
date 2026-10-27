@@ -18,4 +18,9 @@ public class StringsTests
 
         Assert.Empty(missing);
     }
+
+    // Core 不能用 App 的資源檔，ChatSession 內建同一句話；兩邊要同字
+    [Fact]
+    public void AppFilesMissing_message_matches_the_core_constant() =>
+        Assert.Equal(Lumi.Core.Chat.ChatSession.AppFilesMissingMessage, Strings.Chat_ErrorAppFilesMissing);
 }

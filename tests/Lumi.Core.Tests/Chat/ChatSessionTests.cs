@@ -32,12 +32,12 @@ public class ChatSessionTests
 
     private static Rig HangingRig() => new(new ScriptedChatProvider(new TextDelta("…")) { HangAfter = 1 });
 
-    private sealed class ThrowingProvider : IChatProvider
+    private sealed class ThrowingProvider(Exception? exception = null) : IChatProvider
     {
         public async IAsyncEnumerable<ChatEvent> StreamAsync(ChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
         {
             await Task.Yield();
-            throw new InvalidOperationException("壞掉了");
+            throw exception ?? new InvalidOperationException("壞掉了");
 #pragma warning disable CS0162
             yield break;
 #pragma warning restore CS0162
@@ -314,6 +314,47 @@ public class ChatSessionTests
         Assert.Equal(1, finishedCount);
         Assert.False(rig.Session.IsResponding);
         Assert.False((await rig.Session.SendAsync("再試一次")).Cancelled);
+    }
+
+    public static TheoryData<Exception> MissingFileExceptions => new()
+    {
+        new FileNotFoundException("找不到 System.Net.ServerSentEvents"),
+        new FileLoadException("無法載入"),
+        new InvalidOperationException("外層", new FileNotFoundException("內層")),
+        new InvalidOperationException("兩層", new IOException("中間", new FileLoadException("最內層"))),
+        new AggregateException(new InvalidOperationException("其他"), new FileNotFoundException("彙總裡的")),
+    };
+
+    [Theory]
+    [MemberData(nameof(MissingFileExceptions))]
+    public async Task MissingFileException_IsReportedAsAppFilesMissing(Exception exception)
+    {
+        var rig = new Rig(new ThrowingProvider(exception));
+        await rig.StartAsync();
+        var finished = new List<ChatRunResult>();
+        rig.Session.RunFinished += (_, a) => finished.Add(a.Result);
+
+        var result = await rig.Session.SendAsync("嗨");
+
+        Assert.False(result.Unexpected);
+        Assert.NotNull(result.Failure);
+        Assert.Equal(ChatFailureKind.AppFilesMissing, result.Failure.Kind);
+        Assert.False(result.Failure.Retryable);
+        Assert.Equal(ChatSession.AppFilesMissingMessage, result.Failure.Message);
+        Assert.Same(result, Assert.Single(finished));
+        Assert.False(rig.Session.IsResponding);
+    }
+
+    [Fact]
+    public async Task OtherExceptionsWithoutAMissingFile_StayUnexpected()
+    {
+        var rig = new Rig(new ThrowingProvider(new InvalidOperationException("外層", new IOException("內層"))));
+        await rig.StartAsync();
+
+        var result = await rig.Session.SendAsync("嗨");
+
+        Assert.True(result.Unexpected);
+        Assert.Null(result.Failure);
     }
 
     // ---- 觀察者 ----
