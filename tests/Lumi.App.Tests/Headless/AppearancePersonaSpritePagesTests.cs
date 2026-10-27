@@ -588,12 +588,43 @@ public class AppearancePersonaSpritePagesTests
         Assert.Contains("stacked", rig.Window.Classes);
         Assert.Equal(240, card.Bounds.Width);
         var cardBottom = card.TranslatePoint(default, rig.Window)!.Value.Y + card.Bounds.Height;
-        Assert.True(list.TranslatePoint(default, rig.Window)!.Value.Y >= cardBottom - 0.5);   // 預覽在上方，清單在其下
+        // 預覽在上方，右欄（捲動區）在其下；清單可能已被捲動，所以比的是捲動區本身
+        Assert.True(rig.Window.FindByName<ScrollViewer>("SpriteScroll").TranslatePoint(default, rig.Window)!.Value.Y >= cardBottom - 0.5);
         Assert.Equal(card.TranslatePoint(default, rig.Window)!.Value.X, list.TranslatePoint(default, rig.Window)!.Value.X, 1.0);
 
         rig.Resize(1040, 760);
         Assert.DoesNotContain("stacked", rig.Window.Classes);
         Assert.True(card.TranslatePoint(default, rig.Window)!.Value.X + card.Bounds.Width <= list.TranslatePoint(default, rig.Window)!.Value.X + 0.5);
+    }
+
+    [AvaloniaFact]
+    public async Task SpritePage_ScrollingToTheBottom_KeepsThePreviewInView_WideAndStacked()
+    {
+        using var pack = new CorgiPack();
+        using var rig = new Rig(SpriteIndex, 1040, 600, await HostWithCorgi(pack, broken: false));
+        var scroll = rig.Window.FindByName<ScrollViewer>("SpriteScroll");
+        var card = rig.Window.FindByName<Border>("SpritePreviewCard");
+
+        // 寬版：右欄可以捲，預覽區不動
+        AssertPreviewStaysPutWhenScrolledToBottom(rig, scroll, card);
+
+        // stacked（上下排）：預覽在上方固定，下方內容捲動
+        rig.Resize(800, 600);
+        Assert.Contains("stacked", rig.Window.Classes);
+        AssertPreviewStaysPutWhenScrolledToBottom(rig, scroll, card);
+    }
+
+    private static void AssertPreviewStaysPutWhenScrolledToBottom(Rig rig, ScrollViewer scroll, Border card)
+    {
+        var before = card.TranslatePoint(default, rig.Window)!.Value;
+        scroll.Offset = new Vector(0, scroll.Extent.Height);
+        rig.Settle();
+
+        Assert.True(scroll.Extent.Height > scroll.Viewport.Height);     // 確實有內容可捲
+        Assert.True(scroll.Offset.Y > 0);
+        var after = card.TranslatePoint(default, rig.Window)!.Value;
+        Assert.Equal(before, after);
+        Assert.True(after.Y >= 0 && after.Y + card.Bounds.Height <= rig.Window.ClientSize.Height);
     }
 
     // ===== 三頁共通：沒有 Unicode 符號按鈕、無文字按鈕要有名稱、間距尺度 =====
@@ -607,7 +638,8 @@ public class AppearancePersonaSpritePagesTests
         using var pack = new CorgiPack();
         using var rig = new Rig(category, host: await HostWithCorgi(pack, broken: true, warning: true));
         var header = rig.Window.GetVisualDescendants().OfType<SettingsPageHeader>().Single(h => h.IsEffectivelyVisible);
-        var page = header.FindAncestorOfType<ScrollViewer>()!;
+        // 一般頁的整頁是 ScrollViewer；小精靈頁標題與預覽固定，整頁是標題的上層 Grid
+        Visual page = header.FindAncestorOfType<ScrollViewer>() ?? (Visual)header.Parent!;
 
         var buttons = page.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible).ToList();
         foreach (var button in buttons)
@@ -632,7 +664,8 @@ public class AppearancePersonaSpritePagesTests
         using var pack = new CorgiPack();
         using var rig = new Rig(category, host: await HostWithCorgi(pack, broken: false));
         var header = rig.Window.GetVisualDescendants().OfType<SettingsPageHeader>().Single(h => h.IsEffectivelyVisible);
-        var page = header.FindAncestorOfType<ScrollViewer>()!;
+        // 一般頁的整頁是 ScrollViewer；小精靈頁標題與預覽固定，整頁是標題的上層 Grid
+        Visual page = header.FindAncestorOfType<ScrollViewer>() ?? (Visual)header.Parent!;
 
         var muted = page.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Classes.Contains("muted")).ToList();
         Assert.NotEmpty(muted);
