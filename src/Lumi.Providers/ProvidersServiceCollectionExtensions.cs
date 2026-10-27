@@ -1,4 +1,5 @@
 using Lumi.Core.Chat;
+using Lumi.Core.Images;
 using Lumi.Core.Models;
 using Lumi.Providers.Anthropic;
 using Lumi.Providers.OpenAICompatible;
@@ -21,6 +22,10 @@ public static class ProvidersServiceCollectionExtensions
         // 串流回應可能持續很久（本機模型載入、長回答），停止靠 CancellationToken，不靠 HttpClient 的整體逾時
         services.AddHttpClient<OpenAICompatibleChatProvider>(c => c.Timeout = Timeout.InfiniteTimeSpan);
         services.AddHttpClient<OpenAICompatibleConnectionTester>(c => c.Timeout = TimeSpan.FromSeconds(30));
+
+        // 圖片生成與編輯（22F）：單張圖片可能要好幾十秒，逾時設 180 秒（工具本身的逾時是 240 秒）
+        services.AddHttpClient<OpenAIImageGenerator>(c => c.Timeout = TimeSpan.FromSeconds(180));
+        services.AddSingleton<IImageGenerator, OpenAIImageGenerator>();
 
         services.AddSingleton<IChatProvider, RoutingChatProvider>();
         services.AddSingleton<IConnectionTester, RoutingConnectionTester>();

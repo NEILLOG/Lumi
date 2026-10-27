@@ -11,14 +11,21 @@ public sealed class PathToBitmapConverter : IValueConverter
 
     private const int ThumbnailWidth = 40;
 
+    /// <summary>寬度預設是 chip 的縮圖（40）；工具卡片的圖片用 <c>ConverterParameter</c> 指定（例如 320）。</summary>
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not string path || !File.Exists(path))
             return null;
+        var width = parameter switch
+        {
+            int number => number,
+            string text when int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) => parsed,
+            _ => ThumbnailWidth,
+        };
         try
         {
             using var stream = File.OpenRead(path);
-            return Bitmap.DecodeToWidth(stream, ThumbnailWidth);
+            return Bitmap.DecodeToWidth(stream, width);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException)
         {

@@ -250,6 +250,9 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) =>
         MutateAsync(s => s with { Memory = new MemorySettings(enabled).Normalize() }, ct);
 
+    public Task SetImageGenerationAsync(ImageGenerationSettings settings, CancellationToken ct = default) =>
+        MutateAsync(s => s with { ImageGeneration = settings.Normalize() }, ct);
+
     public Task SetShowTokenUsageAsync(bool show, CancellationToken ct = default) =>
         MutateAsync(s => s with { Display = new DisplaySettings(show).Normalize() }, ct);
 
@@ -387,7 +390,17 @@ public sealed class JsonModelCatalog : IModelCatalog
             Network = settings.Network.Normalize(),
             Browser = settings.Browser.Normalize(),
             Display = settings.Display.Normalize(),
+            ImageGeneration = ImageGenerationFor(settings.ImageGeneration, connectionIds),
         };
+    }
+
+    /// <summary>連線不存在（被刪了）時 ConnectionId 清成 null，回到「尚未設定」。</summary>
+    private static ImageGenerationSettings ImageGenerationFor(ImageGenerationSettings settings, ISet<string> connectionIds)
+    {
+        var normalized = settings.Normalize();
+        return normalized.ConnectionId is { } id && connectionIds.Contains(id)
+            ? normalized
+            : normalized with { ConnectionId = null };
     }
 
     private void ThrowIfReadOnly()
@@ -476,6 +489,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Network = ReadNetwork(file.Network),                           // M17 加的欄位，缺少或格式錯誤時用預設（Proxy 跟隨系統）
             Browser = ReadBrowser(file.Browser),                           // M18 加的欄位，缺少或格式錯誤時用預設（自動、背景執行）
             Display = ReadDisplay(file.Display),                           // M20 加的欄位，缺少或格式錯誤時用預設（不顯示 token 用量）
+            ImageGeneration = ReadImageGeneration(file.ImageGeneration),   // 22F 加的欄位，格式錯誤時當作未設定
         });
 
         // 舊版的 Claude 預設只清一次：清過寫回檔案，之後的啟動找不到它就什麼都不做
@@ -545,6 +559,22 @@ public sealed class JsonModelCatalog : IModelCatalog
         {
             _logger.LogWarning(ex, "記憶設定格式錯誤，改用預設值");
             return MemorySettings.Default;
+        }
+    }
+
+    /// <summary>圖片生成設定（22F）：格式錯了就當作未設定，不能因此把整個設定檔當成損毀。</summary>
+    private ImageGenerationSettings ReadImageGeneration(JsonElement? element)
+    {
+        if (element is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return ImageGenerationSettings.Default;
+        try
+        {
+            return el.Deserialize<ImageGenerationSettings>(JsonOptions)?.Normalize() ?? ImageGenerationSettings.Default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "圖片生成設定格式錯誤，改用未設定");
+            return ImageGenerationSettings.Default;
         }
     }
 
@@ -758,7 +788,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             JsonSerializer.SerializeToElement(settings.McpServers, JsonOptions),
             JsonSerializer.SerializeToElement(settings.Network.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Browser.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.Display.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.Display.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.ImageGeneration.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -818,5 +849,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         JsonElement? McpServers = null,
         JsonElement? Network = null,
         JsonElement? Browser = null,
-        JsonElement? Display = null);
+        JsonElement? Display = null,
+        JsonElement? ImageGeneration = null);
 }

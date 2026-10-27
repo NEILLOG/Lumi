@@ -42,7 +42,8 @@ public sealed record ProviderBlock(string Provider, string Type, string RawJson)
 public sealed record ToolUseBlock(string Id, string Name, string InputJson) : ContentBlock;
 
 /// <summary>
-/// 工具結果。<paramref name="Content"/> 是送給模型的文字；<paramref name="Images"/> 是工具附的圖片（M18，位元組在附件資料夾，舊資料沒有這個欄位時是 null）；其餘欄位只給畫面用、不送給模型，
+/// 工具結果。<paramref name="Content"/> 是送給模型的文字；<paramref name="Images"/> 是工具附的圖片（M18，位元組在附件資料夾，舊資料沒有這個欄位時是 null）；
+/// <paramref name="ImageFiles"/> 是只給畫面顯示的圖片檔完整路徑（22F，不送給模型；舊資料沒有時是 null）；其餘欄位只給畫面用、不送給模型，
 /// 這樣重開程式後卡片的標題與狀態都還在，不依賴工具還註冊著。
 /// </summary>
 public sealed record ToolResultBlock(
@@ -54,7 +55,8 @@ public sealed record ToolResultBlock(
     string? Summary,
     long DurationMs,
     ToolApproval Approval,
-    IReadOnlyList<ImageBlock>? Images = null) : ContentBlock;
+    IReadOnlyList<ImageBlock>? Images = null,
+    IReadOnlyList<string>? ImageFiles = null) : ContentBlock;
 
 [JsonConverter(typeof(JsonStringEnumConverter<ToolApproval>))]
 public enum ToolApproval { NotRequired, AllowedOnce, AllowedForConversation, Denied, AllowedAlways }

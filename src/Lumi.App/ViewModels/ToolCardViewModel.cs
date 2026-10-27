@@ -11,6 +11,9 @@ namespace Lumi.App.ViewModels;
 
 public enum ToolCardState { Running, AwaitingApproval, Succeeded, Failed, Denied }
 
+/// <summary>工具卡片的一張圖片（22F）：完整路徑、檔名，以及存在與否（不存在時畫面顯示「檔案已移動或刪除」）。</summary>
+public sealed record ToolCardImage(string FilePath, string FileName, bool Exists);
+
 /// <summary>
 /// 一次工具呼叫的卡片（ui-spec 第 4、5 節）。標題的資料都來自事件或存檔的結果區塊（動作＝工具的顯示名稱、
 /// 對象＝<see cref="ToolPreview.Target"/>、摘要＝<see cref="ToolResult.Summary"/>），畫面不猜。
@@ -112,6 +115,13 @@ public partial class ToolCardViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ResultDisplay), nameof(HasMoreResult), nameof(HasResult))]
     private string _resultText = "";
+
+    /// <summary>工具產生的圖片（22F）：只給畫面顯示，點了用系統的看圖程式開啟；檔案不在了就標成遺失。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasImages))]
+    private IReadOnlyList<ToolCardImage> _images = [];
+
+    public bool HasImages => Images.Count > 0;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DurationText), nameof(HasDuration))]
@@ -255,6 +265,7 @@ public partial class ToolCardViewModel : ObservableObject
         ResultText = result.Content;
         DurationMs = result.DurationMs;
         Approval = result.Approval;
+        Images = (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))).ToList();
         Request = null;
         State = result.Approval == ToolApproval.Denied ? ToolCardState.Denied
             : result.IsError ? ToolCardState.Failed
