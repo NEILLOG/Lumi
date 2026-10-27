@@ -63,7 +63,7 @@ public sealed class CompositionRootTests : IDisposable
     }
 
     [SkippableFact]
-    public async Task AllServicesResolve_AndFirstRunMigratesM1Connection()
+    public async Task AllServicesResolve_AndFirstRunStartsEmpty()
     {
         Skip.IfNot(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
         using var host = BuildHost();
@@ -159,8 +159,10 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotNull(session.ConversationId);   // 工作台初始化走的是共用的會話，不是自己建一個
 
         Assert.True(File.Exists(Path.Combine(_directory, "settings.json")));
-        Assert.Equal(JsonModelCatalog.MigratedConnectionId, catalog.Resolve(catalog.Current.WorkbenchModelId)!.Connection.Id);
-        Assert.Equal("Claude Opus 5.5", vm.ModelName);
+        // 22B：第一次啟動沒有 Claude 預設，工作台顯示「沒有模型」，首頁會引導去設定
+        Assert.Empty(catalog.Current.Connections);
+        Assert.Null(catalog.Resolve(catalog.Current.WorkbenchModelId));
+        Assert.Equal(Lumi.App.Resources.Strings.Workbench_NoModel, vm.ModelName);
         Assert.NotNull(await services.GetRequiredService<IConversationStore>().GetLatestAsync());
     }
 }

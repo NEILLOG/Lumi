@@ -20,7 +20,16 @@ public sealed record ConnectionSettings(
     string? ApiKeyHint = null)
 {
     public static string NewId() => Guid.NewGuid().ToString("N");
+
+    /// <summary>
+    /// 最近一次測試連線或對話的結果（22B）：重開 Lumi 後狀態點仍看得到上次的結果。舊檔沒有時是 null（尚未測試）。
+    /// 連線的 URL、格式或金鑰改了就清成 null（設定目錄存檔時處理）。
+    /// </summary>
+    public ConnectionTestRecord? LastTest { get; init; }
 }
+
+/// <summary>連線最近一次的結果：成功與否，以及記錄的時間。</summary>
+public sealed record ConnectionTestRecord(bool Success, DateTimeOffset At);
 
 /// <summary>掛在某個連線底下的模型設定。</summary>
 /// <param name="ModelId">送給供應商的模型 ID，例如 <c>claude-opus-5-5</c>。</param>

@@ -107,6 +107,12 @@ public interface IModelCatalog
     /// <summary>Proxy 密碼有沒有存在。只查存不存在、不讀內容。</summary>
     Task<bool> HasProxyPasswordAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// 連線最近一次測試或對話的結果（<see cref="ConnectionSettings.LastTest"/>），讓重開後狀態點仍看得到。
+    /// 不通知 <see cref="Changed"/>；連線不存在時什麼都不做。預設實作不存（給測試用的假目錄）。
+    /// </summary>
+    Task SetConnectionTestAsync(string connectionId, ConnectionTestRecord? test, CancellationToken ct = default) => Task.CompletedTask;
+
     /// <summary>找不到（被刪了，或連線不見了）時回 null。</summary>
     ResolvedModel? Resolve(string? modelSettingsId);
 }

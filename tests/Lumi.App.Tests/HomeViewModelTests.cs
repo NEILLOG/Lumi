@@ -58,6 +58,22 @@ public sealed class HomeViewModelTests : IDisposable
     private static HomePendingItem? PendingById(HomeViewModel home, string id) => home.PendingItems.SingleOrDefault(i => i.Id == id);
 
     [Fact]
+    public async Task AfterRestart_LastTestIsRead_AndNotShownAsUntested()
+    {
+        await UseWorkbenchModelAsync();
+        new ConnectionStatusCache(_host.Catalog).Set("conn1", ConnectionTestResult.Ok([]));
+        await SettingsHost.WaitUntil(() => _host.Catalog.Current.Connections.Single(c => c.Id == "conn1").LastTest is not null);
+
+        // 重開 Lumi：新的快取從目錄讀回上次的結果
+        var restarted = new HomeViewModel(_host.Catalog, new ConnectionStatusCache(_host.Catalog), new SyncUiDispatcher(), _host.Store,
+            _host.McpSource, _host.Tester, _host.Clock, new MemoryOptions());
+        await restarted.RefreshAsync();
+
+        Assert.DoesNotContain(restarted.PendingItems, i => i.Id == "Untested");
+        Assert.False(restarted.AttentionConnections);
+    }
+
+    [Fact]
     public async Task Pending_DefaultState_ListsSpeechAndSetsItsSideAttention()
     {
         await UseWorkbenchModelAsync();   // 模型與金鑰都有，但連線還沒測試，語音端點也是空的

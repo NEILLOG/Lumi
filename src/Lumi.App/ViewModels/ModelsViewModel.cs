@@ -473,6 +473,9 @@ public partial class ModelsViewModel : ObservableObject
         var model = new ModelSettings(id, SelectedConnection!.Id, ModelId.Trim(), DisplayName.Trim(),
             (int)MaxOutputTokens!.Value, (int)ContextWindow!.Value, ShowThinking, ToolsEnabled);
 
+        // 新增模型時，原本的預設模型若已無法使用，就把新模型設成預設（22B）
+        var replacesDefault = _isNew && await IsDefaultUnusableAsync();
+
         IsSaving = true;
         try
         {
@@ -484,12 +487,34 @@ public partial class ModelsViewModel : ObservableObject
             IsSaving = false;
         }
 
+        if (replacesDefault && await RunAsync(() => _catalog.SetWorkbenchModelAsync(id)))
+            DefaultChangedNotice = string.Format(CultureInfo.CurrentCulture, Strings.Models_DefaultReplaced, model.DisplayName);
+
         // 第一個模型設定時，預設模型會由目錄自動指定
         var item = Items.FirstOrDefault(i => i.Id == id);
         _selectedItem = item;
         OnPropertyChanged(nameof(SelectedItem));
         StartEditing(id, isNew: false, model.ConnectionId, model.ModelId, model.DisplayName, model.MaxOutputTokens,
             model.ContextWindow, model.ShowThinking, model.ToolsEnabled, displayNameFollows: model.DisplayName == model.ModelId);
+    }
+
+    /// <summary>預設模型存在但無法使用：找不到，或它的連線沒有金鑰。一個模型都沒有（沒有預設）不算。</summary>
+    private async Task<bool> IsDefaultUnusableAsync()
+    {
+        var workbenchId = _catalog.Current.WorkbenchModelId;
+        if (workbenchId is null)
+            return false;
+        var resolved = _catalog.Resolve(workbenchId);
+        if (resolved is null)
+            return true;
+        try
+        {
+            return !await _catalog.HasApiKeyAsync(resolved.Connection.Id);
+        }
+        catch (SecretStoreException)
+        {
+            return false;   // 讀不出來不代表模型壞了，不動預設
+        }
     }
 
     [RelayCommand(CanExecute = nameof(HasEditor))]

@@ -364,6 +364,7 @@ public partial class ConnectionsViewModel : ObservableObject
         var id = _editingId!;
         var connection = new ConnectionSettings(id, Name.Trim(), Format.Format, BaseUrl.Trim());
         var key = NewApiKey.Trim() is { Length: > 0 } typed ? new SecretValue(typed) : null;
+        var previous = _catalog.Current.Connections.FirstOrDefault(c => c.Id == id);
 
         var saved = false;
         IsSaving = true;
@@ -372,7 +373,9 @@ public partial class ConnectionsViewModel : ObservableObject
             saved = await RunCatalogAsync(async () =>
             {
                 await _catalog.SaveConnectionAsync(connection, key);
-                _status.Remove(id);   // 設定改了，舊的測試結果不準了
+                // 網址、格式或金鑰改了，舊的測試結果不準了（只改名稱不影響）
+                if (previous is null || previous.BaseUrl != connection.BaseUrl || previous.Format != connection.Format || key is not null)
+                    _status.Remove(id);
             });
         }
         finally

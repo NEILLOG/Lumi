@@ -93,8 +93,8 @@ public sealed class JsonModelCatalogWindowTests : IDisposable
         File.WriteAllText(SettingsPath, """
             {
               "version": 1,
-              "connections": [{ "id": "dev-anthropic", "name": "Anthropic", "format": "anthropic", "baseUrl": "https://api.anthropic.com" }],
-              "models": [{ "id": "m1", "connectionId": "dev-anthropic", "modelId": "claude-opus-5-5", "displayName": "Opus", "maxOutputTokens": 64000, "contextWindow": 1000000, "showThinking": true }],
+              "connections": [{ "id": "conn-anthropic", "name": "Anthropic", "format": "anthropic", "baseUrl": "https://api.anthropic.com" }],
+              "models": [{ "id": "m1", "connectionId": "conn-anthropic", "modelId": "claude-opus-5-5", "displayName": "Opus", "maxOutputTokens": 64000, "contextWindow": 1000000, "showThinking": true }],
               "workbenchModelId": "m1",
               "spriteModelId": "m1",
               "theme": "dark"
@@ -116,7 +116,7 @@ public sealed class JsonModelCatalogWindowTests : IDisposable
         File.WriteAllText(SettingsPath, """
             {
               "version": 1,
-              "connections": [{ "id": "dev-anthropic", "name": "Anthropic", "format": "anthropic", "baseUrl": "https://api.anthropic.com" }],
+              "connections": [{ "id": "conn-anthropic", "name": "Anthropic", "format": "anthropic", "baseUrl": "https://api.anthropic.com" }],
               "models": [],
               "theme": "dark",
               "workbenchWindow": { "x": "not-a-number", "y": 0, "width": 1040, "height": 760, "maximized": false, "scaling": 1 }

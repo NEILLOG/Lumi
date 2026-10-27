@@ -2,6 +2,7 @@ using Lumi.App.Services;
 using Lumi.App.ViewModels;
 using Lumi.Core.Chat;
 using Lumi.Core.Memory;
+using Lumi.Core.Models;
 using Lumi.Infrastructure.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -42,6 +43,8 @@ internal sealed class SettingsHost : IDisposable
 
         Catalog = new JsonModelCatalog(Options.Create(new ModelCatalogOptions { SettingsPath = SettingsPath }),
             Secrets, NullLogger<JsonModelCatalog>.Instance);
+        if (settingsFileContent is null)
+            SeedLegacyClaudeDefault(Catalog);   // 產品第一次啟動已經是空的；這裡的測試環境維持舊的 Claude 預設，既有的設定頁測試照常
         var dispatcher = uiDispatcher ?? new SyncUiDispatcher();
         Connections = new ConnectionsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
@@ -68,6 +71,17 @@ internal sealed class SettingsHost : IDisposable
             // 產品預設落在「設定首頁」；既有的頁面測試都從 AI 連線開始，要測首頁的測試自己改回 Home
             CategoryIndex = (int)SettingsCategory.Connections,
         };
+    }
+
+    /// <summary>和 22B 之前第一次啟動一樣的 Claude 預設（沒有金鑰）：連線 <c>dev-anthropic</c>、模型 Claude Opus 5.5，並設為預設。</summary>
+    internal static void SeedLegacyClaudeDefault(JsonModelCatalog catalog)
+    {
+        var connection = new ConnectionSettings(JsonModelCatalog.MigratedConnectionId, "Anthropic", ProviderFormat.Anthropic, "https://api.anthropic.com");
+        var model = new ModelSettings(ModelSettings.NewId(), connection.Id, "claude-opus-5-5", "Claude Opus 5.5", 64_000, 1_000_000, true);
+        catalog.SaveConnectionAsync(connection, null).GetAwaiter().GetResult();
+        catalog.SaveModelAsync(model).GetAwaiter().GetResult();
+        catalog.SetWorkbenchModelAsync(model.Id).GetAwaiter().GetResult();
+        catalog.SetSpriteModelAsync(model.Id).GetAwaiter().GetResult();
     }
 
     public string SettingsPath { get; }

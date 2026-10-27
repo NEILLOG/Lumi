@@ -163,9 +163,9 @@ public sealed class ModelSwitcherViewModelTests
     {
         var newer = $$"""{ "version": {{Lumi.Infrastructure.Settings.JsonModelCatalog.CurrentVersion + 1}}, "connections": [], "models": [], "theme": "system" }""";
         using var host = new SettingsHost(newer);
-        // 唯讀時目錄是預設設定：有一個模型可選，但寫入會失敗
+        // 唯讀時目錄是空的（22B 起沒有預設模型）；選一個不存在的模型，寫入會失敗
         var switcher = new ModelSwitcherViewModel(host.Catalog, host.Status, new FakeSettingsWindowService(), new SyncUiDispatcher(), () => false);
-        var other = new ModelPickerEntry(host.Catalog.Current.Models[0].Id + "x", "x", "", false, false);
+        var other = new ModelPickerEntry("missing-model", "x", "", false, false);
 
         Assert.False(await switcher.SelectAsync(other));
 
