@@ -57,6 +57,7 @@ public sealed class JsonModelCatalog : IModelCatalog
     {
         ValidateConnection(connection);
         var secretKey = ConnectionSecrets.ApiKey(connection.Id);   // Id 格式不合法會在這裡丟 ArgumentException
+        var previous = _current.Connections.FirstOrDefault(c => c.Id == connection.Id);
 
         string? hint;
         if (newApiKey is not null)
@@ -70,7 +71,10 @@ public sealed class JsonModelCatalog : IModelCatalog
             hint = _current.Connections.FirstOrDefault(c => c.Id == connection.Id)?.ApiKeyHint;
         }
 
-        var saved = connection with { ApiKeyHint = hint };
+        // 測試結果只在連線的 URL、格式與金鑰都沒改時保留；呼叫端傳進來的 LastTest 不採信
+        var keepTest = previous is not null && newApiKey is null
+            && previous.BaseUrl == connection.BaseUrl && previous.Format == connection.Format;
+        var saved = connection with { ApiKeyHint = hint, LastTest = keepTest ? previous!.LastTest : null };
         await MutateAsync(s => s with { Connections = Upsert(s.Connections, saved, c => c.Id) }, ct).ConfigureAwait(false);
     }
 
@@ -83,9 +87,15 @@ public sealed class JsonModelCatalog : IModelCatalog
         await _secrets.DeleteAsync(ConnectionSecrets.ApiKey(connectionId), ct).ConfigureAwait(false);
         await MutateAsync(s => s with
         {
-            Connections = s.Connections.Select(c => c.Id == connectionId ? c with { ApiKeyHint = null } : c).ToList(),
+            Connections = s.Connections.Select(c => c.Id == connectionId ? c with { ApiKeyHint = null, LastTest = null } : c).ToList(),
         }, ct).ConfigureAwait(false);
     }
+
+    public Task SetConnectionTestAsync(string connectionId, ConnectionTestRecord? test, CancellationToken ct = default) =>
+        MutateAsync(s => s with
+        {
+            Connections = s.Connections.Select(c => c.Id == connectionId ? c with { LastTest = test } : c).ToList(),
+        }, ct, notify: false);
 
     public async Task DeleteConnectionAsync(string connectionId, CancellationToken ct = default)
     {
@@ -323,13 +333,35 @@ public sealed class JsonModelCatalog : IModelCatalog
         return connection is null ? null : new ResolvedModel(model!, connection);
     }
 
-    /// <summary>第一次啟動（沒有設定檔）時的設定：沿用 M1 的開發設定。</summary>
-    public static AppSettings CreateInitialSettings()
+    /// <summary>第一次啟動（沒有設定檔）時的設定：沒有連線、沒有模型，首頁會引導去設定（22B 拿掉了 Claude 預設）。</summary>
+    public static AppSettings CreateInitialSettings() => AppSettings.Empty;
+
+    /// <summary>
+    /// 舊版（M1–M21）第一次啟動建立的 Claude 預設連線（<see cref="MigratedConnectionId"/>）：沒有金鑰就刪掉，連同底下的模型，
+    /// 預設模型改成剩下的第一個。有金鑰（開發者自己在用）或查詢金鑰失敗都不動。沒有變動時回 null。
+    /// </summary>
+    private AppSettings? RemoveUnkeyedMigratedConnection(AppSettings settings)
     {
-        var connection = new ConnectionSettings(MigratedConnectionId, "Anthropic", ProviderFormat.Anthropic, "https://api.anthropic.com");
-        var model = new ModelSettings(ModelSettings.NewId(), MigratedConnectionId, "claude-opus-5-5", "Claude Opus 5.5",
-            MaxOutputTokens: 64_000, ContextWindow: 1_000_000, ShowThinking: true);
-        return new AppSettings([connection], [model], model.Id, model.Id, ThemePreference.System);
+        if (settings.Connections.All(c => c.Id != MigratedConnectionId))
+            return null;
+
+        try
+        {
+            if (_secrets.ExistsAsync(ConnectionSecrets.ApiKey(MigratedConnectionId)).GetAwaiter().GetResult())
+                return null;
+        }
+        catch (SecretStoreException ex)
+        {
+            _logger.LogWarning(ex, "讀取舊的預設連線金鑰失敗，保留該連線");
+            return null;
+        }
+
+        _logger.LogInformation("刪除沒有金鑰的舊預設連線 {ConnectionId}", MigratedConnectionId);
+        return Normalize(settings with
+        {
+            Connections = settings.Connections.Where(c => c.Id != MigratedConnectionId).ToList(),
+            Models = settings.Models.Where(m => m.ConnectionId != MigratedConnectionId).ToList(),
+        });
     }
 
     /// <summary>
@@ -430,7 +462,7 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
 
         // Persona 是 M5 加的欄位：舊檔沒有時用預設值（版本號不變，舊版程式讀到會直接忽略這個欄位）
-        var settings = Normalize(new AppSettings(file.Connections, file.Models, file.WorkbenchModelId, file.SpriteModelId, file.Theme)
+        var loaded = Normalize(new AppSettings(file.Connections, file.Models, file.WorkbenchModelId, file.SpriteModelId, file.Theme)
         {
             Persona = file.Persona?.Normalize() ?? PersonaSettings.Default,
             Sprite = file.Sprite?.Normalize() ?? SpriteSettings.Default,   // M7 加的欄位，同樣舊檔沒有時用預設
@@ -445,6 +477,21 @@ public sealed class JsonModelCatalog : IModelCatalog
             Browser = ReadBrowser(file.Browser),                           // M18 加的欄位，缺少或格式錯誤時用預設（自動、背景執行）
             Display = ReadDisplay(file.Display),                           // M20 加的欄位，缺少或格式錯誤時用預設（不顯示 token 用量）
         });
+
+        // 舊版的 Claude 預設只清一次：清過寫回檔案，之後的啟動找不到它就什麼都不做
+        var settings = RemoveUnkeyedMigratedConnection(loaded) ?? loaded;
+        if (!ReferenceEquals(settings, loaded))
+        {
+            try
+            {
+                WriteSync(settings);
+            }
+            catch (IOException ex)
+            {
+                // 寫不進去不影響這次的使用（下次啟動會再清一次）
+                _logger.LogWarning(ex, "清掉舊的預設連線後無法寫回設定檔");
+            }
+        }
         return (settings, false, null);
     }
 

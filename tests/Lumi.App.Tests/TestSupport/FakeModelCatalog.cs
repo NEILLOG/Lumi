@@ -161,6 +161,19 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task<bool> HasSpeechTokenAsync(CancellationToken ct = default) => Task.FromResult(false);
     public Task ClearSpeechTokenAsync(CancellationToken ct = default) => throw new NotSupportedException();
 
+    /// <summary>每次 <see cref="SetConnectionTestAsync"/> 收到的連線與結果；和正式實作一樣寫進 <see cref="ConnectionSettings.LastTest"/>。</summary>
+    public List<(string ConnectionId, ConnectionTestRecord? Test)> TestSaves { get; } = [];
+
+    public Task SetConnectionTestAsync(string connectionId, ConnectionTestRecord? test, CancellationToken ct = default)
+    {
+        TestSaves.Add((connectionId, test));
+        Current = Current with
+        {
+            Connections = Current.Connections.Select(c => c.Id == connectionId ? c with { LastTest = test } : c).ToList(),
+        };
+        return Task.CompletedTask;
+    }
+
     public Task SetPersonaAsync(PersonaSettings persona, CancellationToken ct = default)
     {
         Current = Current with { Persona = persona };

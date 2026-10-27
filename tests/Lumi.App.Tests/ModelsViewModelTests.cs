@@ -274,6 +274,55 @@ public sealed class ModelsViewModelTests
     }
 
     [Fact]
+    public async Task NewModel_ReplacesUnusableDefault_AndSaysSo()
+    {
+        using var host = new SettingsHost();   // 預設是沒有金鑰的 Claude：無法使用
+        var ollama = await AddOllamaAsync(host);
+        var vm = await NewEditorAsync(host, ollama);
+        vm.ModelId = "llama3";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        var created = host.Catalog.Current.Models.Single(m => m.ConnectionId == ollama);
+        Assert.Equal(created.Id, host.Catalog.Current.WorkbenchModelId);
+        Assert.Equal("原本的預設模型無法使用，已改用「llama3」。", vm.DefaultChangedNotice);
+    }
+
+    [Fact]
+    public async Task NewModel_KeepsUsableDefault_WithoutNotice()
+    {
+        using var host = new SettingsHost();
+        host.Secrets.Items["connection/dev-anthropic/api-key"] = "sk-ant-usable";   // 預設的連線有金鑰：可以使用
+        var defaultId = host.Catalog.Current.WorkbenchModelId;
+        var ollama = await AddOllamaAsync(host);
+        var vm = await NewEditorAsync(host, ollama);
+        vm.ModelId = "llama3";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(defaultId, host.Catalog.Current.WorkbenchModelId);
+        Assert.Null(vm.DefaultChangedNotice);
+    }
+
+    [Fact]
+    public async Task EditingExistingModel_DoesNotChangeUnusableDefault()
+    {
+        using var host = new SettingsHost();
+        var ollama = await AddOllamaAsync(host);
+        var other = new ModelSettings(ModelSettings.NewId(), ollama, "llama3", "Llama 3", 4096, 128_000, false);
+        await host.Catalog.SaveModelAsync(other);
+        var defaultId = host.Catalog.Current.WorkbenchModelId;
+        var vm = host.Models;
+        await vm.SelectAsync(vm.Items.Single(i => i.Id == other.Id));
+        vm.DisplayName = "Llama 改名";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(defaultId, host.Catalog.Current.WorkbenchModelId);
+        Assert.Null(vm.DefaultChangedNotice);
+    }
+
+    [Fact]
     public async Task Delete_OfLastModel_LeavesNoDefault()
     {
         using var host = new SettingsHost();
@@ -328,11 +377,13 @@ public sealed class ModelsViewModelTests
         using var host = new SettingsHost(newer);
         var vm = host.Models;
 
+        // 唯讀的目錄是空的（22B 起沒有預設模型），所以沒有模型可以選；寫入一個不存在的模型一樣會失敗並還原下拉
+        Assert.Empty(vm.DefaultOptions);
+        Assert.Contains("較新版本", host.Catalog.LoadProblem);
         var original = vm.WorkbenchOption;
-        vm.WorkbenchOption = vm.DefaultOptions[0];   // 唯讀：儲存會失敗
+        vm.WorkbenchOption = new ModelOption("missing-model", "不存在的模型");
         await SettingsHost.WaitUntil(() => vm.HasSaveError);
 
         Assert.Equal(original, vm.WorkbenchOption);
-        Assert.Contains("較新版本", vm.SaveError);
     }
 }
