@@ -94,6 +94,52 @@ public sealed class ChatSession : IChatSession
     public Task<ChatRunResult> RegenerateAsync(CancellationToken ct = default) =>
         RunAsync(ChatRunKind.Regenerate, null, ct, (id, mode, token) => _conversations.RegenerateAsync(id, token, mode));
 
+    public async Task<CompactionResult> CompactAsync(CancellationToken ct = default)
+    {
+        var conversationId = ConversationId ?? throw new InvalidOperationException("還沒有載入任何對話。");
+        if (IsResponding)
+            throw new InvalidOperationException("上一輪回應還沒結束。");
+
+        var done = new TaskCompletionSource();
+        _responseDone = done;
+        IsResponding = true;
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _responseCts = cts;
+        var compacted = false;
+        ChatFailure? failure = null;
+        try
+        {
+            await foreach (var chatEvent in _conversations.CompactAsync(conversationId, cts.Token))
+            {
+                if (chatEvent is CompactionCompleted)
+                    compacted = true;
+                else if (chatEvent is CompactionFailed failed)
+                    failure = failed.Failure;
+                Raise(EventReceived, chatEvent);
+            }
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            // 被停止（例如切換對話）：沒有存任何東西
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "對話整理發生未預期的錯誤");
+            failure = new ChatFailure(ChatFailureKind.Unknown, "整理對話時發生未預期的錯誤。", Retryable: true);
+            Raise(EventReceived, new CompactionFailed(CompactionKind.Summary, failure));
+        }
+        finally
+        {
+            _responseCts = null;
+            IsResponding = false;
+            done.TrySetResult();
+            if (ReferenceEquals(_responseDone, done))
+                _responseDone = null;
+        }
+        return new CompactionResult(compacted, failure);
+    }
+
     public void Stop() => _responseCts?.Cancel();
 
     public async Task StopAndWaitAsync()

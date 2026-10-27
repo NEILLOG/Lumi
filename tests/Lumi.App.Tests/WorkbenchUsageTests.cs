@@ -138,6 +138,38 @@ public sealed class WorkbenchUsageTests
     }
 
     [Fact]
+    public async Task ContextCompaction_SummaryCallUsageCountsInTheTally_ButNotAsTheContextSize_AndSurvivesAReload()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("c");
+        for (var i = 0; i < 3; i++)   // 約 900 token：超過上限 1000 的 80%／70%，會做摘要
+        {
+            await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock(new string('a', 450))], DateTimeOffset.UtcNow));
+            await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock(new string('b', 450))], DateTimeOffset.UtcNow));
+        }
+        ChatEvent[] summary =
+        [
+            new UsageEvent(new TokenUsage(300, 40, 0, 0)),
+            new Completed(new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("摘要")], DateTimeOffset.UtcNow, ModelId: "m", Usage: new TokenUsage(300, 40, 0, 0)), StopReason.EndTurn),
+        ];
+        var rig = new Rig(new SequenceChatProvider(summary, Finished(20, 8)), store: store);
+        rig.Catalog.Current = rig.Catalog.Current with { Models = [FakeModelCatalog.Model with { ContextWindow = 1000 }] };
+        await rig.Vm.InitializeAsync();
+
+        await rig.SendAsync();
+
+        Assert.Equal("320", rig.Vm.Usage.InputText);   // 摘要那次呼叫的 300 也算（同一把金鑰）
+        Assert.Equal("48", rig.Vm.Usage.OutputText);
+        Assert.Equal("4", rig.Vm.Usage.TurnsText);   // 預先放的 3 輪加這一輪
+        Assert.Equal(28, rig.Vm.Usage.ContextUsed);   // 目前的上下文大小是最後一次回應的，不是摘要呼叫的
+
+        var reloaded = new Rig(new SequenceChatProvider(), store: store);
+        await reloaded.Vm.InitializeAsync();
+        Assert.Equal("320", reloaded.Vm.Usage.InputText);
+        Assert.Equal("48", reloaded.Vm.Usage.OutputText);
+    }
+
+    [Fact]
     public async Task NewConversation_ResetsTheUsageToEmpty()
     {
         var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("好")));

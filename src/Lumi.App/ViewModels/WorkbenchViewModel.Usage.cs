@@ -12,6 +12,7 @@ public partial class WorkbenchViewModel
     private readonly ConversationUsageTally _tally = new();
     private readonly IConnectionTester? _tester;
     private bool _retryingConnection;
+    private bool _inCompaction;   // 上下文整理的摘要呼叫進行中（M22）：它的用量事件不是對話回應的用量
 
     /// <summary>本對話用量（頂端用量圖示與面板綁定這裡）。</summary>
     public ConversationUsageViewModel Usage { get; }
@@ -32,9 +33,36 @@ public partial class WorkbenchViewModel
             Connection: CurrentConnectionStatus));
     }
 
-    /// <summary>從資料庫重新加總（載入對話時）。</summary>
-    private void LoadUsageTally(IEnumerable<ChatMessage> messages) =>
-        _tally.Load(messages.Where(m => m.Role == ChatRole.Assistant).Select(m => m.Usage));
+    /// <summary>從資料庫重新加總（載入對話時）。<paramref name="compactionUsage"/> 是上下文整理的摘要呼叫用量（M22）。</summary>
+    private void LoadUsageTally(IEnumerable<ChatMessage> messages, TokenUsage? compactionUsage = null) =>
+        _tally.Load(messages.Where(m => m.Role == ChatRole.Assistant).Select(m => m.Usage).Append(compactionUsage is { } extra && extra != TokenUsage.Zero ? extra : null));
+
+    /// <summary>
+    /// 上下文整理的事件（M22）：摘要那次呼叫的用量算進累計（同一把金鑰的錢），但不當成「目前的上下文大小」。
+    /// 整理的畫面（整理中提示、分隔線）不在這裡。
+    /// </summary>
+    private void OnCompactionEvent(ChatEvent chatEvent)
+    {
+        switch (chatEvent)
+        {
+            case CompactionStarted { Kind: CompactionKind.Summary }:
+                _inCompaction = true;
+                break;
+            case CompactionCompleted completed:
+                _inCompaction = false;
+                if (completed.Usage is not null)
+                {
+                    _tally.Complete(completed.Usage);
+                    RefreshUsage();
+                }
+                break;
+            case CompactionFailed:
+                _inCompaction = false;
+                _tally.Abandon();   // 失敗的那次沒有存檔，不計入（和失敗的回應一樣）
+                RefreshUsage();
+                break;
+        }
+    }
 
     /// <summary>一次請求完成（工具迴圈的中間步驟也算）：把它的 usage 併入已存的累計。</summary>
     private void CommitUsage(Completed completed)
@@ -50,9 +78,10 @@ public partial class WorkbenchViewModel
     private async Task ReloadUsageAsync(string conversationId)
     {
         var messages = await _store.GetMessagesAsync(conversationId);
+        var compactionUsage = await _store.GetCompactionUsageAsync(conversationId);
         if (conversationId != CurrentConversationId)
             return;
-        LoadUsageTally(messages);
+        LoadUsageTally(messages, compactionUsage);
         RefreshUsage();
     }
 

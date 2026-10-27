@@ -61,6 +61,7 @@ public class ConnectionStatusCacheTests
     [InlineData(ChatFailureKind.SecretUnreadable)]
     [InlineData(ChatFailureKind.ModelNotConfigured)]
     [InlineData(ChatFailureKind.Unknown)]
+    [InlineData(ChatFailureKind.ContextTooLong)]
     public void StatusAfterFailure_Unchanged(ChatFailureKind kind) =>
         Assert.Null(ConnectionStatusCache.StatusAfterFailure(kind));
 }

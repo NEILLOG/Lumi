@@ -74,7 +74,11 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                         response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                         if (!response.IsSuccessStatusCode)
                         {
-                            failure = OpenAIHttpErrors.FromResponse(response, request.Tools is { Count: > 0 }, ImageAttachments.HasImages(request));
+                            // 只有可能是「太長」的狀態碼才讀內文
+                            var errorBody = (int)response.StatusCode is 400 or 413 or 422
+                                ? await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
+                                : null;
+                            failure = OpenAIHttpErrors.FromResponse(response, request.Tools is { Count: > 0 }, ImageAttachments.HasImages(request), errorBody);
                             _logger.LogWarning("OpenAI 相容連線 {ConnectionId} 回應 HTTP {Status}", connection.Id, (int)response.StatusCode);
                         }
                         else

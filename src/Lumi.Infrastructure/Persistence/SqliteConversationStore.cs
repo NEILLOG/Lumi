@@ -97,7 +97,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        // 訊息與上下文項目靠外鍵 ON DELETE CASCADE 一併刪除（OpenAsync 已開啟外鍵）
+        // 訊息、上下文項目與整理紀錄靠外鍵 ON DELETE CASCADE 一併刪除（OpenAsync 已開啟外鍵）
         command.CommandText = "DELETE FROM conversations WHERE id = $id;";
         command.Parameters.AddWithValue("$id", conversationId);
         return await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
@@ -162,7 +162,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, role, status, model_id, content_json,
-                   input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at, turn_suffix
+                   input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens, created_at, turn_suffix, seq
             FROM messages WHERE conversation_id = $conversation ORDER BY seq;
             """;
         command.Parameters.AddWithValue("$conversation", conversationId);
@@ -184,7 +184,10 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
                 Status: ParseStatus(reader.GetString(2)),
                 ModelId: reader.IsDBNull(3) ? null : reader.GetString(3),
                 Usage: usage,
-                TurnSuffix: reader.IsDBNull(10) ? null : reader.GetString(10)));
+                TurnSuffix: reader.IsDBNull(10) ? null : reader.GetString(10))
+            {
+                Seq = reader.GetInt32(11),
+            });
         }
         return messages;
     }
@@ -270,6 +273,79 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
+    // ---- 上下文壓縮（M22） ----
+
+    public async Task AddCompactionAsync(string conversationId, CompactionRecord record, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO conversation_compactions (id, conversation_id, kind, upto_seq, summary, model_id, created_at, at_seq,
+                                                  input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens)
+            SELECT $id, $conversation, $kind, $upto, $summary, $model, $created, COALESCE(MAX(seq), 0),
+                   $input, $output, $cacheCreation, $cacheRead
+            FROM messages WHERE conversation_id = $conversation;
+            """;
+        command.Parameters.AddWithValue("$id", record.Id);
+        command.Parameters.AddWithValue("$conversation", conversationId);
+        command.Parameters.AddWithValue("$kind", record.Kind == CompactionKind.Summary ? "summary" : "tool_results");
+        command.Parameters.AddWithValue("$upto", record.UptoSeq);
+        command.Parameters.AddWithValue("$summary", (object?)record.Summary ?? DBNull.Value);
+        command.Parameters.AddWithValue("$model", (object?)record.ModelId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$created", FormatTime(record.CreatedAt));
+        command.Parameters.AddWithValue("$input", (object?)record.Usage?.InputTokens ?? DBNull.Value);
+        command.Parameters.AddWithValue("$output", (object?)record.Usage?.OutputTokens ?? DBNull.Value);
+        command.Parameters.AddWithValue("$cacheCreation", (object?)record.Usage?.CacheCreationInputTokens ?? DBNull.Value);
+        command.Parameters.AddWithValue("$cacheRead", (object?)record.Usage?.CacheReadInputTokens ?? DBNull.Value);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<CompactionState> GetCompactionStateAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        // 兩種各取最新一筆（同時間以 rowid 較大者為準）；at_seq 取全部的最大值
+        command.CommandText = """
+            SELECT kind, upto_seq, summary, at_seq FROM conversation_compactions
+            WHERE conversation_id = $conversation ORDER BY created_at, rowid;
+            """;
+        command.Parameters.AddWithValue("$conversation", conversationId);
+        int? toolResults = null;
+        int? summaryUpto = null;
+        string? summary = null;
+        var appliedAt = 0;
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            if (reader.GetString(0) == "summary")
+            {
+                summaryUpto = reader.GetInt32(1);
+                summary = reader.IsDBNull(2) ? null : reader.GetString(2);
+            }
+            else
+            {
+                toolResults = reader.GetInt32(1);
+            }
+            appliedAt = Math.Max(appliedAt, reader.GetInt32(3));
+        }
+        return toolResults is null && summaryUpto is null ? CompactionState.Empty : new CompactionState(toolResults, summaryUpto, summary, appliedAt);
+    }
+
+    public async Task<TokenUsage> GetCompactionUsageAsync(string conversationId, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT COALESCE(SUM(COALESCE(input_tokens, 0)), 0), COALESCE(SUM(COALESCE(output_tokens, 0)), 0),
+                   COALESCE(SUM(COALESCE(cache_creation_input_tokens, 0)), 0), COALESCE(SUM(COALESCE(cache_read_input_tokens, 0)), 0)
+            FROM conversation_compactions WHERE conversation_id = $conversation;
+            """;
+        command.Parameters.AddWithValue("$conversation", conversationId);
+        await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await reader.ReadAsync(ct).ConfigureAwait(false);
+        return new TokenUsage(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3));
+    }
+
     public async Task SetTurnSuffixAsync(string conversationId, string messageId, string? turnSuffix, CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
@@ -297,13 +373,19 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        // created_at 與 since 都用 FormatTime 的固定格式，字串比較就等於時間比較。Input 含快取寫入與快取讀取
+        // created_at 與 since 都用 FormatTime 的固定格式，字串比較就等於時間比較。Input 含快取寫入與快取讀取。
+        // 上下文整理的摘要呼叫（conversation_compactions，M22）也計入：用的是同一把金鑰
         command.CommandText = """
             SELECT COALESCE(SUM(input_tokens + COALESCE(cache_creation_input_tokens, 0) + COALESCE(cache_read_input_tokens, 0)), 0),
                    COALESCE(SUM(COALESCE(cache_read_input_tokens, 0)), 0),
                    COALESCE(SUM(COALESCE(output_tokens, 0)), 0)
-            FROM messages
-            WHERE role = $role AND input_tokens IS NOT NULL AND created_at >= $since;
+            FROM (
+              SELECT input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens
+              FROM messages WHERE role = $role AND input_tokens IS NOT NULL AND created_at >= $since
+              UNION ALL
+              SELECT input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens
+              FROM conversation_compactions WHERE input_tokens IS NOT NULL AND created_at >= $since
+            );
             """;
         command.Parameters.AddWithValue("$role", FormatRole(ChatRole.Assistant));
         command.Parameters.AddWithValue("$since", FormatTime(since));
