@@ -95,7 +95,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                 {
                     throw;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!MissingAppFiles.Is(ex))   // 程式檔案不完整交給 ChatSession，不當成連線問題
                 {
                     failure = enumerator is null
                         ? OpenAIHttpErrors.FromException(ex, baseUri)
