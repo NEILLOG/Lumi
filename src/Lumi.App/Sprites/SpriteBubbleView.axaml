@@ -71,7 +71,7 @@
           </Button>
         </Grid>
         <ctl:EmojiTextBlock x:Name="ReminderBody" Text="{Binding ReminderText}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis"
-                            LineHeight="22" FontSize="{DynamicResource LumiFontSizeCard}" />
+                            LineHeight="22" FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
         <TextBlock x:Name="ReminderMore" IsVisible="{Binding HasReminderMore}" Text="{Binding ReminderMoreText}"
                    FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" />
       </StackPanel>
@@ -83,19 +83,19 @@
         <StackPanel x:Name="StatusArea" IsVisible="{Binding IsStatus}" Spacing="4">
           <ctl:EmojiTextBlock x:Name="QuoteLine" IsVisible="{Binding HasQuote}" Text="{Binding QuoteText}" TextWrapping="Wrap" MaxLines="2"
                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource LumiTextMutedBrush}"
-                              FontSize="{DynamicResource LumiFontSizeCaption}" />
+                              FontSize="{DynamicResource LumiFontSizeCaption}" IsHitTestVisible="False" />
           <TextBlock x:Name="StatusLine" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" MaxLines="1"
                      Foreground="{DynamicResource LumiTextMutedBrush}" FontSize="{DynamicResource LumiFontSizeCard}" />
         </StackPanel>
 
         <!-- 語音提示（太短、沒有聲音、沒聽到內容）：一句，會自動淡出 -->
         <ctl:EmojiTextBlock x:Name="NoticeLine" IsVisible="{Binding IsNotice}" Text="{Binding NoticeText}" TextWrapping="Wrap"
-                            FontSize="{DynamicResource LumiFontSizeCard}" />
+                            FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
 
         <!-- 回答（串流中與完成）：最多兩句，不用 Markdown -->
         <StackPanel x:Name="AnswerArea" IsVisible="{Binding IsAnswer}" Spacing="6">
           <ctl:EmojiTextBlock x:Name="AnswerText" Text="{Binding Text}" TextWrapping="Wrap" LineHeight="22"
-                              FontSize="{DynamicResource LumiFontSizeCard}" />
+                              FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
           <Button x:Name="DetailsLink" Classes="link" IsVisible="{Binding ShowDetailsLink}" Command="{Binding OpenDetailsCommand}"
                   Content="{x:Static res:Strings.Sprite_OpenDetails}" />
         </StackPanel>
@@ -103,7 +103,7 @@
         <!-- 權限確認（在氣泡內完成，不需要切回工作台） -->
         <StackPanel x:Name="ApprovalArea" IsVisible="{Binding IsApproval}" Spacing="8">
           <StackPanel Spacing="8" DataContext="{Binding Approval}" x:DataType="sp:SpriteApprovalViewModel">
-            <ctl:EmojiTextBlock Text="{Binding Question}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" />
+            <ctl:EmojiTextBlock Text="{Binding Question}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
             <TextBlock IsVisible="{Binding HasTarget}" Text="{Binding Target}" Classes="mono" TextWrapping="Wrap"
                        FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiWarningTextBrush}" />
             <TextBlock IsVisible="{Binding HasWarning}" Text="{Binding Warning}" TextWrapping="Wrap"
@@ -111,7 +111,7 @@
             <TextBlock IsVisible="{Binding IsDestructive}" Text="{x:Static res:Strings.Sprite_Irreversible}" FontWeight="SemiBold"
                        Foreground="{DynamicResource LumiDangerBrush}" />
             <ScrollViewer IsVisible="{Binding ShowDetail}" MaxHeight="80" VerticalScrollBarVisibility="Auto">
-              <ctl:EmojiTextBlock Text="{Binding Detail}" Classes="mono" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCaption}" />
+              <ctl:EmojiTextBlock Text="{Binding Detail}" Classes="mono" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCaption}" IsHitTestVisible="False" />
             </ScrollViewer>
           </StackPanel>
 
@@ -142,7 +142,7 @@
         <!-- 錯誤：一句說明，加上重試與在工作台查看（金鑰問題帶「開啟設定」）；語音轉寫失敗改為「重試轉寫」「放棄這段錄音」 -->
         <StackPanel x:Name="ErrorArea" IsVisible="{Binding IsError}" Spacing="8">
           <ctl:EmojiTextBlock x:Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
-                              FontSize="{DynamicResource LumiFontSizeCard}" />
+                              FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
           <WrapPanel IsVisible="{Binding !IsVoiceFailure}">
             <Button x:Name="RetryButton" Classes="small primary" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{x:Static res:Strings.Sprite_Retry}"
                     Command="{Binding RetryCommand}" />

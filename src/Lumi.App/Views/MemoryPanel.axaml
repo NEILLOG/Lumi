@@ -51,7 +51,7 @@
       <Setter Property="FontWeight" Value="Bold" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     </Style>
-    <Style Selector="TextBlock.item-text">
+    <Style Selector="TextBlock.item-text, SelectableTextBlock.item-text">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     </Style>
