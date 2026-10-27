@@ -145,8 +145,14 @@ public partial class HistoryDrawer : UserControl
             {
                 entry.Command = vm.RenameCommand;
             }
+            else if (entry.Tag as string == "clear")
+            {
+                entry.IsVisible = item.IsSprite;   // 小精靈的專屬對話：清除內容
+                entry.Command = vm.ClearSpriteConversationCommand;
+            }
             else
             {
+                entry.IsVisible = !item.IsSprite;   // 小精靈的專屬對話沒有刪除
                 entry.Command = vm.DeleteCommand;
                 ToolTip.SetTip(entry, item.DeleteTip);
                 ToolTip.SetShowOnDisabled(entry, true);

@@ -12,15 +12,18 @@ public sealed class ChatSession : IChatSession
     private readonly ConversationService _conversations;
     private readonly IConversationStore _store;
     private readonly ILogger<ChatSession> _logger;
+    private readonly SpriteConversationService? _sprite;
 
     private CancellationTokenSource? _responseCts;
     private TaskCompletionSource? _responseDone;
 
-    public ChatSession(ConversationService conversations, IConversationStore store, ILogger<ChatSession>? logger = null)
+    public ChatSession(
+        ConversationService conversations, IConversationStore store, ILogger<ChatSession>? logger = null, SpriteConversationService? sprite = null)
     {
         _conversations = conversations;
         _store = store;
         _logger = logger ?? NullLogger<ChatSession>.Instance;
+        _sprite = sprite;
     }
 
     public string? ConversationId { get; private set; }
@@ -43,7 +46,13 @@ public sealed class ChatSession : IChatSession
 
     public async Task<Conversation> InitializeAsync(string newConversationTitle, CancellationToken ct = default)
     {
-        var conversation = await _store.GetLatestAsync(ct) ?? await _store.CreateAsync(newConversationTitle, ct);
+        var latest = await _store.GetLatestAsync(ct);
+        if (latest is not null && _sprite is not null && latest.Id == await _sprite.GetIdAsync(ct))
+        {
+            // 最近的是小精靈專屬對話（M22）：工作台不接手它，改開最近一則有內容的其他對話
+            latest = (await _store.ListAsync(2, ct)).FirstOrDefault(c => c.Id != latest.Id);
+        }
+        var conversation = latest ?? await _store.CreateAsync(newConversationTitle, ct);
         Select(conversation);
         return conversation;
     }

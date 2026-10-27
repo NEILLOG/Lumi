@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace Lumi.App.ViewModels;
 
 /// <summary>
-/// 「⋯」的對話動作：重新命名、匯出為 Markdown、刪除這則對話。
+/// 「⋯」的對話動作：重新命名、匯出為 Markdown、刪除這則對話（小精靈的專屬對話改成「清除內容」，見 SpriteConversation.cs）。
 /// 重新命名的規則（清理、長度上限）與刪除的流程（確認、切到下一則）都在 <see cref="HistoryViewModel"/>，這裡只負責接線。
 /// </summary>
 public partial class WorkbenchViewModel
@@ -20,7 +20,7 @@ public partial class WorkbenchViewModel
 
     public bool ExportConversationEnabled => _filePicker is not null && !IsResponding && CurrentConversationId is not null && Messages.Count > 0;
 
-    public bool DeleteConversationEnabled => !IsResponding && CurrentConversationId is not null && Messages.Count > 0 && History.CanDeleteConversation;
+    public bool DeleteConversationEnabled => !IsResponding && CurrentConversationId is not null && Messages.Count > 0 && History.CanDeleteConversation && !IsSpriteConversation;
 
     /// <summary>訊息數、回應狀態變了：更新「⋯」各項的啟用狀態。</summary>
     private void NotifyConversationActions()
@@ -28,6 +28,8 @@ public partial class WorkbenchViewModel
         OnPropertyChanged(nameof(RenameConversationEnabled));
         OnPropertyChanged(nameof(ExportConversationEnabled));
         OnPropertyChanged(nameof(DeleteConversationEnabled));
+        OnPropertyChanged(nameof(ClearConversationEnabled));
+        ClearConversationCommand.NotifyCanExecuteChanged();
         RenameConversationCommand.NotifyCanExecuteChanged();
         ExportConversationCommand.NotifyCanExecuteChanged();
         DeleteConversationCommand.NotifyCanExecuteChanged();

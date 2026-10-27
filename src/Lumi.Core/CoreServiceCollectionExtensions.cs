@@ -17,6 +17,7 @@ public static class CoreServiceCollectionExtensions
     public static IServiceCollection AddLumiCore(this IServiceCollection services)
     {
         services.AddSingleton<ConversationService>();
+        services.AddSingleton<SpriteConversationService>();   // 小精靈專屬對話的 id 與建立（M22）
         services.AddSingleton<IChatSession, ChatSession>();   // 工作台與小精靈共用的目前對話與回應流程
         services.AddSingleton<ConversationDeletionService>(); // 刪除對話：資料庫 → 權限記憶 → 附件（需要 AttachmentCleaner，由 Lumi.Infrastructure 註冊）
 

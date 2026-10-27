@@ -84,6 +84,30 @@ public interface IConversationStore
     Task RenameAsync(string conversationId, string title, CancellationToken ct = default);
 
     /// <summary>
+    /// 依 id 取一則對話（不論有沒有訊息）；不存在回 null。小精靈專屬對話（M22）要確認 id 還對得到。
+    /// 預設回 null，只有真的存檔的實作需要覆寫。
+    /// </summary>
+    Task<Conversation?> GetConversationAsync(string conversationId, CancellationToken ct = default) => Task.FromResult<Conversation?>(null);
+
+    /// <summary>
+    /// 清除這則對話的全部內容（M22「清除內容」）：所有訊息與整理紀錄，連同第一次送出時凍結的 system prompt 與工具快照
+    /// （清完等於一則新對話，下次送出重新記）。對話本身與 id、標題、更新時間都保留。
+    /// 預設逐則從尾端移除訊息；有整理紀錄、system prompt 的實作要覆寫。
+    /// </summary>
+    async Task ClearMessagesAsync(string conversationId, CancellationToken ct = default)
+    {
+        while (await RemoveLastMessageAsync(conversationId, ct).ConfigureAwait(false))
+        {
+        }
+    }
+
+    /// <summary>讀一個應用程式層級的小設定（<c>app_meta</c>）；沒有回 null。預設永遠回 null。</summary>
+    Task<string?> GetMetaAsync(string key, CancellationToken ct = default) => Task.FromResult<string?>(null);
+
+    /// <summary>寫入一個應用程式層級的小設定（<c>app_meta</c>），已有就覆蓋。預設什麼都不做。</summary>
+    Task SetMetaAsync(string key, string value, CancellationToken ct = default) => Task.CompletedTask;
+
+    /// <summary>
     /// 從 <paramref name="since"/>（含）起，所有對話的助理訊息 token 加總（設定首頁的本月／今天用量）。
     /// 預設全 0，只有真的存檔的實作需要覆寫。
     /// </summary>

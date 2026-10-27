@@ -54,6 +54,11 @@ public partial class ConversationListItem : ObservableObject
     [NotifyPropertyChangedFor(nameof(DeleteTip))]
     private bool _deleteBlocked;
 
+    /// <summary>小精靈的專屬對話（M22）：釘在清單最上方，標題旁有小精靈圖示與「小精靈」標籤，「⋯」沒有刪除、改成「清除內容」。</summary>
+    public bool IsSprite { get; init; }
+
+    public string SpriteTagText => Strings.History_SpriteTag;
+
     public bool HasSnippet => Snippet.Length > 0;
 
     public string DeleteTip => DeleteBlocked ? Strings.History_DeleteBlocked : "";

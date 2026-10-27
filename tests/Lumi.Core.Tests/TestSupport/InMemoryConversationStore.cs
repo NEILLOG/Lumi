@@ -9,6 +9,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
     private readonly Dictionary<string, string> _systemPrompts = [];
     private readonly Dictionary<string, string> _toolSnapshots = [];
     private readonly Dictionary<string, List<(CompactionRecord Record, int AtSeq)>> _compactions = [];
+    private readonly Dictionary<string, string> _meta = [];
     private readonly object _lock = new();
 
     public Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
@@ -183,6 +184,38 @@ internal sealed class InMemoryConversationStore : IConversationStore
     {
         lock (_lock)
             _conversations[conversationId] = _conversations[conversationId] with { Title = title };
+        return Task.CompletedTask;
+    }
+
+    public Task<Conversation?> GetConversationAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_conversations.GetValueOrDefault(conversationId));
+    }
+
+    public Task ClearMessagesAsync(string conversationId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (_messages.TryGetValue(conversationId, out var list))
+                list.Clear();
+            _compactions.Remove(conversationId);
+            _systemPrompts.Remove(conversationId);
+            _toolSnapshots.Remove(conversationId);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetMetaAsync(string key, CancellationToken ct = default)
+    {
+        lock (_lock)
+            return Task.FromResult(_meta.GetValueOrDefault(key));
+    }
+
+    public Task SetMetaAsync(string key, string value, CancellationToken ct = default)
+    {
+        lock (_lock)
+            _meta[key] = value;
         return Task.CompletedTask;
     }
 

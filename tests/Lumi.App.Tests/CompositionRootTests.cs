@@ -138,6 +138,9 @@ public sealed class CompositionRootTests : IDisposable
         var modes = services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>();
         Assert.Same(modes, services.GetRequiredService<Lumi.App.Services.IAppModeCoordinator>());
         Assert.IsType<Lumi.App.Views.WindowHost>(services.GetRequiredService<Lumi.App.Services.IWindowHost>());
+        // M22 22J：小精靈專屬對話——切換規則與 id 管理都是單例（工作台、歷史清單、切換器共用同一份 id 快取）
+        Assert.Same(services.GetRequiredService<Lumi.App.Services.SpriteConversationSwitcher>(), services.GetRequiredService<Lumi.App.Services.SpriteConversationSwitcher>());
+        Assert.Same(services.GetRequiredService<SpriteConversationService>(), services.GetRequiredService<SpriteConversationService>());
         // UD-1：設定視窗的「回到對話」要用協調者開工作台；設定視窗服務與設定 ViewModel 能解析（沒有循環相依）
         Assert.IsType<Lumi.App.Views.SettingsWindowService>(services.GetRequiredService<Lumi.App.ViewModels.ISettingsWindowService>());
         Assert.NotNull(services.GetRequiredService<Lumi.App.ViewModels.SettingsViewModel>());

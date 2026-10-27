@@ -33,6 +33,14 @@ internal sealed class FakeHistoryHost : IHistoryHost
     }
 
     public void TitleChanged(string conversationId, string title) => Renamed.Add((conversationId, title));
+
+    public List<string> Cleared { get; } = [];
+
+    public Task ConversationClearedAsync(string conversationId)
+    {
+        Cleared.Add(conversationId);
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>沒有任何引用的附件替身（刪除流程的附件清理用）。</summary>

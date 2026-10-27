@@ -21,6 +21,9 @@ public interface IHistoryHost
     /// </summary>
     Task ConversationDeletedAsync(string conversationId, Conversation? next);
 
+    /// <summary>小精靈的專屬對話被清除內容了（資料庫已經清好，對話與 id 保留）。若它是目前開著的對話：重新載入（變成空白）。</summary>
+    Task ConversationClearedAsync(string conversationId) => Task.CompletedTask;
+
     /// <summary>對話改名了（只通知；資料庫已經寫好）。</summary>
     void TitleChanged(string conversationId, string title);
 }
