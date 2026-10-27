@@ -72,8 +72,13 @@
           <TextBlock Text="{x:Static res:Strings.Usage_NearLimitNote}" FontSize="13" TextWrapping="Wrap"
                      Foreground="{DynamicResource LumiWarningTextBrush}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
+            <!-- 整理並繼續（M22 22I）：手動整理（直接做摘要，不開新對話）；回應中或整理中停用 -->
+            <Button x:Name="CompactAndContinueInFlyout" Classes="primary" Height="32" Padding="12,0"
+                    Content="{x:Static res:Strings.Usage_CompactAndContinue}" Command="{Binding CompactAndContinueCommand}"
+                    IsEnabled="{Binding CanCompactAndContinue}" Click="OnDismissClick"
+                    AutomationProperties.Name="{x:Static res:Strings.Usage_CompactAndContinue}" />
             <!-- 回應中停用：開新對話會打斷正在進行的回應 -->
-            <Button x:Name="NewConversationInFlyout" Classes="primary" Height="32" Padding="12,0"
+            <Button x:Name="NewConversationInFlyout" Classes="secondary" Height="32" Padding="12,0"
                     Content="{x:Static res:Strings.Usage_NewConversation}" Command="{Binding NewConversationCommand}"
                     IsEnabled="{Binding !IsResponding}" Click="OnDismissClick"
                     AutomationProperties.Name="{x:Static res:Strings.Usage_NewConversation}" />

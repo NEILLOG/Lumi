@@ -143,6 +143,20 @@
             <DataTemplate DataType="vm:ToolRunViewModel">
               <views:ToolRunView />
             </DataTemplate>
+            <!-- 上下文整理的分隔線（M22 22I）：「以上內容已整理成摘要」，右邊「查看摘要」，展開看摘要全文（可選取） -->
+            <DataTemplate DataType="vm:CompactionDividerViewModel" x:DataType="vm:CompactionDividerViewModel">
+              <Expander Classes="advanced" IsExpanded="{Binding IsSummaryOpen, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="{x:Static res:Strings.Compact_Divider}">
+                <Expander.Header>
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                    <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Compact_Divider}" Classes="muted" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Height="1" Background="{DynamicResource LumiBorderBrush}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding ToggleText}" Foreground="{DynamicResource LumiAccentTextBrush}" VerticalAlignment="Center" />
+                  </Grid>
+                </Expander.Header>
+                <ctl:EmojiTextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+              </Expander>
+            </DataTemplate>
             <DataTemplate DataType="vm:MessageViewModel" x:DataType="vm:MessageViewModel">
               <Panel>
                 <!-- 使用者：靠右；上方是「你」與時間，再來是送出當時帶的檔案、資料夾、圖片 chip，最後是 UserBubble 底色的氣泡 -->
@@ -246,6 +260,25 @@
             </DataTemplate>
           </ItemsControl.DataTemplates>
         </ItemsControl>
+
+        <!-- 整理中（M22 22I）：等待中的樣式（淡底氣泡），摘要呼叫進行時顯示在訊息區底部 -->
+        <Border IsVisible="{Binding IsCompacting}" HorizontalAlignment="Left" Padding="16,12" CornerRadius="{StaticResource LumiRadiusCard}"
+                Background="{DynamicResource LumiAssistantBubbleBrush}">
+          <TextBlock Text="{x:Static res:Strings.Compact_InProgress}" Classes="muted" />
+        </Border>
+
+        <!-- 整理失敗（M22 22I）：警告樣式的提示，不擋繼續送出；對話內容沒有改變 -->
+        <Border IsVisible="{Binding HasCompactionFailure}" Padding="16,12" CornerRadius="10" BorderThickness="1"
+                Background="{DynamicResource LumiWarningBackgroundBrush}"
+                BorderBrush="{DynamicResource LumiWarningBorderBrush}">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{x:Static res:Strings.Compact_Failed}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Foreground="{DynamicResource LumiWarningTextBrush}" />
+            <Button Grid.Column="1" Classes="tertiary" Margin="12,0,0,0" VerticalAlignment="Center"
+                    Content="{x:Static res:Strings.Workbench_DismissNotice}" Command="{Binding DismissCompactionFailureCommand}"
+                    AutomationProperties.Name="{x:Static res:Strings.Workbench_DismissNotice}" />
+          </Grid>
+        </Border>
 
         <!-- 錯誤列：原因 + 對話內容已保留 + 重試（ui-spec 第 3 節） -->
         <Border IsVisible="{Binding HasError}" Padding="16,12" CornerRadius="10" BorderThickness="1"
