@@ -81,6 +81,7 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     private TimeSpan _lingered;
     private DateTimeOffset _lastTick;
     private ChatFailure? _failure;
+    private bool _compacting;   // 摘要呼叫進行中（M22 22I）：狀態顯示「正在整理對話…」
 
     public SpriteBubbleViewModel(SpriteShellOptions options, TimeProvider time, IToolApprovalResponder? approvals = null)
     {
@@ -232,6 +233,7 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         IsVoiceFailure = false;
         QuoteText = quote is null ? null : Truncate(quote, QuoteMaxClusters).Text;
         ShowStatus(Strings.Sprite_StatusThinking);
+        _compacting = false;
     }
 
     public void OnEvent(ChatEvent chatEvent)
@@ -239,6 +241,14 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         switch (chatEvent)
         {
             case ThinkingDelta when Kind != SpriteBubbleKind.Approval:
+                ShowStatus(Strings.Sprite_StatusThinking);
+                break;
+            case CompactionStarted { Kind: CompactionKind.Summary } when Kind != SpriteBubbleKind.Approval:
+                _compacting = true;
+                ShowStatus(Strings.Compact_InProgress);
+                break;
+            case CompactionCompleted { Kind: CompactionKind.Summary } or CompactionFailed { Kind: CompactionKind.Summary } when _compacting:
+                _compacting = false;   // 整理結束（失敗也照常繼續）：回到思考中
                 ShowStatus(Strings.Sprite_StatusThinking);
                 break;
             case TextDelta delta:

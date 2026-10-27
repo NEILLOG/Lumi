@@ -5,10 +5,11 @@ namespace Lumi.App.ViewModels;
 /// <summary>
 /// 把存檔的訊息轉成訊息列表（重開程式、切換對話、重讀時用）：使用者氣泡、助理氣泡（有文字才有）、
 /// 工具段落（連續的工具呼叫，結果從後面的 <c>Tool</c> 訊息配對回來）。串流時的組成方式要和這裡一致。
+/// 上下文整理（M22）：摘要涵蓋到的最後一則（<see cref="CompactionState.SummaryUptoSeq"/>）之後插一條分隔線。
 /// </summary>
 internal static class ConversationTimeline
 {
-    public static List<MessageViewModel> Build(IReadOnlyList<ChatMessage> history, Func<ToolUseBlock, ToolCardViewModel> createCard)
+    public static List<MessageViewModel> Build(IReadOnlyList<ChatMessage> history, Func<ToolUseBlock, ToolCardViewModel> createCard, CompactionState? compaction = null)
     {
         var items = new List<MessageViewModel>();
         var cards = new Dictionary<string, ToolCardViewModel>(StringComparer.Ordinal);
@@ -51,6 +52,9 @@ internal static class ConversationTimeline
                     }
                     break;
             }
+
+            if (compaction?.SummaryUptoSeq == message.Seq && compaction.Summary is { Length: > 0 } summary)
+                items.Add(new CompactionDividerViewModel(summary));
         }
 
         // 沒有結果的呼叫（程式在中途結束）：標示成沒有結果，不要永遠轉圈
