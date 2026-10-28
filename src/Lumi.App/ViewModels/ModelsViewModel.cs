@@ -271,7 +271,9 @@ public partial class ModelsViewModel : ObservableObject
             var result = await _tester.TestAsync(connection, null, cts.Token);
             if (cts.IsCancellationRequested)
                 return;
-            _status.Set(connection.Id, result);
+            // 取不到清單不代表連線壞了（例如只做圖片生成的端點本來就沒有 /models）：只記成功，失敗不改連線狀態
+            if (result.Success)
+                _status.Set(connection.Id, result);
             if (result.Success && result.ModelIds.Count > 0)
                 ShowAvailable(result.ModelIds);
             else

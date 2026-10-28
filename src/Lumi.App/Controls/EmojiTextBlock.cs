@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Lumi.App.Resources;
 
 namespace Lumi.App.Controls;
@@ -9,7 +10,7 @@ namespace Lumi.App.Controls;
 /// <summary>
 /// 可綁定、可選取的文字：<see cref="Text"/> 變更時經過 <see cref="EmojiText.Apply"/>，
 /// 讓訊息列表直接用 binding，不用 code-behind。所有顯示對話內容的地方都應使用它。
-/// 右鍵選單的「複製」：有選取就複製選取的文字，沒有就複製整段。
+/// 右鍵選單的「複製」：外層有跨段落選取（<see cref="ITextSelectionScope"/>）就複製那段，否則有選取就複製選取的文字，沒有就複製整段。
 /// 放在按鈕裡的文字要設 <c>IsHitTestVisible="False"</c>，讓點擊交給按鈕。
 /// </summary>
 public class EmojiTextBlock : SelectableTextBlock
@@ -57,7 +58,9 @@ public class EmojiTextBlock : SelectableTextBlock
 
     private async void CopyTextOrSelection()
     {
-        var text = string.IsNullOrEmpty(SelectedText) ? PlainText() : SelectedText;
+        var scoped = this.FindAncestorOfType<ITextSelectionScope>()?.SelectedText;
+        var text = !string.IsNullOrEmpty(scoped) ? scoped
+            : string.IsNullOrEmpty(SelectedText) ? PlainText() : SelectedText;
         if (string.IsNullOrEmpty(text) || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
             return;
         try

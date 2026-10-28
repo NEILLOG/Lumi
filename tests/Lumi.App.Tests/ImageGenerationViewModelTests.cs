@@ -57,6 +57,28 @@ public sealed class ImageGenerationViewModelTests
     }
 
     [Fact]
+    public async Task EndpointWithoutAModelList_DoesNotMarkTheConnectionFailed_AndTheTypedIdStillSaves()
+    {
+        using var host = new SettingsHost();
+        var connection = host.Catalog.Current.Connections[0];
+        host.Tester.Result = ConnectionTestResult.Fail(new Lumi.Core.Chat.ChatFailure(Lumi.Core.Chat.ChatFailureKind.ModelNotFound, "找不到模型清單", false));
+        var vm = host.ImageGeneration;
+        await vm.OpenAsync();
+
+        vm.SelectedConnection = vm.Connections[0];
+        await vm.RefreshModelListCommand.ExecuteAsync(null);
+
+        Assert.Equal(Strings.Models_ListUnavailable, vm.ListStatusText);
+        Assert.NotEqual(Lumi.App.Services.ConnectionStatus.Failed, host.Status.Get(connection.Id).Status);
+
+        vm.ModelId = "my-image-model";
+        Assert.False(vm.HasFieldErrors);
+        await vm.SaveCommand.ExecuteAsync(null);
+        Assert.False(vm.HasSaveError);
+        Assert.Equal("my-image-model", host.Catalog.Current.ImageGeneration.ModelId);
+    }
+
+    [Fact]
     public async Task Save_IsOffWhileTheModelIdIsBlank_AndNeedsAConnection()
     {
         using var host = new SettingsHost();

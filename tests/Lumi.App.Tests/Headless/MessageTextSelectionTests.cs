@@ -146,6 +146,79 @@ public class MessageTextSelectionTests
     }
 
     [AvaloniaFact]
+    public async Task DraggingAcrossParagraphs_SelectsEveryBlockInBetween_AndCtrlCCopiesThemAll()
+    {
+        var (view, window, _) = Show("第一段文字\n\n- 清單項目\n\n| 欄 |\n|---|\n| 格子 |\n\n最後一段文字");
+        var first = (MarkdownTextBlock)view.RenderedBlocks[0];
+        var last = (MarkdownTextBlock)view.RenderedBlocks[^1];
+
+        Drag(window, CenterOfText(window, first, 2), CenterOfText(window, last, 2));
+
+        Assert.Equal("段文字", first.SelectedText);
+        Assert.Equal("最後", last.SelectedText);
+        Assert.Equal("段文字\n清單項目\n欄\n格子\n最後", view.SelectedText);
+
+        window.KeyPressQwerty(PhysicalKey.C, RawInputModifiers.Control);
+        await Task.Delay(50);
+        Assert.Equal(view.SelectedText, await ClipboardText(window));
+    }
+
+    [AvaloniaFact]
+    public void DraggingUpwards_SelectsTheSameRange()
+    {
+        var (view, window, _) = Show("第一段文字\n\n第二段文字");
+        var first = (MarkdownTextBlock)view.RenderedBlocks[0];
+        var second = (MarkdownTextBlock)view.RenderedBlocks[1];
+
+        Drag(window, CenterOfText(window, second, 2), CenterOfText(window, first, 2));
+
+        Assert.Equal("段文字\n第二", view.SelectedText);
+    }
+
+    [AvaloniaFact]
+    public void DraggingBelowTheLastBlock_SelectsToTheEnd()
+    {
+        var (view, window, _) = Show("第一段文字\n\n第二段文字", height: 800);
+        var first = (MarkdownTextBlock)view.RenderedBlocks[0];
+        var second = (MarkdownTextBlock)view.RenderedBlocks[1];
+        var below = second.TranslatePoint(new Point(4, second.Bounds.Height + 40), window)!.Value;
+
+        Drag(window, CenterOfText(window, first, 0), below);
+
+        Assert.Equal("第一段文字\n第二段文字", view.SelectedText);
+    }
+
+    [AvaloniaFact]
+    public async Task ContextMenuCopy_CopiesTheWholeCrossParagraphSelection()
+    {
+        var (view, window, _) = Show("第一段文字\n\n第二段文字");
+        var first = (MarkdownTextBlock)view.RenderedBlocks[0];
+        var second = (MarkdownTextBlock)view.RenderedBlocks[1];
+        Drag(window, CenterOfText(window, first, 3), CenterOfText(window, second, 2));
+
+        var copy = second.ContextMenu!.Items.OfType<MenuItem>().Single();
+        copy.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        await Task.Delay(50);
+
+        Assert.Equal("文字\n第二", await ClipboardText(window));
+    }
+
+    [AvaloniaFact]
+    public void ClickingAgain_ClearsThePreviousSelection()
+    {
+        var (view, window, _) = Show("第一段文字\n\n第二段文字");
+        var first = (MarkdownTextBlock)view.RenderedBlocks[0];
+        var second = (MarkdownTextBlock)view.RenderedBlocks[1];
+        Drag(window, CenterOfText(window, first, 0), CenterOfText(window, second, 2));
+        Assert.NotEqual("", view.SelectedText);
+
+        var at = CenterOfText(window, first, 1);
+        Drag(window, at, at);
+
+        Assert.Equal("", view.SelectedText);
+    }
+
+    [AvaloniaFact]
     public void UserAndThinkingText_AreSelectable_ButNotTabStops()
     {
         var text = new EmojiTextBlock { Text = "使用者說的話", TextWrapping = TextWrapping.Wrap };

@@ -30,12 +30,10 @@ public sealed class MarkdownTextBlock : EmojiTextBlock
 
     public event Action<Uri>? LinkClicked;
 
-    /// <summary>點擊與拖曳的分界（像素）：移動超過這個距離就不算點擊。</summary>
-    private const double ClickSlop = 4;
-
     private static readonly Cursor HandCursor = new(StandardCursorType.Hand);
 
-    private Point? _pressPoint;
+    /// <summary>點到連結了（按下與放開由外層的 <see cref="MarkdownView"/> 判斷，它負責跨段落選取）。</summary>
+    public void OpenLink(LinkRange link) => LinkClicked?.Invoke(link.Uri);
 
     /// <summary>某個點（相對於這個控制項）上的連結；沒有就 null。</summary>
     public LinkRange? LinkAt(Point point)
@@ -78,30 +76,5 @@ public sealed class MarkdownTextBlock : EmojiTextBlock
             Cursor = HandCursor;
         else if (ReferenceEquals(Cursor, HandCursor))
             Cursor = null;
-    }
-
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
-    {
-        base.OnPointerPressed(e);
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-            _pressPoint = e.GetPosition(this);
-    }
-
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
-    {
-        base.OnPointerReleased(e);
-        if (e.InitialPressMouseButton != MouseButton.Left || _pressPoint is not { } press)
-            return;
-        _pressPoint = null;
-
-        // 按下後拖曳超過一點點就是在選取文字，不是點連結
-        var moved = e.GetPosition(this) - press;
-        if (Math.Sqrt(moved.X * moved.X + moved.Y * moved.Y) > ClickSlop)
-            return;
-        if (LinkAt(e.GetPosition(this)) is { } link)
-        {
-            e.Handled = true;
-            LinkClicked?.Invoke(link.Uri);
-        }
     }
 }
