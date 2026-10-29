@@ -7,6 +7,8 @@ using Lumi.App.Services;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.Core.Models;
+using Lumi.Core.Platform;
+using Lumi.Core.Updates;
 using Lumi.Platform.Shell;
 using Lumi.Sprites.Assets;
 using Lumi.App.Views;
@@ -121,12 +123,48 @@ public partial class App : Application
             services.GetRequiredService<TrayService>().Attach(
                 this, showSprite: modes.ShowSprite, openWorkbench: () => modes.OpenWorkbench(), exit: modes.Exit);
             modes.Start();
+            RefreshLaunchAtLogin(services);
+            StartUpdateCheck(services);
         }
         catch (Exception ex)
         {
             LogStartupFailure(services, ex);
             ShowStartupFailure(desktop, ex);
         }
+    }
+
+    /// <summary>
+    /// 開機自動啟動已開啟時，把登錄的位置更新成目前這個程式（程式被搬走或重新安裝之後不會指到舊位置）。失敗不影響啟動。
+    /// </summary>
+    private static void RefreshLaunchAtLogin(IServiceProvider services)
+    {
+        try
+        {
+            var launch = services.GetRequiredService<ILaunchAtLogin>();
+            if (launch.IsSupported && launch.IsEnabled())
+                launch.SetEnabled(true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            services.GetService<ILogger<App>>()?.LogWarning(ex, "無法更新開機自動啟動的位置");
+        }
+    }
+
+    /// <summary>啟動後在背景檢查有沒有新版；結果透過 <see cref="IUpdateService.AvailableChanged"/> 通知工作台的提醒。失敗只記 log。</summary>
+    private static void StartUpdateCheck(IServiceProvider services)
+    {
+        var updates = services.GetRequiredService<IUpdateService>();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await updates.CheckAsync(manual: false);
+            }
+            catch (Exception ex)
+            {
+                services.GetService<ILogger<App>>()?.LogWarning(ex, "啟動時檢查更新失敗");
+            }
+        });
     }
 
     private static void LogStartupFailure(IServiceProvider services, Exception ex)

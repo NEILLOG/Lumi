@@ -318,8 +318,8 @@ public class AppearancePersonaSpritePagesTests
         using var rig = new Rig(GeneralIndex);
         var sections = rig.Window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Classes.Contains("section-title")).ToList();
 
-        // 第三段是「筆記資料夾」（M10 10B），第四段是「進階」（M20），都在明暗之後
-        Assert.Equal([Strings.General_Palette, Strings.General_Theme, Strings.NotesFolder_Title, Strings.Advanced_Title], sections.Select(t => t.Text));
+        // 第三段是「筆記資料夾」（M10 10B），第四段是「啟動與更新」，第五段是「進階」（M20），都在明暗之後
+        Assert.Equal([Strings.General_Palette, Strings.General_Theme, Strings.NotesFolder_Title, Strings.Startup_Title, Strings.Advanced_Title], sections.Select(t => t.Text));
         Assert.All(sections, t => Assert.Equal(20, t.FontSize));
         Assert.All(sections, t => Assert.Equal(FontWeight.Bold, t.FontWeight));
         // 第一條分隔線在色票與明暗之間（之後還有「筆記資料夾」前的分隔線）

@@ -60,6 +60,7 @@ public partial class CustomTitleBar : UserControl
         LeftSpacer.Width = layout.LeftInset;
         RightSpacer.Width = layout.RightInset;
         SpriteModeButton.IsVisible = ShowSpriteButton;
+        PinButton.IsVisible = ShowSpriteButton;
         SettingsButton.IsVisible = ShowSpriteButton;
         Divider.IsVisible = layout.ShowDivider && ShowSpriteButton;
     }

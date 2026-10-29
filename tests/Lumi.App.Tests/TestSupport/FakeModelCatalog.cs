@@ -122,6 +122,18 @@ internal sealed class FakeModelCatalog : IModelCatalog
     /// <summary>每次 <see cref="SetMemoryEnabledAsync"/> 收到的值。</summary>
     public List<bool> MemoryEnabledSaves { get; } = [];
 
+    /// <summary>每次 <see cref="SetBehaviorAsync"/> 收到的值。</summary>
+    public List<BehaviorSettings> BehaviorSaves { get; } = [];
+
+    public Task SetBehaviorAsync(BehaviorSettings settings, CancellationToken ct = default)
+    {
+        var normalized = settings.Normalize();
+        BehaviorSaves.Add(normalized);
+        Current = Current with { Behavior = normalized };
+        Raise();
+        return Task.CompletedTask;
+    }
+
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default)
     {
         MemoryEnabledSaves.Add(enabled);

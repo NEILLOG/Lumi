@@ -56,7 +56,7 @@ internal sealed class SettingsHost : IDisposable
             FakeCatalogTool.Make("write_file", "寫入檔案", Lumi.Core.Tools.ToolPermission.Write, group: Lumi.Core.Tools.ToolGroups.FilesWrite),
             FakeCatalogTool.Make("overwrite_file", "覆寫檔案", Lumi.Core.Tools.ToolPermission.Destructive, group: Lumi.Core.Tools.ToolGroups.FilesWrite)), Catalog, Confirm, McpSource, dispatcher);
         McpServers = new McpServersViewModel(Catalog, McpSource, Confirm, dispatcher);
-        General = new GeneralViewModel(Catalog, dispatcher);
+        General = new GeneralViewModel(Catalog, dispatcher, launchAtLogin: LaunchAtLogin, updates: Updates, urlLauncher: UrlLauncher);
         SpriteCatalog = spriteCatalog;
         Sprite = new SpriteSettingsViewModel(Catalog, SpriteCatalog, dispatcher, folders);
         Speech = new SpeechViewModel(Catalog, SpeechTester, Secrets, Confirm, dispatcher);
@@ -85,6 +85,9 @@ internal sealed class SettingsHost : IDisposable
         catalog.SetSpriteModelAsync(model.Id).GetAwaiter().GetResult();
     }
 
+    public FakeLaunchAtLogin LaunchAtLogin { get; } = new();
+    public FakeUpdateService Updates { get; } = new();
+    public FakeUrlLauncher UrlLauncher { get; } = new();
     public string SettingsPath { get; }
     public Lumi.Core.Reminders.InMemoryScheduledItemStore ReminderStore { get; } = new();
     public Lumi.Core.Reminders.ReminderService ReminderService { get; }

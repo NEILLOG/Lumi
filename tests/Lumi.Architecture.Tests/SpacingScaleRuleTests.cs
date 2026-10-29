@@ -27,6 +27,7 @@ public class SpacingScaleRuleTests
         ("Views/ConversationView.axaml", "64,24", "對話區 Wide 左右 Padding 64（plan/12 設計 token：頁面 Padding）"),
         ("Views/ChatComposer.axaml", "64,8,64,16", "Composer 外框左右 Margin 64，與對話區左右 Padding 對齊"),
         ("Views/NotificationStrip.axaml", "64,8,64,0", "工作台通知列 Wide 的左右 Margin 64，與 Composer 外框對齊（RWD 在 Compact／Narrow 覆寫成 24／16）"),
+        ("Views/UpdateBanner.axaml", "64,8,64,0", "新版提醒與通知列同一條版面，左右 Margin 64 與 Composer 外框對齊（RWD 在 Compact／Narrow 覆寫成 24／16）"),
         // 輸入框、下拉選單的 Focus 光暈：3px 的外框用 -3 的負 Margin 畫在控制項外面
         ("Themes/Controls.axaml", "-3", "Focus 光暈是 3px 外框，用 -3 負 Margin 畫在輸入框外圈（plan/12 共用元件樣式）"),
         // 用量按鈕右上角的紅點：向外偏移 4px 蓋在按鈕邊角（ui-usage-and-topbar.md 2.1）

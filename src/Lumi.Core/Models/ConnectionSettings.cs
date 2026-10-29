@@ -99,6 +99,9 @@ public sealed record AppSettings(
     /// <summary>顯示設定（進階）：是否顯示 token 用量。舊檔沒有時用預設（不顯示）。</summary>
     public DisplaySettings Display { get; init; } = DisplaySettings.Default;
 
+    /// <summary>視窗置頂與更新檢查的設定。舊檔沒有時用預設（工作台不置頂、小精靈置頂、啟動時檢查更新）。</summary>
+    public BehaviorSettings Behavior { get; init; } = BehaviorSettings.Default;
+
     /// <summary>圖片生成的連線、模型與預設尺寸（22F）。舊檔沒有時是未設定。</summary>
     public ImageGenerationSettings ImageGeneration { get; init; } = ImageGenerationSettings.Default;
 }

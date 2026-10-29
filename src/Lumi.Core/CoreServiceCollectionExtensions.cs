@@ -6,6 +6,7 @@ using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Reminders;
 using Lumi.Core.Tools;
+using Lumi.Core.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -35,6 +36,8 @@ public static class CoreServiceCollectionExtensions
         services.TryAddSingleton<IAttachmentStore, NullAttachmentStore>();
         services.TryAddSingleton<IContextInspector, NullContextInspector>();
         services.TryAddSingleton<ITokenEstimator, HeuristicTokenEstimator>();
+        services.TryAddSingleton<IUpdateChecker, NullUpdateChecker>();     // 檢查新版的來源；Lumi.Web 的 AddLumiWeb 取代成 GitHub Releases 版
+        services.AddSingleton<IUpdateService, UpdateService>();            // 啟動時與設定頁「立即檢查」共用，記住略過的版本
         services.TryAddSingleton<INetworkStatus, SystemNetworkStatus>();   // 失敗後補「看起來沒有網路連線」（M9 9C）；測試可換成假的
 
         // Prompt 分層（agent.md 第 9 節）：四個內建層；角色語氣到 M7 才有角色提供

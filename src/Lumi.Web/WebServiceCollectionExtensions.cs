@@ -1,10 +1,13 @@
 using System.Net;
+using Lumi.Core.Updates;
 using Lumi.Core.Web;
 using Lumi.Web.Content;
 using Lumi.Web.Diagnostics;
 using LumiWebClient = Lumi.Web.Http.WebClient;
 using Lumi.Web.Proxy;
+using Lumi.Web.Updates;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Lumi.Web;
 
@@ -47,6 +50,8 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton<IFeedReader, FeedReader>();
         services.AddSingleton<INetworkDiagnostics, NetworkDiagnostics>();
         services.AddSingleton<INetworkTester, NetworkTester>();
+        // 檢查新版：取代 Core 預設的 NullUpdateChecker，讀 GitHub Releases（走同一個 Proxy）
+        services.Replace(ServiceDescriptor.Singleton<IUpdateChecker, GitHubReleaseUpdateChecker>());
         return services;
     }
 }

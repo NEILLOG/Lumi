@@ -10,6 +10,7 @@
         x:Class="Lumi.App.Views.WorkbenchWindow"
         x:DataType="vm:WorkbenchViewModel"
         Title="{Binding Title}"
+        Topmost="{Binding IsTopmost}"
         Width="1040" Height="760"
         MinWidth="500" MinHeight="420"
         WindowStartupLocation="CenterScreen"
@@ -68,8 +69,11 @@
       </SplitView.Pane>
 
       <Grid RowDefinitions="Auto,Auto,*,Auto">
-        <!-- 提醒通知列：沒有通知時不佔空間（ui-spec 第 13 節） -->
-        <views:NotificationStrip x:Name="NotificationStripView" Grid.Row="0" DataContext="{Binding Notifications}" />
+        <!-- 有新版的提醒、提醒通知列：沒有內容時都不佔空間（ui-spec 第 13 節） -->
+        <StackPanel Grid.Row="0">
+          <views:UpdateBanner x:Name="UpdateBannerView" DataContext="{Binding Update}" />
+          <views:NotificationStrip x:Name="NotificationStripView" DataContext="{Binding Notifications}" />
+        </StackPanel>
 
         <!-- 查看中：小精靈回應中開啟的工作台，輸入與切換都停用，結束後自動解除（ui-spec 2.2） -->
         <Border x:Name="ViewOnlyBanner" Grid.Row="1" IsVisible="{Binding IsViewOnly}" Padding="16,8"

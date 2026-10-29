@@ -85,6 +85,7 @@ public partial class SpriteSettingsViewModel : ObservableObject
     private SpriteOption _selectedSprite;
     private SpriteSizeOption _selectedSize;
     private bool _voiceEnabled;
+    private bool _alwaysOnTop;
 
     public SpriteSettingsViewModel(IModelCatalog catalog, ISpriteCatalog sprites, IUiDispatcher dispatcher, IFolderOpener? folders = null)
     {
@@ -100,10 +101,19 @@ public partial class SpriteSettingsViewModel : ObservableObject
         _selectedSprite = Find(saved.SpriteId);
         _selectedSize = SpriteSizeOption.All.First(o => o.Size == saved.Size);
         _voiceEnabled = saved.VoiceEnabled;
+        _alwaysOnTop = catalog.Current.Behavior.SpriteTopmost;
         RebuildStates();
         RefreshIssues();
 
-        catalog.Changed += (_, settings) => dispatcher.Post(() => Reload(settings.Sprite));
+        catalog.Changed += (_, settings) => dispatcher.Post(() =>
+        {
+            Reload(settings.Sprite);
+            if (settings.Behavior.SpriteTopmost != _alwaysOnTop)
+            {
+                _alwaysOnTop = settings.Behavior.SpriteTopmost;
+                OnPropertyChanged(nameof(AlwaysOnTop));
+            }
+        });
         if (_library is not null)
             _library.Changed += (_, _) => dispatcher.Post(OnLibraryChanged);
     }
@@ -189,6 +199,35 @@ public partial class SpriteSettingsViewModel : ObservableObject
             _voiceEnabled = value;
             OnPropertyChanged();
             _ = ApplyAsync(s => s with { VoiceEnabled = value });
+        }
+    }
+
+    /// <summary>小精靈永遠顯示在其他視窗上方（預設開）。關閉後它和一般視窗一樣會被蓋住。</summary>
+    public bool AlwaysOnTop
+    {
+        get => _alwaysOnTop;
+        set
+        {
+            if (value == _alwaysOnTop)
+                return;
+            _alwaysOnTop = value;
+            OnPropertyChanged();
+            _ = ApplyAlwaysOnTopAsync(value);
+        }
+    }
+
+    private async Task ApplyAlwaysOnTopAsync(bool value)
+    {
+        Error = null;
+        try
+        {
+            await _catalog.SetBehaviorAsync(_catalog.Current.Behavior with { SpriteTopmost = value });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            Error = ex is InvalidOperationException ? ex.Message : Strings.SpriteSettings_SaveFailed;
+            _alwaysOnTop = _catalog.Current.Behavior.SpriteTopmost;
+            OnPropertyChanged(nameof(AlwaysOnTop));
         }
     }
 

@@ -72,7 +72,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         IFilePickerService? filePicker = null,
         IRenameService? rename = null,
         IConnectionTester? tester = null,
-        SpriteConversationService? spriteConversation = null)
+        SpriteConversationService? spriteConversation = null,
+        UpdateNoticeViewModel? update = null)
     {
         _store = store;
         _catalog = catalog;
@@ -112,6 +113,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Notifications = notifications is null
             ? new NotificationStripViewModel(new ObservableCollection<NotificationItemViewModel>(), () => { })
             : new NotificationStripViewModel(notifications.Items, notifications.DismissAll);
+        Update = update ?? UpdateNoticeViewModel.Inert;
         Usage = new ConversationUsageViewModel(RetryConnectionAsync);
         RefreshUsage();
 
@@ -127,9 +129,11 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _approvals.Resolved += OnApprovalResolved;
 
         _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
+        _isTopmost = catalog.Current.Behavior.WorkbenchTopmost;
         catalog.Changed += (_, settings) => dispatcher.Post(() =>
         {
             ShowTokenUsage = settings.Display.ShowTokenUsage;
+            IsTopmost = settings.Behavior.WorkbenchTopmost;
             OnModelSettingsChanged();
         });
         status.Changed += (_, _) => dispatcher.Post(OnConnectionStatusChanged);
@@ -158,6 +162,32 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     /// <summary>工作台頂端的提醒通知列（M10 10E）；沒有送達器時是空的。</summary>
     public NotificationStripViewModel Notifications { get; }
+
+    /// <summary>有新版的提醒（工作台頂端）。</summary>
+    public UpdateNoticeViewModel Update { get; }
+
+    /// <summary>工作台視窗釘選在最上層（標題列的圖釘；存在設定，下次開啟仍是這個狀態）。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TopmostTip))]
+    private bool _isTopmost;
+
+    public string TopmostTip => IsTopmost ? Strings.Workbench_TopmostUnpin : Strings.Workbench_TopmostPin;
+
+    [RelayCommand]
+    private async Task ToggleTopmostAsync()
+    {
+        var wanted = !IsTopmost;
+        IsTopmost = wanted;   // 先讓視窗動起來；存不起來再還原
+        try
+        {
+            await _catalog.SetBehaviorAsync(_catalog.Current.Behavior with { WorkbenchTopmost = wanted });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            IsTopmost = _catalog.Current.Behavior.WorkbenchTopmost;
+            Notice = ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed;
+        }
+    }
 
     private ResolvedModel? WorkbenchModel => _catalog.Resolve(_catalog.Current.WorkbenchModelId);
 

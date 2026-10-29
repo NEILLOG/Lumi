@@ -1,0 +1,91 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:md="using:Lumi.App.Markdown"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.UpdateBanner"
+             x:DataType="vm:UpdateNoticeViewModel"
+             IsVisible="{Binding IsVisible}">
+  <!--
+    工作台頂端的「有新版」提醒：一張橫條卡片（下載圖示、標題、目前版本、操作按鈕、關閉鈕），
+    按「看更新內容」在卡片裡展開發佈說明（Markdown，最多 240 高、超過可捲動）。
+    樣式和通知列（NotificationStrip）一致；按鈕層級：前往下載 secondary、其餘 tertiary。只用 token。
+  -->
+  <UserControl.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <Style Selector="Border.update-banner">
+      <Setter Property="Margin" Value="64,8,64,0" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    </Style>
+    <Style Selector="Border.update-icon">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+    </Style>
+    <Style Selector="Border.update-icon ctl|LumiIcon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiAccentTextBrush}" />
+    </Style>
+    <Style Selector="Button.update-close">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.update-notes">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <!-- RWD（ui-spec 9.4）：Compact 24、Narrow 16；放在最後才蓋得過預設值 -->
+    <Style Selector="Window.compact Border.update-banner">
+      <Setter Property="Margin" Value="24,8,24,0" />
+    </Style>
+    <Style Selector="Window.narrow Border.update-banner">
+      <Setter Property="Margin" Value="16,8,16,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border x:Name="UpdateBannerCard" Classes="update-banner">
+    <Grid ColumnDefinitions="Auto,*,Auto">
+      <Border Grid.Column="0" Classes="update-icon" VerticalAlignment="Top">
+        <ctl:LumiIcon Data="{StaticResource LumiIconDownload}" Size="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+      <StackPanel Grid.Column="1" Margin="12,0,8,0" Spacing="4">
+        <TextBlock x:Name="UpdateTitle" Text="{Binding Title}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}"
+                   TextWrapping="Wrap" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+        <TextBlock Text="{Binding Subtitle}" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCard}"
+                   Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+
+        <Border x:Name="UpdateNotes" Classes="update-notes" Margin="0,4,0,0" IsVisible="{Binding NotesExpanded}">
+          <ScrollViewer MaxHeight="240" HorizontalScrollBarVisibility="Disabled">
+            <md:MarkdownView Markdown="{Binding Notes}" IsStreaming="False" />
+          </ScrollViewer>
+        </Border>
+
+        <TextBlock x:Name="UpdateMessage" Text="{Binding Message}" IsVisible="{Binding HasMessage}" TextWrapping="Wrap"
+                   FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+
+        <WrapPanel Margin="0,4,0,0">
+          <Button x:Name="UpdateDownloadButton" Classes="secondary" Margin="0,0,8,4" Padding="12,8"
+                  Content="{x:Static res:Strings.Update_Download}" Command="{Binding DownloadCommand}" />
+          <Button x:Name="UpdateNotesButton" Classes="tertiary" Margin="0,0,8,4" Padding="12,8"
+                  Content="{Binding NotesToggleText}" Command="{Binding ToggleNotesCommand}" />
+          <Button x:Name="UpdateSkipButton" Classes="tertiary" Margin="0,0,8,4" Padding="12,8"
+                  Content="{x:Static res:Strings.Update_Skip}" Command="{Binding SkipCommand}" />
+        </WrapPanel>
+      </StackPanel>
+      <!-- 關閉鈕：純圖示，必須有 Tooltip 與可存取名稱（ui-spec 10.1） -->
+      <Button x:Name="UpdateDismissButton" Grid.Column="2" Classes="tertiary update-close" VerticalAlignment="Top" Command="{Binding DismissCommand}"
+              ToolTip.Tip="{x:Static res:Strings.Update_Dismiss}" AutomationProperties.Name="{x:Static res:Strings.Update_Dismiss}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+      </Button>
+    </Grid>
+  </Border>
+</UserControl>

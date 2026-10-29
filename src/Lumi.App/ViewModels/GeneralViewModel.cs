@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Models;
 using Lumi.Core.Notes;
+using Lumi.Core.Platform;
+using Lumi.Core.Updates;
 
 namespace Lumi.App.ViewModels;
 
@@ -63,10 +65,12 @@ public partial class GeneralViewModel : ObservableObject
     private string _notesFolderSaved;
 
     /// <param name="files">選擇資料夾用；沒有（測試）時「選擇資料夾」什麼也不做。</param>
-    public GeneralViewModel(IModelCatalog catalog, IUiDispatcher dispatcher, IFilePickerService? files = null)
+    public GeneralViewModel(IModelCatalog catalog, IUiDispatcher dispatcher, IFilePickerService? files = null,
+        ILaunchAtLogin? launchAtLogin = null, IUpdateService? updates = null, IUrlLauncher? urlLauncher = null)
     {
         _catalog = catalog;
         _files = files;
+        Startup = new StartupViewModel(catalog, dispatcher, launchAtLogin, updates, urlLauncher);
         _selectedTheme = ThemeOption.All.First(o => o.Preference == catalog.Current.Theme);
         _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(catalog.Current.ThemeId));
         _notesFolderSaved = catalog.Current.Notes.Folder;
@@ -88,6 +92,9 @@ public partial class GeneralViewModel : ObservableObject
                 SetSavedNotesFolder(settings.Notes.Folder);
         });
     }
+
+    /// <summary>「啟動與更新」：開機後自動啟動、啟動時檢查新版、目前版本。</summary>
+    public StartupViewModel Startup { get; }
 
     /// <summary>筆記資料夾的預設位置（輸入框的浮水印，讓使用者看見空白時會用哪裡）。</summary>
     public string NotesFolderDefault => NoteFolderRules.DefaultFolder;

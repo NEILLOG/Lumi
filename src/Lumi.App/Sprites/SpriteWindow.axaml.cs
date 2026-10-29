@@ -105,6 +105,7 @@ public partial class SpriteWindow : Window
         _pollTimer = new DispatcherTimer { Interval = shell.PollInterval };
 
         InitializeComponent();
+        Topmost = settings.Current.Behavior.SpriteTopmost;
         _tracker.Raised += OnTrackerEvent;
         Bubble.DataContext = _bubble;
 
@@ -286,6 +287,7 @@ public partial class SpriteWindow : Window
     /// </summary>
     private void RebuildIfSettingsChanged()
     {
+        Topmost = _settings.Current.Behavior.SpriteTopmost;   // 設定頁的「永遠顯示在其他視窗上方」立即生效
         var wanted = _settings.Current.Sprite;
         var wantedFactory = _catalog.Find(wanted.SpriteId) ?? _catalog.All.FirstOrDefault();
         if (ReferenceEquals(wantedFactory, _factory) && wanted.Size == _builtSize)

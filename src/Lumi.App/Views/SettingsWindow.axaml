@@ -579,6 +579,36 @@
 
             <Border Classes="divider" Margin="0,16" />
 
+            <!-- 啟動與更新：開機後自動啟動、啟動時檢查新版（勾選立即儲存）、目前版本與立即檢查 -->
+            <StackPanel x:Name="StartupSection" DataContext="{Binding Startup}" x:DataType="vm:StartupViewModel" Spacing="8" MaxWidth="560" HorizontalAlignment="Left">
+              <TextBlock Classes="section-title" Text="{x:Static res:Strings.Startup_Title}" />
+              <CheckBox x:Name="LaunchAtLoginBox" IsChecked="{Binding LaunchAtLogin, Mode=TwoWay}" IsEnabled="{Binding LaunchSupported}"
+                        Content="{x:Static res:Strings.Startup_LaunchAtLogin}"
+                        AutomationProperties.Name="{x:Static res:Strings.Startup_LaunchAtLogin}" />
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Startup_LaunchAtLoginNote}" TextWrapping="Wrap" />
+              <TextBlock x:Name="LaunchUnsupportedNote" Classes="muted" Text="{x:Static res:Strings.Startup_LaunchUnsupported}" TextWrapping="Wrap"
+                         IsVisible="{Binding LaunchUnsupported}" />
+
+              <CheckBox x:Name="CheckForUpdatesBox" Margin="0,8,0,0" IsChecked="{Binding CheckForUpdates, Mode=TwoWay}"
+                        Content="{x:Static res:Strings.Update_CheckAtStartup}"
+                        AutomationProperties.Name="{x:Static res:Strings.Update_CheckAtStartup}" />
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Update_CheckAtStartupNote}" TextWrapping="Wrap" />
+
+              <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
+                <TextBlock x:Name="VersionText" Text="{Binding VersionText}" VerticalAlignment="Center" />
+                <Button x:Name="CheckUpdateButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Update_CheckNow}" Command="{Binding CheckNowCommand}"
+                        IsVisible="{Binding CanCheck}" />
+                <Button x:Name="OpenUpdateButton" Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Update_Download}" Command="{Binding OpenDownloadCommand}"
+                        IsVisible="{Binding HasUpdate}" />
+              </StackPanel>
+              <TextBlock x:Name="UpdateStatus" Classes="muted" Text="{Binding Status}" TextWrapping="Wrap" IsVisible="{Binding HasStatus}" />
+              <TextBlock x:Name="StartupError" Classes="error" Text="{Binding Error}" TextWrapping="Wrap" IsVisible="{Binding HasError}" />
+            </StackPanel>
+
+            <Border Classes="divider" Margin="0,16" />
+
             <!-- 進階：預設關閉的顯示選項，勾選立即儲存 -->
             <StackPanel x:Name="AdvancedSection" Spacing="8" MaxWidth="560" HorizontalAlignment="Left">
               <TextBlock Classes="section-title" Text="{x:Static res:Strings.Advanced_Title}" />
@@ -709,6 +739,9 @@
                   <CheckBox x:Name="SpriteVoiceBox" IsChecked="{Binding VoiceEnabled}" Content="{x:Static res:Strings.SpriteSettings_VoiceToggle}" />
                 </ctl:FormField>
                 <TextBlock Classes="muted" IsVisible="{Binding HasNoVoice}" Text="{x:Static res:Strings.SpriteSettings_VoiceNone}" TextWrapping="Wrap" />
+                <ctl:FormField Label="{x:Static res:Strings.SpriteSettings_Topmost}" Hint="{x:Static res:Strings.SpriteSettings_TopmostNote}">
+                  <CheckBox x:Name="SpriteTopmostBox" IsChecked="{Binding AlwaysOnTop}" Content="{x:Static res:Strings.SpriteSettings_TopmostToggle}" />
+                </ctl:FormField>
               </StackPanel>
 
               <Border Classes="divider" />

@@ -90,6 +90,7 @@
           <TextBlock Text="{x:Static res:Strings.Privacy_SendBrowser}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendSpeech}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendFiles}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendUpdate}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendKeys}" TextWrapping="Wrap" />
         </StackPanel>
 

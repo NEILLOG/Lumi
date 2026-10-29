@@ -759,6 +759,7 @@
   <data name="Privacy_SendBrowser" xml:space="preserve"><value>使用瀏覽器工具時，網頁內容與截圖也會送到 AI 供應商。</value></data>
   <data name="Privacy_SendSpeech" xml:space="preserve"><value>使用語音輸入時，錄音會送到你設定的語音服務。</value></data>
   <data name="Privacy_SendFiles" xml:space="preserve"><value>Lumi 只讀取你加入對話的檔案與資料夾；看起來像金鑰或憑證的檔案會被排除。</value></data>
+  <data name="Privacy_SendUpdate" xml:space="preserve"><value>啟動時會連到 GitHub 查詢有沒有新版（只查版本，不會送出你的資料；可在「外觀與操作」關閉）。</value></data>
   <data name="Privacy_SendKeys" xml:space="preserve"><value>API 金鑰只保存在系統的安全儲存空間，不會出現在對話、資料庫或記錄檔裡。</value></data>
   <data name="Privacy_ControlTitle" xml:space="preserve"><value>怎麼控制</value></data>
   <data name="Privacy_GoSettings" xml:space="preserve"><value>前往設定</value></data>
@@ -794,6 +795,34 @@
   <data name="Advanced_Title" xml:space="preserve"><value>進階</value></data>
   <data name="Advanced_ShowTokenUsage" xml:space="preserve"><value>在每則回答下方顯示 token 用量</value></data>
   <data name="Advanced_ShowTokenUsageNote" xml:space="preserve"><value>顯示這則回答的輸入與輸出 token 數（含命中快取的部分），用來估算費用。預設關閉。</value></data>
+  <data name="Workbench_Topmost" xml:space="preserve"><value>永遠顯示在最上層</value></data>
+  <data name="Workbench_TopmostPin" xml:space="preserve"><value>釘選在最上層：其他視窗不會蓋住 Lumi</value></data>
+  <data name="Workbench_TopmostUnpin" xml:space="preserve"><value>已釘選在最上層，按一下取消</value></data>
+  <data name="SpriteSettings_Topmost" xml:space="preserve"><value>顯示位置</value></data>
+  <data name="SpriteSettings_TopmostToggle" xml:space="preserve"><value>永遠顯示在其他視窗上方</value></data>
+  <data name="SpriteSettings_TopmostNote" xml:space="preserve"><value>關閉後，小精靈會像一般視窗一樣，被其他視窗蓋住。</value></data>
+  <data name="Startup_Title" xml:space="preserve"><value>啟動與更新</value></data>
+  <data name="Startup_LaunchAtLogin" xml:space="preserve"><value>開機後自動啟動 Lumi</value></data>
+  <data name="Startup_LaunchAtLoginNote" xml:space="preserve"><value>登入電腦後自動開啟 Lumi，並回到上次使用的模式（工作台或小精靈）。</value></data>
+  <data name="Startup_LaunchUnsupported" xml:space="preserve"><value>目前的執行方式無法設定開機自動啟動；安裝後正式版的 Lumi 才可以。</value></data>
+  <data name="Startup_LaunchFailed" xml:space="preserve"><value>無法變更開機自動啟動，請稍後再試。</value></data>
+  <data name="Update_CheckAtStartup" xml:space="preserve"><value>開啟 Lumi 時檢查有沒有新版</value></data>
+  <data name="Update_CheckAtStartupNote" xml:space="preserve"><value>只會查詢有沒有新版本，不會自動下載或安裝；有新版時會在工作台上方提醒你。</value></data>
+  <data name="Update_CurrentVersionFormat" xml:space="preserve"><value>目前版本：{0}</value></data>
+  <data name="Update_CheckNow" xml:space="preserve"><value>立即檢查</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>檢查中…</value></data>
+  <data name="Update_UpToDate" xml:space="preserve"><value>目前已是最新版。</value></data>
+  <data name="Update_AvailableFormat" xml:space="preserve"><value>有新版 {0} 可以下載。</value></data>
+  <data name="Update_FailedFormat" xml:space="preserve"><value>無法檢查更新：{0}</value></data>
+  <data name="Update_BannerFormat" xml:space="preserve"><value>Lumi {0} 已推出</value></data>
+  <data name="Update_BannerCurrentFormat" xml:space="preserve"><value>你目前使用的是 {0}。</value></data>
+  <data name="Update_ShowNotes" xml:space="preserve"><value>看更新內容</value></data>
+  <data name="Update_HideNotes" xml:space="preserve"><value>收起更新內容</value></data>
+  <data name="Update_Download" xml:space="preserve"><value>前往下載</value></data>
+  <data name="Update_Skip" xml:space="preserve"><value>略過此版本</value></data>
+  <data name="Update_Dismiss" xml:space="preserve"><value>先關閉更新提醒（下次開啟 Lumi 會再提醒）</value></data>
+  <data name="Update_NoNotes" xml:space="preserve"><value>這個版本沒有附上更新說明。</value></data>
+  <data name="Update_OpenFailedFormat" xml:space="preserve"><value>無法開啟瀏覽器，請自行前往：{0}</value></data>
   <data name="Usage_Title" xml:space="preserve"><value>本對話用量</value></data>
   <data name="Usage_Context" xml:space="preserve"><value>上下文</value></data>
   <data name="Usage_Ok" xml:space="preserve"><value>空間充足</value></data>

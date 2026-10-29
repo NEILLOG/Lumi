@@ -95,6 +95,7 @@ jobs:
     needs: [windows, macos]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4   # 讀 docs/release-notes/v{版本}.md
       - name: 取得版本號
         shell: bash
         env:
@@ -117,10 +118,15 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           tag="v$VERSION"
+          # 發佈說明就是使用者在程式裡看到的「更新內容」：有 docs/release-notes/v{版本}.md 就用它，沒有才用自動產生的清單
+          notes=(--generate-notes)
+          if [ -f "docs/release-notes/$tag.md" ]; then
+            notes=(--notes-file "docs/release-notes/$tag.md")
+          fi
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber
           elif [ "$EVENT_NAME" = "push" ]; then
-            gh release create "$tag" release/* --title "Lumi $VERSION" --generate-notes --verify-tag
+            gh release create "$tag" release/* --title "Lumi $VERSION" "${notes[@]}" --verify-tag
           else
-            gh release create "$tag" release/* --title "Lumi $VERSION" --generate-notes
+            gh release create "$tag" release/* --title "Lumi $VERSION" "${notes[@]}"
           fi

@@ -23,6 +23,8 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IConfirmService, ConfirmService>();
         services.AddSingleton<IRenameService, RenameService>();   // 工作台「⋯」›重新命名對話
         services.AddSingleton<IClipboardService, ClipboardService>();
+        services.AddSingleton<IUrlLauncher, ProcessUrlLauncher>();   // 更新提醒的「前往下載」：用預設瀏覽器開啟
+        services.AddSingleton<UpdateNoticeViewModel>();              // 工作台頂端的新版提醒
         services.AddSingleton<ConnectionStatusCache>();
         services.AddSingleton<ThemeService>();
         services.AddSingleton<UnhandledExceptionLogger>();   // 全域未處理例外寫進 log（M9 9C）

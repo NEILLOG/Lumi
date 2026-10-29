@@ -118,6 +118,15 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotNull(typeof(ConversationService).GetField("_attachments", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .GetValue(services.GetRequiredService<ConversationService>()));
         Assert.Contains(services.GetServices<Microsoft.Extensions.Hosting.IHostedService>(), s => s is BrowserHostedService);
+        // 更新檢查與開機自動啟動：Core 的 NullUpdateChecker 被 GitHub 版取代；工作台的提醒與設定頁拿到的是同一組服務
+        // （可選參數沒注入會靜默失效：沒有提醒、設定頁的按鈕不能用，所以直接檢查）
+        Assert.Equal("GitHubReleaseUpdateChecker", services.GetRequiredService<Lumi.Core.Updates.IUpdateChecker>().GetType().Name);
+        Assert.Same(services.GetRequiredService<Lumi.Core.Updates.IUpdateService>(), services.GetRequiredService<Lumi.Core.Updates.IUpdateService>());
+        Assert.Same(services.GetRequiredService<UpdateNoticeViewModel>(), services.GetRequiredService<WorkbenchViewModel>().Update);
+        Assert.NotNull(services.GetRequiredService<Lumi.Core.Platform.ILaunchAtLogin>());
+        var startup = services.GetRequiredService<GeneralViewModel>().Startup;
+        Assert.True(startup.CanCheck);
+        Assert.Equal(services.GetRequiredService<Lumi.Core.Platform.ILaunchAtLogin>().IsSupported, startup.LaunchSupported);
         // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱

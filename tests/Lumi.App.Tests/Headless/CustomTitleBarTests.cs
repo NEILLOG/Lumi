@@ -140,7 +140,10 @@ public class CustomTitleBarTests
         var dividerBounds = BoundsIn(divider, window);
         Assert.True(divider.IsVisible);
         Assert.Equal(window.Bounds.Width - TitleBarLayout.WindowsCaptionButtonsWidth, dividerBounds.Right);
-        Assert.Equal(8, gearBounds.Left - buttonBounds.Right);                    // 小精靈與齒輪間距 8
+        var pinBounds = BoundsIn(bar.PinButton, window);
+        Assert.Equal(8, pinBounds.Left - buttonBounds.Right);                     // 小精靈與圖釘間距 8
+        Assert.Equal(8, gearBounds.Left - pinBounds.Right);                       // 圖釘與齒輪間距 8
+        Assert.True(pinBounds.Width == 32 && pinBounds.Height == 32);             // 圖釘 32×32
         Assert.InRange(dividerBounds.Left - gearBounds.Right, 8, 12);             // 齒輪與分隔線之間 8～12
         Assert.True(gearBounds.Width == 32 && gearBounds.Height == 32);           // 齒輪 32×32
         Assert.True(buttonBounds.Width >= 36 && buttonBounds.Height >= 32);      // 最小點擊範圍
@@ -161,7 +164,8 @@ public class CustomTitleBarTests
         Assert.False(bar.FindByName<Border>("Divider").IsVisible);
         Assert.True(BoundsIn(brand, window).Left >= 80);                         // 紅綠燈佔左側 80
         Assert.Equal(window.Bounds.Width - 16, BoundsIn(bar.SettingsButton, window).Right);   // 齒輪在最右
-        Assert.Equal(8, BoundsIn(bar.SettingsButton, window).Left - BoundsIn(button, window).Right);   // 小精靈在齒輪左邊，間距 8
+        Assert.Equal(8, BoundsIn(bar.PinButton, window).Left - BoundsIn(button, window).Right);   // 小精靈在圖釘左邊，間距 8
+        Assert.Equal(8, BoundsIn(bar.SettingsButton, window).Left - BoundsIn(bar.PinButton, window).Right);   // 圖釘在齒輪左邊，間距 8
         // 紅綠燈所在的區域沒有互動控制項
         Assert.False(CustomTitleBar.IsOnInteractiveControl(HitTest(window, new Point(40, TitleBarLayout.Height / 2))));
         window.Close();

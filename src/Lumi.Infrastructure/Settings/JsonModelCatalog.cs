@@ -256,6 +256,9 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetShowTokenUsageAsync(bool show, CancellationToken ct = default) =>
         MutateAsync(s => s with { Display = new DisplaySettings(show).Normalize() }, ct);
 
+    public Task SetBehaviorAsync(BehaviorSettings settings, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Behavior = settings.Normalize() }, ct);
+
     public async Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default)
     {
         var normalized = settings.Normalize();
@@ -390,6 +393,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Network = settings.Network.Normalize(),
             Browser = settings.Browser.Normalize(),
             Display = settings.Display.Normalize(),
+            Behavior = settings.Behavior.Normalize(),
             ImageGeneration = ImageGenerationFor(settings.ImageGeneration, connectionIds),
         };
     }
@@ -490,6 +494,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Browser = ReadBrowser(file.Browser),                           // M18 加的欄位，缺少或格式錯誤時用預設（自動、背景執行）
             Display = ReadDisplay(file.Display),                           // M20 加的欄位，缺少或格式錯誤時用預設（不顯示 token 用量）
             ImageGeneration = ReadImageGeneration(file.ImageGeneration),   // 22F 加的欄位，格式錯誤時當作未設定
+            Behavior = ReadBehavior(file.Behavior),                        // 視窗置頂與更新檢查，缺少或格式錯誤時用預設
         });
 
         // 舊版的 Claude 預設只清一次：清過寫回檔案，之後的啟動找不到它就什麼都不做
@@ -730,6 +735,22 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
     }
 
+    /// <summary>視窗置頂與更新檢查：格式錯了就當作預設，不能因此把整個設定檔當成損毀。</summary>
+    private BehaviorSettings ReadBehavior(JsonElement? element)
+    {
+        if (element is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return BehaviorSettings.Default;
+        try
+        {
+            return el.Deserialize<BehaviorSettings>(JsonOptions)?.Normalize() ?? BehaviorSettings.Default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "視窗與更新設定格式錯誤，改用預設值");
+            return BehaviorSettings.Default;
+        }
+    }
+
     private BrowserSettings ReadBrowser(JsonElement? element)
     {
         if (element is not JsonElement el)
@@ -789,7 +810,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             JsonSerializer.SerializeToElement(settings.Network.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Browser.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Display.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.ImageGeneration.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.ImageGeneration.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Behavior.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -850,5 +872,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         JsonElement? Network = null,
         JsonElement? Browser = null,
         JsonElement? Display = null,
-        JsonElement? ImageGeneration = null);
+        JsonElement? ImageGeneration = null,
+        JsonElement? Behavior = null);
 }
