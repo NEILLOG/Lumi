@@ -12,6 +12,7 @@ using Lumi.Core.Mcp;
 using Lumi.Core.Memory;
 using Lumi.Core.Models;
 using Lumi.Core.Reminders;
+using Lumi.Core.Usage;
 using Lumi.Core.Web;
 
 namespace Lumi.App.ViewModels;
@@ -34,12 +35,23 @@ public sealed record HomeMemoryCard(string StatusText, string ItemsText, double 
     public static HomeMemoryCard Empty { get; } = new("", "", 0, "", 0);
 }
 
-/// <summary>首頁「本月用量」卡片：數字已格式化（<c>1.24M</c> 之類），沒有單位。</summary>
-public sealed record HomeUsageCard(bool IsLoading, bool IsUnavailable, string? MonthText, string? TodayText, string? InputText, string? OutputText)
+/// <summary>
+/// 首頁「本月用量」卡片。有 <see cref="IUsageStore"/> 時 <see cref="MonthText"/> 是本月新台幣金額（決定 19）；沒有時是 tokens 縮寫（<see cref="ShowTokensUnit"/> 為 true）。
+/// <see cref="BudgetText"/> 為 null 代表沒設預算：不顯示預算列與進度條。<see cref="BudgetRatio"/> 0–1，超過 100% 時為 1。
+/// </summary>
+public sealed record HomeUsageCard(bool IsLoading, bool IsUnavailable, string? MonthText, string? TodayText, string? InputText, string? OutputText,
+    string? BudgetText = null, double? BudgetRatio = null, UsageLevel BudgetLevel = UsageLevel.Normal, bool ShowTokensUnit = false)
 {
     public static HomeUsageCard Loading { get; } = new(true, false, null, null, null, null);
 
     public static HomeUsageCard Unavailable { get; } = new(false, true, null, null, null, null);
+
+    /// <summary>進度條用：預算等級分三條，只顯示對應的那一條（顏色規則同用量頁）。</summary>
+    public bool BudgetIsNormal => BudgetLevel == UsageLevel.Normal;
+
+    public bool BudgetIsWarning => BudgetLevel == UsageLevel.Warning;
+
+    public bool BudgetIsDanger => BudgetLevel == UsageLevel.Danger;
 }
 
 /// <summary>首頁「工具」卡片裡的一台 MCP 伺服器。<see cref="ReconnectCommand"/> 只在失敗時可用。</summary>
@@ -81,6 +93,7 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     private readonly IConnectionTester _tester;
     private readonly TimeProvider _time;
     private readonly MemoryOptions _memoryOptions;
+    private readonly IUsageStore? _usage;
     private readonly EventHandler<AppSettings> _onCatalogChanged;
     private readonly EventHandler _onStatusChanged;
     private readonly EventHandler _onMcpChanged;
@@ -110,9 +123,10 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     private bool _attentionSpeech;
 
     /// <param name="memoryOptions">記憶的上限（筆數、總字數）；沒有時用預設值。</param>
+    /// <param name="usage">用量紀錄（費用與預算）；沒有時「本月用量」卡片維持只顯示 tokens。</param>
     public HomeViewModel(IModelCatalog catalog, ConnectionStatusCache status, IUiDispatcher dispatcher,
         IConversationStore conversations, IMcpToolSource mcp, IConnectionTester tester, TimeProvider time,
-        MemoryOptions? memoryOptions = null)
+        MemoryOptions? memoryOptions = null, IUsageStore? usage = null)
     {
         _catalog = catalog;
         _status = status;
@@ -122,6 +136,7 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         _tester = tester;
         _time = time;
         _memoryOptions = memoryOptions ?? new MemoryOptions();
+        _usage = usage;
 
 
         _onCatalogChanged = (_, _) => _dispatcher.Post(OnExternalChange);
@@ -263,13 +278,15 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         var localNow = TimeZoneInfo.ConvertTime(now, zone);
         var monthStart = ToUtc(new DateTime(localNow.Year, localNow.Month, 1), zone);
         var todayStart = ToUtc(localNow.Date, zone);
+        var budget = _catalog.Current.Usage.MonthlyBudgetUsd;   // 目錄讀取留在呼叫的執行緒上
 
         try
         {
             var month = await _conversations.GetTokenTotalsAsync(monthStart).ConfigureAwait(false);
             var today = await _conversations.GetTokenTotalsAsync(todayStart).ConfigureAwait(false);
             var actions = await _conversations.ListRecentToolActionsAsync(RecentActionLimit).ConfigureAwait(false);
-            _dispatcher.Post(() => ApplyActivity(generation, now, zone, month, today, actions));
+            var money = _usage is { } usage ? await LoadMoneyAsync(usage, now, zone, budget).ConfigureAwait(false) : null;
+            _dispatcher.Post(() => ApplyActivity(generation, now, zone, month, today, actions, money));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -576,24 +593,76 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
 
     private ICommand GoTo(SettingsNavigation navigation) => new RelayCommand(() => NavigateRequested?.Invoke(navigation));
 
+    /// <summary>本月的費用月報，以及今天有沒有估算值（有的話今天的金額前加「≈」）。</summary>
+    private sealed record MoneySnapshot(MonthlyUsageSummary Month, bool TodayEstimated);
+
+    private static async Task<MoneySnapshot> LoadMoneyAsync(IUsageStore usage, DateTimeOffset now, TimeZoneInfo zone, decimal? budget)
+    {
+        var (from, to) = MonthlyUsageSummary.MonthRange(now, zone);
+        var records = await usage.ListAsync(from, to).ConfigureAwait(false);
+        var today = TimeZoneInfo.ConvertTime(now, zone).Date;
+        var todayEstimated = records.Any(r => r.Estimated && TimeZoneInfo.ConvertTime(r.CreatedAt, zone).Date == today);
+        return new MoneySnapshot(MonthlyUsageSummary.Build(records, budget, now, zone), todayEstimated);
+    }
+
     private void ApplyActivity(int generation, DateTimeOffset now, TimeZoneInfo zone, TokenTotals month, TokenTotals today,
-        IReadOnlyList<RecentToolAction> actions)
+        IReadOnlyList<RecentToolAction> actions, MoneySnapshot? money)
     {
         if (_disposed || generation != _activityGeneration)
             return;
 
-        UsageCard = new HomeUsageCard(
-            IsLoading: false,
-            IsUnavailable: false,
-            MonthText: WorkbenchViewModel.FormatTokens(ToInt(month.Total)),
-            TodayText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageTodayFormat, WorkbenchViewModel.FormatTokens(ToInt(today.Total))),
-            InputText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageInputFormat, WorkbenchViewModel.FormatTokens(ToInt(month.Input))),
-            OutputText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageOutputFormat, WorkbenchViewModel.FormatTokens(ToInt(month.Output))));
+        UsageCard = money is null ? TokenUsageCard(month, today) : MoneyUsageCard(money, month);
 
         RecentActions.Clear();
         foreach (var action in actions.Take(RecentActionLimit))
             RecentActions.Add(ToActionItem(action, now, zone));
         OnPropertyChanged(nameof(HasRecentActions));
+    }
+
+    /// <summary>沒有用量紀錄（<see cref="IUsageStore"/> 為 null）時：大數字是 tokens，與改版前相同。</summary>
+    private static HomeUsageCard TokenUsageCard(TokenTotals month, TokenTotals today) => new(
+        IsLoading: false,
+        IsUnavailable: false,
+        MonthText: WorkbenchViewModel.FormatTokens(ToInt(month.Total)),
+        TodayText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageTodayFormat, WorkbenchViewModel.FormatTokens(ToInt(today.Total))),
+        InputText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageInputFormat, WorkbenchViewModel.FormatTokens(ToInt(month.Input))),
+        OutputText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageOutputFormat, WorkbenchViewModel.FormatTokens(ToInt(month.Output))),
+        ShowTokensUnit: true);
+
+    /// <summary>
+    /// 有用量紀錄時：大數字是本月新台幣金額，今天的金額，有預算時加預算列與進度條（等級規則同用量頁：&lt; 80% 正常、80–99% 警告、≥ 100% 危險）。
+    /// 輸入／輸出的 tokens 小標籤照舊。
+    /// </summary>
+    private static HomeUsageCard MoneyUsageCard(MoneySnapshot money, TokenTotals month)
+    {
+        var summary = money.Month;
+        var todayUsd = summary.Daily.Single(d => d.IsToday).Usd;
+
+        string? budgetText = null;
+        double? ratio = null;
+        var level = UsageLevel.Normal;
+        if (summary.BudgetUsd is { } limit)
+        {
+            // 百分比無條件捨去：到 100% 才顯示 100%，和「≥ 100% 危險」的判斷一致
+            var percent = (int)Math.Floor(summary.TotalUsd / limit * 100);
+            budgetText = string.Format(CultureInfo.CurrentCulture, Strings.UsagePage_BudgetFormat, MoneyFormat.Twd(limit), percent);
+            ratio = Math.Min((double)(summary.TotalUsd / limit), 1d);
+            level = summary.TotalUsd >= limit ? UsageLevel.Danger
+                : summary.TotalUsd >= limit * 0.8m ? UsageLevel.Warning
+                : UsageLevel.Normal;
+        }
+
+        return new HomeUsageCard(
+            IsLoading: false,
+            IsUnavailable: false,
+            MonthText: MoneyFormat.Twd(summary.TotalUsd, summary.HasEstimated),
+            TodayText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageTodayFormat, MoneyFormat.Twd(todayUsd, money.TodayEstimated)),
+            InputText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageInputFormat, WorkbenchViewModel.FormatTokens(ToInt(month.Input))),
+            OutputText: string.Format(CultureInfo.CurrentCulture, Strings.Home_UsageOutputFormat, WorkbenchViewModel.FormatTokens(ToInt(month.Output))),
+            BudgetText: budgetText,
+            BudgetRatio: ratio,
+            BudgetLevel: level,
+            ShowTokensUnit: false);
     }
 
     private static HomeActionItem ToActionItem(RecentToolAction action, DateTimeOffset now, TimeZoneInfo zone)

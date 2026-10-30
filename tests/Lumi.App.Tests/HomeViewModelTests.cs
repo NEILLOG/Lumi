@@ -11,6 +11,7 @@ using Lumi.Core.Models;
 using Lumi.Core.Reminders;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Usage;
 
 namespace Lumi.App.Tests;
 
@@ -261,6 +262,131 @@ public sealed class HomeViewModelTests : IDisposable
 
         Assert.True(_host.Home.UsageCard.IsUnavailable);
         Assert.False(_host.Home.UsageCard.IsLoading);
+    }
+
+    // ---- M23 23L：本月用量卡片的金額與預算 ----
+
+    private static UsageRecord UsageAt(DateTimeOffset at, decimal? cost, bool estimated = false) =>
+        new(UsageRecord.NewId(), at, "conv", UsagePurpose.Chat, ChatMode.Workbench, "ms", "model", "conn",
+            TokenUsage.Zero, estimated, null, cost, 0);
+
+    /// <summary>有用量紀錄來源的首頁（<see cref="_host"/> 的其他部分照常）；同步派送，呼叫 <see cref="HomeViewModel.LoadActivityAsync"/> 後就是結果。</summary>
+    private HomeViewModel HomeWithUsage(IUsageStore usage) => new(_host.Catalog, _host.Status, new SyncUiDispatcher(), _host.Store,
+        _host.McpSource, _host.Tester, _host.Clock, new MemoryOptions(), usage);
+
+    [Fact]
+    public async Task UsageCard_WithUsageStore_ShowsThisMonthAndTodayInTwd_AndSkipsUnpricedAndOtherMonths()
+    {
+        var usage = new InMemoryUsageStore();
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero), 1m));           // 本月第一刻
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 10, 2, 9, 0, 0, TimeSpan.Zero), null));         // 沒有單價：不計入
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 9, 30, 23, 59, 0, TimeSpan.Zero), 100m));       // 上個月，不算
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 10, 19, 9, 0, 0, TimeSpan.Zero), 0.5m));        // 今天
+        using var home = HomeWithUsage(usage);
+
+        await home.LoadActivityAsync();
+
+        var card = home.UsageCard;
+        Assert.False(card.IsLoading);
+        Assert.False(card.IsUnavailable);
+        Assert.Equal("NT$48", card.MonthText);                                                   // 1.5 美元 × 32
+        Assert.Equal(Format(Strings.Home_UsageTodayFormat, "NT$16"), card.TodayText);            // 0.5 美元 × 32
+        Assert.False(card.ShowTokensUnit);
+        Assert.Null(card.BudgetText);                                                            // 沒設預算
+        Assert.Null(card.BudgetRatio);
+        Assert.NotNull(card.InputText);                                                          // 輸入／輸出 tokens 小標籤保留
+        Assert.NotNull(card.OutputText);
+    }
+
+    [Fact]
+    public async Task UsageCard_WithEstimatedRecords_PrefixesTheAmountsWithApproximately()
+    {
+        var usage = new InMemoryUsageStore();
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 10, 3, 12, 0, 0, TimeSpan.Zero), 1m));
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 10, 19, 12, 0, 0, TimeSpan.Zero), 1m, estimated: true));
+        using var home = HomeWithUsage(usage);
+
+        await home.LoadActivityAsync();
+
+        Assert.Equal("≈NT$64", home.UsageCard.MonthText);
+        Assert.Equal(Format(Strings.Home_UsageTodayFormat, "≈NT$32"), home.UsageCard.TodayText);
+    }
+
+    [Fact]
+    public async Task UsageCard_WithNoRecordsThisMonth_ShowsZero()
+    {
+        using var home = HomeWithUsage(new InMemoryUsageStore());
+
+        await home.LoadActivityAsync();
+
+        Assert.Equal("NT$0", home.UsageCard.MonthText);
+        Assert.Null(home.UsageCard.BudgetText);
+    }
+
+    /// <summary>預算 25 美元（NT$800）：< 80% 正常、80–99% 警告、≥ 100% 危險；進度條超過 100% 時畫滿。</summary>
+    [Theory]
+    [InlineData(10, UsageLevel.Normal, 40)]
+    [InlineData(20, UsageLevel.Warning, 80)]
+    [InlineData(24, UsageLevel.Warning, 96)]
+    [InlineData(25, UsageLevel.Danger, 100)]
+    [InlineData(30, UsageLevel.Danger, 120)]
+    public async Task UsageCard_WithBudget_ShowsTheBudgetLineLevelAndRatio(int spentUsd, UsageLevel level, int percent)
+    {
+        await _host.Catalog.SetUsageAsync(new UsageSettings(25m));
+        var usage = new InMemoryUsageStore();
+        usage.Records.Add(UsageAt(new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero), spentUsd));
+        using var home = HomeWithUsage(usage);
+
+        await home.LoadActivityAsync();
+
+        var card = home.UsageCard;
+        Assert.Equal(Format(Strings.UsagePage_BudgetFormat, "NT$800", percent), card.BudgetText);
+        Assert.Equal(level, card.BudgetLevel);
+        Assert.Equal(Math.Min(percent / 100.0, 1), card.BudgetRatio!.Value, 6);
+        Assert.Equal(level == UsageLevel.Normal, card.BudgetIsNormal);
+        Assert.Equal(level == UsageLevel.Warning, card.BudgetIsWarning);
+        Assert.Equal(level == UsageLevel.Danger, card.BudgetIsDanger);
+    }
+
+    [Fact]
+    public async Task UsageCard_WithUsageStore_WhenTheQueryFails_ShowsUnavailable()
+    {
+        using var home = HomeWithUsage(new ThrowingUsageStore());
+
+        await home.LoadActivityAsync();
+
+        Assert.True(home.UsageCard.IsUnavailable);
+        Assert.False(home.UsageCard.IsLoading);
+    }
+
+    [Fact]
+    public async Task UsageCard_WithoutUsageStore_KeepsTheTokenNumbersAndNoBudget()
+    {
+        await _host.Catalog.SetUsageAsync(new UsageSettings(25m));   // 沒有紀錄來源時，預算不影響卡片
+        _host.Store.Usage.Add((new DateTimeOffset(2026, 10, 19, 9, 0, 0, TimeSpan.Zero), new TokenTotals(1_200, 0, 40)));
+
+        await _host.Home.LoadActivityAsync();
+
+        var card = _host.Home.UsageCard;
+        Assert.True(card.ShowTokensUnit);
+        Assert.Equal("1.2K", card.MonthText);
+        Assert.Null(card.BudgetText);
+    }
+
+    /// <summary>所有查詢都丟例外的用量紀錄來源。</summary>
+    private sealed class ThrowingUsageStore : IUsageStore
+    {
+        public Task AddAsync(UsageRecord record, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<IReadOnlyList<UsageRecord>> ListAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
+            Task.FromException<IReadOnlyList<UsageRecord>>(new IOException("測試用的讀取失敗"));
+
+        public Task<ConversationCost> GetConversationCostAsync(string conversationId, CancellationToken ct = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<ConversationCostItem>> ListTopConversationsAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+
+        public Task<decimal> SumCostAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     [Fact]
