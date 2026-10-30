@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
 using Lumi.Core.Browser;
 using Lumi.Core.Context;
@@ -9,6 +10,7 @@ using Lumi.Core.Models;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Tools;
+using Lumi.Core.Usage;
 using Lumi.Core.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,6 +40,9 @@ public sealed class ConversationService
     /// <summary>摘要那次呼叫的輸出上限。</summary>
     public const int SummaryMaxOutputTokens = 4000;
 
+    /// <summary>同一個工具、相同參數連續失敗這麼多次（每輪只有這一個呼叫）就提早停下（L2）。</summary>
+    public const int RepeatedToolFailureLimit = 3;
+
     private const string ContextTooLongMessage = "這則對話太長，整理後仍超過模型能處理的長度。請開新對話繼續。";
     private const string EmptySummaryMessage = "整理對話時沒有取得摘要內容。";
     private const string NoModelMessage = "還沒有可用的模型，請先到設定加入連線與模型。";
@@ -49,6 +54,7 @@ public sealed class ConversationService
     private const string UnavailableMessage = "這個工具目前無法使用。";
 
     private readonly IChatProvider _provider;
+    private readonly IUsageRecorder _usage;
     private readonly IConversationStore _store;
     private readonly IModelCatalog _catalog;
     private readonly IToolApprovalService _approvals;
@@ -92,9 +98,11 @@ public sealed class ConversationService
         INetworkStatus? network = null,
         IMemoryStore? memoryStore = null,
         IToolCatalog? toolCatalog = null,
-        IAttachmentStore? attachments = null)
+        IAttachmentStore? attachments = null,
+        IUsageRecorder? usageRecorder = null)
     {
         _provider = provider;
+        _usage = usageRecorder ?? new NullUsageRecorder();
         _store = store;
         _catalog = catalog;
         _approvals = approvals;
@@ -216,11 +224,14 @@ public sealed class ConversationService
         // 模型設定的「使用工具」關掉時，請求完全不帶工具定義，也不記快照。
         // 其他情況送的是這則對話的工具快照（M15 D1），不依模式過濾：切換模式改變工具清單會讓整個快取失效（M5 的 Q1），模式在執行時檢查
         var offered = model.Model.ToolsEnabled ? await ResolveToolSnapshotAsync(conversationId, ct).ConfigureAwait(false) : [];
+        // 工具定義的大小（估算）：每次請求都一樣，算一次。用量紀錄與使用習慣提示用（M23）
+        var toolDefinitionTokens = offered.Count > 0 ? ContextEstimator.EstimateText(ToolSnapshotJson.Serialize(offered)) : 0;
 
         // 小精靈的輸出上限較低；thinking 參數不因模式改變（改了訊息快取會失效，M5 的 Q4）
         int? maxOutputTokens = mode == ChatMode.Sprite ? Math.Min(model.Model.MaxOutputTokens, _promptOptions.SpriteMaxOutputTokens) : null;
 
         var contextRetried = false;   // 超過上限後已經整理並重送過一次（成功拿到回應後重設）
+        var repeatedFailure = new RepeatedToolFailure();   // L2：同一個工具、相同參數連續失敗的次數
 
         for (var iteration = 1; iteration <= _options.MaxIterations; iteration++)
         {
@@ -255,7 +266,7 @@ public sealed class ConversationService
                     if (estimate > window * SummaryAtRatio)
                     {
                         var outcome = new CompactionOutcome();
-                        await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, compaction, outcome, ct).ConfigureAwait(false))
+                        await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, compaction, outcome, mode, ct).ConfigureAwait(false))
                             yield return compactionEvent;
                         if (outcome.Completed)
                             compaction = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
@@ -302,7 +313,7 @@ public sealed class ConversationService
 
             Failed? tooLong = null;
 
-            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model, ct).ConfigureAwait(false))
+            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model, mode, toolDefinitionTokens, ct).ConfigureAwait(false))
             {
                 // 超過上限：先不轉發，下面整理後重送一次（還是失敗才回報）
                 if (chatEvent is Failed { Failure.Kind: ChatFailureKind.ContextTooLong } overLimit && !contextRetried)
@@ -323,7 +334,7 @@ public sealed class ConversationService
                 contextRetried = true;
                 var outcome = new CompactionOutcome();
                 var latest = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
-                await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, latest, outcome, ct).ConfigureAwait(false))
+                await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, latest, outcome, mode, ct).ConfigureAwait(false))
                     yield return compactionEvent;
                 if (outcome.Completed)
                 {
@@ -540,6 +551,22 @@ public sealed class ConversationService
 
             if (stopped)
                 throw new OperationCanceledException(ct);
+
+            // L2：一輪只有一個工具呼叫，而且失敗；和上一輪是同一個工具、相同參數就累加，否則歸零。結果已經存好，可以直接重試
+            var single = uses.Count == 1 ? results[0] : null;
+            if (single is { IsError: true })
+                repeatedFailure.Record(uses[0].Name, NormalizeArguments(uses[0].InputJson));
+            else
+                repeatedFailure.Reset();
+
+            if (repeatedFailure.Count >= RepeatedToolFailureLimit && single is not null)
+            {
+                _logger.LogInformation("工具 {Tool} 連續失敗 {Count} 次，提早停止", uses[0].Name, repeatedFailure.Count);
+                yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
+                    $"「{single.DisplayName}」連續 {RepeatedToolFailureLimit} 次失敗，先停下來了。最後一次的錯誤：{single.Summary ?? single.Content}。可以補充說明後再試。",
+                    Retryable: true));
+                yield break;
+            }
         }
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
@@ -561,7 +588,7 @@ public sealed class ConversationService
 
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
             var state = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
-            await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, state, new CompactionOutcome(), ct).ConfigureAwait(false))
+            await foreach (var compactionEvent in CompactSummaryAsync(conversationId, model, history, state, new CompactionOutcome(), ChatMode.Workbench, ct).ConfigureAwait(false))
                 yield return compactionEvent;
         }
         finally
@@ -593,7 +620,7 @@ public sealed class ConversationService
     /// </summary>
     private async IAsyncEnumerable<ChatEvent> CompactSummaryAsync(
         string conversationId, ResolvedModel model, IReadOnlyList<ChatMessage> history, CompactionState state,
-        CompactionOutcome outcome, [EnumeratorCancellation] CancellationToken ct)
+        CompactionOutcome outcome, ChatMode mode, [EnumeratorCancellation] CancellationToken ct)
     {
         var boundary = CompactionApplier.SummaryBoundary(history);
         if (boundary <= (state.SummaryUptoSeq ?? 0))
@@ -608,22 +635,33 @@ public sealed class ConversationService
         Completed? completed = null;
         ChatFailure? failure = null;
         TokenUsage? lastUsage = null;
-        await foreach (var chatEvent in _provider.StreamAsync(request, ct).ConfigureAwait(false))
+        var tally = new CallUsage();
+        try
         {
-            switch (chatEvent)
+            await foreach (var chatEvent in _provider.StreamAsync(request, ct).ConfigureAwait(false))
             {
-                case UsageEvent usage:
-                    lastUsage = usage.Tokens;
-                    yield return usage;
-                    break;
-                case Completed c:
-                    completed = c;
-                    break;
-                case Failed f:
-                    failure = DecorateFailure(f.Failure, model);
-                    break;
-                // 文字與思考不轉發：摘要不是一則助理回應，不能出現在畫面上
+                if (chatEvent is not Failed)
+                    tally.Observe(chatEvent);
+                switch (chatEvent)
+                {
+                    case UsageEvent usage:
+                        lastUsage = usage.Tokens;
+                        yield return usage;
+                        break;
+                    case Completed c:
+                        completed = c;
+                        break;
+                    case Failed f:
+                        failure = DecorateFailure(f.Failure, model);
+                        break;
+                    // 文字與思考不轉發：摘要不是一則助理回應，不能出現在畫面上
+                }
             }
+        }
+        finally
+        {
+            // 摘要那次呼叫的用量（完成、失敗、停止都記）。不能用 catch：這裡有 yield，只能用 finally
+            await RecordCallAsync(conversationId, UsagePurpose.Compaction, mode, model, request, 0, tally, completed).ConfigureAwait(false);
         }
 
         var summary = completed is null
@@ -753,10 +791,12 @@ public sealed class ConversationService
 
     /// <summary>呼叫一次供應商：轉發事件、完成時存助理訊息、取消時把已收到的文字存成「已停止」。</summary>
     private async IAsyncEnumerable<ChatEvent> StreamOnceAsync(
-        string conversationId, ChatRequest request, ResolvedModel model, [EnumeratorCancellation] CancellationToken ct)
+        string conversationId, ChatRequest request, ResolvedModel model, ChatMode mode, int toolDefinitionTokens,
+        [EnumeratorCancellation] CancellationToken ct)
     {
         var modelId = model.Model.ModelId;
         var receivedText = new StringBuilder();
+        var tally = new CallUsage();   // 這次呼叫的用量（M23）：沒有供應商回報時用來估算，不影響存檔
 
         await using var enumerator = _provider.StreamAsync(request, ct).GetAsyncEnumerator(ct);
         while (true)
@@ -777,6 +817,7 @@ public sealed class ConversationService
                         DateTimeOffset.UtcNow, MessageStatus.Stopped, modelId);
                     await _store.AppendMessageAsync(conversationId, stopped, CancellationToken.None).ConfigureAwait(false);
                 }
+                await RecordCallAsync(conversationId, UsagePurpose.Chat, mode, model, request, toolDefinitionTokens, tally, null).ConfigureAwait(false);
                 throw;
             }
 
@@ -784,19 +825,147 @@ public sealed class ConversationService
                 yield break;
 
             var chatEvent = enumerator.Current;
+            if (chatEvent is not Failed)
+                tally.Observe(chatEvent);
             switch (chatEvent)
             {
                 case TextDelta delta:
                     receivedText.Append(delta.Text);
                     break;
                 case Completed completed:
-                    // 先存檔再通知，UI 收到 Completed 時資料庫已經是最新狀態
+                    // 先存檔再通知，UI 收到 Completed 時資料庫已經是最新狀態；用量也在通知之前記下
                     await _store.AppendMessageAsync(conversationId, completed.Message, CancellationToken.None).ConfigureAwait(false);
+                    await RecordCallAsync(conversationId, UsagePurpose.Chat, mode, model, request, toolDefinitionTokens, tally, completed).ConfigureAwait(false);
+                    break;
+                case Failed:
+                    // 失敗：只有收到過事件才記（例如 401、連不上什麼都沒有，不記）
+                    await RecordCallAsync(conversationId, UsagePurpose.Chat, mode, model, request, toolDefinitionTokens, tally, null).ConfigureAwait(false);
                     break;
                 // Failed：不存（Q15）；失敗文字的補充（離線、RetryAfter）在這裡一處套用，錯誤列與小精靈氣泡共用
             }
 
             yield return chatEvent is Failed failed ? new Failed(DecorateFailure(failed.Failure, model)) : chatEvent;
+        }
+    }
+
+    /// <summary>
+    /// 一次供應商呼叫的用量（M23 第 3 節）：供應商回報的用量記成實際值；缺漏時用估算，畫面標「≈」。
+    /// 沒有完成的呼叫（停止、失敗）只要收到過任何事件就記；什麼都沒收到（例如 HTTP 401、連不上）不記。
+    /// 記錄失敗只記 log，不影響對話。
+    /// </summary>
+    private async Task RecordCallAsync(
+        string conversationId, UsagePurpose purpose, ChatMode mode, ResolvedModel model, ChatRequest request,
+        int toolDefinitionTokens, CallUsage tally, Completed? completed)
+    {
+        if (completed is null && !tally.AnyEvent)
+            return;
+
+        var (tokens, estimated) = SettleUsage(request, tally, completed);
+        try
+        {
+            await _usage.RecordAsync(
+                new UsageObservation(conversationId, purpose, mode, model, tokens, estimated, toolDefinitionTokens),
+                CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // 介面的實作應該已經吞掉自己的錯誤；這裡再擋一次，記錄失敗絕不能讓對話失敗
+            _logger.LogWarning(ex, "記錄用量失敗，這次請求沒有計入用量。");
+        }
+    }
+
+    /// <summary>決定這次呼叫要記的 token 與是否為估算（M23 第 3 節的表）。</summary>
+    private static (TokenUsage Tokens, bool Estimated) SettleUsage(ChatRequest request, CallUsage tally, Completed? completed)
+    {
+        // 正常完成，訊息帶著供應商的用量
+        if (completed?.Message.Usage is { } reported)
+            return (reported, false);
+
+        // 正常完成，但用量只出現在串流事件裡
+        if (completed is not null && tally.LastUsage is { } last)
+            return (last, false);
+
+        // 沒有任何用量（或中途停止、失敗）：輸出取「已回報的」與「依文字估算的」較大值，計入比漏算安全（決定 5）
+        var estimatedOutput = ContextEstimator.EstimateText(tally.Output);
+        if (tally.LastUsage is not { } partial)
+            return (new TokenUsage(EstimateRequestInput(request), estimatedOutput, 0, 0), true);
+
+        return (new TokenUsage(partial.InputTokens, Math.Max(partial.OutputTokens, estimatedOutput),
+            partial.CacheCreationInputTokens, partial.CacheReadInputTokens), true);
+    }
+
+    /// <summary>
+    /// 估算一次請求的輸入 token：system、工具定義、全部訊息。估算時快取全部當作未命中（保守，決定 5）。
+    /// </summary>
+    internal static int EstimateRequestInput(ChatRequest request) =>
+        ContextEstimator.EstimateText(request.System)
+        + (request.Tools is { Count: > 0 } tools ? ContextEstimator.EstimateText(ToolSnapshotJson.Serialize(tools)) : 0)
+        + request.Messages.Sum(ContextEstimator.EstimateMessage);
+
+    /// <summary>工具參數的比對寫法：能解析就重新序列化（去掉空白與排版），解析不了就只去掉空白字元。</summary>
+    internal static string NormalizeArguments(string inputJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(inputJson);
+            return JsonSerializer.Serialize(document.RootElement);
+        }
+        catch (JsonException)
+        {
+            return new string(inputJson.Where(c => !char.IsWhiteSpace(c)).ToArray());
+        }
+    }
+
+    /// <summary>一次供應商呼叫的用量觀察：最後一次回報的 usage、收到的文字與思考（估算輸出用），以及是否收到過事件。</summary>
+    private sealed class CallUsage
+    {
+        private readonly StringBuilder _output = new();
+
+        public TokenUsage? LastUsage { get; private set; }
+
+        /// <summary>收到過任何事件（不含最後的 <see cref="Failed"/>）。</summary>
+        public bool AnyEvent { get; private set; }
+
+        public string Output => _output.ToString();
+
+        public void Observe(ChatEvent chatEvent)
+        {
+            AnyEvent = true;
+            switch (chatEvent)
+            {
+                case UsageEvent usage:
+                    LastUsage = usage.Tokens;
+                    break;
+                case TextDelta text:
+                    _output.Append(text.Text);
+                    break;
+                case ThinkingDelta thinking:
+                    _output.Append(thinking.Text);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>L2：同一個工具、相同參數連續失敗的次數。換了工具或參數、或中間有一次不是失敗，就歸零重算。</summary>
+    private sealed class RepeatedToolFailure
+    {
+        private string? _tool;
+        private string? _arguments;
+
+        public int Count { get; private set; }
+
+        public void Record(string tool, string arguments)
+        {
+            Count = tool == _tool && arguments == _arguments ? Count + 1 : 1;
+            _tool = tool;
+            _arguments = arguments;
+        }
+
+        public void Reset()
+        {
+            Count = 0;
+            _tool = null;
+            _arguments = null;
         }
     }
 
