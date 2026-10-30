@@ -79,6 +79,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.Equal("SqliteUsageStore", services.GetRequiredService<Lumi.Core.Usage.IUsageStore>().GetType().Name);
         Assert.NotNull(services.GetRequiredService<Lumi.Core.Usage.IUsageRecorder>());
         Assert.NotNull(services.GetRequiredService<Lumi.Core.Usage.BudgetMonitor>());
+        Assert.Equal("SqliteUsageHintLog", services.GetRequiredService<Lumi.Core.Usage.IUsageHintLog>().GetType().Name);
         Assert.NotEmpty(services.GetRequiredService<Lumi.Core.Usage.IPriceTableSource>().Current.Entries);   // 內建快照
         Assert.NotNull(services.GetRequiredService<Lumi.Core.Usage.IImageDownscaler>());
         Assert.NotNull(services.GetRequiredService<UsageSettingsViewModel>());

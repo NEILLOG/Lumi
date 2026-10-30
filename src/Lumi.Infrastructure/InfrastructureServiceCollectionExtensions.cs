@@ -44,6 +44,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IUsageStore>(sp => sp.GetRequiredService<SqliteUsageStore>());
         services.AddSingleton<IUsageRecorder, UsageRecorder>();
         services.AddSingleton<BudgetMonitor>();
+        services.Replace(ServiceDescriptor.Singleton<IUsageHintLog>(sp => ActivatorUtilities.CreateInstance<SqliteUsageHintLog>(sp)));   // 使用習慣提示的紀錄；取代 Core 預設的 NullUsageHintLog
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();
