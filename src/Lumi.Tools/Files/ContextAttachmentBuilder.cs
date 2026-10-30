@@ -1,6 +1,7 @@
 using System.Text;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.Usage;
 
 namespace Lumi.Tools;
 
@@ -8,8 +9,11 @@ namespace Lumi.Tools;
 /// <see cref="IContextAttachmentBuilder"/> 的實作：把待送出的項目拍成快照（M4 的 Q1）。
 /// 讀不到、太大、不是文字檔都不丟例外，而是產生一個說明原因的區塊；檔案與資料夾仍在範圍內，模型可以用工具按需讀。
 /// </summary>
-public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmentStore attachments, ITokenEstimator estimator) : IContextAttachmentBuilder
+public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmentStore attachments, ITokenEstimator estimator, IImageDownscaler? downscaler = null) : IContextAttachmentBuilder
 {
+    /// <summary>圖片長邊上限（Anthropic 建議值）；超過會被伺服器縮小但照樣計費，所以存附件前先縮（L5）。</summary>
+    public const int MaxImageEdge = 1568;
+
     public Task<ContextAttachments> BuildAsync(IReadOnlyList<ContextItem> pendingItems, CancellationToken ct = default) =>
         Task.Run(() => BuildCoreAsync(pendingItems, saveImages: true, ct), ct);
 
@@ -112,6 +116,13 @@ public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmen
         var mediaType = ImageFormats.Detect(bytes);
         if (mediaType is null)
             return Missing(item, "不支援的圖片格式（支援 PNG、JPEG、GIF、WebP）");
+
+        // 只在存成附件時縮（預估 token 的路徑不縮）；縮不了（GIF、解不開、已經夠小）回 null，就存原圖
+        if (save && downscaler?.Downscale(bytes, mediaType, MaxImageEdge) is { } smaller)
+        {
+            bytes = smaller.Data;
+            mediaType = smaller.MediaType;
+        }
 
         var fileName = save ? await attachments.SaveAsync(bytes, mediaType, ct).ConfigureAwait(false) : "";
         return new ImageBlock(fileName, mediaType, item.DisplayName);
