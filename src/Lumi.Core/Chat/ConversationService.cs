@@ -554,7 +554,7 @@ public sealed class ConversationService
 
             // L2：一輪只有一個工具呼叫，而且失敗；和上一輪是同一個工具、相同參數就累加，否則歸零。結果已經存好，可以直接重試
             var single = uses.Count == 1 ? results[0] : null;
-            if (single is { IsError: true })
+            if (single is { IsError: true } && single.Approval != ToolApproval.Denied)   // 使用者自己按的「拒絕」不算工具故障
                 repeatedFailure.Record(uses[0].Name, NormalizeArguments(uses[0].InputJson));
             else
                 repeatedFailure.Reset();
@@ -615,6 +615,7 @@ public sealed class ConversationService
 
     /// <summary>
     /// 第二層：用同一個模型（不帶工具、不要求 thinking、輸出上限 <see cref="SummaryMaxOutputTokens"/>）把邊界之前的內容整理成摘要並存檔。
+    /// 刻意不改用便宜的模型：同一個模型才吃得到前文的快取，換模型反而要全價重送（M23 L6）。
     /// 邊界沒有比上次往前（沒有新的東西可整理）時什麼都不做。失敗不存任何東西，發 <see cref="CompactionFailed"/>。
     /// 摘要那次呼叫的用量以 <see cref="UsageEvent"/> 轉發，並存進整理紀錄與 <see cref="CompactionCompleted.Usage"/>。
     /// </summary>

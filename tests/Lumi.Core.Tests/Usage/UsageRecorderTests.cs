@@ -79,6 +79,21 @@ public sealed class UsageRecorderTests
     }
 
     [Fact]
+    public async Task IntranetGateway_WithoutPrice_IsNotFree()
+    {
+        // 公司內網的 Gateway 不是本機模型：沒設定單價就是「未設定」，不能被當成免費
+        var store = new InMemoryUsageStore();
+        var recorder = new UsageRecorder(store, TimeProvider.System, NullLogger<UsageRecorder>.Instance);
+        var gateway = new ConnectionSettings("gw", "公司 Gateway", ProviderFormat.OpenAICompatible, "http://10.1.2.3:8080/v1");
+
+        await recorder.RecordAsync(Observation(new ResolvedModel(FakeModelCatalog.Model with { Pricing = ModelPricing.None }, gateway)));
+
+        var record = Assert.Single(store.Records);
+        Assert.Null(record.Price);
+        Assert.Null(record.CostUsd);
+    }
+
+    [Fact]
     public async Task LocalConnection_WithExplicitPrice_UsesThePrice()
     {
         var store = new InMemoryUsageStore();

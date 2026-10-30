@@ -125,4 +125,18 @@ public class ConversationToolFailureLoopTests
         Assert.IsType<Completed>(events[^1]);
         Assert.Equal(ChatRole.Assistant, (await store.GetMessagesAsync(conversation.Id))[^1].Role);
     }
+
+    [Fact]
+    public async Task UserDenials_AreNotCountedAsToolFailures()
+    {
+        // Write 權限的工具每次都要確認，ScriptedApprovalService 沒有預設決定就一律拒絕：拒絕 3 次是使用者的選擇，不是工具故障
+        var provider = new SequenceChatProvider(
+            Round(Use("a")), Round(Use("b")), Round(Use("c")), SequenceChatProvider.Answer("好，我不做了"));
+        var (service, _, conversation) = Rig(provider, new FakeTool(permission: ToolPermission.Write));
+
+        var events = await Collect(service.SendAsync(conversation.Id, "寫檔"));
+
+        Assert.IsType<Completed>(events[^1]);
+        Assert.Equal(4, provider.Requests.Count);
+    }
 }

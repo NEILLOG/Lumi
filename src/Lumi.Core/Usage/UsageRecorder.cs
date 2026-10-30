@@ -1,4 +1,3 @@
-using Lumi.Core.Chat;
 using Microsoft.Extensions.Logging;
 
 namespace Lumi.Core.Usage;
@@ -16,8 +15,8 @@ public sealed class UsageRecorder(IUsageStore store, TimeProvider time, ILogger<
         {
             var model = observation.Model;
             var pricing = model.Model.Pricing;
-            // 本機連線（例如 Ollama）預設不計費：沒有明確設定單價時視為免費，用量照記（決定 9）
-            if (pricing.Source == PriceSource.None && ChatFailureText.IsLocalTarget(model.Connection.BaseUrl))
+            // 本機連線（localhost，例如 Ollama）預設不計費；內網的 Gateway 不算本機：沒有明確設定單價時視為免費，用量照記（決定 9）
+            if (pricing.Source == PriceSource.None && LocalConnection.IsLoopback(model.Connection.BaseUrl))
                 pricing = pricing with { IsFree = true };
 
             var price = PriceSnapshot.From(pricing);
