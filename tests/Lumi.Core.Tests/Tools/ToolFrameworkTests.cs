@@ -264,24 +264,56 @@ public class ToolFrameworkTests
     }
 
     [Fact]
-    public void Truncate_CutsLongContent_AddsNotice_AndKeepsShortOnesUntouched()
+    public void Short_Unchanged()
     {
         var shortResult = ToolResult.Ok("短");
+
         Assert.Same(shortResult, ToolExecutor.Truncate(shortResult, 10));
+    }
 
-        var cut = ToolExecutor.Truncate(ToolResult.Ok(new string('a', 100), "摘要"), 10);
+    [Fact]
+    public void Truncate_KeepsHeadAndTail()
+    {
+        // 沒有換行：上限 20 → 開頭留 14 字元（70%）、結尾留 6 字元（30%）
+        var content = new string('a', 50) + new string('b', 50);
 
-        Assert.Equal(new string('a', 10) + ToolExecutor.TruncatedNotice, cut.Content);
+        var cut = ToolExecutor.Truncate(ToolResult.Ok(content, "摘要"), 20);
+
+        Assert.Equal(new string('a', 14) + "\n[中間省略了 1 行；需要的話可以用讀檔工具指定行範圍再讀]\n" + new string('b', 6), cut.Content);
         Assert.Equal("摘要", cut.Summary);
     }
 
     [Fact]
-    public void Truncate_DoesNotSplitSurrogatePairs()
+    public void Truncate_ReportsOmittedLines_AndAlignsToLineBreaks()
     {
-        // "aaa😀" 在第 4 個位置是代理對的後半：不能切在中間
-        var result = ToolExecutor.Truncate(ToolResult.Ok("aaa😀bbb"), 4);
+        // 每行 5 字元加一個換行（共 6 字元，總長 599）；上限 120 → 開頭 84 字元往前對齊到第 14 行結尾、結尾 36 字元往後對齊到第 95 行開頭
+        var content = string.Join("\n", Enumerable.Range(1, 100).Select(i => $"L{i:0000}"));
 
-        Assert.Equal("aaa" + ToolExecutor.TruncatedNotice, result.Content);
+        var cut = ToolExecutor.Truncate(ToolResult.Ok(content), 120).Content;
+
+        Assert.StartsWith("L0001\n", cut);
+        Assert.Contains("L0014\n[中間省略了 80 行；需要的話可以用讀檔工具指定行範圍再讀]\nL0095\n", cut);
+        Assert.EndsWith("L0100", cut);
+    }
+
+    [Fact]
+    public void Truncate_DoesNotSplitSurrogates()
+    {
+        // 每個上限都試一次：結果裡不能有落單的代理字元（"aaa😀" 的切點常落在代理對中間）
+        const string content = "aa😀bb\n😀cc😀dd\n中😀文";
+
+        for (var max = 0; max < content.Length; max++)
+        {
+            var cut = ToolExecutor.Truncate(ToolResult.Ok(content), max).Content;
+
+            for (var i = 0; i < cut.Length; i++)
+            {
+                if (char.IsHighSurrogate(cut[i]))
+                    Assert.True(i + 1 < cut.Length && char.IsLowSurrogate(cut[i + 1]), $"上限 {max} 時出現落單的高代理字元");
+                else if (char.IsLowSurrogate(cut[i]))
+                    Assert.True(i > 0 && char.IsHighSurrogate(cut[i - 1]), $"上限 {max} 時出現落單的低代理字元");
+            }
+        }
     }
 
     // ---- 權限記憶 ----

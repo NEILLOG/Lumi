@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.ServerSentEvents;
 using System.Runtime.CompilerServices;
@@ -22,6 +23,11 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     private readonly ISecretStore _secrets;
     private readonly ILogger<OpenAICompatibleChatProvider> _logger;
     private readonly IAttachmentStore _attachments;
+
+    /// <summary>
+    /// 不認得 <c>stream_options</c> 的連線 id（舊版 Azure 等）。只在記憶體：App 重開後會再試一次，不寫設定檔。
+    /// </summary>
+    private readonly ConcurrentDictionary<string, byte> _noStreamOptions = new();
 
     public OpenAICompatibleChatProvider(
         HttpClient httpClient, ISecretStore secrets, ILogger<OpenAICompatibleChatProvider> logger, IAttachmentStore? attachments = null)
@@ -59,6 +65,8 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
         var accumulator = new OpenAIStreamAccumulator(request.Model.Model.ModelId);
         HttpResponseMessage? response = null;
         IAsyncEnumerator<SseItem<string>>? enumerator = null;
+        // 這個連線之前已確認不認得 stream_options 就直接不帶；否則第一次帶，被拒時下面會退回重送一次
+        var includeStreamOptions = !_noStreamOptions.ContainsKey(connection.Id);
         try
         {
             while (true)
@@ -70,7 +78,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                 {
                     if (enumerator is null)
                     {
-                        using var httpRequest = BuildRequest(request, baseUri, apiKey, images);
+                        using var httpRequest = BuildRequest(request, baseUri, apiKey, images, includeStreamOptions);
                         response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                         if (!response.IsSuccessStatusCode)
                         {
@@ -78,6 +86,20 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                             var errorBody = (int)response.StatusCode is 400 or 413 or 422
                                 ? await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                                 : null;
+
+                            // 舊版相容服務會拒絕 stream_options（Azure 舊 api-version 回 Unknown parameter）：記住連線，不帶這個欄位重送一次。
+                            // 重送時 includeStreamOptions 已經是 false，所以只會退回一次；重送仍失敗就照一般錯誤處理。
+                            if (includeStreamOptions && (int)response.StatusCode == 400
+                                && errorBody?.Contains("stream_options", StringComparison.OrdinalIgnoreCase) == true)
+                            {
+                                _noStreamOptions.TryAdd(connection.Id, 0);
+                                _logger.LogInformation("連線 {ConnectionId} 不支援 stream_options，改為不帶並估算用量", connection.Id);
+                                includeStreamOptions = false;
+                                response.Dispose();
+                                response = null;
+                                continue;
+                            }
+
                             failure = OpenAIHttpErrors.FromResponse(response, request.Tools is { Count: > 0 }, ImageAttachments.HasImages(request), errorBody);
                             _logger.LogWarning("OpenAI 相容連線 {ConnectionId} 回應 HTTP {Status}", connection.Id, (int)response.StatusCode);
                         }
@@ -131,11 +153,12 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
         }
     }
 
-    private static HttpRequestMessage BuildRequest(ChatRequest request, Uri baseUri, string? apiKey, IReadOnlyDictionary<string, byte[]> images)
+    private static HttpRequestMessage BuildRequest(
+        ChatRequest request, Uri baseUri, string? apiKey, IReadOnlyDictionary<string, byte[]> images, bool includeStreamOptions)
     {
         var message = new HttpRequestMessage(HttpMethod.Post, OpenAIUrls.Endpoint(baseUri, "chat/completions"))
         {
-            Content = new StringContent(BuildBody(request, images), Encoding.UTF8, "application/json"),
+            Content = new StringContent(BuildBody(request, images, includeStreamOptions), Encoding.UTF8, "application/json"),
         };
         message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
         if (!string.IsNullOrEmpty(apiKey))
@@ -153,7 +176,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     /// OpenAI 的前綴快取是自動的，只要這段前綴逐位元組相同就會命中，不需要標記（M5 的 Q2）。
     /// </para>
     /// </summary>
-    internal static string BuildBody(ChatRequest request, IReadOnlyDictionary<string, byte[]>? images = null)
+    internal static string BuildBody(ChatRequest request, IReadOnlyDictionary<string, byte[]>? images = null, bool includeStreamOptions = true)
     {
         images ??= ImageAttachments.None;
         var messages = new List<object>();
@@ -245,9 +268,10 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
             ["model"] = request.Model.Model.ModelId,
             ["messages"] = messages,
             ["stream"] = true,
-            ["stream_options"] = new { include_usage = true },
             ["max_tokens"] = request.EffectiveMaxOutputTokens,   // 小精靈模式有較低的上限（M5）
         };
+        if (includeStreamOptions)
+            body["stream_options"] = new { include_usage = true };
 
         if (request.Tools is { Count: > 0 } tools)
         {
