@@ -840,7 +840,7 @@
   <data name="Usage_Unknown" xml:space="preserve"><value>尚未確認</value></data>
   <data name="Usage_Failed" xml:space="preserve"><value>連線失敗</value></data>
   <data name="Usage_Retry" xml:space="preserve"><value>重試</value></data>
-  <data name="Usage_CostNote" xml:space="preserve"><value>費用由供應商依 token 用量計算，從你的帳號扣款。</value></data>
+  <data name="Usage_CostNote" xml:space="preserve"><value>金額是估算；實際費用由供應商計算，從你的帳號扣款。</value></data>
   <data name="Usage_NearLimitNote" xml:space="preserve"><value>對話快超過模型上限，再聊下去較早的內容可能會被截掉。</value></data>
   <data name="Usage_NewConversation" xml:space="preserve"><value>開新對話</value></data>
   <data name="Usage_KeepGoing" xml:space="preserve"><value>繼續這則</value></data>
@@ -951,4 +951,107 @@
   <data name="History_SpriteTag" xml:space="preserve"><value>小精靈</value></data>
   <data name="Workbench_ClearConversation" xml:space="preserve"><value>清除內容</value></data>
   <data name="Confirm_ClearSpriteConversation" xml:space="preserve"><value>清除與小精靈的全部對話內容？這個動作無法復原。</value></data>
+  <data name="Settings_CategoryUsage" xml:space="preserve"><value>用量與費用</value></data>
+  <data name="Settings_CategoryUsageHint" xml:space="preserve"><value>花了多少、預算</value></data>
+  <data name="UsagePage_Title" xml:space="preserve"><value>這個月花了多少</value></data>
+  <data name="UsagePage_RangeFormat" xml:space="preserve"><value>{0}–{1} · 約 {2}</value></data>
+  <data name="UsagePage_BudgetFormat" xml:space="preserve"><value>每月預算 {0} · 已用 {1}%</value></data>
+  <data name="UsagePage_EditBudget" xml:space="preserve"><value>編輯</value></data>
+  <data name="UsagePage_SetBudget" xml:space="preserve"><value>設定每月預算</value></data>
+  <data name="UsagePage_BudgetInputLabel" xml:space="preserve"><value>每月預算（新台幣）</value></data>
+  <data name="UsagePage_BudgetNote" xml:space="preserve"><value>用到 80% 和 100% 時各提醒一次。Lumi 只會提醒，不會停止回應。</value></data>
+  <data name="UsagePage_BudgetInvalid" xml:space="preserve"><value>請輸入大於 0 的整數金額。</value></data>
+  <data name="UsagePage_NoBudget" xml:space="preserve"><value>不設預算</value></data>
+  <data name="UsagePage_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="UsagePage_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="UsagePage_ProjectionOverFormat" xml:space="preserve"><value>照目前的速度，月底約 {0}，會超過預算。</value></data>
+  <data name="UsagePage_ProjectionFormat" xml:space="preserve"><value>照目前的速度，月底約 {0}。</value></data>
+  <data name="UsagePage_UnpricedFormat" xml:space="preserve"><value>有 {0} 次請求的模型未設定單價，沒有計入。</value></data>
+  <data name="UsagePage_Empty" xml:space="preserve"><value>這個月還沒有用量。</value></data>
+  <data name="UsagePage_DailyTitle" xml:space="preserve"><value>每天</value></data>
+  <data name="UsagePage_DailyTooltipFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="UsagePage_TopTitle" xml:space="preserve"><value>花最多的對話</value></data>
+  <data name="UsagePage_TopMetaFormat" xml:space="preserve"><value>{0} · {1} 回合</value></data>
+  <data name="UsagePage_HintsTitle" xml:space="preserve"><value>這個月出現過的情況</value></data>
+  <data name="UsagePage_HintCountFormat" xml:space="preserve"><value>{0} 則對話</value></data>
+  <data name="UsagePage_HintMuted" xml:space="preserve"><value>已關閉提醒</value></data>
+  <data name="UsagePage_HintUnmute" xml:space="preserve"><value>重新開啟</value></data>
+  <data name="UsagePage_Footnote" xml:space="preserve"><value>金額依各模型的單價估算，實際以供應商帳單為準。</value></data>
+  <data name="UsagePage_PricingLink" xml:space="preserve"><value>單價設定</value></data>
+  <data name="UsagePage_Export" xml:space="preserve"><value>匯出明細（CSV）</value></data>
+  <data name="UsagePage_ExportDoneFormat" xml:space="preserve"><value>已匯出到 {0}</value></data>
+  <data name="UsagePage_ExportFailed" xml:space="preserve"><value>匯出失敗，請換個位置再試一次。</value></data>
+  <data name="UsagePage_DeletedConversation" xml:space="preserve"><value>（已刪除的對話）</value></data>
+  <data name="Pricing_Title" xml:space="preserve"><value>單價</value></data>
+  <data name="Pricing_SummaryFormat" xml:space="preserve"><value>輸入 {0} · 輸出 {1} · US$／每百萬 tokens</value></data>
+  <data name="Pricing_AutoFilled" xml:space="preserve"><value>已自動帶入</value></data>
+  <data name="Pricing_Edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="Pricing_Input" xml:space="preserve"><value>輸入</value></data>
+  <data name="Pricing_Output" xml:space="preserve"><value>輸出</value></data>
+  <data name="Pricing_Advanced" xml:space="preserve"><value>進階：快取價格</value></data>
+  <data name="Pricing_CacheRead" xml:space="preserve"><value>快取讀取</value></data>
+  <data name="Pricing_CacheWrite" xml:space="preserve"><value>快取寫入</value></data>
+  <data name="Pricing_CacheHint" xml:space="preserve"><value>留空時以輸入價計算。</value></data>
+  <data name="Pricing_Restore" xml:space="preserve"><value>還原自動帶入的單價</value></data>
+  <data name="Pricing_CandidatesFormat" xml:space="preserve"><value>價目表裡沒有「{0}」，這幾個最像。選一個，或自己填：</value></data>
+  <data name="Pricing_CandidatePriceFormat" xml:space="preserve"><value>輸入 {0} · 輸出 {1}</value></data>
+  <data name="Pricing_Apply" xml:space="preserve"><value>套用</value></data>
+  <data name="Pricing_Manual" xml:space="preserve"><value>自己填</value></data>
+  <data name="Pricing_NotFound" xml:space="preserve"><value>價目表裡找不到這個模型。先留空也可以，費用會顯示「未設定單價」。</value></data>
+  <data name="Pricing_Local" xml:space="preserve"><value>本機模型，不計費 · 用量照常記錄，費用算 0</value></data>
+  <data name="Pricing_Note" xml:space="preserve"><value>只用來估算費用。改了只影響之後的請求。</value></data>
+  <data name="Pricing_Invalid" xml:space="preserve"><value>請輸入 0 以上的數字。</value></data>
+  <data name="Pricing_TableDateFormat" xml:space="preserve"><value>價目表日期：{0}</value></data>
+  <data name="Pricing_UpdateTable" xml:space="preserve"><value>更新價目表</value></data>
+  <data name="Pricing_Updating" xml:space="preserve"><value>更新中…</value></data>
+  <data name="Pricing_UpdatedFormat" xml:space="preserve"><value>價目表已更新（{0}）。</value></data>
+  <data name="Pricing_UpdateFailed" xml:space="preserve"><value>更新失敗，繼續使用目前的價目表。</value></data>
+  <data name="Usage_ConversationCost" xml:space="preserve"><value>本對話</value></data>
+  <data name="Usage_MonthCost" xml:space="preserve"><value>本月</value></data>
+  <data name="Usage_MonthOfBudgetFormat" xml:space="preserve"><value>{0} ／ {1}</value></data>
+  <data name="Usage_OpenUsagePage" xml:space="preserve"><value>用量與費用</value></data>
+  <data name="Usage_Unpriced" xml:space="preserve"><value>未設定單價</value></data>
+  <data name="Budget_Alert80Format" xml:space="preserve"><value>這個月的 AI 費用已經用到預算的 80%（{0} ／ {1}）。</value></data>
+  <data name="Budget_Alert100Format" xml:space="preserve"><value>這個月的 AI 費用已經超過預算（{0} ／ {1}）。Lumi 會繼續回應；要限制花費，請到供應商的後台設定上限。</value></data>
+  <data name="Budget_ViewUsage" xml:space="preserve"><value>查看用量</value></data>
+  <data name="Budget_Dismiss" xml:space="preserve"><value>知道了</value></data>
+  <data name="Sprite_Budget80" xml:space="preserve"><value>這個月的 AI 費用用到 80% 囉，月底可能會超過預算。</value></data>
+  <data name="Sprite_Budget100" xml:space="preserve"><value>這個月的 AI 費用已經超過預算了，要注意一下喔。</value></data>
+  <data name="Hint_Dismiss" xml:space="preserve"><value>知道了</value></data>
+  <data name="Hint_Mute" xml:space="preserve"><value>不再提醒這類</value></data>
+  <data name="Hint_NewConversation" xml:space="preserve"><value>開新對話</value></data>
+  <data name="Hint_Continue" xml:space="preserve"><value>繼續</value></data>
+  <data name="Hint_ManageTools" xml:space="preserve"><value>管理工具</value></data>
+  <data name="Hint_SwitchInNewConversation" xml:space="preserve"><value>開新對話再換</value></data>
+  <data name="Hint_SwitchAnyway" xml:space="preserve"><value>照樣換</value></data>
+  <data name="Hint_ModelSwitchFormat" xml:space="preserve"><value>這則對話已有 {0} 的前文。換模型後，這些前文要用全價重新送一次。</value></data>
+  <data name="Hint_LongConversation" xml:space="preserve"><value>這則對話的前文已經很長，之後每問一句都會一起送出。換話題時，開新對話比較省。</value></data>
+  <data name="Hint_StaleResumeFormat" xml:space="preserve"><value>上次是 {0}前。快取已經過期，下一句會把 {1} 的前文用全價重新送一次。</value></data>
+  <data name="Hint_BigFileFormat" xml:space="preserve"><value>「{0}」（{1} tokens）在這則對話的前文裡，之後每一輪都會一起送出。用完了的話，可以整理對話或開新對話。</value></data>
+  <data name="Hint_ImagesFormat" xml:space="preserve"><value>這則對話的前文裡有 {0} 張圖片，之後每一輪都會重新送出。看完了的話，可以整理對話或開新對話。</value></data>
+  <data name="Hint_McpToolsFormat" xml:space="preserve"><value>目前啟用的工具說明約 {0} tokens，每次請求都會送出。用不到的 MCP 伺服器可以先關掉。</value></data>
+  <data name="Hint_RegenerateFormat" xml:space="preserve"><value>已經重新產生 {0} 次了。補充你想要的方向（例如長度、格式、重點），通常比再試一次有效。</value></data>
+  <data name="Hint_LongOutput" xml:space="preserve"><value>最近幾次回覆都很長，輸出是最貴的部分。改程式時可以請 Lumi 只給修改的地方。</value></data>
+  <data name="Hint_RepeatPasteFormat" xml:space="preserve"><value>這段內容在第 {0} 回合已經貼過，前文裡就有，下次可以直接說「剛才那段」。</value></data>
+  <data name="Hint_ElapsedHoursFormat" xml:space="preserve"><value>{0} 小時</value></data>
+  <data name="Hint_ElapsedDaysFormat" xml:space="preserve"><value>{0} 天</value></data>
+  <data name="Hint_ModelSwitchName" xml:space="preserve"><value>對話中途換模型</value></data>
+  <data name="Hint_ModelSwitchSummary" xml:space="preserve"><value>換模型後，前文要用全價重新送一次。</value></data>
+  <data name="Hint_LongConversationName" xml:space="preserve"><value>長對話一直聊下去</value></data>
+  <data name="Hint_LongConversationSummary" xml:space="preserve"><value>前文很長時，每問一句都會一起送出。</value></data>
+  <data name="Hint_StaleResumeName" xml:space="preserve"><value>隔很久回到長對話</value></data>
+  <data name="Hint_StaleResumeSummary" xml:space="preserve"><value>快取過期後，前文要用全價重新送一次。</value></data>
+  <data name="Hint_BigFileName" xml:space="preserve"><value>大檔案留在前文</value></data>
+  <data name="Hint_BigFileSummary" xml:space="preserve"><value>大檔案每一輪都會一起送出。</value></data>
+  <data name="Hint_ImagesName" xml:space="preserve"><value>圖片留在前文</value></data>
+  <data name="Hint_ImagesSummary" xml:space="preserve"><value>圖片每一輪都會重新送出。</value></data>
+  <data name="Hint_McpToolsName" xml:space="preserve"><value>啟用太多工具</value></data>
+  <data name="Hint_McpToolsSummary" xml:space="preserve"><value>工具說明每次請求都會送出。</value></data>
+  <data name="Hint_RegenerateName" xml:space="preserve"><value>一直重新產生</value></data>
+  <data name="Hint_RegenerateSummary" xml:space="preserve"><value>補充方向通常比再試一次有效。</value></data>
+  <data name="Hint_LongOutputName" xml:space="preserve"><value>要求整份重寫</value></data>
+  <data name="Hint_LongOutputSummary" xml:space="preserve"><value>輸出是最貴的部分。</value></data>
+  <data name="Hint_RepeatPasteName" xml:space="preserve"><value>同一份內容反覆貼上</value></data>
+  <data name="Hint_RepeatPasteSummary" xml:space="preserve"><value>前文裡已經有的內容，不用再貼一次。</value></data>
+  <data name="Mcp_ToolDefinitionSizeFormat" xml:space="preserve"><value>工具說明約 {0} tokens</value></data>
 </root>

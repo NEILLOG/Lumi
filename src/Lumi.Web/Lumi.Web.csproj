@@ -22,6 +22,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Proxy\PacHelpers.js" LogicalName="Lumi.Web.Proxy.PacHelpers.js" />
+    <!-- 價目表快照（LiteLLM，MIT）：M23。日期檔記下快照日期 -->
+    <EmbeddedResource Include="Pricing\litellm-model-prices.json" LogicalName="Lumi.Web.Pricing.litellm-model-prices.json" />
+    <EmbeddedResource Include="Pricing\litellm-model-prices.date.txt" LogicalName="Lumi.Web.Pricing.litellm-model-prices.date.txt" />
     <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
   </ItemGroup>
 

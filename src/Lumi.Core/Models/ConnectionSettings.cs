@@ -1,6 +1,7 @@
 using Lumi.Core.Browser;
 using Lumi.Core.Mcp;
 using Lumi.Core.Speech;
+using Lumi.Core.Usage;
 using Lumi.Core.Web;
 
 namespace Lumi.Core.Models;
@@ -46,6 +47,9 @@ public sealed record ModelSettings(
     bool ToolsEnabled = true)
 {
     public static string NewId() => Guid.NewGuid().ToString("N");
+
+    /// <summary>單價（M23）：只用來估算費用。舊設定檔沒有時是 <see cref="ModelPricing.None"/>（未設定單價）。</summary>
+    public ModelPricing Pricing { get; init; } = ModelPricing.None;
 }
 
 public enum ThemePreference { System, Light, Dark }
@@ -104,6 +108,9 @@ public sealed record AppSettings(
 
     /// <summary>圖片生成的連線、模型與預設尺寸（22F）。舊檔沒有時是未設定。</summary>
     public ImageGenerationSettings ImageGeneration { get; init; } = ImageGenerationSettings.Default;
+
+    /// <summary>用量與費用（M23）：每月預算、被關掉的提示。舊檔沒有時用預設值（不設預算、提示都開）。</summary>
+    public UsageSettings Usage { get; init; } = UsageSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

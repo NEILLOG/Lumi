@@ -52,7 +52,7 @@ public class RealDatabaseFailureTests : IDisposable
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = $"UPDATE schema_version SET version = {SqliteSchema.LatestVersion + 1};";
+            command.CommandText = $"DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = {SqliteSchema.LatestVersion + 1};";
             await command.ExecuteNonQueryAsync();
         }
         SqliteConnection.ClearAllPools();

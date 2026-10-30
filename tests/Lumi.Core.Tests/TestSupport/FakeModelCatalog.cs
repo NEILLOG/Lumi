@@ -3,6 +3,7 @@ using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Usage;
 using Lumi.Core.Web;
 
 namespace Lumi.Core.Tests.TestSupport;
@@ -110,6 +111,18 @@ internal sealed class FakeModelCatalog : IModelCatalog
 
     /// <summary>每次 <see cref="SetBehaviorAsync"/> 收到的值。</summary>
     public List<BehaviorSettings> BehaviorSaves { get; } = [];
+
+    /// <summary>每次 <see cref="SetUsageAsync"/> 收到的值。</summary>
+    public List<UsageSettings> UsageSaves { get; } = [];
+
+    public Task SetUsageAsync(UsageSettings settings, CancellationToken ct = default)
+    {
+        var normalized = settings.Normalize();
+        UsageSaves.Add(normalized);
+        Current = Current with { Usage = normalized };
+        Raise();
+        return Task.CompletedTask;
+    }
 
     public Task SetBehaviorAsync(BehaviorSettings settings, CancellationToken ct = default)
     {

@@ -209,7 +209,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS conversation_compactions; DROP TABLE mcp_tool_cache; UPDATE schema_version SET version = 9;";
+            command.CommandText = "DROP TABLE IF EXISTS conversation_compactions; DROP TABLE mcp_tool_cache; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 9;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -234,7 +234,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; UPDATE schema_version SET version = 8;";
+            command.CommandText = "DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 8;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -257,7 +257,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 7;";
+            command.CommandText = "DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 7;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -281,7 +281,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; UPDATE schema_version SET version = 6;";   // 模擬 migration 7 之前的資料庫
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 6;";   // 模擬 migration 7 之前的資料庫
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -307,7 +307,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 5 之前建立的資料庫：沒有 scheduled_items，版本是 4
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE scheduled_items; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 4;";   // 版本 6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -334,7 +334,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             // 模擬 migration 4 之前建立的資料庫：沒有 search_text 與 app_meta，版本是 3
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 3;";   // 版本 5、6 的表也要拿掉
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -363,7 +363,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 2;";   // 模擬 M4 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -419,7 +419,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
+            command.CommandText = "ALTER TABLE messages DROP COLUMN turn_suffix; DROP TABLE IF EXISTS conversation_compactions; DROP TABLE IF EXISTS mcp_tool_cache; ALTER TABLE conversations DROP COLUMN tool_snapshot; ALTER TABLE conversations DROP COLUMN system_prompt; DROP TABLE IF EXISTS memories; DROP TABLE IF EXISTS scheduled_items; DROP TABLE conversation_context; ALTER TABLE messages DROP COLUMN search_text; DROP TABLE app_meta; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 1;";   // 模擬 M3 之前建立的資料庫（search_text、app_meta 也是 migration 4 加的）
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -451,7 +451,7 @@ public sealed class SqliteConversationStoreTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = $"UPDATE schema_version SET version = {SqliteSchema.LatestVersion + 1};";
+            command.CommandText = $"DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = {SqliteSchema.LatestVersion + 1};";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

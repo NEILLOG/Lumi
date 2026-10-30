@@ -146,6 +146,40 @@ internal static class SqliteSchema
         );
         CREATE INDEX ix_conversation_compactions_conversation ON conversation_compactions(conversation_id, created_at);
         """,
+        // 12：每次 API 請求的用量與費用、使用習慣提示紀錄（M23）。conversation_id 刻意不設外鍵：刪除對話不刪費用，
+        // 重新產生、清除內容也不會讓已經花掉的錢消失。時間存 UTC 固定格式；cost_usd 與 price_snapshot_json 為 NULL＝當時未設定單價。
+        """
+        CREATE TABLE request_usage (
+          id                          TEXT PRIMARY KEY,
+          created_at                  TEXT NOT NULL,
+          conversation_id             TEXT,
+          purpose                     TEXT NOT NULL,
+          mode                        TEXT NOT NULL,
+          model_setting_id            TEXT,
+          model_id                    TEXT NOT NULL,
+          connection_name             TEXT NOT NULL,
+          input_tokens                INTEGER NOT NULL,
+          output_tokens               INTEGER NOT NULL,
+          cache_creation_input_tokens INTEGER NOT NULL,
+          cache_read_input_tokens     INTEGER NOT NULL,
+          usage_estimated             INTEGER NOT NULL DEFAULT 0,
+          price_snapshot_json         TEXT,
+          cost_usd                    REAL,
+          tool_definition_tokens      INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX ix_request_usage_created ON request_usage(created_at);
+        CREATE INDEX ix_request_usage_conversation ON request_usage(conversation_id, created_at);
+
+        CREATE TABLE usage_hints (
+          id              TEXT PRIMARY KEY,
+          rule            TEXT NOT NULL,
+          conversation_id TEXT,
+          created_at      TEXT NOT NULL,
+          outcome         TEXT NOT NULL
+        );
+        CREATE INDEX ix_usage_hints_created ON usage_hints(created_at);
+        CREATE INDEX ix_usage_hints_rule ON usage_hints(rule, conversation_id);
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

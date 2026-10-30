@@ -80,4 +80,6 @@
   <StreamGeometry x:Key="LumiIconDownload">M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3</StreamGeometry>
   <!-- 圖釘（釘選在最上層）（lucide: pin） -->
   <StreamGeometry x:Key="LumiIconPin">M12 17v5 M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z</StreamGeometry>
+  <!-- 長條圖（用量與費用）（lucide: bar-chart-3） -->
+  <StreamGeometry x:Key="LumiIconBarChart">M3 3v18h18 M18 17V9 M13 17V5 M8 17v-3</StreamGeometry>
 </ResourceDictionary>

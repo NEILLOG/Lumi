@@ -2,6 +2,7 @@ using Lumi.Core.Browser;
 using Lumi.Core.Mcp;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Usage;
 using Lumi.Core.Web;
 
 namespace Lumi.Core.Models;
@@ -88,6 +89,9 @@ public interface IModelCatalog
     /// 存了就通知 <see cref="Changed"/>。
     /// </summary>
     Task SetImageGenerationAsync(ImageGenerationSettings settings, CancellationToken ct = default) => throw new NotSupportedException();
+
+    /// <summary>用量與費用的設定（M23）：每月預算、被關掉的提示。存了就通知 <see cref="Changed"/>。預設實作不支援，只有 <c>JsonModelCatalog</c> 會存。</summary>
+    Task SetUsageAsync(UsageSettings settings, CancellationToken ct = default) => throw new NotSupportedException();
 
     /// <summary>工具清單頁的設定（M15）。存了就通知 <see cref="Changed"/>。</summary>
     Task SetToolsAsync(ToolSettings tools, CancellationToken ct = default);

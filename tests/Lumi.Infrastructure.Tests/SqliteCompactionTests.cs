@@ -131,7 +131,7 @@ public sealed class SqliteCompactionTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE conversation_compactions; UPDATE schema_version SET version = 10;";
+            command.CommandText = "DROP TABLE conversation_compactions; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 10;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();
@@ -142,6 +142,6 @@ public sealed class SqliteCompactionTests : IDisposable
         Assert.Equal(CompactionState.Empty, await reopened.GetCompactionStateAsync(c.Id));
         using var check = new SqliteConnection($"Data Source={DatabasePath}");
         check.Open();
-        Assert.Equal(11, SqliteSchema.ReadVersion(check));
+        Assert.Equal(SqliteSchema.LatestVersion, SqliteSchema.ReadVersion(check));
     }
 }
