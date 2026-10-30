@@ -58,8 +58,10 @@ jobs:
         shell: pwsh
         run: |
           dotnet publish src/Lumi.App -p:PublishProfile=win-x64 "-p:Version=$env:VERSION" --nologo
-          New-Item -ItemType Directory -Force -Path artifacts/release | Out-Null
-          Copy-Item -Path artifacts/publish/win-x64/Lumi.App.exe -Destination "artifacts/release/Lumi-$env:VERSION-win-x64.exe"
+          # zip 檔名帶版本號，裡面的執行檔固定叫 Lumi.exe（更新後路徑不變，開機自動啟動的登錄位置才不會失效）
+          New-Item -ItemType Directory -Force -Path artifacts/release, artifacts/stage | Out-Null
+          Copy-Item -Path artifacts/publish/win-x64/Lumi.App.exe -Destination artifacts/stage/Lumi.exe
+          Compress-Archive -Path artifacts/stage/Lumi.exe -DestinationPath "artifacts/release/Lumi-$env:VERSION-win-x64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: win-x64
@@ -123,10 +125,15 @@ jobs:
           if [ -f "docs/release-notes/$tag.md" ]; then
             notes=(--notes-file "docs/release-notes/$tag.md")
           fi
+          # 版本號含 "-"（例如 0.0.1-test、1.1.0-rc1）是預覽版：不會成為 latest，程式內的更新檢查也不會把它當新版
+          flags=("${notes[@]}")
+          if [[ "$VERSION" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber
           elif [ "$EVENT_NAME" = "push" ]; then
-            gh release create "$tag" release/* --title "Lumi $VERSION" "${notes[@]}" --verify-tag
+            gh release create "$tag" release/* --title "Lumi $VERSION" "${flags[@]}" --verify-tag
           else
-            gh release create "$tag" release/* --title "Lumi $VERSION" "${notes[@]}"
+            gh release create "$tag" release/* --title "Lumi $VERSION" "${flags[@]}"
           fi

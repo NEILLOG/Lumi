@@ -42,7 +42,11 @@ echo "發佈版本：$VERSION"
 if [[ -z "$ONLY" || "$ONLY" == "win" ]]; then
   echo "==> 發佈 Windows x64"
   dotnet publish src/Lumi.App -p:PublishProfile=win-x64 -p:Version="$VERSION" --nologo
-  cp "artifacts/publish/win-x64/Lumi.App.exe" "$OUT/Lumi-$VERSION-win-x64.exe"
+  # zip 檔名帶版本號，裡面的執行檔固定叫 Lumi.exe（更新後路徑不變，開機自動啟動的登錄位置才不會失效）
+  STAGE="$(mktemp -d)"
+  cp "artifacts/publish/win-x64/Lumi.App.exe" "$STAGE/Lumi.exe"
+  (cd "$STAGE" && zip -q -X "$OUT/Lumi-$VERSION-win-x64.zip" Lumi.exe)
+  rm -rf "$STAGE"
 fi
 
 if [[ -z "$ONLY" || "$ONLY" == "mac" ]]; then
