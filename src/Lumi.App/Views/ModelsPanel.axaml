@@ -78,6 +78,104 @@
             </ctl:FormField>
           </Grid>
         </Expander>
+
+        <!-- 單價（M23）：依 model ID 與連線比對價目表。整段由 ShowPricing 控制（沒有價目表時不顯示）；段落之間 24 -->
+        <ContentControl x:Name="PricingSection" Margin="0,8,0,0" Content="{Binding Pricing}" IsVisible="{Binding ShowPricing}">
+          <ContentControl.ContentTemplate>
+            <DataTemplate x:DataType="vm:ModelPricingViewModel">
+              <ctl:FormField Label="{x:Static res:Strings.Pricing_Title}">
+                <StackPanel Spacing="12">
+                  <!-- 本機：不比對、不計費 -->
+                  <TextBlock x:Name="PricingLocalText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Pricing_Local}"
+                             IsVisible="{Binding IsLocal}" />
+
+                  <!-- 只有候選（近似或前綴相符）：警示框列出來給使用者選，不自動套用 -->
+                  <Border x:Name="PricingCandidatesBox" IsVisible="{Binding ShowCandidates}" Background="{DynamicResource LumiWarningBackgroundBrush}"
+                          BorderBrush="{DynamicResource LumiWarningBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12">
+                    <StackPanel Spacing="8">
+                      <TextBlock Text="{Binding CandidatesTitle}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+                      <ItemsControl ItemsSource="{Binding Candidates}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:PriceCandidateItem">
+                            <RadioButton GroupName="PricingCandidates" IsChecked="{Binding IsSelected}" Margin="0,0,0,4">
+                              <StackPanel Spacing="4">
+                                <TextBlock Text="{Binding ModelId}" />
+                                <TextBlock Classes="muted" Text="{Binding PriceText}" />
+                              </StackPanel>
+                            </RadioButton>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="PricingApplyButton" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                                Content="{x:Static res:Strings.Pricing_Apply}" Command="{Binding ApplyCandidateCommand}" />
+                        <Button x:Name="PricingManualButton" Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                                Content="{x:Static res:Strings.Pricing_Manual}" Command="{Binding ManualCommand}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+
+                  <!-- 摘要（一行）：自動帶入時後面接「✓ 已自動帶入」，右邊是「編輯」 -->
+                  <Grid x:Name="PricingSummary" IsVisible="{Binding ShowSummary}" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding SummaryText}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                      <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,8,0" VerticalAlignment="Center" IsVisible="{Binding IsAutoFilled}">
+                        <ctl:LumiIcon Data="{StaticResource LumiIconCheck}" Size="14" Foreground="{DynamicResource LumiSuccessBrush}" VerticalAlignment="Center" />
+                        <TextBlock Classes="muted" Text="{x:Static res:Strings.Pricing_AutoFilled}" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </WrapPanel>
+                    <Button Grid.Column="1" Classes="tertiary small" VerticalAlignment="Center" Content="{x:Static res:Strings.Pricing_Edit}"
+                            Command="{Binding EditCommand}" />
+                  </Grid>
+
+                  <!-- 欄位：輸入、輸出兩欄；快取價格收合；找不到時說明；還原（只有比對得到時） -->
+                  <StackPanel x:Name="PricingFields" IsVisible="{Binding ShowFields}" Spacing="12">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                      <ctl:FormField Grid.Column="0" Label="{x:Static res:Strings.Pricing_Input}" Error="{Binding InputError}">
+                        <TextBox x:Name="PricingInputBox" Text="{Binding InputText}" Classes.error="{Binding InputError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 AutomationProperties.Name="{x:Static res:Strings.Pricing_Input}" />
+                      </ctl:FormField>
+                      <ctl:FormField Grid.Column="1" Label="{x:Static res:Strings.Pricing_Output}" Error="{Binding OutputError}">
+                        <TextBox x:Name="PricingOutputBox" Text="{Binding OutputText}" Classes.error="{Binding OutputError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 AutomationProperties.Name="{x:Static res:Strings.Pricing_Output}" />
+                      </ctl:FormField>
+                    </Grid>
+                    <TextBlock x:Name="PricingNotFoundText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Pricing_NotFound}"
+                               IsVisible="{Binding ShowNotFound}" />
+                    <Button x:Name="PricingRestoreButton" Classes="tertiary small" HorizontalAlignment="Left" Content="{x:Static res:Strings.Pricing_Restore}"
+                            Command="{Binding RestoreCommand}" IsVisible="{Binding CanRestore}" />
+                    <Expander x:Name="PricingCacheExpander" Classes="advanced" Header="{x:Static res:Strings.Pricing_Advanced}"
+                              IsExpanded="{Binding ShowAdvanced, Mode=TwoWay}">
+                      <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
+                        <ctl:FormField Grid.Column="0" Label="{x:Static res:Strings.Pricing_CacheRead}" Hint="{x:Static res:Strings.Pricing_CacheHint}"
+                                       Error="{Binding CacheReadError}">
+                          <TextBox x:Name="PricingCacheReadBox" Text="{Binding CacheReadText}" Classes.error="{Binding CacheReadError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   AutomationProperties.Name="{x:Static res:Strings.Pricing_CacheRead}" />
+                        </ctl:FormField>
+                        <ctl:FormField Grid.Column="1" Label="{x:Static res:Strings.Pricing_CacheWrite}" Hint="{x:Static res:Strings.Pricing_CacheHint}"
+                                       Error="{Binding CacheWriteError}">
+                          <TextBox x:Name="PricingCacheWriteBox" Text="{Binding CacheWriteText}" Classes.error="{Binding CacheWriteError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   AutomationProperties.Name="{x:Static res:Strings.Pricing_CacheWrite}" />
+                        </ctl:FormField>
+                      </Grid>
+                    </Expander>
+                  </StackPanel>
+
+                  <!-- 底部：說明在左；右邊是價目表日期與「更新價目表」；更新結果在下一行 -->
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" Text="{x:Static res:Strings.Pricing_Note}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <TextBlock Classes="muted" Text="{Binding TableDateText}" VerticalAlignment="Center" />
+                      <Button x:Name="PricingUpdateButton" Classes="tertiary small" Content="{Binding UpdateTableLabel}" Command="{Binding UpdateTableCommand}" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock x:Name="PricingUpdateStatusText" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasUpdateStatus}"
+                             Text="{Binding UpdateStatusText}" />
+                </StackPanel>
+              </ctl:FormField>
+            </DataTemplate>
+          </ContentControl.ContentTemplate>
+        </ContentControl>
       </StackPanel>
 
       <!-- 底部：錯誤、分隔線、動作列（刪除 danger｜儲存 primary） -->

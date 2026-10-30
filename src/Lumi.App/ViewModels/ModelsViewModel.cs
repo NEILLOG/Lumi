@@ -6,6 +6,7 @@ using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
+using Lumi.Core.Usage;
 
 namespace Lumi.App.ViewModels;
 
@@ -26,24 +27,34 @@ public partial class ModelsViewModel : ObservableObject
     private ModelListItem? _selectedItem;
     private CancellationTokenSource? _listCts;
 
-    private sealed record ModelSnapshot(string ConnectionId, string ModelId, string DisplayName, int MaxOutput, int Context, bool ShowThinking, bool ToolsEnabled)
+    private sealed record ModelSnapshot(string ConnectionId, string ModelId, string DisplayName, int MaxOutput, int Context, bool ShowThinking, bool ToolsEnabled,
+        ModelPricing Pricing)
     {
-        public static readonly ModelSnapshot Empty = new("", "", "", 0, 0, false, true);
+        public static readonly ModelSnapshot Empty = new("", "", "", 0, 0, false, true, ModelPricing.None);
     }
 
+    /// <param name="prices">價目表（單價段落用）。沒有就不顯示單價段落，儲存時維持模型設定原本的單價。</param>
     public ModelsViewModel(IModelCatalog catalog, IConnectionTester tester, ConnectionStatusCache status,
-        IConfirmService confirm, IUiDispatcher dispatcher)
+        IConfirmService confirm, IUiDispatcher dispatcher, IPriceTableSource? prices = null)
     {
         _catalog = catalog;
         _tester = tester;
         _status = status;
         _confirm = confirm;
+        Pricing = prices is null ? null : new ModelPricingViewModel(prices);
+        if (Pricing is not null)
+            Pricing.PropertyChanged += (_, _) => NotifyPricingChanged();
         Refresh();
         Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ListTitle));
         catalog.Changed += (_, _) => dispatcher.Post(Refresh);
         // 清單卡片的連線狀態跟著測試連線更新：只改項目的狀態，不重建清單（重建會讓表單的選取跳掉）
         status.Changed += (_, _) => dispatcher.Post(SyncItemStatuses);
     }
+
+    /// <summary>表單的「單價」段落；沒有價目表時是 null（段落隱藏）。</summary>
+    public ModelPricingViewModel? Pricing { get; }
+
+    public bool ShowPricing => Pricing is not null;
 
     public ObservableCollection<ModelListItem> Items { get; } = [];
 
@@ -181,7 +192,7 @@ public partial class ModelsViewModel : ObservableObject
 
     /// <summary>有欄位錯誤：儲存按鈕停用時，動作列旁邊用文字說明原因（錯誤可能在收合的「進階」裡）。</summary>
     public bool HasFieldErrors => HasEditor && (SelectedConnection is null || ModelIdError is not null || DisplayNameError is not null
-        || MaxOutputError is not null || ContextWindowError is not null);
+        || MaxOutputError is not null || ContextWindowError is not null || Pricing?.HasError == true);
 
     // ---- 驗證 ----
 
@@ -194,12 +205,22 @@ public partial class ModelsViewModel : ObservableObject
     public string? ContextWindowError => IsPositiveInt(ContextWindow) ? null : Strings.Models_NumberInvalid;
 
     public bool CanSave => HasEditor && SelectedConnection is not null && ModelIdError is null && DisplayNameError is null
-        && MaxOutputError is null && ContextWindowError is null && !IsSaving;
+        && MaxOutputError is null && ContextWindowError is null && Pricing?.HasError != true && !IsSaving;
 
     public bool IsDirty => HasEditor && CurrentSnapshot() != _snapshot;
 
     private ModelSnapshot CurrentSnapshot() => new(SelectedConnection?.Id ?? "", ModelId, DisplayName,
-        (int)(MaxOutputTokens ?? 0), (int)(ContextWindow ?? 0), ShowThinking, ToolsEnabled);
+        (int)(MaxOutputTokens ?? 0), (int)(ContextWindow ?? 0), ShowThinking, ToolsEnabled, CurrentPricing());
+
+    /// <summary>單價：有單價段落就用表單的值；沒有段落就沿用編輯器開啟時的值（存檔時不會把單價清掉）。</summary>
+    private ModelPricing CurrentPricing() => Pricing is null ? _snapshot.Pricing : Pricing.ToPricing();
+
+    private void NotifyPricingChanged()
+    {
+        OnPropertyChanged(nameof(IsDirty));
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(HasFieldErrors));
+    }
 
     private static bool IsPositiveInt(decimal? value) => value is > 0 and <= int.MaxValue && value == decimal.Truncate(value.Value);
 
@@ -222,6 +243,7 @@ public partial class ModelsViewModel : ObservableObject
             try { DisplayName = value; }
             finally { _loading = false; }
         }
+        RematchPricing();
     }
 
     partial void OnDisplayNameChanged(string value)
@@ -237,8 +259,29 @@ public partial class ModelsViewModel : ObservableObject
         // 新增時換連線：預設值跟著格式走（Anthropic／OpenAI 相容差很多）
         if (_isNew)
             ApplyDefaultsFor(value.Id);
+        RematchPricing();
         _ = LoadAvailableModelsAsync(forceRefresh: false);
     }
+
+    /// <summary>
+    /// 模型 ID 或連線改變：重新比對單價。新增模型比對到完全相符或正規化相符時，上下文上限與最大輸出一起帶入（有值才覆蓋）；
+    /// 編輯既有模型時不動這兩欄。
+    /// </summary>
+    private void RematchPricing()
+    {
+        if (Pricing is null || _loading)
+            return;
+        var entry = Pricing.Rematch(ModelId, CurrentConnection());
+        if (entry is null || !_isNew)
+            return;
+        if (entry.MaxInputTokens is { } context)
+            ContextWindow = context;
+        if (entry.MaxOutputTokens is { } maxOutput)
+            MaxOutputTokens = maxOutput;
+    }
+
+    private ConnectionSettings? CurrentConnection() =>
+        SelectedConnection is null ? null : _catalog.Current.Connections.FirstOrDefault(c => c.Id == SelectedConnection.Id);
 
     [RelayCommand(CanExecute = nameof(HasEditor))]
     private Task RefreshModelListAsync() => LoadAvailableModelsAsync(forceRefresh: true);
@@ -375,7 +418,7 @@ public partial class ModelsViewModel : ObservableObject
         var model = _catalog.Current.Models.First(m => m.Id == item.Id);
         StartEditing(model.Id, isNew: false, model.ConnectionId, model.ModelId, model.DisplayName,
             model.MaxOutputTokens, model.ContextWindow, model.ShowThinking, model.ToolsEnabled,
-            displayNameFollows: model.DisplayName == model.ModelId);
+            displayNameFollows: model.DisplayName == model.ModelId, model.Pricing);
         await LoadAvailableModelsAsync(forceRefresh: false);
         return true;
     }
@@ -398,7 +441,8 @@ public partial class ModelsViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedItem));
         var connection = _catalog.Current.Connections.FirstOrDefault(c => c.Id == connectionId) ?? _catalog.Current.Connections[0];
         var (maxOutput, context, thinking) = DefaultsFor(connection.Format);
-        StartEditing(ModelSettings.NewId(), isNew: true, connection.Id, "", "", maxOutput, context, thinking, toolsEnabled: true, displayNameFollows: true);
+        StartEditing(ModelSettings.NewId(), isNew: true, connection.Id, "", "", maxOutput, context, thinking, toolsEnabled: true, displayNameFollows: true,
+            ModelPricing.None);
         await LoadAvailableModelsAsync(forceRefresh: false);
     }
 
@@ -417,7 +461,7 @@ public partial class ModelsViewModel : ObservableObject
     }
 
     private void StartEditing(string id, bool isNew, string connectionId, string modelId, string displayName,
-        int maxOutput, int context, bool showThinking, bool toolsEnabled, bool displayNameFollows)
+        int maxOutput, int context, bool showThinking, bool toolsEnabled, bool displayNameFollows, ModelPricing pricing)
     {
         _loading = true;
         try
@@ -432,7 +476,10 @@ public partial class ModelsViewModel : ObservableObject
             ShowThinking = showThinking;
             ToolsEnabled = toolsEnabled;
             _displayNameFollowsModelId = displayNameFollows;
-            _snapshot = new ModelSnapshot(connectionId, modelId, displayName, maxOutput, context, showThinking, toolsEnabled);
+            // 單價載入後才拍快照：自動帶入的單價不算「已修改」，開啟編輯器不會跳出放棄變更的確認
+            Pricing?.Load(pricing, modelId, CurrentConnection());
+            var effectivePricing = Pricing is null ? pricing : Pricing.ToPricing();
+            _snapshot = new ModelSnapshot(connectionId, modelId, displayName, maxOutput, context, showThinking, toolsEnabled, effectivePricing);
             SaveError = null;
         }
         finally
@@ -495,7 +542,7 @@ public partial class ModelsViewModel : ObservableObject
     {
         var id = _editingId!;
         var model = new ModelSettings(id, SelectedConnection!.Id, ModelId.Trim(), DisplayName.Trim(),
-            (int)MaxOutputTokens!.Value, (int)ContextWindow!.Value, ShowThinking, ToolsEnabled);
+            (int)MaxOutputTokens!.Value, (int)ContextWindow!.Value, ShowThinking, ToolsEnabled) { Pricing = CurrentPricing() };
 
         // 新增模型時，原本的預設模型若已無法使用，就把新模型設成預設（22B）
         var replacesDefault = _isNew && await IsDefaultUnusableAsync();
@@ -519,7 +566,7 @@ public partial class ModelsViewModel : ObservableObject
         _selectedItem = item;
         OnPropertyChanged(nameof(SelectedItem));
         StartEditing(id, isNew: false, model.ConnectionId, model.ModelId, model.DisplayName, model.MaxOutputTokens,
-            model.ContextWindow, model.ShowThinking, model.ToolsEnabled, displayNameFollows: model.DisplayName == model.ModelId);
+            model.ContextWindow, model.ShowThinking, model.ToolsEnabled, displayNameFollows: model.DisplayName == model.ModelId, model.Pricing);
     }
 
     /// <summary>預設模型存在但無法使用：找不到，或它的連線沒有金鑰。一個模型都沒有（沒有預設）不算。</summary>
