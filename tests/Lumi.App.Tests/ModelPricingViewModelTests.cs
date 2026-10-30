@@ -145,10 +145,12 @@ public sealed class ModelPricingViewModelTests
     public void MarkedFree_ShowsNoFieldsAndSavesAsFree()
     {
         var vm = new ModelPricingViewModel(Prices());
-        vm.Load(ModelPricing.None, "llama3", Gateway);
+        vm.Load(ModelPricing.None, "my-private-model", Gateway);
 
         vm.IsFree = true;
 
+        Assert.False(vm.IsFreeAuto);   // 使用者自己勾的
+        Assert.True(vm.IsFreeManual);
         Assert.False(vm.ShowSummary);
         Assert.False(vm.ShowFields);
         Assert.False(vm.ShowCandidates);
@@ -164,10 +166,98 @@ public sealed class ModelPricingViewModelTests
     {
         var vm = new ModelPricingViewModel(Prices());
 
-        vm.Load(ModelPricing.None, "llama3", Ollama);
+        vm.Load(ModelPricing.None, "my-private-model", Ollama);
 
         Assert.False(vm.IsFree);
         Assert.False(vm.ToPricing().IsFree);
+    }
+
+    // ---- 地端名單（LocalModelList）：模型名稱符合就自動勾「不計費」----
+
+    [Fact]
+    public void ChangingTheModelIdToALocalModel_ChecksFreeAutomatically()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+        vm.Load(ModelPricing.None, "", Gateway);
+
+        vm.Rematch("Qwen/Qwen2.5-72B-Instruct", Gateway);
+
+        Assert.True(vm.IsFree);
+        Assert.True(vm.IsFreeAuto);
+        Assert.False(vm.ShowFields);
+        var pricing = vm.ToPricing();
+        Assert.True(pricing.IsFree);
+        Assert.Equal(PriceSource.Suggested, pricing.Source);   // 自動判斷的，和使用者自己勾的（Confirmed）分得出來
+    }
+
+    [Fact]
+    public void ChangingFromALocalModelToACloudOne_UnchecksTheAutomaticFree()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+        vm.Load(ModelPricing.None, "", Anthropic);
+        vm.Rematch("qwen2.5:7b", Anthropic);
+        Assert.True(vm.IsFree);
+
+        vm.Rematch("claude-sonnet-4-5", Anthropic);
+
+        Assert.False(vm.IsFree);
+        Assert.True(vm.ShowSummary);   // 完全相符：自動帶入價目表的單價
+        Assert.Equal(PriceSource.Suggested, vm.ToPricing().Source);
+        Assert.False(vm.ToPricing().IsFree);
+    }
+
+    [Fact]
+    public void ManualFree_IsKeptWhenTheModelIdChanges()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+        vm.Load(ModelPricing.None, "my-private-model", Gateway);
+        vm.IsFree = true;
+
+        vm.Rematch("another-private-model", Gateway);
+
+        Assert.True(vm.IsFree);   // 使用者自己勾的不會被名單改掉
+        Assert.True(vm.IsFreeManual);
+    }
+
+    [Fact]
+    public void UncheckingAnAutomaticFree_IsRememberedForThatModelId()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+        vm.Load(ModelPricing.None, "", Gateway);
+        vm.Rematch("qwen2.5:7b", Gateway);
+
+        vm.IsFree = false;   // 使用者說：這個 Qwen 其實是雲端計費的
+
+        var saved = vm.ToPricing();
+        Assert.False(saved.IsFree);
+        Assert.Equal(PriceSource.Confirmed, saved.Source);   // 空單價 + 已確認 = 「我決定過了，不是地端」
+        var reopened = new ModelPricingViewModel(Prices());
+        reopened.Load(saved, "qwen2.5:7b", Gateway);
+        Assert.False(reopened.IsFree);   // 重開不會又被自動勾回去
+        reopened.Rematch("qwen2.5:7b", Gateway);
+        Assert.False(reopened.IsFree);
+    }
+
+    [Fact]
+    public void LoadingALocalModelNobodyDecidedYet_ChecksFreeAutomatically()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+
+        vm.Load(ModelPricing.None, "llama3.1:8b", Gateway);
+
+        Assert.True(vm.IsFree);
+        Assert.True(vm.IsFreeAuto);
+    }
+
+    [Fact]
+    public void LoadingALocalModelWithASavedPrice_LeavesThePriceAlone()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+
+        vm.Load(new ModelPricing(0.5m, 1m, Source: PriceSource.Confirmed), "llama3.1:8b", Gateway);
+
+        Assert.False(vm.IsFree);
+        Assert.Equal(0.5m, vm.ToPricing().InputPerMTok);
     }
 
     [Fact]
@@ -443,6 +533,21 @@ public sealed class ModelsViewModelPricingTests
         await reopened.SelectAsync(reopened.Items.Single(i => i.Id == saved.Id));
         Assert.True(reopened.Pricing!.IsFree);
         Assert.False(reopened.IsDirty);
+    }
+
+    [Fact]
+    public async Task Save_NewLocalModelName_PersistsAnAutomaticFree()
+    {
+        using var host = new SettingsHost();
+        var vm = NewModels(host, new FakePrices());
+        await vm.StartNewAsync(null);
+        vm.ModelId = "qwen2.5:7b";
+        vm.DisplayName = "Qwen 2.5";
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        var saved = host.Catalog.Current.Models.Single(m => m.ModelId == "qwen2.5:7b");
+        Assert.Equal(new ModelPricing(null, null, IsFree: true, Source: PriceSource.Suggested), saved.Pricing);
     }
 
     [Fact]

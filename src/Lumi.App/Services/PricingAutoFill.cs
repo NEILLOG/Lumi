@@ -26,12 +26,15 @@ public static class PricingAutoFill
             if (connection is null)
                 continue;
 
+            // 地端名單優先（Gateway 後面的 Qwen、Llama 等）：自動標成不計費；使用者之後可以取消勾選
             var match = PriceMatcher.Match(prices.Current, model.ModelId, connection);
-            var pricing = match.Kind switch
-            {
-                PriceMatchKind.Exact or PriceMatchKind.Normalized => PriceMatcher.ToPricing(match.Entry!),
-                _ => null,
-            };
+            ModelPricing? pricing;
+            if (LocalModelList.IsLocalModel(model.ModelId))
+                pricing = new ModelPricing(null, null, IsFree: true, Source: PriceSource.Suggested);
+            else if (match.Kind is PriceMatchKind.Exact or PriceMatchKind.Normalized)
+                pricing = PriceMatcher.ToPricing(match.Entry!);
+            else
+                pricing = null;
             if (pricing is null)
                 continue;
 

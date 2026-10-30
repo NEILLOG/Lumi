@@ -24,6 +24,9 @@ public partial class ModelPricingViewModel : ObservableObject
     private PriceMatch? _match;
     private PriceSource _source;
     private bool _applying;
+    private bool _freeAuto;        // 「不計費」是依地端名單自動勾的（不是使用者自己勾的）
+    private bool _localOverride;   // 使用者取消了自動勾選：同一個 model ID 不再自動勾
+    private bool _undecided;       // 載入時存檔的單價完全沒決定過（可以依名單自動判斷）
 
     public ModelPricingViewModel(IPriceTableSource prices)
     {
@@ -62,13 +65,16 @@ public partial class ModelPricingViewModel : ObservableObject
     {
         if (_applying)
             return;
+        _freeAuto = false;
         _source = PriceSource.Confirmed;
         if (!value)
         {
-            // 取消勾選：回到沒有單價的狀態，依比對結果重新帶入（完全相符會自動填、近似列候選）
+            // 取消勾選：回到沒有單價的狀態，依價目表重新帶入（完全相符會自動填、近似列候選）。
+            // 記下使用者的決定：同一個 model ID 不會再被地端名單自動勾回去
+            _localOverride = true;
             _source = PriceSource.None;
             IsEditing = false;
-            MatchPrice(modelChanged: true, loading: false);
+            MatchPrice(modelChanged: false, loading: false);
         }
         NotifyState();
     }
@@ -104,6 +110,12 @@ public partial class ModelPricingViewModel : ObservableObject
 
     /// <summary>目前的單價是自動帶入、還沒有經過使用者確認。</summary>
     public bool IsAutoFilled => _source == PriceSource.Suggested && !IsFree;
+
+    /// <summary>「不計費」是依地端名單（<see cref="LocalModelList"/>）自動勾的：說明文字改成提醒使用者不對可以取消。</summary>
+    public bool IsFreeAuto => IsFree && _freeAuto;
+
+    /// <summary>使用者自己勾選的不計費。</summary>
+    public bool IsFreeManual => IsFree && !_freeAuto;
 
     public bool HasPrice => InputValue is not null && OutputValue is not null;
 
@@ -160,7 +172,11 @@ public partial class ModelPricingViewModel : ObservableObject
     {
         _modelId = modelId.Trim();
         _connection = connection;
-        _source = stored.IsFree ? PriceSource.Confirmed : stored.Source;
+        var noPrice = stored.InputPerMTok is null && stored.OutputPerMTok is null;
+        _freeAuto = stored.IsFree && stored.Source == PriceSource.Suggested;
+        _localOverride = !stored.IsFree && noPrice && stored.Source == PriceSource.Confirmed;   // 使用者明確說過「這個不是地端」
+        _undecided = !stored.IsFree && noPrice && stored.Source == PriceSource.None;
+        _source = stored.IsFree ? (_freeAuto ? PriceSource.Suggested : PriceSource.Confirmed) : stored.Source;
         IsEditing = false;
         SetFree(stored.IsFree);
         SetTexts(stored.InputPerMTok, stored.OutputPerMTok, stored.CacheReadPerMTok, stored.CacheWritePerMTok);
@@ -189,9 +205,10 @@ public partial class ModelPricingViewModel : ObservableObject
     public ModelPricing ToPricing()
     {
         if (IsFree)
-            return new ModelPricing(null, null, IsFree: true, Source: PriceSource.Confirmed);
+            return new ModelPricing(null, null, IsFree: true, Source: _freeAuto ? PriceSource.Suggested : PriceSource.Confirmed);
 
-        var source = InputValue is null && OutputValue is null ? PriceSource.None : _source;
+        // 沒有單價但使用者取消過自動勾選：存成已確認（空的），下次開啟不會再被名單自動勾回去
+        var source = InputValue is null && OutputValue is null ? (_localOverride ? PriceSource.Confirmed : PriceSource.None) : _source;
         return new ModelPricing(InputValue, OutputValue, ParseValue(CacheReadText), ParseValue(CacheWriteText), IsFree: false, Source: source);
     }
 
@@ -204,6 +221,7 @@ public partial class ModelPricingViewModel : ObservableObject
     /// <returns>本次新比對到的條目（只在 model ID 改變且完全相符或正規化相符時）；其他情況是 null。</returns>
     private PriceEntry? MatchPrice(bool modelChanged, bool loading)
     {
+        DetectLocalModel(modelChanged, loading);
         _match = _connection is null ? null : PriceMatcher.Match(_prices.Current, _modelId, _connection);
         RebuildCandidates();
         if (_match is null)
@@ -231,6 +249,37 @@ public partial class ModelPricingViewModel : ObservableObject
                     _source = PriceSource.None;
                 }
                 return null;
+        }
+    }
+
+    /// <summary>
+    /// 依地端名單（<see cref="LocalModelList"/>）自動勾選「不計費」：model ID 改成地端模型、或載入一個還沒決定過單價的地端模型時勾；
+    /// model ID 改成別的、而且「不計費」是自動勾的，就自動取消。使用者自己勾的不動；使用者取消過的（同一個 ID）不再自動勾。
+    /// </summary>
+    private void DetectLocalModel(bool modelChanged, bool loading)
+    {
+        var local = LocalModelList.IsLocalModel(_modelId);
+        if (modelChanged)
+            _localOverride = false;   // 換了 model ID 就重新判斷
+
+        if (IsFree)
+        {
+            if (modelChanged && _freeAuto && !local)
+            {
+                SetFree(false);
+                _freeAuto = false;
+                _source = PriceSource.None;
+            }
+            return;
+        }
+
+        if (!local || _localOverride)
+            return;
+        if (modelChanged || (loading && _undecided))
+        {
+            SetFree(true);
+            _freeAuto = true;
+            _source = PriceSource.Suggested;
         }
     }
 
@@ -372,6 +421,8 @@ public partial class ModelPricingViewModel : ObservableObject
     private void NotifyState()
     {
         OnPropertyChanged(nameof(IsFree));
+        OnPropertyChanged(nameof(IsFreeAuto));
+        OnPropertyChanged(nameof(IsFreeManual));
         OnPropertyChanged(nameof(IsAutoFilled));
         OnPropertyChanged(nameof(HasPrice));
         OnPropertyChanged(nameof(ShowCandidates));

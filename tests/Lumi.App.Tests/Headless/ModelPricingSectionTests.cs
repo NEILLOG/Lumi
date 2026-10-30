@@ -117,7 +117,7 @@ public class ModelPricingSectionTests
     {
         using var rig = new Rig();
         await rig.Vm.StartNewAsync(null);
-        rig.Vm.ModelId = "llama3";
+        rig.Vm.ModelId = "my-private-model";
         rig.Settle();
         Assert.False(rig.Window.FindByName<Control>("PricingFreeText").IsEffectivelyVisible);
 
@@ -128,6 +128,21 @@ public class ModelPricingSectionTests
         Assert.False(rig.Window.FindByName<Control>("PricingSummary").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingFields").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingCandidatesBox").IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public async Task LocalModelName_ChecksFreeAndShowsTheAutomaticNote()
+    {
+        using var rig = new Rig();
+        await rig.Vm.StartNewAsync(null);
+
+        rig.Vm.ModelId = "qwen2.5:7b";
+        rig.Settle();
+
+        Assert.True(rig.Window.FindByName<CheckBox>("PricingFreeCheckBox").IsChecked);
+        Assert.True(rig.Window.FindByName<Control>("PricingFreeAutoText").IsEffectivelyVisible);
+        Assert.False(rig.Window.FindByName<Control>("PricingFreeText").IsEffectivelyVisible);
+        Assert.False(rig.Window.FindByName<Control>("PricingFields").IsEffectivelyVisible);
     }
 
     [AvaloniaFact]
