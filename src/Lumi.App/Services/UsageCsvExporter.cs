@@ -96,7 +96,17 @@ public static class UsageCsvExporter
         TimeZoneInfo.ConvertTime(at, zone).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
     private static string Line(IEnumerable<string> fields) =>
-        string.Join(",", fields.Select(Escape)) + LineEnding;
+        string.Join(",", fields.Select(f => Escape(NeutralizeFormula(f)))) + LineEnding;
+
+    /// <summary>
+    /// 對話標題等文字可能是使用者貼進來的，以 = + - @ 開頭的儲存格 Excel 會當公式執行：前面補一個單引號讓它當文字。
+    /// 數字欄位（含負號的小數）不會經過這裡改寫以外的路徑，所以只處理看起來不是純數字的欄位。
+    /// </summary>
+    internal static string NeutralizeFormula(string field) =>
+        field.Length > 0 && field[0] is '=' or '+' or '-' or '@' or '\t' or '\r'
+        && !double.TryParse(field, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out _)
+            ? "'" + field
+            : field;
 
     /// <summary>RFC 4180：含逗號、雙引號、CR 或 LF 的欄位加雙引號，內部的雙引號重複一次。</summary>
     public static string Escape(string field) =>

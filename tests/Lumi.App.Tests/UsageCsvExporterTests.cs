@@ -145,4 +145,15 @@ public class UsageCsvExporterTests
         Assert.Equal("免費", UsageCsvExporter.PriceText(new PriceSnapshot(0, 0, 0, 0, IsFree: true)));
         Assert.Equal("", UsageCsvExporter.PriceText(null));
     }
+
+    [Theory]
+    [InlineData("=SUM(A1:A2)", "'=SUM(A1:A2)")]
+    [InlineData("+cmd", "'+cmd")]
+    [InlineData("@home", "'@home")]
+    [InlineData("-dash 開頭", "'-dash 開頭")]
+    [InlineData("一般標題", "一般標題")]
+    [InlineData("-0.000123", "-0.000123")]
+    [InlineData("", "")]
+    public void NeutralizeFormula_OnlyTouchesTextThatExcelWouldRunAsFormula(string field, string expected) =>
+        Assert.Equal(expected, UsageCsvExporter.NeutralizeFormula(field));
 }

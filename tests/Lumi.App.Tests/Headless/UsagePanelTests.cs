@@ -111,7 +111,7 @@ public class UsagePanelTests
 
         Assert.True(Shown(window, "NT$0"));
         Assert.True(Shown(window, Strings.UsagePage_Empty));
-        Assert.False(ButtonShown(window, Strings.UsagePage_SetBudget));   // 本月沒有紀錄時連「設定每月預算」也不顯示
+        Assert.True(ButtonShown(window, Strings.UsagePage_SetBudget));    // 還沒有用量的人也要能先設定預算
         Assert.False(Shown(window, Strings.UsagePage_DailyTitle));
         Assert.False(Shown(window, Strings.UsagePage_TopTitle));
         Assert.False(Shown(window, Strings.UsagePage_HintsTitle));

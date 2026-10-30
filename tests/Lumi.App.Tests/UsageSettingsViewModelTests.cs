@@ -110,7 +110,7 @@ public class UsageSettingsViewModelTests
     // ===== 本月卡片 =====
 
     [Fact]
-    public async Task EmptyMonth_ShowsZeroAndHidesEverythingElse()
+    public async Task EmptyMonth_ShowsZeroAndOnlyTheSetBudgetLink()
     {
         var rig = new Rig();
         await rig.Vm.LoadAsync();
@@ -120,7 +120,7 @@ public class UsageSettingsViewModelTests
         Assert.Equal("NT$0", vm.TotalText);
         Assert.Null(vm.RangeText);
         Assert.False(vm.ShowBudgetSummary);
-        Assert.False(vm.ShowSetBudgetLink);
+        Assert.True(vm.ShowSetBudgetLink);   // 還沒有用量的人也要能先設定預算
         Assert.False(vm.ShowBudgetEditor);
         Assert.False(vm.ShowProjection);
         Assert.Null(vm.UnpricedText);

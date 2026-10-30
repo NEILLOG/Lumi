@@ -141,13 +141,13 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
     public bool HasBudgetError => BudgetError is not null;
 
     /// <summary>有預算、未在編輯：顯示金額與「編輯」。</summary>
-    public bool ShowBudgetSummary => !IsEmpty && HasBudget && !IsEditingBudget;
+    public bool ShowBudgetSummary => HasBudget && !IsEditingBudget;
 
-    /// <summary>沒有預算、未在編輯：只顯示「設定每月預算」。</summary>
-    public bool ShowSetBudgetLink => !IsEmpty && !HasBudget && !IsEditingBudget;
+    /// <summary>沒有預算、未在編輯：只顯示「設定每月預算」。本月還沒有用量時也要能先設定預算。</summary>
+    public bool ShowSetBudgetLink => !HasBudget && !IsEditingBudget;
 
     /// <summary>編輯中：金額輸入、取消／儲存、不設預算。</summary>
-    public bool ShowBudgetEditor => !IsEmpty && IsEditingBudget;
+    public bool ShowBudgetEditor => IsEditingBudget;
 
     // ===== 每天、花最多的對話、提示、頁尾 =====
 
