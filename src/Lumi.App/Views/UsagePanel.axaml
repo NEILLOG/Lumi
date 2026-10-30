@@ -1,0 +1,264 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.UsagePanel"
+             x:DataType="vm:UsageSettingsViewModel">
+
+  <!--
+    設定 › 用量與費用（plan/23-usage-cost.md 第 6 節）。由上而下：本月卡片（金額、預算、預測、未設定單價）→ 每天長條 → 花最多的對話 → 這個月出現過的情況 → 頁尾。
+    頁首（SettingsPageHeader）由 SettingsWindow 提供，這裡不重複。本月沒有紀錄時卡片只剩金額與說明，其餘段落不顯示。
+    顏色只用主題 token；間距只用 0／4／8／12／16／24／32。
+  -->
+  <UserControl.Styles>
+    <!-- 本月卡片：Surface 底、1px 邊框、卡片圓角，內距 24 -->
+    <Style Selector="Border.usage-card">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+      <Setter Property="Padding" Value="24" />
+    </Style>
+    <!-- 大數字 32／600；段落標題 14／600 -->
+    <Style Selector="TextBlock.usage-big">
+      <Setter Property="FontSize" Value="32" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.row-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="TextBlock.row-text">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <!-- 預算進度條：高 6、圓角 3，軌道 SurfaceAlt；填色依等級（Normal ＝ 全域 ProgressBar 的 Accent） -->
+    <Style Selector="ProgressBar.usage-bar">
+      <Setter Property="Height" Value="6" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="ProgressBar.usage-bar.warning">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningIconBrush}" />
+    </Style>
+    <Style Selector="ProgressBar.usage-bar.danger">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
+    <!-- 清單：整個容器一個圓角框，列之間 1px 分隔（同設定首頁的 list-box） -->
+    <Style Selector="Border.list-box">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    </Style>
+    <Style Selector="Border.list-row">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <!-- 清單列的按鈕：整列可點，高 44，左右內距 16 -->
+    <Style Selector="Button.list-item">
+      <Setter Property="MinHeight" Value="44" />
+      <Setter Property="Padding" Value="16,8" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="24">
+
+        <!-- ===== 1. 本月卡片 ===== -->
+        <Border x:Name="UsageMonthCard" Classes="usage-card">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="usage-big" Text="{Binding TotalText}" />
+
+            <TextBlock Classes="muted" Text="{Binding RangeText}" TextWrapping="Wrap"
+                       IsVisible="{Binding RangeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.UsagePage_Empty}" TextWrapping="Wrap"
+                       IsVisible="{Binding IsEmpty}" />
+
+            <!-- 有預算：金額與「編輯」，下面是進度條 -->
+            <StackPanel Spacing="8" IsVisible="{Binding ShowBudgetSummary}">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <TextBlock Grid.Column="0" Classes="muted" Text="{Binding BudgetText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Classes="tertiary" MinHeight="32" Padding="12,4"
+                        Content="{x:Static res:Strings.UsagePage_EditBudget}" Command="{Binding EditBudgetCommand}" />
+              </Grid>
+              <ProgressBar Classes="usage-bar" Classes.warning="{Binding IsBudgetWarning}" Classes.danger="{Binding IsBudgetDanger}"
+                           Minimum="0" Maximum="1" Value="{Binding BudgetRatio}" />
+            </StackPanel>
+
+            <!-- 沒有預算：只有連結，按了原地展開 -->
+            <Button Classes="tertiary" HorizontalAlignment="Left" MinHeight="32" Padding="0,4"
+                    IsVisible="{Binding ShowSetBudgetLink}"
+                    Content="{x:Static res:Strings.UsagePage_SetBudget}" Command="{Binding EditBudgetCommand}" />
+
+            <!-- 編輯中：金額輸入、說明、取消／儲存；下方「不設預算」 -->
+            <StackPanel Spacing="12" IsVisible="{Binding ShowBudgetEditor}">
+              <ctl:FormField Label="{x:Static res:Strings.UsagePage_BudgetInputLabel}" Requirement="Required" Error="{Binding BudgetError}">
+                <TextBox Text="{Binding BudgetInput}" Width="160" HorizontalAlignment="Left" Classes.error="{Binding HasBudgetError}"
+                         AutomationProperties.Name="{x:Static res:Strings.UsagePage_BudgetInputLabel}" />
+              </ctl:FormField>
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.UsagePage_BudgetNote}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.UsagePage_Cancel}" Command="{Binding CancelBudgetCommand}" />
+                <Button Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.UsagePage_Save}" Command="{Binding SaveBudgetCommand}" />
+              </StackPanel>
+              <Button Classes="tertiary" HorizontalAlignment="Left" MinHeight="32" Padding="0,4"
+                      Content="{x:Static res:Strings.UsagePage_NoBudget}" Command="{Binding ClearBudgetCommand}" />
+            </StackPanel>
+
+            <TextBlock Classes="muted" Text="{Binding ProjectionText}" TextWrapping="Wrap"
+                       IsVisible="{Binding ShowProjection}" />
+
+            <!-- 未設定單價的請求：一行說明，右邊連到單價設定 -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"
+                  IsVisible="{Binding UnpricedText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+              <TextBlock Grid.Column="0" Classes="muted" Text="{Binding UnpricedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="tertiary" MinHeight="32" Padding="8,4" VerticalAlignment="Center"
+                      Command="{Binding OpenPricingCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="{x:Static res:Strings.UsagePage_PricingLink}" />
+                  <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- ===== 2. 每天（本月沒有紀錄時不顯示） ===== -->
+        <StackPanel Spacing="8" IsVisible="{Binding !IsEmpty}">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.UsagePage_DailyTitle}" />
+          <ctl:DailyCostBars Items="{Binding Daily}" />
+        </StackPanel>
+
+        <!-- ===== 3. 花最多的對話（本月前 5 則；沒有可列的對話時不顯示） ===== -->
+        <StackPanel Spacing="8" IsVisible="{Binding HasTopConversations}">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.UsagePage_TopTitle}" />
+          <Border Classes="list-box">
+            <ItemsControl ItemsSource="{Binding TopConversations}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:UsageTopConversationItem">
+                  <Border Classes="list-row">
+                    <Button Classes="tertiary list-item"
+                            Command="{Binding $parent[UserControl].((vm:UsageSettingsViewModel)DataContext).OpenConversationCommand}"
+                            CommandParameter="{Binding ConversationId}">
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                        <StackPanel Grid.Column="0" Spacing="0" VerticalAlignment="Center">
+                          <TextBlock Classes="row-title" Text="{Binding Title}" />
+                          <TextBlock Classes="muted" Text="{Binding MetaText}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Classes="row-text" Text="{Binding CostText}" VerticalAlignment="Center" />
+                        <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16"
+                                      Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                      </Grid>
+                    </Button>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+
+        <!-- ===== 4. 這個月出現過的情況（沒有任何紀錄時不顯示） ===== -->
+        <StackPanel Spacing="8" IsVisible="{Binding ShowHints}">
+          <TextBlock Classes="section-title" Text="{x:Static res:Strings.UsagePage_HintsTitle}" />
+          <Border Classes="list-box">
+            <ItemsControl ItemsSource="{Binding Hints}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:UsageHintSummaryItem">
+                  <Border Classes="list-row">
+                    <StackPanel>
+                      <!-- 整列可點（展開對話清單）；沒有可列的對話時不能展開，也沒有箭頭 -->
+                      <Button Classes="tertiary list-item"
+                              IsEnabled="{Binding HasConversations}"
+                              Command="{Binding $parent[UserControl].((vm:UsageSettingsViewModel)DataContext).ToggleHintCommand}"
+                              CommandParameter="{Binding Rule}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                          <StackPanel Grid.Column="0" Spacing="0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <TextBlock Classes="row-title" Text="{Binding Name}" />
+                              <TextBlock Classes="muted" Text="{Binding CountText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+                          </StackPanel>
+                          <ctl:LumiIcon Grid.Column="1" Data="{StaticResource LumiIconChevronRight}" Size="16"
+                                        Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center"
+                                        IsVisible="{Binding HasConversations}" />
+                        </Grid>
+                      </Button>
+
+                      <!-- 被「不再提醒這類」靜音：說明後多一行，可以重新開啟 -->
+                      <StackPanel Orientation="Horizontal" Spacing="8" Margin="16,0,16,8" IsVisible="{Binding IsMuted}">
+                        <TextBlock Classes="muted" Text="{x:Static res:Strings.UsagePage_HintMuted}" VerticalAlignment="Center" />
+                        <TextBlock Classes="muted" Text="·" VerticalAlignment="Center" />
+                        <Button Classes="tertiary" MinHeight="24" Padding="4,0"
+                                Content="{x:Static res:Strings.UsagePage_HintUnmute}"
+                                Command="{Binding $parent[UserControl].((vm:UsageSettingsViewModel)DataContext).UnmuteHintCommand}"
+                                CommandParameter="{Binding Rule}" />
+                      </StackPanel>
+
+                      <!-- 展開：對話清單（標題與日期），點了開啟該對話 -->
+                      <ItemsControl ItemsSource="{Binding Conversations}" IsVisible="{Binding IsExpanded}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:UsageHintConversationItem">
+                            <Button Classes="tertiary list-item"
+                                    Command="{Binding $parent[UserControl].((vm:UsageSettingsViewModel)DataContext).OpenConversationCommand}"
+                                    CommandParameter="{Binding ConversationId}">
+                              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                                <TextBlock Grid.Column="0" Classes="row-text" Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Classes="muted" Text="{Binding DateText}" VerticalAlignment="Center" />
+                                <ctl:LumiIcon Grid.Column="2" Data="{StaticResource LumiIconChevronRight}" Size="16"
+                                              Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                              </Grid>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+
+        <!-- ===== 5. 頁尾：說明、單價設定、匯出 ===== -->
+        <Border Classes="divider" />
+        <StackPanel Spacing="8">
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.UsagePage_Footnote}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Command="{Binding ExportCommand}"
+                    Content="{x:Static res:Strings.UsagePage_Export}" />
+            <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Command="{Binding OpenPricingCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="{x:Static res:Strings.UsagePage_PricingLink}" />
+                <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <TextBlock Classes.muted="{Binding !ExportMessageIsError}" Classes.error="{Binding ExportMessageIsError}"
+                     Text="{Binding ExportMessage}" TextWrapping="Wrap"
+                     IsVisible="{Binding ExportMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </StackPanel>
+
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </ScrollViewer>
+</UserControl>
