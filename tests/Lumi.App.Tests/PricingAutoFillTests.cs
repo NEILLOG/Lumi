@@ -45,7 +45,7 @@ public sealed class PricingAutoFillTests : IDisposable
     ], new DateOnly(2026, 10, 15)));
 
     [Fact]
-    public async Task Run_FillsExactAndLocal_AndLeavesCandidatesNotFoundAndConfirmedAlone()
+    public async Task Run_FillsExact_AndLeavesLocalhostCandidatesNotFoundAndConfirmedAlone()
     {
         using var host = new SettingsHost();
         var anthropicId = host.Catalog.Current.Connections[0].Id;
@@ -70,8 +70,7 @@ public sealed class PricingAutoFillTests : IDisposable
         Assert.Equal(new ModelPricing(3m, 15m, 0.3m, 3.75m, false, PriceSource.Suggested), models["m-exact"].Pricing);
         Assert.Equal(50_000, models["m-exact"].ContextWindow);   // 上下文上限與最大輸出不動
         Assert.Equal(4096, models["m-exact"].MaxOutputTokens);
-        Assert.True(models["m-local"].Pricing.IsFree);
-        Assert.Equal(PriceSource.Suggested, models["m-local"].Pricing.Source);
+        Assert.Equal(ModelPricing.None, models["m-local"].Pricing);   // 不從網址猜地端：沒有相符的就不動，免費由使用者自己勾選
         Assert.Equal(ModelPricing.None, models["m-candidate"].Pricing);
         Assert.Equal(ModelPricing.None, models["m-none"].Pricing);
         Assert.Equal(new ModelPricing(9m, 9m, null, null, false, PriceSource.Confirmed), models["m-confirmed"].Pricing);

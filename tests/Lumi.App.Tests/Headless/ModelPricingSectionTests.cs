@@ -70,7 +70,7 @@ public class ModelPricingSectionTests
         Assert.True(rig.Window.FindByName<Control>("PricingSummary").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingFields").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingCandidatesBox").IsEffectivelyVisible);
-        Assert.False(rig.Window.FindByName<Control>("PricingLocalText").IsEffectivelyVisible);
+        Assert.False(rig.Window.FindByName<Control>("PricingFreeText").IsEffectivelyVisible);
         var summary = string.Format(CultureInfo.CurrentCulture, Strings.Pricing_SummaryFormat, "3.00", "15.00");
         Assert.Contains(rig.TextBlocks(), t => t.Text == summary && t.IsEffectivelyVisible);
         Assert.Contains(rig.TextBlocks(), t => t.Text == Strings.Pricing_AutoFilled && t.IsEffectivelyVisible);
@@ -113,18 +113,18 @@ public class ModelPricingSectionTests
     }
 
     [AvaloniaFact]
-    public async Task Local_ShowsOnlyTheLocalLine()
+    public async Task MarkedFree_ShowsOnlyTheFreeLine()
     {
         using var rig = new Rig();
-        await rig.Host.Catalog.SaveConnectionAsync(new ConnectionSettings("ollama", "Ollama", ProviderFormat.OpenAICompatible,
-            "http://localhost:11434/v1"), null);
-        rig.Settle();
         await rig.Vm.StartNewAsync(null);
-        rig.Vm.SelectedConnection = rig.Vm.Connections.Single(c => c.Id == "ollama");
         rig.Vm.ModelId = "llama3";
         rig.Settle();
+        Assert.False(rig.Window.FindByName<Control>("PricingFreeText").IsEffectivelyVisible);
 
-        Assert.True(rig.Window.FindByName<Control>("PricingLocalText").IsEffectivelyVisible);
+        rig.Window.FindByName<CheckBox>("PricingFreeCheckBox").IsChecked = true;
+        rig.Settle();
+
+        Assert.True(rig.Window.FindByName<Control>("PricingFreeText").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingSummary").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingFields").IsEffectivelyVisible);
         Assert.False(rig.Window.FindByName<Control>("PricingCandidatesBox").IsEffectivelyVisible);

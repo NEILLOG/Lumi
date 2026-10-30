@@ -3,7 +3,7 @@ using Lumi.Core.Models;
 
 namespace Lumi.Core.Usage;
 
-public enum PriceMatchKind { Exact, Normalized, Candidates, NotFound, Local }
+public enum PriceMatchKind { Exact, Normalized, Candidates, NotFound }
 
 /// <summary>比對結果。<see cref="PriceMatchKind.Exact"/>／<see cref="PriceMatchKind.Normalized"/> 才會自動帶入；<see cref="PriceMatchKind.Candidates"/> 只給使用者挑。</summary>
 /// <param name="Entry">Exact／Normalized 時有值。</param>
@@ -26,9 +26,6 @@ public static class PriceMatcher
 
     public static PriceMatch Match(PriceTable table, string modelId, ConnectionSettings connection)
     {
-        if (LocalConnection.IsLoopback(connection.BaseUrl))
-            return new(PriceMatchKind.Local, null, []);
-
         if (string.IsNullOrWhiteSpace(modelId))
             return new(PriceMatchKind.NotFound, null, []);
 

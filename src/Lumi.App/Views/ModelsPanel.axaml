@@ -85,9 +85,10 @@
             <DataTemplate x:DataType="vm:ModelPricingViewModel">
               <ctl:FormField Label="{x:Static res:Strings.Pricing_Title}">
                 <StackPanel Spacing="12">
-                  <!-- 本機：不比對、不計費 -->
-                  <TextBlock x:Name="PricingLocalText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Pricing_Local}"
-                             IsVisible="{Binding IsLocal}" />
+                  <!-- 不計費（例如地端模型）：使用者自己勾選，勾了就不比對、不顯示單價欄位 -->
+                  <CheckBox x:Name="PricingFreeCheckBox" Content="{x:Static res:Strings.Pricing_FreeToggle}" IsChecked="{Binding IsFree}" />
+                  <TextBlock x:Name="PricingFreeText" Classes="muted" TextWrapping="Wrap" Text="{x:Static res:Strings.Pricing_FreeNote}"
+                             IsVisible="{Binding IsFree}" />
 
                   <!-- 只有候選（近似或前綴相符）：警示框列出來給使用者選，不自動套用 -->
                   <Border x:Name="PricingCandidatesBox" IsVisible="{Binding ShowCandidates}" Background="{DynamicResource LumiWarningBackgroundBrush}"

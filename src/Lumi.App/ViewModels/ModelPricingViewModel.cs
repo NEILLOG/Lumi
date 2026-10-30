@@ -10,7 +10,8 @@ namespace Lumi.App.ViewModels;
 
 /// <summary>
 /// 模型設定表單的「單價」段落（plan/23-usage-cost.md 第 6 節）。依 model ID 與連線比對價目表：
-/// 完全相符或正規化後相符自動帶入（<see cref="PriceSource.Suggested"/>）；近似或前綴相符只列候選；本機不計費。
+/// 完全相符或正規化後相符自動帶入（<see cref="PriceSource.Suggested"/>）；近似或前綴相符只列候選。
+/// 「不計費」是使用者自己勾選的（例如 Gateway 後面的地端模型）：從網址分不出來，所以不自動判斷。
 /// 使用者改過或確認過的單價是 <see cref="PriceSource.Confirmed"/>，連線改變時不覆蓋，只有 model ID 改了才重新比對。
 /// </summary>
 public partial class ModelPricingViewModel : ObservableObject
@@ -31,6 +32,9 @@ public partial class ModelPricingViewModel : ObservableObject
 
     /// <summary>比對到只有候選（近似或前綴相符）時的清單，最多 3 筆。</summary>
     public ObservableCollection<PriceCandidateItem> Candidates { get; } = [];
+
+    /// <summary>不計費（例如地端模型）：用量照記、費用算 0；不比對價目表、不顯示單價欄位。使用者自己勾選。</summary>
+    [ObservableProperty] private bool _isFree;
 
     // ---- 欄位（文字；空白＝未設定）----
 
@@ -53,6 +57,21 @@ public partial class ModelPricingViewModel : ObservableObject
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasUpdateStatus))] private string? _updateStatusText;
 
     public bool HasUpdateStatus => UpdateStatusText is not null;
+
+    partial void OnIsFreeChanged(bool value)
+    {
+        if (_applying)
+            return;
+        _source = PriceSource.Confirmed;
+        if (!value)
+        {
+            // 取消勾選：回到沒有單價的狀態，依比對結果重新帶入（完全相符會自動填、近似列候選）
+            _source = PriceSource.None;
+            IsEditing = false;
+            MatchPrice(modelChanged: true, loading: false);
+        }
+        NotifyState();
+    }
 
     partial void OnInputTextChanged(string value) => OnFieldEdited();
 
@@ -82,26 +101,24 @@ public partial class ModelPricingViewModel : ObservableObject
 
     // ---- 畫面狀態（唯讀）----
 
-    /// <summary>本機連線：不比對、不計費。</summary>
-    public bool IsLocal => _match?.Kind == PriceMatchKind.Local;
 
     /// <summary>目前的單價是自動帶入、還沒有經過使用者確認。</summary>
-    public bool IsAutoFilled => _source == PriceSource.Suggested && !IsLocal;
+    public bool IsAutoFilled => _source == PriceSource.Suggested && !IsFree;
 
     public bool HasPrice => InputValue is not null && OutputValue is not null;
 
     /// <summary>只有候選、還沒有單價、使用者也還沒選「自己填」：列出候選，欄位先不顯示。</summary>
-    public bool ShowCandidates => !IsLocal && !IsEditing && !HasPrice && _match?.Kind == PriceMatchKind.Candidates;
+    public bool ShowCandidates => !IsFree && !IsEditing && !HasPrice && _match?.Kind == PriceMatchKind.Candidates;
 
     /// <summary>輸入框：編輯中，或還沒有單價（找不到的情況直接給空欄位）。</summary>
-    public bool ShowFields => !IsLocal && !ShowCandidates && (IsEditing || !HasPrice);
+    public bool ShowFields => !IsFree && !ShowCandidates && (IsEditing || !HasPrice);
 
     /// <summary>一行摘要：有單價、沒在編輯。</summary>
-    public bool ShowSummary => !IsLocal && !ShowFields && !ShowCandidates;
+    public bool ShowSummary => !IsFree && !ShowFields && !ShowCandidates;
 
     public bool ShowNotFound => ShowFields && _match?.Kind == PriceMatchKind.NotFound;
 
-    public bool CanRestore => !IsLocal && _match?.Kind is PriceMatchKind.Exact or PriceMatchKind.Normalized;
+    public bool CanRestore => !IsFree && _match?.Kind is PriceMatchKind.Exact or PriceMatchKind.Normalized;
 
     public string CandidatesTitle => string.Format(CultureInfo.CurrentCulture, Strings.Pricing_CandidatesFormat, _modelId);
 
@@ -128,7 +145,7 @@ public partial class ModelPricingViewModel : ObservableObject
     public bool HasError => InputError is not null || OutputError is not null || CacheReadError is not null || CacheWriteError is not null;
 
     private string? ErrorFor(string text) =>
-        !IsLocal && !string.IsNullOrWhiteSpace(text) && ParseValue(text) is null ? Strings.Pricing_Invalid : null;
+        !IsFree && !string.IsNullOrWhiteSpace(text) && ParseValue(text) is null ? Strings.Pricing_Invalid : null;
 
     private decimal? InputValue => ParseValue(InputText);
 
@@ -143,8 +160,9 @@ public partial class ModelPricingViewModel : ObservableObject
     {
         _modelId = modelId.Trim();
         _connection = connection;
-        _source = stored.IsFree ? PriceSource.None : stored.Source;
+        _source = stored.IsFree ? PriceSource.Confirmed : stored.Source;
         IsEditing = false;
+        SetFree(stored.IsFree);
         SetTexts(stored.InputPerMTok, stored.OutputPerMTok, stored.CacheReadPerMTok, stored.CacheWritePerMTok);
         ShowAdvanced = stored.CacheReadPerMTok is not null || stored.CacheWritePerMTok is not null;
         MatchPrice(modelChanged: false, loading: true);
@@ -170,8 +188,8 @@ public partial class ModelPricingViewModel : ObservableObject
     /// <summary>目前表單上的單價（存檔用）。本機一律免費；欄位都空白時來源是 <see cref="PriceSource.None"/>。</summary>
     public ModelPricing ToPricing()
     {
-        if (IsLocal)
-            return new ModelPricing(null, null, IsFree: true, Source: PriceSource.Suggested);
+        if (IsFree)
+            return new ModelPricing(null, null, IsFree: true, Source: PriceSource.Confirmed);
 
         var source = InputValue is null && OutputValue is null ? PriceSource.None : _source;
         return new ModelPricing(InputValue, OutputValue, ParseValue(CacheReadText), ParseValue(CacheWriteText), IsFree: false, Source: source);
@@ -191,13 +209,9 @@ public partial class ModelPricingViewModel : ObservableObject
         if (_match is null)
             return null;
 
-        if (IsLocal)
-        {
-            _source = PriceSource.Suggested;
-            SetTexts(null, null, null, null);
-            ShowAdvanced = false;
+        // 標了「不計費」就不比對、不動單價欄位
+        if (IsFree)
             return null;
-        }
 
         // 使用者確認過的單價不因連線改變而覆蓋；model ID 改了才重新比對
         if (!modelChanged && _source == PriceSource.Confirmed)
@@ -255,6 +269,20 @@ public partial class ModelPricingViewModel : ObservableObject
             OutputText = ToText(output);
             CacheReadText = ToText(cacheRead);
             CacheWriteText = ToText(cacheWrite);
+        }
+        finally
+        {
+            _applying = false;
+        }
+    }
+
+    /// <summary>程式設定「不計費」（不算使用者編輯）。</summary>
+    private void SetFree(bool free)
+    {
+        _applying = true;
+        try
+        {
+            IsFree = free;
         }
         finally
         {
@@ -343,7 +371,7 @@ public partial class ModelPricingViewModel : ObservableObject
     /// <summary>計算屬性會依多個欄位改變，這裡一次通知（命令的可執行狀態也一起更新）。</summary>
     private void NotifyState()
     {
-        OnPropertyChanged(nameof(IsLocal));
+        OnPropertyChanged(nameof(IsFree));
         OnPropertyChanged(nameof(IsAutoFilled));
         OnPropertyChanged(nameof(HasPrice));
         OnPropertyChanged(nameof(ShowCandidates));

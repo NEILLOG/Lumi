@@ -154,15 +154,14 @@ public sealed class PriceMatcherTests
     }
 
     [Fact]
-    public void Local_ReturnsLocal()
+    public void LocalhostConnection_IsMatchedLikeAnyOther()
     {
+        // 網址分不出地端與雲端（Gateway 後面兩種都有）：不再有「本機」這個結果，要免費由使用者自己勾選
         var table = Table(Entry("llama3"));
 
         var match = PriceMatcher.Match(table, "llama3", Local);
 
-        Assert.Equal(PriceMatchKind.Local, match.Kind);
-        Assert.Null(match.Entry);
-        Assert.Empty(match.Candidates);
+        Assert.Equal(PriceMatchKind.Exact, match.Kind);
     }
 
     [Fact]

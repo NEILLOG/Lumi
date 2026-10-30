@@ -987,7 +987,8 @@ public static class Strings
     public static string Pricing_Apply => Get(nameof(Pricing_Apply));
     public static string Pricing_Manual => Get(nameof(Pricing_Manual));
     public static string Pricing_NotFound => Get(nameof(Pricing_NotFound));
-    public static string Pricing_Local => Get(nameof(Pricing_Local));
+    public static string Pricing_FreeToggle => Get(nameof(Pricing_FreeToggle));
+    public static string Pricing_FreeNote => Get(nameof(Pricing_FreeNote));
     public static string Pricing_Note => Get(nameof(Pricing_Note));
     public static string Pricing_Invalid => Get(nameof(Pricing_Invalid));
     public static string Pricing_TableDateFormat => Get(nameof(Pricing_TableDateFormat));

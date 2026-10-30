@@ -29,7 +29,6 @@ public static class PricingAutoFill
             var match = PriceMatcher.Match(prices.Current, model.ModelId, connection);
             var pricing = match.Kind switch
             {
-                PriceMatchKind.Local => new ModelPricing(null, null, IsFree: true, Source: PriceSource.Suggested),
                 PriceMatchKind.Exact or PriceMatchKind.Normalized => PriceMatcher.ToPricing(match.Entry!),
                 _ => null,
             };

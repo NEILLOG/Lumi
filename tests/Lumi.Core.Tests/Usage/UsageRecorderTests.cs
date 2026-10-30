@@ -64,8 +64,9 @@ public sealed class UsageRecorderTests
     }
 
     [Fact]
-    public async Task LocalConnection_WithoutPrice_IsFree()
+    public async Task LocalhostConnection_WithoutPrice_IsNotAssumedFree()
     {
+        // 從網址分不出地端與雲端：沒設單價就是「未設定」，不計入預算
         var store = new InMemoryUsageStore();
         var recorder = new UsageRecorder(store, TimeProvider.System, NullLogger<UsageRecorder>.Instance);
         var local = new ResolvedModel(FakeModelCatalog.Model with { Pricing = ModelPricing.None }, LocalConnection);
@@ -73,15 +74,14 @@ public sealed class UsageRecorderTests
         await recorder.RecordAsync(Observation(local));
 
         var record = Assert.Single(store.Records);
-        Assert.Equal(PriceSnapshot.From(new ModelPricing(null, null, IsFree: true)), record.Price);
-        Assert.Equal(0m, record.CostUsd);
+        Assert.Null(record.Price);
+        Assert.Null(record.CostUsd);
         Assert.Equal(1_000_000, record.Tokens.InputTokens);   // 用量照記
     }
 
     [Fact]
     public async Task IntranetGateway_WithoutPrice_IsNotFree()
     {
-        // 公司內網的 Gateway 不是本機模型：沒設定單價就是「未設定」，不能被當成免費
         var store = new InMemoryUsageStore();
         var recorder = new UsageRecorder(store, TimeProvider.System, NullLogger<UsageRecorder>.Instance);
         var gateway = new ConnectionSettings("gw", "公司 Gateway", ProviderFormat.OpenAICompatible, "http://10.1.2.3:8080/v1");
@@ -94,15 +94,19 @@ public sealed class UsageRecorderTests
     }
 
     [Fact]
-    public async Task LocalConnection_WithExplicitPrice_UsesThePrice()
+    public async Task MarkedFree_RecordsUsageWithZeroCost()
     {
+        // 使用者勾了「不計費」（例如 Gateway 後面的地端模型）
         var store = new InMemoryUsageStore();
         var recorder = new UsageRecorder(store, TimeProvider.System, NullLogger<UsageRecorder>.Instance);
-        var local = new ResolvedModel(FakeModelCatalog.Model with { Pricing = new ModelPricing(1m, 2m, Source: PriceSource.Confirmed) }, LocalConnection);
+        var free = new ModelPricing(null, null, IsFree: true, Source: PriceSource.Confirmed);
 
-        await recorder.RecordAsync(Observation(local));
+        await recorder.RecordAsync(Observation(Remote(free)));
 
-        Assert.Equal(1m + 1m, Assert.Single(store.Records).CostUsd);   // 1M 輸入 × 1 + 0.5M 輸出 × 2
+        var record = Assert.Single(store.Records);
+        Assert.Equal(PriceSnapshot.From(free), record.Price);
+        Assert.Equal(0m, record.CostUsd);
+        Assert.Equal(1_000_000, record.Tokens.InputTokens);
     }
 
     [Fact]

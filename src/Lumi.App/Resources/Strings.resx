@@ -998,7 +998,8 @@
   <data name="Pricing_Apply" xml:space="preserve"><value>套用</value></data>
   <data name="Pricing_Manual" xml:space="preserve"><value>自己填</value></data>
   <data name="Pricing_NotFound" xml:space="preserve"><value>價目表裡找不到這個模型。先留空也可以，費用會顯示「未設定單價」。</value></data>
-  <data name="Pricing_Local" xml:space="preserve"><value>本機模型，不計費 · 用量照常記錄，費用算 0</value></data>
+  <data name="Pricing_FreeToggle" xml:space="preserve"><value>不計費（例如地端模型）</value></data>
+  <data name="Pricing_FreeNote" xml:space="preserve"><value>不計費 · 用量照常記錄，費用算 0</value></data>
   <data name="Pricing_Note" xml:space="preserve"><value>只用來估算費用。改了只影響之後的請求。</value></data>
   <data name="Pricing_Invalid" xml:space="preserve"><value>請輸入 0 以上的數字。</value></data>
   <data name="Pricing_TableDateFormat" xml:space="preserve"><value>價目表日期：{0}</value></data>

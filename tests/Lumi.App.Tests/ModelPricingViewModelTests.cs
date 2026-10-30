@@ -142,19 +142,58 @@ public sealed class ModelPricingViewModelTests
     }
 
     [Fact]
-    public void Local_IsFreeAndShowsNoFields()
+    public void MarkedFree_ShowsNoFieldsAndSavesAsFree()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+        vm.Load(ModelPricing.None, "llama3", Gateway);
+
+        vm.IsFree = true;
+
+        Assert.False(vm.ShowSummary);
+        Assert.False(vm.ShowFields);
+        Assert.False(vm.ShowCandidates);
+        Assert.False(vm.HasError);
+        var pricing = vm.ToPricing();
+        Assert.True(pricing.IsFree);
+        Assert.True(pricing.IsSet);
+        Assert.Equal(PriceSource.Confirmed, pricing.Source);
+    }
+
+    [Fact]
+    public void LocalhostConnection_IsNotAssumedFree()
     {
         var vm = new ModelPricingViewModel(Prices());
 
         vm.Load(ModelPricing.None, "llama3", Ollama);
 
-        Assert.True(vm.IsLocal);
-        Assert.False(vm.ShowSummary);
-        Assert.False(vm.ShowFields);
-        Assert.False(vm.ShowCandidates);
-        var pricing = vm.ToPricing();
-        Assert.True(pricing.IsFree);
-        Assert.True(pricing.IsSet);
+        Assert.False(vm.IsFree);
+        Assert.False(vm.ToPricing().IsFree);
+    }
+
+    [Fact]
+    public void Load_RestoresTheSavedFreeFlag()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+
+        vm.Load(new ModelPricing(null, null, IsFree: true, Source: PriceSource.Confirmed), "claude-sonnet-4-5", Gateway);
+
+        Assert.True(vm.IsFree);
+        Assert.True(vm.ToPricing().IsFree);
+        Assert.False(vm.ShowSummary);   // 標了不計費就不會被價目表蓋掉
+    }
+
+    [Fact]
+    public void UncheckingFree_RematchesThePriceTable()
+    {
+        var vm = new ModelPricingViewModel(Prices());
+        vm.Load(ModelPricing.None, "claude-sonnet-4-5", Anthropic);
+        vm.IsFree = true;
+
+        vm.IsFree = false;
+
+        Assert.False(vm.ToPricing().IsFree);
+        Assert.True(vm.ShowSummary);       // 完全相符：又自動帶入
+        Assert.True(vm.IsAutoFilled);
     }
 
     // ---- 編輯、還原、錯誤 ----
@@ -386,6 +425,27 @@ public sealed class ModelsViewModelPricingTests
     }
 
     [Fact]
+    public async Task Save_MarkedFree_PersistsTheFlag_AndReopeningKeepsIt()
+    {
+        using var host = new SettingsHost();
+        var vm = NewModels(host, new FakePrices());
+        await vm.StartNewAsync(null);
+        vm.ModelId = "claude-sonnet-4-5";   // 價目表有這個 ID，但使用者說它不計費（例如 Gateway 後面的地端模型取了同名）
+        vm.Pricing!.IsFree = true;
+        Assert.True(vm.IsDirty);
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        var saved = host.Catalog.Current.Models.Single(m => m.ModelId == "claude-sonnet-4-5");
+        Assert.True(saved.Pricing.IsFree);
+        Assert.Equal(PriceSource.Confirmed, saved.Pricing.Source);
+        var reopened = NewModels(host, new FakePrices());
+        await reopened.SelectAsync(reopened.Items.Single(i => i.Id == saved.Id));
+        Assert.True(reopened.Pricing!.IsFree);
+        Assert.False(reopened.IsDirty);
+    }
+
+    [Fact]
     public async Task Save_NewModel_PersistsTheSuggestedPrice()
     {
         using var host = new SettingsHost();
@@ -455,22 +515,5 @@ public sealed class ModelsViewModelPricingTests
 
         vm.Pricing.InputText = "2";
         Assert.True(vm.CanSave);
-    }
-
-    [Fact]
-    public async Task ChangingTheConnection_RematchesToLocal()
-    {
-        using var host = new SettingsHost();
-        var ollamaId = "ollama";
-        await host.Catalog.SaveConnectionAsync(new ConnectionSettings(ollamaId, "Ollama", ProviderFormat.OpenAICompatible, "http://localhost:11434/v1"), null);
-        var vm = NewModels(host, new FakePrices());
-        await vm.StartNewAsync(host.Catalog.Current.Connections[0].Id);
-        vm.ModelId = "claude-sonnet-4-5";
-        Assert.Equal(PriceSource.Suggested, vm.Pricing!.ToPricing().Source);
-
-        vm.SelectedConnection = vm.Connections.Single(c => c.Id == ollamaId);
-
-        Assert.True(vm.Pricing!.IsLocal);
-        Assert.True(vm.Pricing.ToPricing().IsFree);
     }
 }
