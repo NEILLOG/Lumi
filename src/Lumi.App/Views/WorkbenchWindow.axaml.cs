@@ -29,6 +29,9 @@ public partial class WorkbenchWindow : Window
         // Enter 送出、貼上截圖、拖放在 ChatComposer；自動捲到底在 ConversationView
         // 選了模型就關掉彈出選單
         viewModel.ModelSwitcher.Selected += () => Toolbar.CapsuleButton.Flyout?.Hide();
+        // 關掉選單時還留著「換模型前的確認區」（沒按任何按鈕）就收起並記為略過（M23 第 1 條提示）；已經選了就什麼都不做
+        if (Toolbar.CapsuleButton.Flyout is { } modelFlyout)
+            modelFlyout.Closed += (_, _) => _ = viewModel.ModelSwitcher.DismissPendingSwitchAsync();
         viewModel.RetrySwitcher.Selected += () => Conversation.RetryOtherModelButton.Flyout?.Hide();
         Opened += OnOpened;
 

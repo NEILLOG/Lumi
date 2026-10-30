@@ -61,6 +61,7 @@ public static class AppServiceCollectionExtensions
                 await sp.GetRequiredService<WorkbenchViewModel>().OpenConversationAsync(conversation);
             }));
         services.AddSingleton<ISpriteNotice, SpriteNotice>();
+        services.AddSingleton<UsageHintCoordinator>();   // 使用習慣提示（輸入框上方提示列、換模型確認區）
         services.AddSingleton<BudgetAlertCoordinator>(sp => new BudgetAlertCoordinator(
             sp.GetRequiredService<IChatSession>(), sp.GetRequiredService<BudgetMonitor>(),
             sp.GetRequiredService<WorkbenchViewModel>().BudgetAlert, sp.GetRequiredService<ISpriteNotice>(), sp.GetRequiredService<IUiDispatcher>()));

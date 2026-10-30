@@ -83,6 +83,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotEmpty(services.GetRequiredService<Lumi.Core.Usage.IPriceTableSource>().Current.Entries);   // 內建快照
         Assert.NotNull(services.GetRequiredService<Lumi.Core.Usage.IImageDownscaler>());
         Assert.NotNull(services.GetRequiredService<UsageSettingsViewModel>());
+        Assert.NotNull(services.GetRequiredService<Lumi.App.Services.UsageHintCoordinator>());
         Assert.NotNull(services.GetRequiredService<Lumi.App.Services.BudgetAlertCoordinator>());
         // 權限確認：App 的實作取代 Core 預設的「一律拒絕」，而且按鈕與對話迴圈用的是同一個執行個體
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
