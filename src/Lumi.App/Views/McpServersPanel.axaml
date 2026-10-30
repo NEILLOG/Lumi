@@ -55,6 +55,8 @@
                       <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Classes="muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="muted" Margin="0,4,0,0" Text="{Binding ToolDefinitionSizeText}"
+                                   IsVisible="{Binding HasToolDefinitionSize}" TextTrimming="CharacterEllipsis" />
                         <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,4,0,0">
                           <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding IsReady}" Fill="{DynamicResource LumiSuccessDotBrush}" />
                           <Ellipse Width="8" Height="8" VerticalAlignment="Center" IsVisible="{Binding IsConnecting}" Fill="{DynamicResource LumiWarningDotBrush}" />

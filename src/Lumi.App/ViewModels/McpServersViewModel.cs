@@ -5,9 +5,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.App.Services;
+using Lumi.Core.Chat;
 using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
+using Lumi.Core.Tools;
 
 namespace Lumi.App.ViewModels;
 
@@ -521,6 +523,7 @@ public partial class McpServersViewModel : ObservableObject
         foreach (var status in _mcp.GetStatuses())
             statuses[status.ServerId] = status;
 
+        var toolTokens = ToolDefinitionTokensByServer();
         var selectedId = _selectedItem?.Id;
         _rebuildingItems = true;
         try
@@ -530,8 +533,9 @@ public partial class McpServersViewModel : ObservableObject
             {
                 statuses.TryGetValue(server.Id, out var status);
                 var state = !server.Enabled ? McpServerState.Disabled : (status?.State ?? McpServerState.Connecting);
+                int? tokens = toolTokens.TryGetValue(server.Id, out var count) ? count : null;
                 Items.Add(new McpServerListItem(server.Id, server.Name, server.Transport, server.Command, server.Url,
-                    state, status?.ToolCount ?? 0, status?.Error));
+                    state, status?.ToolCount ?? 0, status?.Error, tokens));
             }
         }
         finally
@@ -543,6 +547,18 @@ public partial class McpServersViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedItem));
         RaiseComputed();
     }
+
+    /// <summary>
+    /// 各伺服器工具定義的 token 估算（與對話送出時的計算方式相同）。只用 <see cref="IMcpToolSource.GetTools"/> 已有的清單
+    /// （連線中用即時清單，其他用快取），不為了計算去連線。沒有工具的伺服器不會出現在結果裡。
+    /// </summary>
+    private Dictionary<string, int> ToolDefinitionTokensByServer() =>
+        _mcp.GetTools()
+            .GroupBy(t => t.ServerId, StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => ContextEstimator.EstimateText(ToolSnapshotJson.Serialize(g.Select(ToolDefinition.From).ToList())),
+                StringComparer.Ordinal);
 
     // ---- 表單變更 ----
 

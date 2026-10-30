@@ -1,13 +1,24 @@
 using System.Globalization;
 using Lumi.App.Resources;
 using Lumi.Core.Mcp;
+using Lumi.Core.Usage;
 
 namespace Lumi.App.ViewModels;
 
-/// <summary>MCP 伺服器清單的一列（卡片）：字首方塊、名稱、副標（「本機指令 · npx」或「遠端 · kb.corp」）、狀態（文字加圓點）。</summary>
+/// <summary>
+/// MCP 伺服器清單的一列（卡片）：字首方塊、名稱、副標（「本機指令 · npx」或「遠端 · kb.corp」）、工具說明大小（有快取才有）、狀態（文字加圓點）。
+/// <paramref name="ToolDefinitionTokens"/> 是該伺服器工具定義的 token 估算；null＝沒有快取，整行不顯示。
+/// </summary>
 public sealed record McpServerListItem(string Id, string Name, McpTransportKind Transport, string? Command, string? Url,
-    McpServerState State, int ToolCount, string? Error)
+    McpServerState State, int ToolCount, string? Error, int? ToolDefinitionTokens = null)
 {
+    /// <summary>工具說明大小的文字，例如「工具說明約 3.2K tokens」；沒有快取時是 null。</summary>
+    public string? ToolDefinitionSizeText => ToolDefinitionTokens is { } tokens
+        ? string.Format(CultureInfo.CurrentCulture, Strings.Mcp_ToolDefinitionSizeFormat, MoneyFormat.Tokens(tokens))
+        : null;
+
+    public bool HasToolDefinitionSize => ToolDefinitionTokens is not null;
+
     /// <summary>字首方塊的字元：名稱的第一個字（英文轉大寫）；名稱是空的就用「M」。</summary>
     public string Initial => InitialOf(Name);
 

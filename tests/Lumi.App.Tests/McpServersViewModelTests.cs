@@ -1,10 +1,15 @@
+using System.Globalization;
+using System.Text.Json.Nodes;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
+using Lumi.Core.Chat;
 using Lumi.Core.Mcp;
 using Lumi.Core.Models;
 using Lumi.Core.Secrets;
 using Lumi.Core.Speech;
+using Lumi.Core.Tools;
+using Lumi.Core.Usage;
 
 namespace Lumi.App.Tests;
 
@@ -105,7 +110,7 @@ public sealed class McpServersViewModelTests
     private static McpServerSettings Stdio(string id, string key, string name, params string[] envNames) =>
         new(id, key, name, McpTransportKind.Stdio, "npx", ["-y", "server"], null, envNames, null, [], true, false, 60, "v1");
 
-    private static McpServersViewModel Create(McpServerSettings[]? servers = null, FakeMcpToolSource? mcp = null,
+    private static McpServersViewModel Create(McpServerSettings[]? servers = null, IMcpToolSource? mcp = null,
         FakeConfirmService? confirm = null, McpCatalogSpy? catalog = null)
     {
         catalog ??= new McpCatalogSpy(servers ?? []);
@@ -397,4 +402,104 @@ public sealed class McpServersViewModelTests
         Assert.True(vm.IsNew);
         Assert.Equal("測試用的寫入失敗", vm.SaveError);
     }
+
+    [Fact]
+    public void ServerWithCachedTools_ShowsTheSize_ComputedTheSameWayAsTheConversation()
+    {
+        var source = new McpToolListSource();
+        source.Tools.Add(new McpToolStub("s1", "search", new string('a', 10_000)));
+        var vm = Create([Stdio("s1", "github", "GitHub")], mcp: source);
+
+        var item = Assert.Single(vm.Items);
+        var tokens = ContextEstimator.EstimateText(ToolSnapshotJson.Serialize([ToolDefinition.From(source.Tools[0])]));
+        Assert.True(item.HasToolDefinitionSize);
+        Assert.Equal(string.Format(CultureInfo.CurrentCulture, Strings.Mcp_ToolDefinitionSizeFormat, MoneyFormat.Tokens(tokens)),
+            item.ToolDefinitionSizeText);
+        Assert.Contains("K tokens", item.ToolDefinitionSizeText);
+    }
+
+    [Fact]
+    public void SmallToolSet_ShowsThePlainNumber()
+    {
+        var source = new McpToolListSource();
+        source.Tools.Add(new McpToolStub("s1", "ping", "測試"));
+        var vm = Create([Stdio("s1", "github", "GitHub")], mcp: source);
+
+        var tokens = ContextEstimator.EstimateText(ToolSnapshotJson.Serialize([ToolDefinition.From(source.Tools[0])]));
+        Assert.True(tokens < 1_000);
+        Assert.Equal($"工具說明約 {tokens} tokens", Assert.Single(vm.Items).ToolDefinitionSizeText);
+    }
+
+    [Fact]
+    public void ServerWithoutTools_HidesTheLine_WhileOthersShowTheirs()
+    {
+        var source = new McpToolListSource();
+        source.Tools.Add(new McpToolStub("s1", "ping", "測試"));
+        var vm = Create([Stdio("s1", "github", "GitHub"), Stdio("s2", "other", "Other")], mcp: source);
+
+        Assert.True(vm.Items[0].HasToolDefinitionSize);
+        Assert.False(vm.Items[1].HasToolDefinitionSize);
+        Assert.Null(vm.Items[1].ToolDefinitionSizeText);
+    }
+
+    [Fact]
+    public void ToolListChange_RefreshesTheSize()
+    {
+        var source = new McpToolListSource();
+        source.Tools.Add(new McpToolStub("s1", "ping", "測試"));
+        var vm = Create([Stdio("s1", "github", "GitHub")], mcp: source);
+        Assert.True(vm.Items[0].HasToolDefinitionSize);
+
+        source.Tools.Clear();
+        source.Raise();
+
+        Assert.False(vm.Items[0].HasToolDefinitionSize);
+    }
+}
+
+/// <summary>GetTools 回傳測試指定的工具（<see cref="FakeMcpToolSource"/> 固定回空清單）；其他成員委派給它。</summary>
+internal sealed class McpToolListSource : IMcpToolSource
+{
+    private readonly FakeMcpToolSource _inner = new();
+
+    public List<IMcpTool> Tools { get; } = [];
+
+    public void Raise() => _inner.Raise();
+
+    public IReadOnlyList<IMcpTool> GetTools() => Tools.ToList();
+
+    public IReadOnlyList<McpServerStatus> GetStatuses() => _inner.GetStatuses();
+
+    public Task WaitForStartupAsync(TimeSpan timeout, CancellationToken ct) => _inner.WaitForStartupAsync(timeout, ct);
+
+    public Task<McpTestResult> TestAsync(McpServerSettings server, McpServerSecrets secrets, CancellationToken ct) =>
+        _inner.TestAsync(server, secrets, ct);
+
+    public Task RestartAsync(string serverId, CancellationToken ct) => _inner.RestartAsync(serverId, ct);
+
+    public event EventHandler? Changed
+    {
+        add => _inner.Changed += value;
+        remove => _inner.Changed -= value;
+    }
+}
+
+/// <summary>只有名稱、說明與所屬伺服器的 MCP 工具替身；不會被執行。</summary>
+internal sealed class McpToolStub(string serverId, string name, string description) : IMcpTool
+{
+    public ToolDescriptor Descriptor { get; } = new(name, name, description, ToolPermission.Write, ToolModes.Workbench,
+        TimeSpan.FromSeconds(60), Group: "mcp");
+
+    public string ServerId { get; } = serverId;
+
+    public bool IsLive => true;
+
+    public McpToolHints Hints => new(null, null);
+
+    public JsonNode InputSchema { get; } = new JsonObject { ["type"] = "object" };
+
+    public ToolPreview Preview(string argumentsJson, ToolContext context) => ToolPreview.None;
+
+    public Task<ToolResult> ExecuteAsync(string argumentsJson, ToolContext context, CancellationToken ct) =>
+        Task.FromResult(ToolResult.Ok("假結果"));
 }
