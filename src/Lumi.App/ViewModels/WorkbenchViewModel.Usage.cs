@@ -1,5 +1,7 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Usage;
+using Microsoft.Extensions.Logging;
 
 namespace Lumi.App.ViewModels;
 
@@ -13,9 +15,43 @@ public partial class WorkbenchViewModel
     private readonly IConnectionTester? _tester;
     private bool _retryingConnection;
     private bool _inCompaction;   // 上下文整理的摘要呼叫進行中（M22）：它的用量事件不是對話回應的用量
+    private readonly IUsageStore? _usageStore;     // 費用（M23 23H）；null 時用量面板不顯示費用段落
+    private readonly BudgetMonitor? _budget;
+
+    /// <summary>每月預算的提醒列（工作台頂端，在「有新版」與通知列之間）；提醒由 <c>BudgetAlertCoordinator</c> 推進來。</summary>
+    public BudgetAlertViewModel BudgetAlert { get; }
 
     /// <summary>本對話用量（頂端用量圖示與面板綁定這裡）。</summary>
     public ConversationUsageViewModel Usage { get; }
+
+    /// <summary>用量面板的「用量與費用 ›」與預算提醒的「查看用量」：開設定視窗到用量與費用分類。</summary>
+    private void OpenUsagePage() => _ = _settingsWindow.ShowAsync(new SettingsNavigation(SettingsSection.Usage));
+
+    /// <summary>
+    /// 費用段落（M23 23H）：從資料庫查本對話與本月的費用，推給 <see cref="Usage"/>。
+    /// 只在載入對話、回應結束、上下文整理完成時呼叫；串流中費用還沒寫入，不更新。沒有費用來源時什麼都不做。
+    /// </summary>
+    private async Task RefreshCostAsync()
+    {
+        if (!Usage.ShowCost || _usageStore is null || _budget is null)
+            return;
+
+        var conversationId = CurrentConversationId;
+        try
+        {
+            var conversation = conversationId is null
+                ? ConversationCost.Empty
+                : await _usageStore.GetConversationCostAsync(conversationId);
+            var (spent, budget) = await _budget.GetMonthAsync();
+            if (conversationId != CurrentConversationId)
+                return;   // 查詢途中切到別的對話：那邊的載入會再查一次
+            Usage.UpdateCost(conversation, spent, budget);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "讀取用量費用失敗");
+        }
+    }
 
     /// <summary>把目前的累計、上下文、模型與連線狀態推給 <see cref="Usage"/>。每次有相關變化都呼叫。</summary>
     private void RefreshUsage()
@@ -55,6 +91,7 @@ public partial class WorkbenchViewModel
                     _tally.Complete(completed.Usage);
                     RefreshUsage();
                 }
+                _ = RefreshCostAsync();   // 摘要呼叫的費用已經寫入（RefreshCostAsync 自己處理例外）
                 break;
             case CompactionFailed:
                 _inCompaction = false;

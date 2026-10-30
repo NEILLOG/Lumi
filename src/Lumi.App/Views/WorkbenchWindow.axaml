@@ -72,6 +72,7 @@
         <!-- 有新版的提醒、提醒通知列：沒有內容時都不佔空間（ui-spec 第 13 節） -->
         <StackPanel Grid.Row="0">
           <views:UpdateBanner x:Name="UpdateBannerView" DataContext="{Binding Update}" />
+          <views:BudgetBanner x:Name="BudgetBannerView" DataContext="{Binding BudgetAlert}" />
           <views:NotificationStrip x:Name="NotificationStripView" DataContext="{Binding Notifications}" />
         </StackPanel>
 

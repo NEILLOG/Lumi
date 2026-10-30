@@ -1,9 +1,11 @@
+using System.Globalization;
 using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Usage;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lumi.App.Tests;
@@ -16,15 +18,22 @@ public sealed class WorkbenchUsageTests
         public InMemoryConversationStore Store { get; }
         public FakeModelCatalog Catalog { get; } = new();
         public ConnectionStatusCache Status { get; } = new();
+        public InMemoryUsageStore? UsageStore { get; }
         public WorkbenchViewModel Vm { get; }
 
-        public Rig(SequenceChatProvider provider, FakeConnectionTester? tester = null, InMemoryConversationStore? store = null)
+        public Rig(SequenceChatProvider provider, FakeConnectionTester? tester = null, InMemoryConversationStore? store = null,
+            InMemoryUsageStore? usage = null, decimal? budgetUsd = null)
         {
             Store = store ?? new InMemoryConversationStore();
+            UsageStore = usage;
+            if (budgetUsd is { } limit)
+                Catalog.Current = Catalog.Current with { Usage = new UsageSettings(MonthlyBudgetUsd: limit) };
+            var time = new FakeTimeProvider();
             var service = new ConversationService(provider, Store, Catalog);
+            var monitor = usage is null ? null : new BudgetMonitor(usage, Store, Catalog, time);
             Vm = new WorkbenchViewModel(service, Store, Catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
-                Status, new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
-                NullLogger<WorkbenchViewModel>.Instance, tester: tester);
+                Status, new FakeClipboardService(), new SyncUiDispatcher(), time,
+                NullLogger<WorkbenchViewModel>.Instance, tester: tester, usageStore: usage, budgetMonitor: monitor);
         }
 
         public async Task SendAsync(string text = "問")
@@ -289,5 +298,98 @@ public sealed class WorkbenchUsageTests
         await rig.Vm.Usage.RetryCommand.ExecuteAsync(null);
 
         Assert.True(rig.Vm.Usage.ShowRetry);
+    }
+
+    /// <summary>一筆本月（10 月）的請求紀錄；<paramref name="costUsd"/> null 就是未設定單價。</summary>
+    private static UsageRecord Spent(string conversationId, decimal? costUsd, bool estimated = false) =>
+        new(UsageRecord.NewId(), new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero), conversationId, UsagePurpose.Chat, ChatMode.Workbench,
+            "ms", "m", "連線", new TokenUsage(100, 10, 0, 0), estimated, null, costUsd, 0);
+
+    [Fact]
+    public void Cost_WithoutAUsageStore_HidesTheCostSection()
+    {
+        var rig = new Rig(new SequenceChatProvider());
+
+        Assert.False(rig.Vm.Usage.ShowCost);
+    }
+
+    [Fact]
+    public async Task Cost_ShowsTheConversationAndMonthCost_WithTheEstimatePrefixAndTheBudget()
+    {
+        var usage = new InMemoryUsageStore();
+        var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("好")), usage: usage, budgetUsd: 10m);
+        await rig.Vm.InitializeAsync();
+        var current = ((IHistoryHost)rig.Vm).CurrentConversationId!;
+        var other = await rig.Store.CreateAsync("別的對話");
+        usage.Records.Add(Spent(current, 1m, estimated: true));   // 本對話 NT$32（估算）
+        usage.Records.Add(Spent(other.Id, 2m));                    // 另一則：只算進本月
+
+        await rig.SendAsync();   // 回應結束後重新查詢
+
+        Assert.True(rig.Vm.Usage.ShowCost);
+        Assert.Equal("≈NT$32", rig.Vm.Usage.ConversationCostText);
+        Assert.True(rig.Vm.Usage.HasBudget);
+        Assert.Equal(string.Format(CultureInfo.CurrentCulture, Strings.Usage_MonthOfBudgetFormat, "NT$96", "320"), rig.Vm.Usage.MonthCostText);
+        Assert.Equal(0.3, rig.Vm.Usage.MonthRatio, 6);
+        Assert.False(rig.Vm.Usage.IsMonthWarning);
+        Assert.False(rig.Vm.Usage.IsMonthDanger);
+    }
+
+    [Fact]
+    public async Task Cost_ConversationWithoutAPrice_ShowsUnpriced_AndNoBudgetShowsOnlyTheMonthAmount()
+    {
+        var usage = new InMemoryUsageStore();
+        var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("好")), usage: usage);
+        await rig.Vm.InitializeAsync();
+        usage.Records.Add(Spent(((IHistoryHost)rig.Vm).CurrentConversationId!, null));
+
+        await rig.SendAsync();
+
+        Assert.Equal(Strings.Usage_Unpriced, rig.Vm.Usage.ConversationCostText);
+        Assert.False(rig.Vm.Usage.HasBudget);
+        Assert.Equal("NT$0", rig.Vm.Usage.MonthCostText);
+        Assert.Equal(0, rig.Vm.Usage.MonthRatio);
+    }
+
+    [Fact]
+    public async Task Cost_FollowsTheConversation_WhenSwitching()
+    {
+        var usage = new InMemoryUsageStore();
+        var rig = new Rig(new SequenceChatProvider(), usage: usage);
+        await rig.Vm.InitializeAsync();
+        var first = ((IHistoryHost)rig.Vm).CurrentConversationId!;
+        var second = await rig.Store.CreateAsync("第二則");
+        usage.Records.Add(Spent(first, 1m));
+        usage.Records.Add(Spent(second.Id, 3m));
+
+        await rig.Vm.OpenConversationAsync(second);
+
+        Assert.Equal("NT$96", rig.Vm.Usage.ConversationCostText);
+        Assert.Equal("NT$128", rig.Vm.Usage.MonthCostText);   // 本月合計 4 USD
+    }
+
+    [Fact]
+    public async Task Cost_BudgetProgress_IsWarningFrom80_AndDangerAt100()
+    {
+        var usage = new InMemoryUsageStore();
+        var rig = new Rig(new SequenceChatProvider(SequenceChatProvider.Answer("一"), SequenceChatProvider.Answer("二"), SequenceChatProvider.Answer("三")),
+            usage: usage, budgetUsd: 10m);
+        await rig.Vm.InitializeAsync();
+        var id = ((IHistoryHost)rig.Vm).CurrentConversationId!;
+
+        usage.Records.Add(Spent(id, 7.9m));
+        await rig.SendAsync("一");
+        Assert.False(rig.Vm.Usage.IsMonthWarning);
+
+        usage.Records.Add(Spent(id, 0.5m));   // 8.4 of 10：80%～99%
+        await rig.SendAsync("二");
+        Assert.True(rig.Vm.Usage.IsMonthWarning);
+        Assert.False(rig.Vm.Usage.IsMonthDanger);
+
+        usage.Records.Add(Spent(id, 2m));     // 10.4 of 10：100% 以上
+        await rig.SendAsync("三");
+        Assert.False(rig.Vm.Usage.IsMonthWarning);
+        Assert.True(rig.Vm.Usage.IsMonthDanger);
+        Assert.Equal(1.0, rig.Vm.Usage.MonthRatio, 6);   // 進度條最多到滿
     }
 }
