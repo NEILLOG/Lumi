@@ -1,3 +1,4 @@
+using Lumi.App.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
@@ -20,7 +21,7 @@ public class BrowserSettingsSectionTests
         host.Browser.RefreshCommand.Execute(null);
         var window = new SettingsWindow(host.Settings);
         window.Show();
-        host.Settings.CategoryIndex = 9;
+        host.Settings.CategoryIndex = (int)SettingsCategory.Network;
         window.UpdateLayout();
         return (host, window);
     }

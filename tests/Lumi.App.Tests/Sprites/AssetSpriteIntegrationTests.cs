@@ -1,3 +1,4 @@
+using Lumi.App.ViewModels;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -405,7 +406,7 @@ public class AssetSpriteIntegrationTests
         var window = new SettingsWindow(host.Settings);
         window.Show();
 
-        host.Settings.CategoryIndex = 5;
+        host.Settings.CategoryIndex = (int)SettingsCategory.Tools;
         window.UpdateLayout();
 
         Assert.Equal(2, window.FindControl<ListBox>("SpriteList")!.ItemCount);

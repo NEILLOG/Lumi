@@ -1,9 +1,11 @@
 using System.Net;
 using Lumi.Core.Updates;
+using Lumi.Core.Usage;
 using Lumi.Core.Web;
 using Lumi.Web.Content;
 using Lumi.Web.Diagnostics;
 using LumiWebClient = Lumi.Web.Http.WebClient;
+using Lumi.Web.Pricing;
 using Lumi.Web.Proxy;
 using Lumi.Web.Updates;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,6 +54,19 @@ public static class WebServiceCollectionExtensions
         services.AddSingleton<INetworkTester, NetworkTester>();
         // 檢查新版：取代 Core 預設的 NullUpdateChecker，讀 GitHub Releases（走同一個 Proxy）
         services.Replace(ServiceDescriptor.Singleton<IUpdateChecker, GitHubReleaseUpdateChecker>());
+        return services;
+    }
+
+    /// <summary>
+    /// 模型價目表（M23）：內建 LiteLLM 快照，使用者資料夾的版本優先，「更新價目表」經 <see cref="IWebClient"/>（走 Proxy）下載。
+    /// <paramref name="dataDirectory"/> 由呼叫端傳入（這個專案不引用 Lumi.Infrastructure）。
+    /// </summary>
+    public static IServiceCollection AddLumiPriceTable(this IServiceCollection services, string dataDirectory)
+    {
+        services.AddSingleton<IPriceTableSource>(sp => new PriceTableSource(
+            sp.GetRequiredService<IWebClient>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PriceTableSource>>(),
+            dataDirectory));
         return services;
     }
 }

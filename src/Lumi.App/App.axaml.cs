@@ -119,6 +119,8 @@ public partial class App : Application
             await services.GetRequiredService<IReloadableSpriteCatalog>().ReloadAsync();
             await services.GetRequiredService<WorkbenchViewModel>().InitializeAsync();
             services.GetRequiredService<SpriteConversationController>().Attach();
+            services.GetRequiredService<BudgetAlertCoordinator>();   // 回應結束後檢查預算（M23）
+            StartPricingAutoFill(services);
             var modes = services.GetRequiredService<IAppModeCoordinator>();
             services.GetRequiredService<TrayService>().Attach(
                 this, showSprite: modes.ShowSprite, openWorkbench: () => modes.OpenWorkbench(), exit: modes.Exit);
@@ -151,6 +153,23 @@ public partial class App : Application
     }
 
     /// <summary>啟動後在背景檢查有沒有新版；結果透過 <see cref="IUpdateService.AvailableChanged"/> 通知工作台的提醒。失敗只記 log。</summary>
+    /// <summary>升級後第一次啟動：既有模型比對價目表、帶入單價（只做一次；失敗只記 log）。</summary>
+    private static void StartPricingAutoFill(IServiceProvider services)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await PricingAutoFill.RunAsync(services.GetRequiredService<IModelCatalog>(), services.GetRequiredService<Lumi.Core.Usage.IPriceTableSource>(),
+                    services.GetRequiredService<Lumi.Core.Chat.IConversationStore>(), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                services.GetService<ILogger<App>>()?.LogWarning(ex, "既有模型自動帶入單價失敗");
+            }
+        });
+    }
+
     private static void StartUpdateCheck(IServiceProvider services)
     {
         var updates = services.GetRequiredService<IUpdateService>();

@@ -2,9 +2,12 @@ using Lumi.App.Services;
 using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
+using Lumi.Core.Chat;
 using Lumi.Core.Reminders;
 using Lumi.Core.Tools;
+using Lumi.Core.Usage;
 using Lumi.Infrastructure;
+using Lumi.Web;
 using Lumi.Sprites.Abstractions;
 using Lumi.Sprites.Assets;
 using Lumi.Sprites.Orb;
@@ -43,6 +46,24 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<MemoryViewModel>();   // 記憶（M14 14D）
         services.AddTransient<RemindersViewModel>();   // 設定頁「提醒排程」（M20）
         services.AddTransient<DataPrivacyViewModel>();
+        // 用量與費用（M23）：價目表（內建快照＋使用者資料夾的更新版）、設定頁、預算提醒、圖片縮小
+        services.AddLumiPriceTable(LumiPaths.DataDirectory);
+        services.AddSingleton<IImageDownscaler, SkiaImageDownscaler>();
+        services.AddTransient<UsageSettingsViewModel>(sp => new UsageSettingsViewModel(
+            sp.GetRequiredService<IUsageStore>(), sp.GetRequiredService<IUsageHintLog>(), sp.GetRequiredService<Lumi.Core.Models.IModelCatalog>(),
+            sp.GetRequiredService<IConversationStore>(), sp.GetRequiredService<IFilePickerService>(), sp.GetRequiredService<TimeProvider>(),
+            // 點「花最多的對話」：先回到工作台，再開那則對話。視窗與工作台用到才取得，避免建構時的循環相依
+            openConversation: async id =>
+            {
+                var conversation = await sp.GetRequiredService<IConversationStore>().GetConversationAsync(id);
+                if (conversation is null || !await sp.GetRequiredService<ISettingsWindowService>().ReturnToWorkbench())
+                    return;
+                await sp.GetRequiredService<WorkbenchViewModel>().OpenConversationAsync(conversation);
+            }));
+        services.AddSingleton<ISpriteNotice, SpriteNotice>();
+        services.AddSingleton<BudgetAlertCoordinator>(sp => new BudgetAlertCoordinator(
+            sp.GetRequiredService<IChatSession>(), sp.GetRequiredService<BudgetMonitor>(),
+            sp.GetRequiredService<WorkbenchViewModel>().BudgetAlert, sp.GetRequiredService<ISpriteNotice>(), sp.GetRequiredService<IUiDispatcher>()));
         services.AddTransient<HomeViewModel>();   // 設定首頁的狀態總覽（M20）   // 設定頁「資料與隱私」（M20）
         services.AddSingleton<IDataLocationProvider, DataLocationProvider>();
         services.AddTransient<GeneralViewModel>();

@@ -1,3 +1,4 @@
+using Lumi.App.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
@@ -24,7 +25,7 @@ public class McpServersPanelTests
             await host.Catalog.SaveMcpServerAsync(server, null);
         var window = new SettingsWindow(host.Settings);
         window.Show();
-        host.Settings.CategoryIndex = 5;
+        host.Settings.CategoryIndex = (int)SettingsCategory.Tools;
         host.Settings.ToolsTabIndex = 1;
         window.UpdateLayout();
         return (host, window);

@@ -67,7 +67,8 @@ internal sealed class SettingsHost : IDisposable
         Reminders = new RemindersViewModel(ReminderService, Confirm, dispatcher, TimeProvider.System);
         Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
         Home = new HomeViewModel(Catalog, Status, dispatcher, Store, McpSource, Tester, Clock, new MemoryOptions());
-        Settings = new SettingsViewModel(Connections, Models, ImageGeneration, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Catalog, Confirm, WindowService)
+        Usage = new UsageSettingsViewModel(new InMemoryUsageStore(), new InMemoryUsageHintLog(), Catalog, new InMemoryConversationStore(), new FakeSavePicker(), TimeProvider.System);
+        Settings = new SettingsViewModel(Connections, Models, ImageGeneration, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Usage, Catalog, Confirm, WindowService)
         {
             // 產品預設落在「設定首頁」；既有的頁面測試都從 AI 連線開始，要測首頁的測試自己改回 Home
             CategoryIndex = (int)SettingsCategory.Connections,
@@ -96,6 +97,7 @@ internal sealed class SettingsHost : IDisposable
     public FakeClipboardService Clipboard { get; } = new();
     public DataPrivacyViewModel Privacy { get; }
     public HomeViewModel Home { get; }
+    public UsageSettingsViewModel Usage { get; }
     public FakeHomeStore Store { get; } = new();
     public FakeTimeProvider Clock { get; } = new();
     public FakeSettingsWindowService WindowService { get; } = new();

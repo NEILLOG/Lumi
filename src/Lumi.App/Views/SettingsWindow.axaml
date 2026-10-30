@@ -189,7 +189,7 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-            <!-- 分類：順序與 SettingsCategory 一致（0 設定首頁、1 AI 連線、2 人格與主動性、3 記憶、4 提醒排程、5 工具、6 外觀與操作、7 小精靈、8 語音、9 網路、10 資料與隱私） -->
+            <!-- 分類：順序與 SettingsCategory 一致（0 設定首頁、1 AI 連線、2 用量與費用、3 人格與主動性、4 記憶、5 提醒排程、6 工具、7 外觀與操作、8 小精靈、9 語音、10 網路、11 資料與隱私） -->
             <ListBox x:Name="CategoryList" Classes="menu" SelectedIndex="{Binding CategoryIndex}"
                      AutomationProperties.Name="{x:Static res:Strings.Settings_CategoriesName}">
               <ListBoxItem x:Name="CategoryHome" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryHome}">
@@ -212,6 +212,15 @@
                   <Ellipse x:Name="ConnectionsAttentionDot" Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center" Margin="8,0,0,0"
                            Fill="{DynamicResource LumiWarningDotBrush}" IsVisible="{Binding Home.AttentionConnections}"
                            AutomationProperties.HelpText="{x:Static res:Strings.Home_Attention}" />
+                </Grid>
+              </ListBoxItem>
+              <ListBoxItem x:Name="CategoryUsage" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryUsage}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBarChart}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategoryUsage}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategoryUsageHint}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
                 </Grid>
               </ListBoxItem>
               <ListBoxItem x:Name="CategoryPersona" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryPersona}">
@@ -441,6 +450,14 @@
       </Grid>
 
       <!-- ===== 資料與隱私：存放位置、哪些內容會送出去、怎麼控制。面板自己捲動 ===== -->
+      <!-- ===== 用量與費用（M23）：頁首 → 面板（面板自己捲動） ===== -->
+      <Grid x:Name="UsagePage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowUsage}" Margin="32">
+        <views:SettingsPageHeader x:Name="UsageHeader" Grid.Row="0"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategoryUsage}"
+                                  Title="{x:Static res:Strings.UsagePage_Title}" />
+        <views:UsagePanel x:Name="UsagePanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Usage}" />
+      </Grid>
+
       <Grid x:Name="PrivacyPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowPrivacy}" Margin="32">
         <views:SettingsPageHeader x:Name="PrivacyHeader" Grid.Row="0"
                                   Eyebrow="{x:Static res:Strings.Settings_CategoryPrivacy}"

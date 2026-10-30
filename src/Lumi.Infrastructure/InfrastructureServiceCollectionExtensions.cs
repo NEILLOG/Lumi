@@ -5,6 +5,7 @@ using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Notes;
 using Lumi.Core.Reminders;
+using Lumi.Core.Usage;
 using Lumi.Infrastructure.Attachments;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
@@ -37,6 +38,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<SqliteMemoryStore>();
         services.Replace(ServiceDescriptor.Singleton<IMemoryStore>(sp => sp.GetRequiredService<SqliteMemoryStore>()));
         services.AddSingleton<IMcpToolCache, SqliteMcpToolCache>();   // MCP 伺服器最近一次的工具清單（M16）
+
+        // 用量與費用（M23）：每次請求一列，同一個資料庫；紀錄器與預算監看建在上面
+        services.AddSingleton<SqliteUsageStore>();
+        services.AddSingleton<IUsageStore>(sp => sp.GetRequiredService<SqliteUsageStore>());
+        services.AddSingleton<IUsageRecorder, UsageRecorder>();
+        services.AddSingleton<BudgetMonitor>();
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();

@@ -1,3 +1,4 @@
+using Lumi.App.ViewModels;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia;
@@ -129,7 +130,7 @@ public class MemoryPanelTests
     public async Task EmptyState_ShowsTheExampleSentence_AndDisablesClearAll()
     {
         using var rig = await SettingsRig.CreateAsync("connections-list");
-        rig.Host.Settings.CategoryIndex = 3;
+        rig.Host.Settings.CategoryIndex = (int)SettingsCategory.Memory;
         rig.Settle();
 
         var empty = rig.Window.FindByName<TextBlock>("MemoryEmptyText");

@@ -113,10 +113,10 @@ internal sealed class SettingsRig : IDisposable
                 await Host.Settings.AiSettings.SelectAsync(Host.Settings.AiSettings.Items.OfType<AiImageGenerationItem>().Single());
                 break;
             case "persona":
-                settings.CategoryIndex = 2;
+                settings.CategoryIndex = (int)SettingsCategory.Persona;
                 break;
             case "persona-dirty":
-                settings.CategoryIndex = 2;
+                settings.CategoryIndex = (int)SettingsCategory.Persona;
                 Host.Persona.CustomPersona = "請用簡短的句子回答。";
                 break;
             case "memory":
@@ -128,32 +128,32 @@ internal sealed class SettingsRig : IDisposable
                 Host.MemoryStore.Seed("目前在做內部工具", Lumi.Core.Memory.MemoryCategory.Project, Lumi.Core.Memory.MemorySource.Manual,
                     new DateOnly(2026, 10, 1));   // 已過期（測試用的今天是 2026-10-19）
                 Settle();
-                settings.CategoryIndex = 3;
+                settings.CategoryIndex = (int)SettingsCategory.Memory;
                 if (state == "memory-new")
                     Host.Memory.NewCommand.Execute(null);
                 if (state == "memory-editing")
                     Host.Memory.Groups[0].Items[0].EditCommand.Execute(null);
                 break;
             case "tools":
-                settings.CategoryIndex = 5;
+                settings.CategoryIndex = (int)SettingsCategory.Tools;
                 break;
             case "general":
-                settings.CategoryIndex = 6;
+                settings.CategoryIndex = (int)SettingsCategory.General;
                 break;
             case "sprite":
             case "sprite-issues":
-                settings.CategoryIndex = 7;
+                settings.CategoryIndex = (int)SettingsCategory.Sprite;
                 break;
             case "speech":
-                settings.CategoryIndex = 8;
+                settings.CategoryIndex = (int)SettingsCategory.Speech;
                 break;
             case "speech-token-stored":
                 await Host.Catalog.SetSpeechAsync(new SpeechSettings("https://speech.example.com/v1", "zh", 120), new SecretValue("wh-token-5678"));
-                settings.CategoryIndex = 8;
+                settings.CategoryIndex = (int)SettingsCategory.Speech;
                 break;
             case "speech-test-ok":
             case "speech-test-fail":
-                settings.CategoryIndex = 8;
+                settings.CategoryIndex = (int)SettingsCategory.Speech;
                 Host.Speech.Endpoint = "https://speech.example.com/v1";
                 Host.Speech.NewToken = "wh-token-5678";
                 Settle();

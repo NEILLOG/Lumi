@@ -29,7 +29,7 @@ public class SpeechPageTests
         using var rig = await SettingsRig.CreateAsync("connections-list");
         var list = rig.Window.FindByName<ListBox>("CategoryList");
 
-        Assert.Equal(11, list.ItemCount);
+        Assert.Equal(12, list.ItemCount);
         var item = Assert.IsType<ListBoxItem>(list.Items[(int)SettingsCategory.Speech]);
         Assert.Equal("CategorySpeech", item.Name);
         Assert.Equal("語音", AutomationProperties.GetName(item));

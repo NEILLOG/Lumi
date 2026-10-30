@@ -10,25 +10,26 @@ public enum SettingsCategory
 {
     Home = 0,
     Connections = 1,
-    Persona = 2,
-    Memory = 3,
-    Reminders = 4,
-    Tools = 5,
-    General = 6,
-    Sprite = 7,
-    Speech = 8,
-    Network = 9,
-    Privacy = 10,
+    Usage = 2,
+    Persona = 3,
+    Memory = 4,
+    Reminders = 5,
+    Tools = 6,
+    General = 7,
+    Sprite = 8,
+    Speech = 9,
+    Network = 10,
+    Privacy = 11,
 }
 
-/// <summary>設定視窗：左側分類（設定首頁、AI 連線、人格與主動性、記憶、提醒排程、工具、外觀與操作、小精靈、語音、網路、資料與隱私），「AI 連線」是一頁：連線與模型合在一份清單（<see cref="AiSettingsViewModel"/>）。</summary>
+/// <summary>設定視窗：左側分類（設定首頁、AI 連線、用量與費用、人格與主動性、記憶、提醒排程、工具、外觀與操作、小精靈、語音、網路、資料與隱私），「AI 連線」是一頁：連線與模型合在一份清單（<see cref="AiSettingsViewModel"/>）。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, ImageGenerationViewModel imageGeneration, PersonaViewModel persona, MemoryViewModel memory,
-        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, UsageSettingsViewModel usage, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
@@ -46,6 +47,8 @@ public partial class SettingsViewModel : ObservableObject
         Reminders = reminders;
         Privacy = privacy;
         Home = home;
+        Usage = usage;
+        usage.OpenPricing = () => _ = NavigateAsync(new SettingsNavigation(SettingsSection.Models));   // 用量頁的「單價設定 ›」
         home.Attach(reminders, memory, tools, general, sprite);
         home.NavigateRequested += navigation => _ = NavigateAsync(navigation);   // 待處理與首頁卡片要求切頁
         privacy.NavigateRequested += section => _ = NavigateAsync(new SettingsNavigation(section));
@@ -90,6 +93,9 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>設定首頁的狀態總覽（M20）。</summary>
     public HomeViewModel Home { get; }
 
+    /// <summary>「用量與費用」分類（M23 23G）：顯示時由畫面呼叫 <see cref="UsageSettingsViewModel.LoadAsync"/>。</summary>
+    public UsageSettingsViewModel Usage { get; }
+
     /// <summary>「資料與隱私」分類（M20）。</summary>
     public DataPrivacyViewModel Privacy { get; }
 
@@ -99,7 +105,7 @@ public partial class SettingsViewModel : ObservableObject
     public bool HasLoadProblem => LoadProblem is not null;
 
     /// <summary>左側分類，值是 <see cref="SettingsCategory"/>（預設 0＝設定首頁）。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowHome), nameof(ShowConnectionsAndModels), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowReminders), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech), nameof(ShowNetwork), nameof(ShowPrivacy))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowHome), nameof(ShowConnectionsAndModels), nameof(ShowUsage), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowReminders), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech), nameof(ShowNetwork), nameof(ShowPrivacy))]
     private int _categoryIndex;
 
     /// <summary>「工具」內的分段：0 = 工具清單、1 = MCP 伺服器（M16）。</summary>
@@ -110,9 +116,18 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool ShowMcpTab => ToolsTabIndex == 1;
 
+    /// <summary>切到「用量與費用」就重新讀本月的用量（每次顯示都是最新的）。</summary>
+    partial void OnCategoryIndexChanged(int value)
+    {
+        if (value == (int)SettingsCategory.Usage)
+            _ = Usage.LoadAsync();
+    }
+
     public bool ShowHome => CategoryIndex == (int)SettingsCategory.Home;
 
     public bool ShowConnectionsAndModels => CategoryIndex == (int)SettingsCategory.Connections;
+
+    public bool ShowUsage => CategoryIndex == (int)SettingsCategory.Usage;
 
     public bool ShowPersona => CategoryIndex == (int)SettingsCategory.Persona;
 
@@ -160,6 +175,9 @@ public partial class SettingsViewModel : ObservableObject
         {
             case SettingsSection.Home:
                 CategoryIndex = (int)SettingsCategory.Home;
+                break;
+            case SettingsSection.Usage:
+                CategoryIndex = (int)SettingsCategory.Usage;
                 break;
             case SettingsSection.Persona:
                 CategoryIndex = (int)SettingsCategory.Persona;

@@ -101,7 +101,7 @@ public sealed class SettingsViewModelTests
     public void TheCategoryNumbers_FollowTheMenuOrder()
     {
         Assert.Equal(
-            ["Home", "Connections", "Persona", "Memory", "Reminders", "Tools", "General", "Sprite", "Speech", "Network", "Privacy"],
+            ["Home", "Connections", "Usage", "Persona", "Memory", "Reminders", "Tools", "General", "Sprite", "Speech", "Network", "Privacy"],
             Enum.GetValues<SettingsCategory>().OrderBy(c => (int)c).Select(c => c.ToString()).ToArray());
     }
 

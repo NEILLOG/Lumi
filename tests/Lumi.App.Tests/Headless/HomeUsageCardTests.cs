@@ -81,7 +81,7 @@ public class HomeUsageCardTests
     /// <summary>和 <see cref="SettingsHost"/> 相同的分類 ViewModel，只把首頁換成 <paramref name="home"/>。</summary>
     private static SettingsViewModel SettingsWith(SettingsHost host, HomeViewModel home) => new(host.Connections, host.Models, host.ImageGeneration,
         host.Persona, host.Memory, host.Tools, host.McpServers, host.General, host.Sprite, host.Speech, host.Network, host.Browser,
-        host.Reminders, host.Privacy, home, host.Catalog, host.Confirm, host.WindowService);
+        host.Reminders, host.Privacy, home, host.Usage, host.Catalog, host.Confirm, host.WindowService);
 
     [AvaloniaFact]
     public async Task NoBudget_ShowsTheAmount_AndHidesTheBudgetLineAndBars()

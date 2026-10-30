@@ -31,8 +31,10 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
     private readonly IFilePickerService _files;
     private readonly TimeProvider _time;
     private readonly Func<string, Task>? _openConversation;
-    private readonly Action? _openPricing;
     private int _loadGeneration;
+
+    /// <summary>「單價設定 ›」要做的事（跳到 AI 連線頁）。由 <see cref="SettingsViewModel"/> 接上；沒接就什麼都不做。</summary>
+    public Action? OpenPricing { get; set; }
 
     public UsageSettingsViewModel(IUsageStore usage, IUsageHintLog hints, IModelCatalog catalog, IConversationStore conversations,
         IFilePickerService files, TimeProvider time, Func<string, Task>? openConversation = null, Action? openPricing = null)
@@ -44,14 +46,14 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
         _files = files;
         _time = time;
         _openConversation = openConversation;
-        _openPricing = openPricing;
+        OpenPricing = openPricing;
 
         EditBudgetCommand = new RelayCommand(BeginEditBudget);
         SaveBudgetCommand = new AsyncRelayCommand(SaveBudgetAsync);
         CancelBudgetCommand = new RelayCommand(CancelEditBudget);
         ClearBudgetCommand = new AsyncRelayCommand(ClearBudgetAsync);
         OpenConversationCommand = new AsyncRelayCommand<string?>(OpenConversationAsync);
-        OpenPricingCommand = new RelayCommand(() => _openPricing?.Invoke());
+        OpenPricingCommand = new RelayCommand(() => OpenPricing?.Invoke());
         ExportCommand = new AsyncRelayCommand(ExportAsync);
         UnmuteHintCommand = new AsyncRelayCommand<string?>(UnmuteHintAsync);
         ToggleHintCommand = new RelayCommand<string?>(ToggleHint);
