@@ -32,6 +32,8 @@ public partial class ChatComposer : UserControl
             if (e.Property == InputElement.IsKeyboardFocusWithinProperty)
                 InputArea.Classes.Set("focused", InputBox.IsKeyboardFocusWithin);
         };
+        // 使用習慣提示第 3 條（隔很久回到長對話）：輸入框取得焦點時檢查；每次打開或切到對話只檢查一次，由 WorkbenchViewModel 記旗標
+        InputBox.GotFocus += (_, _) => _ = ViewModel?.OnComposerFocusedAsync();
         // 收音中按 Esc 取消錄音（焦點在輸入區內時；收音開始時焦點已經移到收音面板）
         AddHandler(KeyDownEvent, OnComposerKeyDown);
         DataContextChanged += (_, _) => AttachViewModel();

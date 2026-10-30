@@ -76,7 +76,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         SpriteConversationService? spriteConversation = null,
         UpdateNoticeViewModel? update = null,
         IUsageStore? usageStore = null,
-        BudgetMonitor? budgetMonitor = null)
+        BudgetMonitor? budgetMonitor = null,
+        UsageHintCoordinator? hintCoordinator = null)
     {
         _store = store;
         _catalog = catalog;
@@ -92,6 +93,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _spriteConversation = spriteConversation;
         _usageStore = usageStore;
         _budget = budgetMonitor;
+        _hints = hintCoordinator;
         Messages.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowWelcome));
@@ -107,7 +109,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _notice = catalog.LoadProblem;
 
         History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation);
-        ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding);
+        ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, afterSelect: null,
+            currentContextTokens: () => ContextUsed, newConversation: () => NewConversationAsync(),
+            hints: hintCoordinator, currentConversationId: () => CurrentConversationId);
         ModelSwitcher.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ModelSwitcherViewModel.CapsuleTooltip))
@@ -378,6 +382,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
         // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
         Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips()), _time.GetUtcNow()));
+        await DismissVisibleHintsAsync();   // 送出新訊息：目前的提示收起（記為 Dismissed）
         await RunResponseAsync(() => _session.SendAsync(text), reloadOnFailure: false);
         if (conversationId == CurrentConversationId)
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
@@ -403,6 +408,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     {
         _modes?.WorkbenchWillSend();
         ErrorMessage = null;
+        CountRegenerate();
         return RunResponseAsync(() => _session.RegenerateAsync(), reloadOnFailure: true);
     }
 
@@ -509,6 +515,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     private async Task LoadAsync(Conversation conversation)
     {
+        _resumeChecked = false;
+        await DismissVisibleHintsAsync();   // 切換或新建對話：目前的提示收起（記為 Dismissed）
         Title = conversation.Title;
         ErrorMessage = null;
         await ReloadMessagesAsync();
@@ -957,6 +965,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             args.Defer(History.RefreshAsync(CurrentConversationId));
         }
 
+        QueueHintsAfterRun(args);   // 使用習慣提示（正常結束的回應才判斷）
         _bubble = null;
         _cards.Clear();
     }

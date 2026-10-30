@@ -35,6 +35,23 @@
   <StackPanel Spacing="8">
     <TextBox x:Name="SearchBox" Text="{Binding SearchText}" Watermark="{x:Static res:Strings.ModelPicker_Search}" />
 
+    <!-- 使用習慣提示（第 1 條）：對話中途換模型，選了之後先在這裡確認，之前不換。Warning 樣式，同用量面板的快滿提醒 -->
+    <Border x:Name="SwitchConfirmBox" IsVisible="{Binding HasPendingSwitch}" CornerRadius="10" Padding="12" BorderThickness="1"
+            Background="{DynamicResource LumiWarningBackgroundBrush}" BorderBrush="{DynamicResource LumiWarningBorderBrush}">
+      <StackPanel Spacing="12">
+        <TextBlock Text="{Binding PendingSwitch.Text}" FontSize="13" TextWrapping="Wrap"
+                   Foreground="{DynamicResource LumiWarningTextBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button x:Name="SwitchInNewConversationButton" Classes="secondary" Height="32" Padding="12,0"
+                  Content="{x:Static res:Strings.Hint_SwitchInNewConversation}" Command="{Binding SwitchInNewConversationCommand}"
+                  AutomationProperties.Name="{x:Static res:Strings.Hint_SwitchInNewConversation}" />
+          <Button x:Name="SwitchAnywayButton" Classes="primary" Height="32" Padding="12,0"
+                  Content="{x:Static res:Strings.Hint_SwitchAnyway}" Command="{Binding SwitchAnywayCommand}"
+                  AutomationProperties.Name="{x:Static res:Strings.Hint_SwitchAnyway}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <ListBox x:Name="EntryList" ItemsSource="{Binding Entries}" MaxHeight="320" Background="Transparent"
              SelectionChanged="OnSelectionChanged">
       <ListBox.ItemTemplate>

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Models;
+using Lumi.Core.Usage;
 
 namespace Lumi.App.ViewModels;
 
@@ -12,6 +13,9 @@ public sealed record ModelPickerEntry(string? ModelSettingsId, string Text, stri
 {
     public bool IsModel => !IsHeader;
 }
+
+/// <summary>換模型的確認區（使用習慣提示第 1 條）：選到的模型、這次提示的紀錄 id、確認區的文字。</summary>
+public sealed record PendingModelSwitch(ModelPickerEntry Target, string EntryId, string Text);
 
 /// <summary>
 /// 模型切換選單：依連線分組、可搜尋；選了模型＝改工作台預設模型（M2 的 Q3）。
@@ -24,15 +28,29 @@ public partial class ModelSwitcherViewModel : ObservableObject
     private readonly ISettingsWindowService _settingsWindow;
     private readonly Func<bool> _isBlocked;
     private readonly Func<Task>? _afterSelect;
+    private readonly Func<int>? _currentContextTokens;
+    private readonly Func<Task>? _newConversation;
+    private readonly UsageHintCoordinator? _hints;
+    private readonly Func<string?>? _currentConversationId;
 
+    /// <param name="currentContextTokens">目前這則對話的上下文大小（使用習慣提示第 1 條）；沒有提示功能時是 null。</param>
+    /// <param name="newConversation">確認區的「開新對話再換」要開的新對話。</param>
+    /// <param name="hints">提示的紀錄與判斷；null 時換模型不出現確認區，行為與原本相同。</param>
+    /// <param name="currentConversationId">目前的對話 id（提示以對話為單位記錄）。</param>
     public ModelSwitcherViewModel(IModelCatalog catalog, ConnectionStatusCache status, ISettingsWindowService settingsWindow,
-        IUiDispatcher dispatcher, Func<bool> isBlocked, Func<Task>? afterSelect = null)
+        IUiDispatcher dispatcher, Func<bool> isBlocked, Func<Task>? afterSelect = null,
+        Func<int>? currentContextTokens = null, Func<Task>? newConversation = null,
+        UsageHintCoordinator? hints = null, Func<string?>? currentConversationId = null)
     {
         _catalog = catalog;
         _status = status;
         _settingsWindow = settingsWindow;
         _isBlocked = isBlocked;
         _afterSelect = afterSelect;
+        _currentContextTokens = currentContextTokens;
+        _newConversation = newConversation;
+        _hints = hints;
+        _currentConversationId = currentConversationId;
         Rebuild();
         catalog.Changed += (_, _) => dispatcher.Post(Rebuild);
         status.Changed += (_, _) => dispatcher.Post(Rebuild);
@@ -42,6 +60,12 @@ public partial class ModelSwitcherViewModel : ObservableObject
 
     /// <summary>選了模型之後觸發：畫面據此關掉彈出選單。</summary>
     public event Action? Selected;
+
+    /// <summary>換模型的確認區（第 1 條）：有值時確認區顯示在清單上方，選擇之前不換模型。</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasPendingSwitch))]
+    private PendingModelSwitch? _pendingSwitch;
+
+    public bool HasPendingSwitch => PendingSwitch is not null;
 
     [ObservableProperty]
     private string _searchText = "";
@@ -156,13 +180,79 @@ public partial class ModelSwitcherViewModel : ObservableObject
             ? connection.Name.Trim()
             : connection.Format == ProviderFormat.Anthropic ? Strings.Format_Anthropic : Strings.Format_OpenAI;
 
-    /// <summary>選了模型：改工作台預設模型；回應中不能切換。</summary>
+    /// <summary>選了模型：改工作台預設模型；回應中不能切換。對話中途換模型且上下文夠大時，先出現確認區，不換（使用習慣提示第 1 條）。</summary>
     public async Task<bool> SelectAsync(ModelPickerEntry? entry)
     {
         if (entry?.ModelSettingsId is not { } id || _isBlocked())
             return false;
 
         Error = null;
+        if (PendingSwitch is { } pending)
+        {
+            // 同一個模型：確認區照舊等使用者選；換成別的選項就把舊的確認區收起
+            if (pending.Target.ModelSettingsId == id)
+                return false;
+            await DismissPendingSwitchAsync();
+        }
+
+        if (id != _catalog.Current.WorkbenchModelId && await HoldForModelSwitchHintAsync(entry))
+            return false;
+        return await SwitchToAsync(id);
+    }
+
+    /// <summary>確認區的「開新對話再換」：先開新對話，再換模型。</summary>
+    [RelayCommand]
+    private async Task SwitchInNewConversationAsync()
+    {
+        if (PendingSwitch is not { } pending)
+            return;
+        PendingSwitch = null;
+        await RecordAsync(pending.EntryId, UsageHintOutcome.Acted);
+        if (_newConversation is not null)
+            await _newConversation();
+        await SwitchToAsync(pending.Target.ModelSettingsId!);
+    }
+
+    /// <summary>確認區的「照樣換」。</summary>
+    [RelayCommand]
+    private async Task SwitchAnywayAsync()
+    {
+        if (PendingSwitch is not { } pending)
+            return;
+        PendingSwitch = null;
+        await RecordAsync(pending.EntryId, UsageHintOutcome.Acted);
+        await SwitchToAsync(pending.Target.ModelSettingsId!);
+    }
+
+    /// <summary>
+    /// 確認區沒有被選擇就收起（關掉選單、送出新訊息、切換對話時）：記為 Dismissed，模型不換。沒有確認區時什麼都不做。
+    /// </summary>
+    public async Task DismissPendingSwitchAsync()
+    {
+        if (PendingSwitch is not { } pending)
+            return;
+        PendingSwitch = null;
+        await RecordAsync(pending.EntryId, UsageHintOutcome.Dismissed);
+    }
+
+    /// <summary>上下文夠大、規則沒靜音、這則對話還沒提示過：設定確認區並回 true（呼叫端不換模型）。</summary>
+    private async Task<bool> HoldForModelSwitchHintAsync(ModelPickerEntry entry)
+    {
+        if (_hints is null || _currentContextTokens is null || _currentConversationId?.Invoke() is not { } conversationId)
+            return false;
+        var prompt = await _hints.BeginModelSwitchAsync(conversationId, _currentContextTokens());
+        if (prompt is null)
+            return false;
+        PendingSwitch = new PendingModelSwitch(entry, prompt.EntryId, prompt.Text);
+        return true;
+    }
+
+    private Task RecordAsync(string entryId, UsageHintOutcome outcome) =>
+        _hints?.ResolveModelSwitchAsync(entryId, outcome) ?? Task.CompletedTask;
+
+    /// <summary>真正換工作台的預設模型，然後關掉選單（<see cref="Selected"/>）。</summary>
+    private async Task<bool> SwitchToAsync(string id)
+    {
         try
         {
             if (id != _catalog.Current.WorkbenchModelId)
