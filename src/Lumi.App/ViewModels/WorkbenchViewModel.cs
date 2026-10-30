@@ -9,6 +9,7 @@ using Lumi.Core.Chat;
 using Lumi.Core.Models;
 using Lumi.Core.Speech;
 using Lumi.Core.Tools;
+using Lumi.Core.Usage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -73,7 +74,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         IRenameService? rename = null,
         IConnectionTester? tester = null,
         SpriteConversationService? spriteConversation = null,
-        UpdateNoticeViewModel? update = null)
+        UpdateNoticeViewModel? update = null,
+        IUsageStore? usageStore = null,
+        BudgetMonitor? budgetMonitor = null)
     {
         _store = store;
         _catalog = catalog;
@@ -87,6 +90,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _rename = rename;
         _tester = tester;
         _spriteConversation = spriteConversation;
+        _usageStore = usageStore;
+        _budget = budgetMonitor;
         Messages.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(ShowWelcome));
@@ -114,7 +119,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             ? new NotificationStripViewModel(new ObservableCollection<NotificationItemViewModel>(), () => { })
             : new NotificationStripViewModel(notifications.Items, notifications.DismissAll);
         Update = update ?? UpdateNoticeViewModel.Inert;
-        Usage = new ConversationUsageViewModel(RetryConnectionAsync);
+        Usage = new ConversationUsageViewModel(RetryConnectionAsync, OpenUsagePage);
+        // 費用段落只在有用量資料來源時顯示（沒有就和費用功能出現之前一樣）
+        Usage.ShowCost = usageStore is not null && budgetMonitor is not null;
+        BudgetAlert = new BudgetAlertViewModel(OpenUsagePage);
         RefreshUsage();
 
         _session.ConversationChanged += OnConversationChanged;
@@ -504,6 +512,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Title = conversation.Title;
         ErrorMessage = null;
         await ReloadMessagesAsync();
+        await RefreshCostAsync();
         NotifySpriteConversation();   // 小精靈的專屬對話：「⋯」換成「清除內容」（M22）
     }
 
@@ -932,6 +941,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         RefreshUsage();
         if ((result.Cancelled || result.Unexpected || result.Failure is not null) && CurrentConversationId is { } usageConversation)
             args.Defer(ReloadUsageAsync(usageConversation));
+        args.Defer(RefreshCostAsync());   // 費用：這一輪的紀錄已經寫入（失敗或中止時存下來的部分照算）
 
         // 有用到工具的這一輪被停止：ConversationService 已經補好「已停止」結果並存檔，畫面從資料庫重讀才和存檔一致
         if (result.Cancelled && _usedTools && CurrentConversationId is not null)

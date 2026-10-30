@@ -16,6 +16,7 @@ using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
 using Lumi.Core.Chat;
+using Lumi.Core.Usage;
 using Microsoft.Extensions.Logging.Abstractions;
 using TextBlock = Avalonia.Controls.TextBlock;
 
@@ -31,14 +32,18 @@ public class UsageFlyoutTests
         public WorkbenchWindow Window { get; }
         public ChatToolbar Toolbar { get; }
 
-        public Rig(SequenceChatProvider? provider = null)
+        public Rig(SequenceChatProvider? provider = null, InMemoryUsageStore? usage = null, decimal? budgetUsd = null)
         {
             provider ??= new SequenceChatProvider(SequenceChatProvider.Answer("好"));
             var store = new InMemoryConversationStore();
+            if (budgetUsd is { } limit)
+                Catalog.Current = Catalog.Current with { Usage = new UsageSettings(MonthlyBudgetUsd: limit) };
+            var time = new FakeTimeProvider();
             var service = new ConversationService(provider, store, Catalog);
+            var monitor = usage is null ? null : new BudgetMonitor(usage, store, Catalog, time);
             Vm = new WorkbenchViewModel(service, store, Catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
-                new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
-                NullLogger<WorkbenchViewModel>.Instance, tester: new FakeConnectionTester());
+                new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), time,
+                NullLogger<WorkbenchViewModel>.Instance, tester: new FakeConnectionTester(), usageStore: usage, budgetMonitor: monitor);
             Window = new WorkbenchWindow(Vm);
             Window.Show();
             Window.UpdateLayout();
@@ -200,6 +205,64 @@ public class UsageFlyoutTests
 
         Assert.Contains(rig.Panel.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == Strings.Usage_CostNote);
         Assert.DoesNotContain(rig.Panel.GetVisualDescendants().OfType<Button>(), b => b.Content as string == Strings.Usage_Retry && b.IsEffectivelyVisible);
+        rig.Flyout.Hide();
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public void TheCostSection_IsHidden_WithoutAUsageStore()
+    {
+        var rig = new Rig();
+        rig.Open();
+
+        var label = rig.Panel.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == Strings.Usage_ConversationCost);
+        Assert.False(label.IsEffectivelyVisible);
+        rig.Flyout.Hide();
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task TheCostSection_SitsBetweenTheBoxesAndTheConnectionRow_AndShowsTheBudgetProgress()
+    {
+        var usage = new InMemoryUsageStore();
+        // 別的對話的 9 USD：只算進本月，本月 9 of 10 ＝ 90%（黃色）
+        usage.Records.Add(new UsageRecord(UsageRecord.NewId(), new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero), "other",
+            UsagePurpose.Chat, ChatMode.Workbench, "ms", "m", "連線", new TokenUsage(100, 10, 0, 0), false, null, 9m, 0));
+        var rig = new Rig(usage: usage, budgetUsd: 10m);
+        await rig.Vm.InitializeAsync();
+        rig.Open();
+
+        var panel = rig.Panel;
+        var cost = panel.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == Strings.Usage_ConversationCost);
+        var output = panel.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == Strings.Usage_Output);
+        var connection = panel.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == rig.Vm.Usage.ConnectionText);
+        Assert.True(cost.IsEffectivelyVisible);
+        var costY = cost.TranslatePoint(default, panel)!.Value.Y;
+        Assert.True(costY > output.TranslatePoint(default, panel)!.Value.Y);
+        Assert.True(costY < connection.TranslatePoint(default, panel)!.Value.Y);
+
+        var bar = panel.GetVisualDescendants().OfType<ProgressBar>().Single();
+        Assert.True(bar.IsEffectivelyVisible);
+        Assert.Equal(0.9, bar.Value, 6);
+        Assert.Contains("warn", bar.Classes);
+        Assert.DoesNotContain("danger", bar.Classes);
+        Assert.True(rig.Window.TryFindResource("LumiWarningIconBrush", rig.Window.ActualThemeVariant, out var warning));
+        Assert.Equal(warning, bar.Foreground);
+        Assert.Equal(string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Usage_MonthOfBudgetFormat, "NT$288", "320"),
+            panel.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text?.Contains("／") == true).Text);
+        rig.Flyout.Hide();
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public void TheCostSection_WithoutABudget_HasNoProgressBar()
+    {
+        var usage = new InMemoryUsageStore();
+        var rig = new Rig(usage: usage);
+        rig.Open();
+
+        var bar = rig.Panel.GetVisualDescendants().OfType<ProgressBar>().Single();
+        Assert.False(bar.IsEffectivelyVisible);
         rig.Flyout.Hide();
         rig.Window.Close();
     }

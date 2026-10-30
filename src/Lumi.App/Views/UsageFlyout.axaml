@@ -19,6 +19,13 @@
     <Style Selector="TextBlock.danger">
       <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
     </Style>
+    <!-- 本月進度條：80–99% 用 Warning 圖示色、100% 以上用 Danger 色；其餘是預設的 Accent（Controls.axaml） -->
+    <Style Selector="ProgressBar.warn">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningIconBrush}" />
+    </Style>
+    <Style Selector="ProgressBar.danger">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
     <Style Selector="Border.usage-box">
       <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
       <Setter Property="CornerRadius" Value="10" />
@@ -128,6 +135,29 @@
           </StackPanel>
         </Border>
       </Grid>
+
+      <!-- 3b. 費用（M23 23H）：本對話、本月（有預算時加進度條）、用量與費用 ›。沒有費用來源時整段隱藏 -->
+      <StackPanel Spacing="8" IsVisible="{Binding Usage.ShowCost}">
+        <Border Height="1" Background="{DynamicResource LumiBorderBrush}" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Text="{x:Static res:Strings.Usage_ConversationCost}" Classes="muted" FontSize="13" />
+          <TextBlock Grid.Column="1" Text="{Binding Usage.ConversationCostText}" FontSize="13" FontWeight="Medium" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Text="{x:Static res:Strings.Usage_MonthCost}" Classes="muted" FontSize="13" />
+          <TextBlock Grid.Column="1" Text="{Binding Usage.MonthCostText}" FontSize="13" FontWeight="Medium" />
+        </Grid>
+        <ProgressBar Minimum="0" Maximum="1" Height="4" Value="{Binding Usage.MonthRatio}" IsVisible="{Binding Usage.HasBudget}"
+                     Classes.warn="{Binding Usage.IsMonthWarning}" Classes.danger="{Binding Usage.IsMonthDanger}" />
+        <Button Classes="tertiary small" HorizontalAlignment="Right" Padding="4,0" Click="OnDismissClick"
+                Command="{Binding Usage.OpenUsagePageCommand}"
+                AutomationProperties.Name="{x:Static res:Strings.Usage_OpenUsagePage}">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="{x:Static res:Strings.Usage_OpenUsagePage}" FontSize="13" />
+            <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
 
       <!-- 4. 連線列：狀態點＋文字；連線失敗時「重試」可點 -->
       <StackPanel Spacing="12">

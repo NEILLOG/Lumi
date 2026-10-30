@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.App.Services;
+using Lumi.Core.Usage;
 
 namespace Lumi.App.ViewModels;
 
@@ -52,12 +53,25 @@ public sealed partial class ConversationUsageViewModel : ObservableObject
         nameof(RingTooltip), nameof(RingAutomationName),
     ];
 
+    private static readonly string[] CostProperties =
+    [
+        nameof(ConversationCostText), nameof(MonthCostText), nameof(HasBudget), nameof(MonthRatio),
+        nameof(IsMonthWarning), nameof(IsMonthDanger),
+    ];
+
     private ConversationUsageSnapshot _state = ConversationUsageSnapshot.Empty;
 
+    private ConversationCost _conversationCost = ConversationCost.Empty;
+    private decimal _monthUsd;
+    private decimal? _budgetUsd;
+    private readonly Action? _openUsagePage;
+
     /// <param name="retry">連線列的「重試」要做的事（測試目前模型的連線）；沒有時按了也什麼都不做。</param>
-    public ConversationUsageViewModel(Func<Task>? retry = null)
+    /// <param name="openUsagePage">面板的「用量與費用 ›」要做的事（開設定視窗到該分類）；沒有時按了也什麼都不做。</param>
+    public ConversationUsageViewModel(Func<Task>? retry = null, Action? openUsagePage = null)
     {
         RetryCommand = new AsyncRelayCommand(retry ?? (() => Task.CompletedTask));
+        _openUsagePage = openUsagePage;
     }
 
     /// <summary>連線列的「重試」（只在連線失敗時顯示）。</summary>
@@ -70,6 +84,23 @@ public sealed partial class ConversationUsageViewModel : ObservableObject
         foreach (var name in ComputedProperties)
             OnPropertyChanged(name);
     }
+
+    /// <summary>
+    /// 工作台推進費用數字（本對話、本月、每月預算）。只在載入、回應結束、上下文整理完成時推進，串流中不更新。
+    /// <paramref name="budgetUsd"/> 是 null 或 ≤ 0 時視為沒設預算。
+    /// </summary>
+    public void UpdateCost(ConversationCost conversation, decimal monthUsd, decimal? budgetUsd)
+    {
+        _conversationCost = conversation;
+        _monthUsd = monthUsd;
+        _budgetUsd = budgetUsd is > 0 ? budgetUsd : null;
+        foreach (var name in CostProperties)
+            OnPropertyChanged(name);
+    }
+
+    /// <summary>費用段落要不要顯示（沒有用量資料來源時整段隱藏，行為和沒有費用功能前相同）。</summary>
+    [ObservableProperty]
+    private bool _showCost;
 
     // ---- 原始數字 ----
 
@@ -188,6 +219,50 @@ public sealed partial class ConversationUsageViewModel : ObservableObject
     };
 
     public bool ShowRetry => IsConnectionFailed;
+
+    // ---- 費用（M23 23H）：本對話、本月與預算；金額是估算，格式見 MoneyFormat ----
+
+    /// <summary>「本對話」的費用：有單價就是金額（估算加「≈」）；全部沒有單價是「未設定單價」；沒有紀錄是 NT$0。</summary>
+    public string ConversationCostText
+    {
+        get
+        {
+            if (_conversationCost.CostUsd is { } usd)
+                return MoneyFormat.Twd(usd, _conversationCost.HasEstimated);
+            return _conversationCost.UnpricedCount > 0 ? Strings.Usage_Unpriced : MoneyFormat.Twd(0);
+        }
+    }
+
+    public bool HasBudget => _budgetUsd is not null;
+
+    /// <summary>「本月」的費用；有預算時是「NT$488 ／ 800」（預算為不帶 NT$ 的整數），沒有預算時只有金額。</summary>
+    public string MonthCostText
+    {
+        get
+        {
+            var month = MoneyFormat.Twd(_monthUsd);
+            if (_budgetUsd is not { } budget)
+                return month;
+            var limit = MoneyFormat.TwdAmount(budget).ToString("N0", CultureInfo.InvariantCulture);
+            return string.Format(CultureInfo.CurrentCulture, Strings.Usage_MonthOfBudgetFormat, month, limit);
+        }
+    }
+
+    /// <summary>本月已用比例（0–1，進度條用）；沒有預算是 0。</summary>
+    public double MonthRatio => MonthRawRatio is { } raw ? Math.Clamp(raw, 0, 1) : 0;
+
+    /// <summary>本月 80% 到未滿 100%（進度條黃色）。</summary>
+    public bool IsMonthWarning => MonthRawRatio is { } raw && raw >= 0.8 && raw < 1;
+
+    /// <summary>本月 100% 以上（進度條紅色）。</summary>
+    public bool IsMonthDanger => MonthRawRatio is { } raw && raw >= 1;
+
+    /// <summary>未截斷的比例（≥ 1 才是超過預算）；沒有預算回 null。</summary>
+    private double? MonthRawRatio => _budgetUsd is { } budget ? (double)(_monthUsd / budget) : null;
+
+    /// <summary>「用量與費用 ›」：開設定視窗到用量頁（沒有委派時什麼都不做）。</summary>
+    [RelayCommand]
+    private void OpenUsagePage() => _openUsagePage?.Invoke();
 
     // ---- 圓環的 Tooltip 與無障礙名稱 ----
 

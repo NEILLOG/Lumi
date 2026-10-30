@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.BudgetBanner"
+             x:DataType="vm:BudgetAlertViewModel"
+             IsVisible="{Binding IsVisible}">
+  <!--
+    工作台頂端的預算提醒（plan 23 第 5、6 節）：一張橫條卡片（警示圖示、說明、「查看用量」「知道了」）。
+    80% 用 Warning 樣式、100% 用 Danger 樣式；版面仿照 UpdateBanner。只用 token；按鈕層級：查看用量 secondary、知道了 tertiary。
+  -->
+  <UserControl.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <Style Selector="Border.budget-banner">
+      <Setter Property="Margin" Value="64,8,64,0" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    </Style>
+    <Style Selector="Border.budget-banner.warning">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+    </Style>
+    <Style Selector="Border.budget-banner.danger">
+      <Setter Property="Background" Value="{DynamicResource LumiDangerBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiDangerBorderBrush}" />
+    </Style>
+    <Style Selector="TextBlock.budget-text.warning">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.budget-text.danger">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
+    <Style Selector="ctl|LumiIcon.budget-icon.warning">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+    </Style>
+    <Style Selector="ctl|LumiIcon.budget-icon.danger">
+      <Setter Property="Foreground" Value="{DynamicResource LumiDangerBrush}" />
+    </Style>
+    <!-- RWD（ui-spec 9.4）：Compact 24、Narrow 16；放在最後才蓋得過預設值 -->
+    <Style Selector="Window.compact Border.budget-banner">
+      <Setter Property="Margin" Value="24,8,24,0" />
+    </Style>
+    <Style Selector="Window.narrow Border.budget-banner">
+      <Setter Property="Margin" Value="16,8,16,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border x:Name="BudgetBannerCard" Classes="budget-banner" Classes.warning="{Binding !IsDanger}" Classes.danger="{Binding IsDanger}">
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+      <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconAlertTriangle}" Size="16" VerticalAlignment="Top"
+                    Classes="budget-icon" Classes.warning="{Binding !IsDanger}" Classes.danger="{Binding IsDanger}" />
+      <StackPanel Grid.Column="1" Spacing="8">
+        <TextBlock x:Name="BudgetText" Text="{Binding Text}" TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeCard}"
+                   Classes="budget-text" Classes.warning="{Binding !IsDanger}" Classes.danger="{Binding IsDanger}" />
+        <WrapPanel>
+          <Button x:Name="BudgetViewUsageButton" Classes="secondary" Margin="0,0,8,0" Height="32" Padding="12,0"
+                  Content="{x:Static res:Strings.Budget_ViewUsage}" Command="{Binding ViewUsageCommand}"
+                  AutomationProperties.Name="{x:Static res:Strings.Budget_ViewUsage}" />
+          <Button x:Name="BudgetDismissButton" Classes="tertiary" Height="32" Padding="12,0"
+                  Content="{x:Static res:Strings.Budget_Dismiss}" Command="{Binding DismissCommand}"
+                  AutomationProperties.Name="{x:Static res:Strings.Budget_Dismiss}" />
+        </WrapPanel>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>
