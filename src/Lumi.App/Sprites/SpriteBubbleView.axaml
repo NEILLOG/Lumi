@@ -57,12 +57,16 @@
     <!--
       提醒（M10 10E）：獨立的卡片，在回應氣泡上方；不自動消失，按關閉才收起（只有關閉鈕可以點，卡片其他部分穿透）。
       最新一則；還有其他則時標示「還有 N 則」，關掉一則後顯示下一則。內文超過氣泡上限就截斷（完整內容在工作台的通知列）。
+      排程執行的結果（有目標）多一個「查看」；小精靈回應中停用，Tooltip 寫出原因。
     -->
     <Border x:Name="ReminderCard" Classes="bubble" IsVisible="{Binding HasReminder}" Margin="0,0,0,6">
       <StackPanel Spacing="6">
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="14" Foreground="{DynamicResource LumiAccentTextBrush}" VerticalAlignment="Center" />
+            <ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="14" Foreground="{DynamicResource LumiAccentTextBrush}" VerticalAlignment="Center"
+                          IsVisible="{Binding !Reminder.IsScheduledRun}" />
+            <ctl:LumiIcon Data="{StaticResource LumiIconClock}" Size="14" Foreground="{DynamicResource LumiInfoBrush}" VerticalAlignment="Center"
+                          IsVisible="{Binding Reminder.IsScheduledRun}" />
             <TextBlock x:Name="ReminderTitle" Text="{Binding Reminder.Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1"
                        FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
           </StackPanel>
@@ -77,6 +81,11 @@
                             LineHeight="22" FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
         <TextBlock x:Name="ReminderMore" IsVisible="{Binding HasReminderMore}" Text="{Binding ReminderMoreText}"
                    FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}" />
+        <!-- 查看（排程執行的結果）：回應中停用，ShowOnDisabled 讓 Tooltip 寫出原因 -->
+        <Button x:Name="ReminderViewButton" Classes="link" HorizontalAlignment="Left" IsVisible="{Binding Reminder.HasView}"
+                IsEnabled="{Binding CanViewReminder}" ToolTip.ShowOnDisabled="True" ToolTip.Tip="{Binding ReminderViewTip}"
+                AutomationProperties.Name="{Binding ReminderViewTip}" Command="{Binding Reminder.ViewCommand}"
+                Content="{x:Static res:Strings.Schedule_Notify_View}" />
       </StackPanel>
     </Border>
 

@@ -7,7 +7,8 @@
              x:DataType="vm:NotificationStripViewModel"
              IsVisible="{Binding IsVisible}">
   <!--
-    工作台頂端的提醒通知列（ui-spec 第 13 節）：每則一張橫條卡片（鈴鐺、標題、內容最多 3 行、關閉鈕）。
+    工作台頂端的提醒通知列（ui-spec 第 13 節）：每則一張橫條卡片（鈴鐺、標題、內容最多 3 行、查看、關閉鈕）。
+    排程執行的結果用時鐘圖示與 SurfaceAlt 底；有「查看」的通知才顯示查看鈕（tertiary）。
     錯過彙總用中性樣式（底色 SurfaceAlt、圖示灰）。超過 3 則時尾端顯示「還有 N 則」與「全部關閉」。
     左右邊界與輸入區一致（Wide 64、Compact 24、Narrow 16）。只用 token；按鈕層級：關閉鈕 tertiary、全部關閉 tertiary。
   -->
@@ -42,12 +43,22 @@
     <Style Selector="Border.notice-icon.missed ctl|LumiIcon">
       <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
     </Style>
+    <Style Selector="Border.notice-icon.scheduled">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="Border.notice-icon.scheduled ctl|LumiIcon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiInfoBrush}" />
+    </Style>
     <Style Selector="Button.notice-close">
       <Setter Property="Width" Value="28" />
       <Setter Property="Height" Value="28" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.notice-view">
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
     </Style>
     <!-- RWD（ui-spec 9.4）：Compact 24、Narrow 16；放在最後才蓋得過預設值 -->
     <Style Selector="Window.compact StackPanel.notice-stack">
@@ -64,8 +75,12 @@
         <DataTemplate x:DataType="vm:NotificationItemViewModel">
           <Border Classes="notice" Classes.missed="{Binding IsMissedSummary}">
             <Grid ColumnDefinitions="Auto,*,Auto">
-              <Border Grid.Column="0" Classes="notice-icon" Classes.missed="{Binding IsMissedSummary}" VerticalAlignment="Top">
-                <ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              <Border Grid.Column="0" Classes="notice-icon" Classes.missed="{Binding IsMissedSummary}" Classes.scheduled="{Binding IsScheduledRun}"
+                      VerticalAlignment="Top">
+                <Panel>
+                  <ctl:LumiIcon Data="{StaticResource LumiIconBell}" IsVisible="{Binding !IsScheduledRun}" Size="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  <ctl:LumiIcon Data="{StaticResource LumiIconClock}" IsVisible="{Binding IsScheduledRun}" Size="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Panel>
               </Border>
               <StackPanel Grid.Column="1" Margin="12,0,8,0" Spacing="4">
                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{DynamicResource LumiFontSizeCard}"
@@ -73,11 +88,17 @@
                 <ctl:EmojiTextBlock Text="{Binding Message}" FontSize="{DynamicResource LumiFontSizeCard}" TextWrapping="Wrap" MaxLines="3"
                                     TextTrimming="CharacterEllipsis" Foreground="{DynamicResource LumiTextMutedBrush}" />
               </StackPanel>
-              <!-- 關閉鈕：純圖示，必須有 Tooltip 與可存取名稱（ui-spec 10.1）；Tab 可以到達 -->
-              <Button Grid.Column="2" Classes="tertiary notice-close" VerticalAlignment="Top" Command="{Binding DismissCommand}"
-                      ToolTip.Tip="{Binding DismissLabel}" AutomationProperties.Name="{Binding DismissLabel}">
-                <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
-              </Button>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                <!-- 查看：有目標的通知（排程執行結果）才有；打開紀錄後關掉這則 -->
+                <Button Classes="tertiary notice-view" IsVisible="{Binding HasView}" Command="{Binding ViewCommand}"
+                        Content="{x:Static res:Strings.Schedule_Notify_View}" ToolTip.Tip="{Binding ViewTip}"
+                        AutomationProperties.Name="{Binding ViewTip}" />
+                <!-- 關閉鈕：純圖示，必須有 Tooltip 與可存取名稱（ui-spec 10.1）；Tab 可以到達 -->
+                <Button Classes="tertiary notice-close" Command="{Binding DismissCommand}"
+                        ToolTip.Tip="{Binding DismissLabel}" AutomationProperties.Name="{Binding DismissLabel}">
+                  <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+                </Button>
+              </StackPanel>
             </Grid>
           </Border>
         </DataTemplate>

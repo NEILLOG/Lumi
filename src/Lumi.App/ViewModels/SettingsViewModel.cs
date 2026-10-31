@@ -219,6 +219,10 @@ public partial class SettingsViewModel : ObservableObject
                 await AiSettings.NavigateToConnectionAsync(navigation.ConnectionId, navigation.FocusApiKey, navigation.Notice);
                 break;
         }
+
+        // 提醒排程要選取並展開某一筆（M24「在設定中編輯」）：列表可能還在載入，RemindersViewModel 會等載入完成再套用
+        if (navigation.ScheduleId is { } scheduleId)
+            Reminders.Reveal(scheduleId);
     }
 
     /// <summary>關閉視窗前：有未儲存的變更就詢問。</summary>

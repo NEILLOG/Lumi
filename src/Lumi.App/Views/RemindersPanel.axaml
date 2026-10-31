@@ -7,22 +7,32 @@
              x:DataType="vm:RemindersViewModel">
 
   <!--
-    提醒排程面板（M20 20B）：說明 → 訊息 → 待觸發 → 已結束（右側「清除已結束」）。不提供新增。
-    待觸發與已結束共用同一個列樣式；窄視窗（Window.narrow）時刪除鈕移到內容下方、靠左（同記憶面板的規則）。
+    提醒排程面板（M20 20B，M24 擴充）：說明 → 訊息 → 待觸發 → 已結束（右側「清除已結束」）。不提供新增。
+    每列：標題、種類徽章（提醒／計時器／排程）與動作徽章（通知／跑 prompt）、訊息、排程與建立者；右側是啟停開關（待觸發）、編輯（跑 prompt）、刪除。
+    「跑 prompt」的列展開後是編輯區：要做的事、執行時不再詢問的動作、可以存取的資料夾（只能移除）、時間唯讀、儲存。
+    窄視窗（Window.narrow）時右側的操作鈕移到內容下方、靠左（同記憶面板的規則）。
   -->
   <UserControl.Styles>
-    <!-- 清單的一列：分隔線分開，不是卡片 -->
+    <!-- 清單的一列：分隔線分開，不是卡片；選取時是 Soft 底（清單項目的選取樣式） -->
     <Style Selector="Border.reminder-row">
       <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
       <Setter Property="Padding" Value="0,12" />
+    </Style>
+    <Style Selector="Border.reminder-row.selected">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
     </Style>
     <Style Selector="TextBlock.item-title">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     </Style>
-    <!-- RWD：窄視窗時刪除鈕移到內容下方（第 2 列，靠左） -->
+    <Style Selector="TextBlock.item-label">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <!-- RWD：窄視窗時操作鈕移到內容下方（第 2 列，靠左） -->
     <Style Selector="StackPanel.reminder-actions">
       <Setter Property="(Grid.Row)" Value="0" />
       <Setter Property="(Grid.Column)" Value="1" />
@@ -36,15 +46,18 @@
   </UserControl.Styles>
 
   <UserControl.Resources>
-    <!-- 一列：標題、種類與狀態徽章、訊息、排程與建立者；右側刪除 -->
+    <!-- 一列：標題、徽章、訊息、排程與建立者、錯誤；右側操作鈕；展開的編輯區在最下面 -->
     <DataTemplate x:Key="ReminderRowTemplate" x:DataType="vm:ReminderRowViewModel">
-      <Border Classes="reminder-row">
-        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="0">
+      <Border Classes="reminder-row" Classes.selected="{Binding IsSelected}">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="0">
           <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
             <WrapPanel>
               <TextBlock Classes="item-title" Margin="0,0,8,4" Text="{Binding Title}" TextWrapping="Wrap" />
               <Border Classes="badge" Margin="0,0,8,4">
                 <TextBlock Text="{Binding KindText}" />
+              </Border>
+              <Border Classes="badge" Margin="0,0,8,4">
+                <TextBlock Text="{Binding ActionText}" />
               </Border>
               <Border Classes="badge" Margin="0,0,8,4" IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                 <TextBlock Text="{Binding StatusText}" />
@@ -57,9 +70,20 @@
                          IsVisible="{Binding ScheduleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
               <TextBlock Classes="muted" Text="{Binding CreatedByText}" />
             </WrapPanel>
+            <!-- 啟停失敗（例如一次性提醒已過期）：錯誤文字在該列 -->
+            <TextBlock Text="{Binding ErrorText}" Foreground="{DynamicResource LumiDangerBrush}" TextWrapping="Wrap"
+                       IsVisible="{Binding HasErrorText}" />
           </StackPanel>
 
           <StackPanel Classes="reminder-actions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <!-- 啟停：只有待觸發的項目；開關的狀態就是「已暫停」與否 -->
+            <ToggleSwitch VerticalAlignment="Center" OnContent="" OffContent=""
+                          IsVisible="{Binding IsPending}" IsChecked="{Binding Enabled, Mode=OneWay}"
+                          Command="{Binding ToggleEnabledCommand}"
+                          ToolTip.Tip="{Binding SwitchTip}" AutomationProperties.Name="{Binding SwitchTip}" />
+            <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    IsVisible="{Binding CanEdit}" Command="{Binding ToggleEditCommand}"
+                    Content="{x:Static res:Strings.Reminders_Edit}" AutomationProperties.Name="{x:Static res:Strings.Reminders_Edit}" />
             <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
                     Command="{Binding DeleteCommand}" AutomationProperties.Name="{x:Static res:Strings.Reminders_Delete}">
               <StackPanel Orientation="Horizontal" Spacing="8">
@@ -67,6 +91,68 @@
                 <TextBlock Text="{x:Static res:Strings.Reminders_Delete}" />
               </StackPanel>
             </Button>
+          </StackPanel>
+
+          <!-- 編輯區（跑 prompt，展開時才有）：跨兩欄，窄視窗時在操作鈕下方 -->
+          <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="16" Margin="0,12,0,0"
+                      IsVisible="{Binding IsExpanded}">
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="item-label" Text="{x:Static res:Strings.Reminders_EditPrompt}" />
+              <TextBox Text="{Binding EditPrompt, Mode=TwoWay}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96"
+                       Classes.error="{Binding HasPromptError}" AutomationProperties.Name="{x:Static res:Strings.Reminders_EditPrompt}" />
+              <TextBlock Classes="muted" Text="{Binding PromptError}" TextWrapping="Wrap" IsVisible="{Binding HasPromptError}"
+                         Foreground="{DynamicResource LumiDangerBrush}" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="item-label" Text="{x:Static res:Strings.Reminders_EditGrant}" />
+              <CheckBox IsChecked="True" IsEnabled="False" Content="{x:Static res:Strings.Schedule_Grant_Read}" />
+              <TextBlock Classes="muted" Margin="24,0,0,0" Text="{x:Static res:Strings.Schedule_Grant_ReadNote}" TextWrapping="Wrap" />
+              <CheckBox IsChecked="{Binding EditWrite, Mode=TwoWay}" Content="{x:Static res:Strings.Schedule_Grant_Write}" />
+              <TextBlock Classes="muted" Margin="24,0,0,0" Text="{x:Static res:Strings.Schedule_Grant_WriteNote}" TextWrapping="Wrap" />
+              <CheckBox IsChecked="{Binding EditNetwork, Mode=TwoWay}" Content="{x:Static res:Strings.Schedule_Grant_Network}" />
+              <TextBlock Classes="muted" Margin="24,0,0,0" Text="{x:Static res:Strings.Schedule_Grant_NetworkNote}" TextWrapping="Wrap" />
+              <!-- 破壞性單獨一列：標示「無法復原」，說明隨勾選切換 -->
+              <CheckBox IsChecked="{Binding EditDestructive, Mode=TwoWay}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="{x:Static res:Strings.Schedule_Grant_Destructive}" />
+                  <Border Classes="badge">
+                    <TextBlock Text="{x:Static res:Strings.Schedule_Grant_DestructiveBadge}" Foreground="{DynamicResource LumiDangerBrush}" />
+                  </Border>
+                </StackPanel>
+              </CheckBox>
+              <TextBlock Classes="muted" Margin="24,0,0,0" Text="{Binding DestructiveNote}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="item-label" Text="{x:Static res:Strings.Reminders_EditScope}" />
+              <ItemsControl ItemsSource="{Binding EditScope}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ReminderScopeEntry">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                      <TextBlock Grid.Column="0" Classes="mono" Text="{Binding DisplayName}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      <Button Grid.Column="1" Classes="tertiary" Width="28" Height="28" Padding="0"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                              Command="{Binding RemoveCommand}" ToolTip.Tip="{Binding RemoveTip}" AutomationProperties.Name="{Binding RemoveTip}">
+                        <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="12" />
+                      </Button>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Reminders_EditScopeNone}" TextWrapping="Wrap" IsVisible="{Binding HasNoScope}" />
+            </StackPanel>
+
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.Reminders_EditTimeNote}" TextWrapping="Wrap" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Button Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      Content="{x:Static res:Strings.Reminders_EditSave}" Command="{Binding SaveCommand}"
+                      AutomationProperties.Name="{x:Static res:Strings.Reminders_EditSave}" />
+              <TextBlock VerticalAlignment="Center" Text="{Binding EditMessage}" TextWrapping="Wrap" Classes.error="{Binding EditMessageIsError}"
+                         IsVisible="{Binding HasEditMessage}" />
+            </StackPanel>
           </StackPanel>
         </Grid>
       </Border>

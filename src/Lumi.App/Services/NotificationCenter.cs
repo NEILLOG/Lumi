@@ -11,7 +11,8 @@ namespace Lumi.App.Services;
 /// 通知只存在記憶體，<b>不自動消失</b>，使用者按關閉才收起；最多保留 <see cref="MaxItems"/> 則，超過丟掉最舊的。
 /// 工作台的通知列與小精靈的提醒氣泡都綁定 <see cref="Items"/>，同一則通知在兩邊各顯示一次（各自只顯示其中一部分）。
 /// 加入時若工作台與小精靈都沒有顯示，要求顯示小精靈（走協調者既有的 <see cref="IAppModeCoordinator.ShowSprite"/>）。
-/// 工作台與小精靈的視窗與協調者透過委派延遲取得，避免建構時的循環相依（工具 → 提醒服務 → 這裡 → 協調者 → 對話 → 工具）。
+/// 工作台與小精靈的視窗與協調者、排程紀錄的檢視（<see cref="IScheduledRunViewer"/>）透過委派延遲取得，避免建構時的循環相依（工具 → 提醒服務 → 這裡 → 協調者 → 對話 → 工具）。
+/// 通知的「查看」（<see cref="NotificationItemViewModel.ViewCommand"/>）經由 <see cref="OpenScheduledRunAsync"/> 打開紀錄。
 /// </summary>
 public sealed class NotificationCenter : INotificationSink
 {
@@ -20,13 +21,16 @@ public sealed class NotificationCenter : INotificationSink
     private readonly IUiDispatcher _dispatcher;
     private readonly Func<IWindowHost> _windows;
     private readonly Func<IAppModeCoordinator> _modes;
+    private readonly Func<IScheduledRunViewer> _viewer;
     private readonly ILogger<NotificationCenter> _logger;
 
-    public NotificationCenter(IUiDispatcher dispatcher, Func<IWindowHost> windows, Func<IAppModeCoordinator> modes, ILogger<NotificationCenter> logger)
+    public NotificationCenter(
+        IUiDispatcher dispatcher, Func<IWindowHost> windows, Func<IAppModeCoordinator> modes, Func<IScheduledRunViewer> viewer, ILogger<NotificationCenter> logger)
     {
         _dispatcher = dispatcher;
         _windows = windows;
         _modes = modes;
+        _viewer = viewer;
         _logger = logger;
     }
 
@@ -49,6 +53,13 @@ public sealed class NotificationCenter : INotificationSink
 
     public void DismissAll() => Items.Clear();
 
+    /// <summary>通知的「查看」：先把工作台叫出來（小精靈模式下協調者會切過去），再由紀錄檢視打開那一筆。</summary>
+    private async Task OpenScheduledRunAsync(string runId)
+    {
+        _modes().OpenWorkbench();
+        await _viewer().OpenScheduledRunAsync(runId);
+    }
+
     private void Add(AppNotification notification)
     {
         try
@@ -57,7 +68,7 @@ public sealed class NotificationCenter : INotificationSink
             if (Items.Any(i => i.Id == notification.Id))
                 return;
 
-            Items.Insert(0, new NotificationItemViewModel(notification, () => Dismiss(notification.Id)));
+            Items.Insert(0, new NotificationItemViewModel(notification, () => Dismiss(notification.Id), OpenScheduledRunAsync));
             while (Items.Count > MaxItems)
                 Items.RemoveAt(Items.Count - 1);
 
