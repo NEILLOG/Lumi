@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Encodings.Web;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
@@ -23,19 +25,36 @@ public partial class ToolCardViewModel : ObservableObject
     /// <summary>結果超過這麼多行就只顯示前段。</summary>
     public const int PreviewLines = 6;
 
+    /// <summary>建立排程的工具名稱（M24，<c>create_scheduled_prompt</c>）：卡片看到它就換成排程確認區。</summary>
+    private const string CreateScheduleToolName = "create_scheduled_prompt";
+
+    /// <summary>排程紀錄保留的次數（與 <c>CreateScheduledPromptTool</c> 給模型的說明一致）。</summary>
+    private const int ScheduleRecordLimit = 30;
+
     private readonly IToolApprovalResponder _responder;
     private readonly IClipboardService _clipboard;
+    private readonly IConfirmService? _confirm;
+    private readonly string _argumentsJson;
+    private readonly TimeProvider _time;
 
     /// <summary>
     /// 這張卡在排程紀錄檢視裡（M24）：確認區的「本次對話都允許」換成「以後都允許（加入排程授權）」。
-    /// 由建立卡片的人在建立時設定；行為由包 24G 接上。
+    /// 由建立卡片的人在建立時設定。
     /// </summary>
     public bool IsScheduledRun { get; init; }
-    private readonly TimeProvider _time;
 
+    /// <summary>
+    /// 排程紀錄裡的確認屬於排除類（記憶、上傳檔案、等你登入、管理排程、沒出現過的網站，M24 卡點 5）：
+    /// 隱藏「以後都允許」，說明改成排除類的文字。只對 <see cref="IsScheduledRun"/> 的卡片有意義。
+    /// </summary>
+    public bool ScheduleExcluded { get; init; }
+
+    /// <param name="confirm">
+    /// 破壞性操作的「以後都允許」要先確認（M24 2.2）。沒有傳就不提供這個按鈕（安全的預設）。
+    /// </param>
     public ToolCardViewModel(
         string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson,
-        IToolApprovalResponder responder, IClipboardService clipboard, TimeProvider time)
+        IToolApprovalResponder responder, IClipboardService clipboard, TimeProvider time, IConfirmService? confirm = null)
     {
         CallId = callId;
         ToolName = toolName;
@@ -43,10 +62,12 @@ public partial class ToolCardViewModel : ObservableObject
         Permission = permission;
         _target = target;
         ArgumentsText = PrettyJson(argumentsJson);
+        _argumentsJson = argumentsJson;
         if (toolName == ShowDetailsTool.Name)
             (DetailsTitle, DetailsMarkdown) = ParseDetails(argumentsJson);
         _responder = responder;
         _clipboard = clipboard;
+        _confirm = confirm;
         _time = time;
     }
 
@@ -106,7 +127,8 @@ public partial class ToolCardViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRunning), nameof(IsAwaiting), nameof(IsSucceeded), nameof(IsFailed), nameof(IsDenied),
         nameof(IsForcedOpen), nameof(IsOpen), nameof(CanToggle), nameof(StatusText), nameof(Title),
-        nameof(ShowDetailsCard), nameof(ShowRegularCard))]
+        nameof(ShowDetailsCard), nameof(ShowRegularCard), nameof(ShowGenericConfirm), nameof(ShowScheduleConfirm),
+        nameof(ShowAwaitingNote), nameof(AwaitingNote))]
     private ToolCardState _state = ToolCardState.Running;
 
     [ObservableProperty]
@@ -140,8 +162,28 @@ public partial class ToolCardViewModel : ObservableObject
     /// <summary>等待確認時的請求內容（預覽、權限等級）；之後清掉。</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PreviewDetail), nameof(HasPreviewDetail), nameof(ShowAllowForConversation), nameof(IsDestructive), nameof(PermissionNote),
-        nameof(Warnings), nameof(HasWarnings))]
+        nameof(Warnings), nameof(HasWarnings), nameof(ShowGenericConfirm), nameof(ShowScheduleConfirm), nameof(ShowAwaitingNote),
+        nameof(AwaitingNote), nameof(ScheduleName), nameof(ScheduleWhen), nameof(SchedulePrompt), nameof(ScheduleModel), nameof(ScheduleScope),
+        nameof(WriteSuggested), nameof(NetworkSuggested))]
     private ToolApprovalRequest? _request;
+
+    // ---- 建立排程的確認區（M24 4.4，草圖 ScheduleCreate）：授權勾選，預設照 Lumi 的建議 ----
+
+    [ObservableProperty]
+    private bool _scheduleWrite;
+
+    [ObservableProperty]
+    private bool _scheduleNetwork;
+
+    /// <summary>破壞性操作：永遠不會因為建議而預先勾選（M24 2.2）。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ScheduleDestructiveNote))]
+    private bool _scheduleDestructive;
+
+    /// <summary>建立成功後的摘要（下次執行、實際授權）；只有建立排程的卡片成功時才有，解析不了就是 null。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasScheduleSummary))]
+    private string? _scheduleSummary;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsOpen))]
@@ -184,8 +226,25 @@ public partial class ToolCardViewModel : ObservableObject
         _ => string.IsNullOrWhiteSpace(Summary) ? Strings.Tool_Done : Summary,
     };
 
-    /// <summary>動作 · 對象 · 結果摘要。</summary>
-    public string Title => HasTarget ? $"{DisplayName} · {Target} · {StatusText}" : $"{DisplayName} · {StatusText}";
+    /// <summary>動作 · 對象 · 結果摘要。建立排程的卡片用排程的標題（草圖 ScheduleCreate）。</summary>
+    public string Title => ScheduleCardTitle ?? (HasTarget ? $"{DisplayName} · {Target} · {StatusText}" : $"{DisplayName} · {StatusText}");
+
+    private string? ScheduleCardTitle
+    {
+        get
+        {
+            if (!IsCreateSchedule)
+                return null;
+            var name = string.Format(CultureInfo.CurrentCulture, Strings.Schedule_Create_TitleFormat, Target ?? "");
+            return State switch
+            {
+                ToolCardState.AwaitingApproval => $"{name} · {Strings.Schedule_Create_Waiting}",
+                ToolCardState.Succeeded => $"{name} · {Strings.Schedule_Create_Done}",
+                ToolCardState.Denied => name,
+                _ => null,
+            };
+        }
+    }
 
     public bool HasDuration => DurationMs > 0 && State is ToolCardState.Succeeded or ToolCardState.Failed;
 
@@ -200,7 +259,8 @@ public partial class ToolCardViewModel : ObservableObject
         ToolApproval.AllowedOnce => Strings.Tool_ApprovedOnce,
         ToolApproval.AllowedForConversation => Strings.Tool_ApprovedConversation,
         ToolApproval.AllowedAlways => Strings.Tool_ApprovedAlways,
-        ToolApproval.Denied => Strings.Tool_Denied,
+        ToolApproval.AllowedBySchedule => Strings.Schedule_ApprovedBySchedule,
+        ToolApproval.Denied => IsCreateSchedule ? Strings.Schedule_Create_Denied : Strings.Tool_Denied,
         _ => "",
     };
 
@@ -232,9 +292,73 @@ public partial class ToolCardViewModel : ObservableObject
     public bool HasWarnings => Warnings.Count > 0;
 
     /// <summary>「本次對話都允許」只有 Write、Network 有；Destructive 每次都問（agent.md 第 8 節）。
-    /// 請求說不提供（<see cref="ToolApprovalRequest.AllowRemember"/> 為 false，M17 搜尋引擎網址）時也不提供。</summary>
-    public bool ShowAllowForConversation => Request is { AllowRemember: true } request
-        && request.Permission is ToolPermission.Write or ToolPermission.Network;
+    /// 請求說不提供（<see cref="ToolApprovalRequest.AllowRemember"/> 為 false，M17 搜尋引擎網址）時也不提供。
+    /// 排程紀錄（<see cref="IsScheduledRun"/>）改成「以後都允許」：多了 Destructive（要先確認），排除類隱藏（M24 4.3）。</summary>
+    public bool ShowAllowForConversation => Request is { AllowRemember: true } request && (IsScheduledRun
+        ? !ScheduleExcluded && (request.Permission is ToolPermission.Write or ToolPermission.Network
+            || (request.Permission == ToolPermission.Destructive && _confirm is not null))
+        : request.Permission is ToolPermission.Write or ToolPermission.Network);
+
+    /// <summary>排程紀錄的按鈕文字：「以後都允許（加入排程授權）」；一般卡片仍是「本次對話都允許」。回答的值一樣是 AllowForConversation。</summary>
+    public string AllowConversationLabel => IsScheduledRun ? Strings.Schedule_AllowAlways : Strings.Tool_AllowConversation;
+
+    /// <summary>排程紀錄的確認區上方說明（M24 4.3）：沒有授權的權限名稱，或排除類。</summary>
+    public bool ShowAwaitingNote => IsScheduledRun && IsAwaiting;
+
+    public string AwaitingNote => ScheduleExcluded
+        ? Strings.Schedule_AwaitingNoteExcluded
+        : string.Format(CultureInfo.CurrentCulture, Strings.Schedule_AwaitingNoteFormat, PermissionLabel);
+
+    private string PermissionLabel => Request?.Permission switch
+    {
+        ToolPermission.Write => Strings.Schedule_Perm_Write,
+        ToolPermission.Network => Strings.Schedule_Perm_Network,
+        ToolPermission.Destructive => Strings.Schedule_Perm_Destructive,
+        _ => Strings.Schedule_Perm_ReadOnly,
+    };
+
+    /// <summary>建立排程（<c>create_scheduled_prompt</c>）的卡片。</summary>
+    public bool IsCreateSchedule => ToolName == CreateScheduleToolName;
+
+    /// <summary>等待確認、而且請求帶著排程內容：換成排程確認區。</summary>
+    public bool ShowScheduleConfirm => IsAwaiting && Request?.Schedule is not null;
+
+    /// <summary>一般的確認區（沒有排程內容）。</summary>
+    public bool ShowGenericConfirm => IsAwaiting && Request?.Schedule is null;
+
+    public string ScheduleName => Request?.Schedule?.Name ?? "";
+
+    /// <summary>時間，後面接下次執行。</summary>
+    public string ScheduleWhen
+    {
+        get
+        {
+            var schedule = Request?.Schedule;
+            if (schedule is null)
+                return "";
+            return string.IsNullOrEmpty(schedule.NextRunText)
+                ? schedule.WhenText
+                : $"{schedule.WhenText}（{string.Format(CultureInfo.CurrentCulture, Strings.Schedule_NextFormat, schedule.NextRunText)}）";
+        }
+    }
+
+    public string SchedulePrompt => Request?.Schedule?.Prompt ?? "";
+
+    public string ScheduleModel => Request?.Schedule?.ModelText ?? "";
+
+    public string ScheduleRecords => string.Format(CultureInfo.CurrentCulture, Strings.Schedule_RecordsValueFormat, ScheduleRecordLimit);
+
+    public string ScheduleScope => Request?.Schedule is { } schedule && schedule.ScopeNames.Count > 0
+        ? string.Join("、", schedule.ScopeNames)
+        : Strings.Schedule_ScopeNone;
+
+    public bool WriteSuggested => Request?.Schedule?.SuggestedWrite == true;
+
+    public bool NetworkSuggested => Request?.Schedule?.SuggestedNetwork == true;
+
+    public string ScheduleDestructiveNote => ScheduleDestructive ? Strings.Schedule_Grant_DestructiveOnNote : Strings.Schedule_Grant_DestructiveNote;
+
+    public bool HasScheduleSummary => ScheduleSummary is { Length: > 0 };
 
     public string PermissionNote => Request?.Permission switch
     {
@@ -250,6 +374,10 @@ public partial class ToolCardViewModel : ObservableObject
     {
         Progress = null;
         Request = request;
+        // 建立排程：預先勾選模型的建議（寫入、網路）；破壞性永遠不預先勾（M24 2.2）
+        ScheduleWrite = request.Schedule?.SuggestedWrite == true;
+        ScheduleNetwork = request.Schedule?.SuggestedNetwork == true;
+        ScheduleDestructive = false;
         State = ToolCardState.AwaitingApproval;
     }
 
@@ -272,6 +400,7 @@ public partial class ToolCardViewModel : ObservableObject
         DurationMs = result.DurationMs;
         Approval = result.Approval;
         Images = (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))).ToList();
+        ScheduleSummary = IsCreateSchedule && result is { IsError: false, Approval: not ToolApproval.Denied } ? CreatedSummary(result.Content) : null;
         Request = null;
         State = result.Approval == ToolApproval.Denied ? ToolCardState.Denied
             : result.IsError ? ToolCardState.Failed
@@ -295,17 +424,44 @@ public partial class ToolCardViewModel : ObservableObject
     private void AllowOnce() => Decide(ApprovalDecision.AllowOnce);
 
     [RelayCommand]
-    private void AllowForConversation() => Decide(ApprovalDecision.AllowForConversation);
+    private async Task AllowForConversationAsync()
+    {
+        if (!IsAwaiting)
+            return;
+
+        // 排程紀錄裡的破壞性操作「以後都允許」要再確認一次（M24 2.2）；沒有確認服務就不允許
+        if (IsScheduledRun && IsDestructive)
+        {
+            if (_confirm is null)
+                return;
+            var ok = await _confirm.ConfirmDestructiveAsync(
+                string.Format(CultureInfo.CurrentCulture, Strings.Schedule_AllowAlwaysDestructiveFormat, DisplayName),
+                Strings.Schedule_AllowAlwaysDestructiveConfirm);
+            if (!ok)
+                return;
+        }
+
+        Decide(ApprovalDecision.AllowForConversation);
+    }
 
     [RelayCommand]
     private void Deny() => Decide(ApprovalDecision.Deny);
 
-    private void Decide(ApprovalDecision decision)
+    /// <summary>建立排程：把使用者勾選的授權寫回參數，允許執行（M24 4.4）。</summary>
+    [RelayCommand]
+    private void CreateSchedule()
+    {
+        if (Request?.Schedule is null)
+            return;
+        Decide(new ApprovalAnswer(ApprovalDecision.AllowOnce, AmendedScheduleArguments()));
+    }
+
+    private void Decide(ApprovalAnswer answer)
     {
         if (!IsAwaiting)
             return;
-        ApplyDecision(decision);
-        _responder.Resolve(CallId, decision);
+        ApplyDecision(answer.Decision);
+        _responder.Resolve(CallId, answer);
     }
 
     /// <summary>別處（例如小精靈的氣泡）回答了這張卡片的確認：只更新畫面，不再通知對話迴圈。</summary>
@@ -325,7 +481,8 @@ public partial class ToolCardViewModel : ObservableObject
             return;
         }
 
-        Approval = decision == ApprovalDecision.AllowForConversation && Request?.Permission != ToolPermission.Destructive
+        // 排程紀錄的「以後都允許」由排程的權限分流處理，這一次在畫面上仍是「允許一次」
+        Approval = decision == ApprovalDecision.AllowForConversation && Request?.Permission != ToolPermission.Destructive && !IsScheduledRun
             ? ToolApproval.AllowedForConversation
             : ToolApproval.AllowedOnce;
         Request = null;
@@ -352,6 +509,87 @@ public partial class ToolCardViewModel : ObservableObject
     }
 
     partial void OnStateChanged(ToolCardState value) => ToggleCommand.NotifyCanExecuteChanged();
+
+    /// <summary>
+    /// 建立排程的參數：以模型原本的參數為底，<c>suggested_permissions</c> 改成使用者勾的寫入、網路，
+    /// <c>granted_permissions</c> 一定加上（沒勾任何也是空陣列）。存檔的 <c>tool_use</c> 不變。
+    /// </summary>
+    private string AmendedScheduleArguments()
+    {
+        JsonObject root;
+        try
+        {
+            root = JsonNode.Parse(_argumentsJson) as JsonObject ?? new JsonObject();
+        }
+        catch (JsonException)
+        {
+            root = new JsonObject();
+        }
+
+        var suggested = new JsonArray();
+        var granted = new JsonArray();
+        if (ScheduleWrite)
+        {
+            suggested.Add("write");
+            granted.Add("write");
+        }
+        if (ScheduleNetwork)
+        {
+            suggested.Add("network");
+            granted.Add("network");
+        }
+        if (ScheduleDestructive)
+            granted.Add("destructive");
+
+        root["suggested_permissions"] = suggested;
+        root[ScheduleToolFields.GrantedPermissions] = granted;
+        return root.ToJsonString(new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+    }
+
+    /// <summary>
+    /// 建立成功的結果（<c>CreateScheduledPromptTool</c> 的 <c>CreatedSchedule</c>，欄位是 snake_case）→
+    /// 「下次執行：… · 執行時不再詢問：…」。解析失敗回 null，畫面只顯示結果摘要。
+    /// </summary>
+    private static string? CreatedSummary(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("granted", out var granted) || granted.ValueKind != JsonValueKind.Array)
+                return null;
+
+            var next = ReadString(root, "next_run_at_local") ?? ReadString(root, "next_run_at");
+            if (next is null)
+                return null;
+
+            var names = granted.EnumerateArray()
+                .Select(g => g.ValueKind == JsonValueKind.String ? GrantLabel(g.GetString()) : null)
+                .OfType<string>()
+                .ToList();
+            var shown = names.Count > 0 ? string.Join(Strings.Schedule_GrantListSeparator, names) : Strings.Schedule_Perm_ReadOnly;
+            return string.Format(CultureInfo.CurrentCulture, Strings.Schedule_Created_NextFormat, next, shown);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadString(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text
+            ? text
+            : null;
+
+    private static string? GrantLabel(string? name) => name switch
+    {
+        "read" => Strings.Schedule_Perm_ReadOnly,
+        "write" => Strings.Schedule_Perm_Write,
+        "network" => Strings.Schedule_Perm_Network,
+        "destructive" => Strings.Schedule_Perm_Destructive,
+        _ => null,
+    };
 
     private static string PrettyJson(string json)
     {

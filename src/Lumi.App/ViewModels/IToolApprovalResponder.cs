@@ -11,6 +11,12 @@ public interface IToolApprovalResponder
     void Resolve(string callId, ApprovalDecision decision);
 
     /// <summary>
+    /// 帶回修改後參數的回答（M24：建立排程的確認卡可以改授權勾選）。預設只轉交決定，丟掉修改後的參數；
+    /// 需要參數的實作（App 的 <c>ToolApprovalService</c>）要覆寫。
+    /// </summary>
+    void Resolve(string callId, ApprovalAnswer answer) => Resolve(callId, answer.Decision);
+
+    /// <summary>
     /// 不論是哪一邊回答（工作台的卡片、小精靈的氣泡）都發出，讓另一邊同步更新（ui-spec 2.2）。
     /// 預設實作是永遠不會發出的空事件，不需要同步的假實作可以不管它。
     /// </summary>

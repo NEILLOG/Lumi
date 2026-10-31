@@ -111,6 +111,9 @@
       <StackPanel IsVisible="{Binding IsOpen}" Spacing="8" Margin="16,0,16,16">
         <!-- 確認區（等待允許時）：這次會做什麼、按鈕依權限等級 -->
         <StackPanel IsVisible="{Binding IsAwaiting}" Spacing="8">
+          <!-- 排程紀錄的確認（M24 4.3）：說明這個權限沒有授權、所以停下來問 -->
+          <TextBlock IsVisible="{Binding ShowAwaitingNote}" Text="{Binding AwaitingNote}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+          <StackPanel IsVisible="{Binding ShowGenericConfirm}" Spacing="8">
           <TextBlock Text="{Binding PermissionNote}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
           <!-- 警告（M17）：每則一列，淡底＋三角圖示；沒有警告時整塊不佔位置 -->
           <ItemsControl x:Name="ApprovalWarnings" IsVisible="{Binding HasWarnings}" ItemsSource="{Binding Warnings}">
@@ -143,13 +146,114 @@
             <Button x:Name="AllowExecuteButton" Classes="danger confirm" IsVisible="{Binding IsDestructive}" Content="{x:Static res:Strings.Tool_AllowExecute}"
                     Command="{Binding AllowOnceCommand}" />
             <Button x:Name="AllowConversationButton" Classes="secondary confirm" IsVisible="{Binding ShowAllowForConversation}"
-                    Content="{x:Static res:Strings.Tool_AllowConversation}" Command="{Binding AllowForConversationCommand}" />
+                    Content="{Binding AllowConversationLabel}" Command="{Binding AllowForConversationCommand}" />
             <Button x:Name="DenyButton" Classes="confirm" Classes.tertiary="{Binding !IsDestructive}" Classes.secondary="{Binding IsDestructive}"
                     Content="{x:Static res:Strings.Tool_Deny}" Command="{Binding DenyCommand}" />
+          </StackPanel>
+          </StackPanel>
+
+          <!-- 建立排程的確認（M24 4.4，草圖 ScheduleCreate）：欄位、執行時不再詢問的動作、建立／拒絕。卡片內不再巢狀卡片 -->
+          <StackPanel IsVisible="{Binding ShowScheduleConfirm}" Spacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Schedule_Field_Name}" Classes="cardlabel" />
+              <ctl:EmojiTextBlock Text="{Binding ScheduleName}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Schedule_Field_When}" Classes="cardlabel" />
+              <TextBlock Text="{Binding ScheduleWhen}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Schedule_Field_Prompt}" Classes="cardlabel" />
+              <ctl:EmojiTextBlock Text="{Binding SchedulePrompt}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Schedule_Field_Model}" Classes="cardlabel" />
+              <TextBlock Text="{Binding ScheduleModel}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Schedule_Field_Records}" Classes="cardlabel" />
+              <TextBlock Text="{Binding ScheduleRecords}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Schedule_Field_Scope}" Classes="cardlabel" />
+              <TextBlock Text="{Binding ScheduleScope}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Text="{x:Static res:Strings.Schedule_GrantHeading}" Classes="cardlabel" />
+              <TextBlock Text="{x:Static res:Strings.Schedule_GrantNote}" Classes="muted" TextWrapping="Wrap" />
+
+              <!-- 讀取：固定勾選、不能取消（本來就不詢問） -->
+              <CheckBox x:Name="GrantReadCheck" IsChecked="True" IsEnabled="False">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{x:Static res:Strings.Schedule_Grant_Read}" FontWeight="SemiBold" />
+                  <TextBlock Text="{x:Static res:Strings.Schedule_Grant_ReadNote}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+              </CheckBox>
+
+              <CheckBox x:Name="GrantWriteCheck" IsChecked="{Binding ScheduleWrite, Mode=TwoWay}">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static res:Strings.Schedule_Grant_Write}" FontWeight="SemiBold" />
+                    <Border Classes="badge" IsVisible="{Binding WriteSuggested}">
+                      <TextBlock Text="{x:Static res:Strings.Schedule_Suggested}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="{x:Static res:Strings.Schedule_Grant_WriteNote}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+              </CheckBox>
+
+              <CheckBox x:Name="GrantNetworkCheck" IsChecked="{Binding ScheduleNetwork, Mode=TwoWay}">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static res:Strings.Schedule_Grant_Network}" FontWeight="SemiBold" />
+                    <Border Classes="badge" IsVisible="{Binding NetworkSuggested}">
+                      <TextBlock Text="{x:Static res:Strings.Schedule_Suggested}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="{x:Static res:Strings.Schedule_Grant_NetworkNote}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+              </CheckBox>
+
+              <!-- 破壞性操作：單獨一列、標無法復原、預設不勾；勾了確認鍵才會變 danger -->
+              <Border Height="1" Margin="0,4" Background="{DynamicResource LumiBorderBrush}" />
+              <CheckBox x:Name="GrantDestructiveCheck" IsChecked="{Binding ScheduleDestructive, Mode=TwoWay}">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{x:Static res:Strings.Schedule_Grant_Destructive}" FontWeight="SemiBold" />
+                    <Border CornerRadius="12" Padding="8,4" Background="{DynamicResource LumiDangerBackgroundBrush}">
+                      <TextBlock Text="{x:Static res:Strings.Schedule_Grant_DestructiveBadge}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                                 FontWeight="SemiBold" Foreground="{DynamicResource LumiDangerBrush}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="{Binding ScheduleDestructiveNote}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+              </CheckBox>
+
+              <TextBlock Text="{x:Static res:Strings.Schedule_AlwaysAskNote}" Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="CreateScheduleButton" Classes="primary confirm" IsVisible="{Binding !ScheduleDestructive}"
+                        Content="{x:Static res:Strings.Schedule_Create_Confirm}" Command="{Binding CreateScheduleCommand}" />
+                <Button x:Name="CreateScheduleDangerButton" Classes="danger confirm" IsVisible="{Binding ScheduleDestructive}"
+                        Content="{x:Static res:Strings.Schedule_Create_ConfirmDestructive}" Command="{Binding CreateScheduleCommand}" />
+                <Button x:Name="CreateScheduleDenyButton" Classes="tertiary confirm" Content="{x:Static res:Strings.Schedule_Create_Deny}"
+                        Command="{Binding DenyCommand}" />
+              </StackPanel>
+              <TextBlock Text="{x:Static res:Strings.Schedule_Create_AfterNote}" Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
           </StackPanel>
         </StackPanel>
 
         <TextBlock IsVisible="{Binding HasApprovalNote}" Text="{Binding ApprovalNote}" Classes="muted" />
+
+        <!-- 建立排程成功後：下次執行與實際授權（解析不了就不顯示，標題與結果摘要仍在）；「查看」先只是文字 -->
+        <StackPanel IsVisible="{Binding HasScheduleSummary}" Spacing="4">
+          <TextBlock Text="{Binding ScheduleSummary}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Schedule_Created_ViewLink}" Foreground="{DynamicResource LumiAccentTextBrush}" />
+        </StackPanel>
 
         <StackPanel Spacing="4">
           <TextBlock Text="{x:Static res:Strings.Tool_Arguments}" Classes="cardlabel" />
