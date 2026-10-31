@@ -420,16 +420,18 @@ public sealed class ConversationService
                 var mustAsk = urlCheck != UrlCheck.Known;
 
                 // ---- 權限 ----
+                // AlwaysAsk（建立排程，M24）：不看「永遠允許」與「本次對話都允許」，一定詢問
                 var approval = ToolApproval.NotRequired;
                 var denied = false;
-                if (descriptor.Permission != ToolPermission.ReadOnly || mustAsk)
+                string? amendedArguments = null;
+                if (descriptor.Permission != ToolPermission.ReadOnly || mustAsk || descriptor.AlwaysAsk)
                 {
-                    if (!mustAsk && IsAlwaysAllowed(descriptor))
+                    if (!mustAsk && !descriptor.AlwaysAsk && IsAlwaysAllowed(descriptor))
                     {
                         // 設定頁的「永遠允許」：不詢問，也不記在對話裡（設定立即生效，M15 D5）
                         approval = ToolApproval.AllowedAlways;
                     }
-                    else if (!mustAsk && _memory.IsAllowed(conversationId, descriptor))
+                    else if (!mustAsk && !descriptor.AlwaysAsk && _memory.IsAllowed(conversationId, descriptor))
                     {
                         approval = ToolApproval.AllowedForConversation;
                     }
@@ -438,18 +440,23 @@ public sealed class ConversationService
                         var approvalRequest = new ToolApprovalRequest(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview, use.InputJson)
                         {
                             Warnings = mustAsk ? [NetworkUrlPolicy.Warning(urlCheck, preview.Url!)] : [],
-                            AllowRemember = urlCheck != UrlCheck.SearchEngine,
+                            AllowRemember = urlCheck != UrlCheck.SearchEngine && !descriptor.AlwaysAsk,
+                            ConversationId = conversationId,
                         };
-                        yield return new ApprovalRequired(approvalRequest);
+                        // 排程授權範圍內（M24）：不詢問、也不發 ApprovalRequired（介面會顯示確認按鈕）
+                        ApprovalAnswer? answer = _approvals.AutoAnswer(approvalRequest);
+                        if (answer is null)
+                        {
+                            yield return new ApprovalRequired(approvalRequest);
 
-                        ApprovalDecision? decision = null;
-                        try
-                        {
-                            decision = await _approvals.RequestAsync(approvalRequest, ct).ConfigureAwait(false);
-                        }
-                        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                        {
-                            stopped = true;
+                            try
+                            {
+                                answer = await _approvals.RequestAnswerAsync(approvalRequest, ct).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                            {
+                                stopped = true;
+                            }
                         }
 
                         if (stopped)
@@ -460,11 +467,18 @@ public sealed class ConversationService
                             continue;
                         }
 
-                        switch (decision)
+                        amendedArguments = answer?.AmendedArgumentsJson;
+                        switch (answer?.Decision)
                         {
-                            case ApprovalDecision.AllowForConversation when urlCheck == UrlCheck.SearchEngine:
-                                // 搜尋引擎網址不能「本次對話都允許」：當成允許一次，什麼都不記
+                            case ApprovalDecision.AllowBySchedule:
+                                // 排程授權範圍內（M24 4.3）：由 RoutingToolApprovalService 決定，不記在對話裡
+                                approval = ToolApproval.AllowedBySchedule;
+                                break;
+                            case ApprovalDecision.AllowForConversation when urlCheck == UrlCheck.SearchEngine || descriptor.AlwaysAsk:
+                                // 搜尋引擎網址與一定詢問的工具（建立排程）不能「本次對話都允許」：當成允許一次，什麼都不記
                                 approval = ToolApproval.AllowedOnce;
+                                if (urlCheck == UrlCheck.UnknownSite)
+                                    _memory.ApproveSite(conversationId, WebOrigin.Of(preview.Url!));
                                 break;
                             case ApprovalDecision.AllowForConversation:
                                 _memory.Allow(conversationId, descriptor);   // Destructive 不會被記住；MCP 工具依名稱記住（M16 D13）
@@ -500,7 +514,11 @@ public sealed class ConversationService
                     // 工具結束後不再發剩下的進度。取消、逾時、例外仍由下面的 ToolExecutor 與 catch 處理
                     var progress = new ToolProgressSink();
                     using var toolCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    var running = ToolExecutor.RunAsync(tool, use.InputJson, context with { Progress = progress }, _options.MaxResultChars, _logger, toolCts.Token);
+                    // 執行用的參數：使用者在確認卡改過的優先（M24）；建立排程的工具沒有修改時，拿掉模型自己填的授權（不可信）。
+                    // 存檔的 tool_use 仍是模型原本的參數，不改
+                    var runArguments = amendedArguments
+                        ?? (preview.Schedule is not null ? ScheduleToolFields.RemoveGrantedPermissions(use.InputJson) : use.InputJson);
+                    var running = ToolExecutor.RunAsync(tool, runArguments, context with { Progress = progress }, _options.MaxResultChars, _logger, toolCts.Token);
                     try
                     {
                         var ready = progress.WaitToReadAsync(ct).AsTask();

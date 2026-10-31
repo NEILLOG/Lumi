@@ -61,6 +61,12 @@ public interface IToolApprovalService
     /// </summary>
     async Task<ApprovalAnswer> RequestAnswerAsync(ToolApprovalRequest request, CancellationToken ct) =>
         new(await RequestAsync(request, ct).ConfigureAwait(false));
+
+    /// <summary>
+    /// 不必詢問使用者就能決定時回傳答案（M24：排程授權範圍內）；回 null 才會發出 <see cref="ApprovalRequired"/> 並呼叫 <see cref="RequestAnswerAsync"/>。
+    /// 預設 null。對話迴圈先呼叫這個，所以自動允許的呼叫不會讓介面顯示確認按鈕。
+    /// </summary>
+    ApprovalAnswer? AutoAnswer(ToolApprovalRequest request) => null;
 }
 
 /// <summary>沒有任何畫面可以詢問時的預設：一律拒絕（安全的預設）。</summary>
