@@ -51,6 +51,10 @@ public partial class MessageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowActions))]
     private bool _isFollowedByTools;
 
+    /// <summary>排程紀錄檢視裡的使用者訊息（那次執行送出的 prompt）：氣泡上標「排程」（M24 4.7.2）。</summary>
+    [ObservableProperty]
+    private bool _showScheduleBadge;
+
     /// <summary>這則的用量；串流中沒有，完成後才有（OpenAI 相容伺服器可能沒回）。</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UsageText), nameof(HasUsage))]
@@ -170,14 +174,29 @@ public partial class MessageViewModel : ObservableObject
     }
 }
 
-/// <summary>使用者氣泡上方的一個 chip（唯讀；加入與移除在輸入框上方的上下文列）。</summary>
-public sealed record MessageChipViewModel(ContextKind Kind, string DisplayName, string? Detail, bool HasProblem, string Tooltip)
+/// <summary>
+/// 使用者氣泡上方的一個 chip（唯讀；加入與移除在輸入框上方的上下文列）。排程紀錄的引用（M24 4.7.3）畫成引用卡：
+/// <see cref="RunId"/> 是紀錄 id（查看原紀錄用），<see cref="RunGone"/> 表示紀錄已經被清掉（停用按鈕）。
+/// </summary>
+public sealed record MessageChipViewModel(ContextKind Kind, string DisplayName, string? Detail, bool HasProblem, string Tooltip, string? RunId = null, bool RunGone = false)
 {
     public bool IsFolder => Kind == ContextKind.Folder;
 
     public bool IsImage => Kind == ContextKind.Image;
 
-    public bool HasDetail => Detail is not null;
+    public bool IsScheduledRun => Kind == ContextKind.ScheduledRun;
+
+    public bool IsRunGone => IsScheduledRun && RunGone;
+
+    /// <summary>引用卡的時間已經在引用文字裡，不另外顯示。</summary>
+    public bool HasDetail => Detail is not null && !IsScheduledRun;
+
+    /// <summary>引用卡的文字：「引用排程結果 · 名稱 · 時間」，紀錄已清掉時時間換成「原紀錄已清除」。</summary>
+    public string QuoteText => string.Format(CultureInfo.CurrentCulture, Strings.Schedule_QuoteTitleFormat, DisplayName,
+        IsRunGone || Detail is null ? Strings.Schedule_QuoteGone : Detail);
+
+    /// <summary>引用卡上的「查看原紀錄」；紀錄已清掉時改成「原紀錄已清除」（停用）。</summary>
+    public string ViewOriginalText => IsRunGone ? Strings.Schedule_QuoteGone : Strings.Schedule_QuoteViewOriginal;
 
     /// <summary>從訊息的內容區塊重建（重開程式後也看得到當時帶了什麼）。</summary>
     public static IReadOnlyList<MessageChipViewModel> FromBlocks(IEnumerable<ContentBlock> blocks)
@@ -187,6 +206,11 @@ public sealed record MessageChipViewModel(ContextKind Kind, string DisplayName, 
         {
             switch (block)
             {
+                case ContextBlock { Kind: ContextKind.ScheduledRun } run:
+                    // 引用卡：時間放在 Note（內嵌時），紀錄已清掉（沒有內嵌）時 RunGone
+                    chips.Add(new MessageChipViewModel(ContextKind.ScheduledRun, run.DisplayName, run.Embedded ? run.Note : null, false,
+                        run.DisplayName, run.Path, !run.Embedded));
+                    break;
                 case ContextBlock c:
                     chips.Add(new MessageChipViewModel(
                         c.Kind, c.DisplayName,
@@ -206,5 +230,7 @@ public sealed record MessageChipViewModel(ContextKind Kind, string DisplayName, 
 
     /// <summary>送出的瞬間，用待送出的 chip 先在氣泡上顯示（訊息存好之後重讀會得到同樣的結果）。</summary>
     public static IReadOnlyList<MessageChipViewModel> FromChips(IEnumerable<ContextChipViewModel> chips) =>
-        chips.Select(c => new MessageChipViewModel(c.Kind, c.DisplayName, c.Detail, c.HasProblem, c.Tooltip)).ToList();
+        chips.Select(c => c.IsScheduledRun
+            ? new MessageChipViewModel(c.Kind, c.DisplayName, c.RunTime, false, c.DisplayName, c.Path, c.IsRunGone)
+            : new MessageChipViewModel(c.Kind, c.DisplayName, c.Detail, c.HasProblem, c.Tooltip)).ToList();
 }

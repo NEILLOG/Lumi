@@ -1,6 +1,7 @@
 using System.Text;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.Reminders;
 using Lumi.Core.Usage;
 
 namespace Lumi.Tools;
@@ -9,7 +10,15 @@ namespace Lumi.Tools;
 /// <see cref="IContextAttachmentBuilder"/> 的實作：把待送出的項目拍成快照（M4 的 Q1）。
 /// 讀不到、太大、不是文字檔都不丟例外，而是產生一個說明原因的區塊；檔案與資料夾仍在範圍內，模型可以用工具按需讀。
 /// </summary>
-public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmentStore attachments, ITokenEstimator estimator, IImageDownscaler? downscaler = null) : IContextAttachmentBuilder
+/// <param name="runs">排程紀錄（引用卡要讀最後的回答）；沒有時引用卡說明讀不到。</param>
+/// <param name="conversations">排程紀錄的對話（同上）。</param>
+public sealed class ContextAttachmentBuilder(
+    FileToolOptions options,
+    IAttachmentStore attachments,
+    ITokenEstimator estimator,
+    IImageDownscaler? downscaler = null,
+    IScheduledRunStore? runs = null,
+    IConversationStore? conversations = null) : IContextAttachmentBuilder
 {
     /// <summary>圖片長邊上限（Anthropic 建議值）；超過會被伺服器縮小但照樣計費，所以存附件前先縮（L5）。</summary>
     public const int MaxImageEdge = 1568;
@@ -42,6 +51,7 @@ public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmen
                     ContextKind.File => BuildFile(item, ref embeddedBytes),
                     ContextKind.Folder => BuildFolder(item, ct),
                     ContextKind.Image => await BuildImageAsync(item, saveImages, ct).ConfigureAwait(false),
+                    ContextKind.ScheduledRun => await BuildScheduledRunAsync(item, ct).ConfigureAwait(false),
                     _ => Missing(item, "不認得的項目種類"),
                 };
             }
@@ -102,6 +112,38 @@ public sealed class ContextAttachmentBuilder(FileToolOptions options, IAttachmen
         var tree = FolderTree.Build(item.Path, options.TreeMaxEntries, options.TreeMaxDepth, ct);
         return new ContextBlock(ContextKind.Folder, item.DisplayName, item.Path, tree.Text, true, null, tree.Entries);
     }
+
+    /// <summary>
+    /// 排程紀錄的引用卡（M24 4.7.3）：排程名稱、執行時間、最後一則助理回答的文字。紀錄或對話已被清掉、或是錯過（沒有對話）時，
+    /// 用 <c>Note</c> 說明原因、<c>Embedded=false</c>，和其他讀不到的項目一樣。內嵌的區塊把執行時間放在 <c>Note</c>（畫面的引用卡顯示用，送給模型時不用）。
+    /// </summary>
+    private async Task<ContentBlock> BuildScheduledRunAsync(ContextItem item, CancellationToken ct)
+    {
+        const string gone = "原紀錄已清除（排程紀錄或它的對話已經不在），沒有放進訊息。";
+        if (runs is null || conversations is null)
+            return ScheduledRunMissing(item, gone);
+
+        var run = await runs.GetAsync(item.Path, ct).ConfigureAwait(false);
+        if (run is null)
+            return ScheduledRunMissing(item, gone);
+        if (run.ConversationId is not { } conversationId)
+            return ScheduledRunMissing(item, "這次排程沒有執行（沒有回答可以引用），沒有放進訊息。");
+        if (await conversations.GetConversationAsync(conversationId, ct).ConfigureAwait(false) is null)
+            return ScheduledRunMissing(item, gone);
+
+        var messages = await conversations.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+        var answer = messages.LastOrDefault(m => m.Role == ChatRole.Assistant && m.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0));
+        var answerText = answer is null
+            ? "（這次執行沒有文字回答）"
+            : string.Concat(answer.Content.OfType<TextBlock>().Select(t => t.Text));
+
+        var time = ScheduledRunContext.FormatTime(run.StartedAt ?? run.PlannedAt);
+        var content = $"排程名稱：{item.DisplayName}\n執行時間：{time}\n\n{answerText}";
+        return new ContextBlock(ContextKind.ScheduledRun, item.DisplayName, item.Path, content, true, time);
+    }
+
+    private static ContextBlock ScheduledRunMissing(ContextItem item, string note) =>
+        new(ContextKind.ScheduledRun, item.DisplayName, item.Path, null, false, note);
 
     private async Task<ContentBlock> BuildImageAsync(ContextItem item, bool save, CancellationToken ct)
     {

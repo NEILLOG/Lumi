@@ -82,6 +82,22 @@
           <TextBlock Text="{x:Static res:Strings.Workbench_ViewOnlyBanner}" Foreground="{DynamicResource LumiAccentTextBrush}" />
         </Border>
 
+        <!-- 排程紀錄檢視（M24 4.7.2）：內容區是那次執行的紀錄，橫幅說明名稱與時間；執行中可以停止，隨時回到目前對話 -->
+        <Border x:Name="RunViewBanner" Grid.Row="1" IsVisible="{Binding IsViewingRun}" Padding="16,8"
+                Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding ViewingRun.BannerText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Foreground="{DynamicResource LumiAccentTextBrush}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" VerticalAlignment="Center">
+              <!-- 停止（只在執行中或待確認時有）：tertiary；回到目前對話是 secondary -->
+              <Button x:Name="StopRunButton" Classes="tertiary" IsVisible="{Binding ViewingRun.CanStop}"
+                      Content="{x:Static res:Strings.Schedule_StopRun}" Command="{Binding StopViewingRunCommand}" />
+              <Button x:Name="BackToChatButton" Classes="secondary" Content="{x:Static res:Strings.Schedule_BackToChat}"
+                      Command="{Binding BackToChatCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
         <!-- 訊息流（MessageScroller、RetryOtherModelButton 在它裡面） -->
         <views:ConversationView x:Name="Conversation" Grid.Row="2" />
 

@@ -132,7 +132,7 @@
           </Grid>
         </Border>
 
-        <ItemsControl ItemsSource="{Binding Messages}">
+        <ItemsControl ItemsSource="{Binding ShownMessages}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <StackPanel Classes="conversation-stack" />
@@ -165,6 +165,10 @@
                   <StackPanel Classes="user-header" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                     <TextBlock Classes="sender" Text="{x:Static res:Strings.Workbench_You}" />
                     <TextBlock Classes="muted message-time" Text="{Binding TimeText}" VerticalAlignment="Center" />
+                    <!-- 排程紀錄裡的使用者訊息（那次執行送出的 prompt）標「排程」（M24 4.7.2） -->
+                    <Border Classes="badge" IsVisible="{Binding ShowScheduleBadge}" VerticalAlignment="Center">
+                      <TextBlock Text="{x:Static res:Strings.Schedule_RunBadge}" />
+                    </Border>
                   </StackPanel>
                   <ItemsControl IsVisible="{Binding HasAttachments}" ItemsSource="{Binding Attachments}" HorizontalAlignment="Right">
                     <ItemsControl.ItemsPanel>
@@ -174,12 +178,18 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:MessageChipViewModel">
-                        <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}"
-                                Padding="8,4" ToolTip.Tip="{Binding Tooltip}">
+                        <!-- 一個 chip 一個外框；排程紀錄的引用卡（M24 4.7.3）：引用文字加「查看原紀錄」（紀錄已清掉時停用） -->
+                        <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}" Padding="8,4" ToolTip.Tip="{Binding Tooltip}">
                           <StackPanel Orientation="Horizontal" Spacing="8">
                             <ctl:EmojiTextBlock Text="{Binding DisplayName}" MaxWidth="240" TextTrimming="CharacterEllipsis" MaxLines="1"
-                                                FontSize="{DynamicResource LumiFontSizeCaption}" />
+                                                FontSize="{DynamicResource LumiFontSizeCaption}" IsVisible="{Binding IsScheduledRun, Converter={x:Static BoolConverters.Not}}" />
+                            <ctl:EmojiTextBlock Text="{Binding QuoteText}" MaxWidth="320" TextTrimming="CharacterEllipsis" MaxLines="1"
+                                                VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCaption}" IsVisible="{Binding IsScheduledRun}" />
                             <TextBlock IsVisible="{Binding HasDetail}" Text="{Binding Detail}" Classes="muted" />
+                            <Button Classes="tertiary small" IsVisible="{Binding IsScheduledRun}" Content="{Binding ViewOriginalText}"
+                                    IsEnabled="{Binding IsRunGone, Converter={x:Static BoolConverters.Not}}"
+                                    Command="{Binding $parent[views:ConversationView].((vm:WorkbenchViewModel)DataContext).OpenQuotedRunCommand}"
+                                    CommandParameter="{Binding}" />
                           </StackPanel>
                         </Border>
                       </DataTemplate>

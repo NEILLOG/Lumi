@@ -101,11 +101,18 @@
   -->
   <StackPanel>
     <!-- 使用習慣提示列（plan 23 第 7 節）：輸入框外框之上，沒有提示時不佔位置；按鈕與文字由 ComposerHintViewModel 決定 -->
-    <Border x:Name="ComposerHintHost" Classes="composer-hint-host" IsVisible="{Binding Hint.IsVisible}">
+    <Border x:Name="ComposerHintHost" Classes="composer-hint-host">
+      <Border.IsVisible>
+        <!-- 看排程紀錄時不顯示提示（那時輸入區換成說明列） -->
+        <MultiBinding Converter="{x:Static BoolConverters.And}">
+          <Binding Path="Hint.IsVisible" />
+          <Binding Path="IsViewingRun" Converter="{x:Static BoolConverters.Not}" />
+        </MultiBinding>
+      </Border.IsVisible>
       <views:ComposerHint DataContext="{Binding Hint}" />
     </Border>
 
-    <Border x:Name="InputArea" Classes="composer-area" DragDrop.AllowDrop="True">
+    <Border x:Name="InputArea" Classes="composer-area" DragDrop.AllowDrop="True" IsVisible="{Binding IsViewingRun, Converter={x:Static BoolConverters.Not}}">
       <StackPanel Spacing="8">
         <!-- 此對話的上下文（ui-spec 6.1）：有項目時才出現 -->
         <StackPanel x:Name="ContextBar" DataContext="{Binding Context}" IsVisible="{Binding HasItems}" Spacing="8">
@@ -127,13 +134,18 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:ContextChipViewModel">
+                <!-- 一個 chip 一個外框：檔案、資料夾、圖片顯示名稱與說明；排程紀錄的引用卡（M24 4.7.3）顯示引用文字，同一顆移除鈕 -->
                 <Border Classes="chip" Classes.folder="{Binding IsFolder}" Classes.problem="{Binding HasProblem}" ToolTip.Tip="{Binding Tooltip}">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <!-- 圖片縮圖（解碼失敗就沒有） -->
                     <Image IsVisible="{Binding $self.Source, Converter={x:Static ObjectConverters.IsNotNull}}" Width="20" Height="20" Stretch="UniformToFill"
                            Source="{Binding Path, Converter={x:Static views:PathToBitmapConverter.Instance}}" />
                     <ctl:EmojiTextBlock Text="{Binding DisplayName}" MaxWidth="220" TextTrimming="CharacterEllipsis" MaxLines="1"
-                                        VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCaption}" />
+                                        VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCaption}"
+                                        IsVisible="{Binding IsScheduledRun, Converter={x:Static BoolConverters.Not}}" />
+                    <ctl:EmojiTextBlock Text="{Binding QuoteText}" MaxWidth="320" TextTrimming="CharacterEllipsis" MaxLines="1"
+                                        VerticalAlignment="Center" FontSize="{DynamicResource LumiFontSizeCaption}"
+                                        IsVisible="{Binding IsScheduledRun}" />
                     <TextBlock IsVisible="{Binding HasDetail}" Text="{Binding Detail}" Classes="muted" VerticalAlignment="Center" />
                     <TextBlock IsVisible="{Binding IsSent}" Text="{Binding SentLabel}" Classes="muted" VerticalAlignment="Center" />
                     <Button Classes="tertiary chip-remove" VerticalAlignment="Center"
@@ -231,6 +243,24 @@
           </Panel>
         </Grid>
       </StackPanel>
+    </Border>
+
+    <!-- 看排程紀錄時取代輸入區（M24 4.7.2）：說明列；可以接著聊，錯過、中斷、失敗時多「現在執行」 -->
+    <Border x:Name="RunViewBar" Classes="composer-area" IsVisible="{Binding IsViewingRun}">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <StackPanel Spacing="4" VerticalAlignment="Center">
+          <TextBlock Text="{Binding ViewingRun.StatusNote}" IsVisible="{Binding ViewingRun.HasStatusNote}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource LumiTextBrush}" />
+          <TextBlock Text="{x:Static res:Strings.Schedule_BarNote}" IsVisible="{Binding ViewingRun.ShowBarNote}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <!-- 動作區只有一個 primary：「接著聊」；「現在執行」是 secondary -->
+          <Button x:Name="RunAgainButton" Classes="secondary" IsVisible="{Binding ViewingRun.CanRunAgain}"
+                  Content="{x:Static res:Strings.Schedule_RunAgain}" Command="{Binding RunViewAgainCommand}" />
+          <Button x:Name="ContinueChatButton" Classes="primary" IsVisible="{Binding ViewingRun.CanContinue}"
+                  Content="{x:Static res:Strings.Schedule_ContinueChat}" Command="{Binding ContinueFromRunCommand}" />
+        </StackPanel>
+      </Grid>
     </Border>
   </StackPanel>
 </UserControl>

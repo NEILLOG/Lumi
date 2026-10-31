@@ -7,6 +7,7 @@ using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
+using Lumi.Core.Reminders;
 using Lumi.Core.Speech;
 using Lumi.Core.Tools;
 using Lumi.Core.Usage;
@@ -31,6 +32,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private readonly TimeProvider _time;
     private readonly ILogger<WorkbenchViewModel> _logger;
     private readonly IToolApprovalResponder _approvals;
+    private readonly IUiDispatcher _dispatcher;
+    private readonly IScheduledRunService? _scheduledRuns;
+    private readonly IScheduledRunStore? _runStore;
+    private readonly ILogger<ScheduledRunViewModel> _runLogger;
 
     private readonly IChatSession _session;
     private readonly IAppModeCoordinator? _modes;
@@ -77,9 +82,16 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         UpdateNoticeViewModel? update = null,
         IUsageStore? usageStore = null,
         BudgetMonitor? budgetMonitor = null,
-        UsageHintCoordinator? hintCoordinator = null)
+        UsageHintCoordinator? hintCoordinator = null,
+        IScheduledRunService? scheduledRuns = null,
+        IScheduledRunStore? runStore = null,
+        ILogger<ScheduledRunViewModel>? runLogger = null)
     {
         _store = store;
+        _dispatcher = dispatcher;
+        _scheduledRuns = scheduledRuns;
+        _runStore = runStore;
+        _runLogger = runLogger ?? NullLogger<ScheduledRunViewModel>.Instance;
         _catalog = catalog;
         _apiKeyPrompt = apiKeyPrompt;
         _settingsWindow = settingsWindow;
@@ -133,8 +145,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _session.RunStarted += OnRunStarted;
         _session.EventReceived += OnEventReceived;
         _session.RunFinished += OnRunFinished;
-        _session.ModeChanged += (_, _) =>
+        _session.ModeChanged += (_, mode) =>
         {
+            if (mode == ChatMode.Sprite)
+                CloseRunView();   // 切到小精靈：工作台隱藏，排程紀錄檢視一起關掉（不改模式本身）
             OnPropertyChanged(nameof(IsViewOnly));
             EnterSpriteModeCommand.NotifyCanExecuteChanged();
         };
@@ -157,7 +171,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// 歡迎區（「今天想請 Lumi 幫什麼忙？」）：對話沒有任何訊息、而且不是還在載入最近一則對話時才顯示，
     /// 避免啟動時載入前閃一下。
     /// </summary>
-    public bool ShowWelcome => !IsLoadingMessages && Messages.Count == 0;
+    public bool ShowWelcome => !IsLoadingMessages && Messages.Count == 0 && ViewingRun is null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowWelcome))]
@@ -219,7 +233,11 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     /// <summary>開啟設定視窗（不等它關閉；視窗是獨立的，可以和工作台並排）。</summary>
     [RelayCommand]
-    private void OpenSettings() => _ = _settingsWindow.ShowAsync(new SettingsNavigation(SettingsSection.Home));
+    private void OpenSettings()
+    {
+        CloseRunView();   // 排程紀錄檢視先關掉（M24 4.7.2）
+        _ = _settingsWindow.ShowAsync(new SettingsNavigation(SettingsSection.Home));
+    }
 
     private void OnModelSettingsChanged()
     {
@@ -425,6 +443,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     [RelayCommand]
     private async Task NewConversationAsync()
     {
+        CloseRunView();
         // 目前這則還沒有任何訊息：已經是空白的了，不重複建立（小精靈的專屬對話不算：它要留給小精靈）
         if (Messages.Count == 0 && CurrentConversationId is not null && !IsSpriteConversation)
             return;
@@ -443,6 +462,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// <summary>從歷史抽屜切換對話。回應中會先停止（ui-spec 2.2）。</summary>
     public async Task OpenConversationAsync(Conversation conversation)
     {
+        CloseRunView();
         if (conversation.Id == CurrentConversationId)
             return;
 
@@ -515,6 +535,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     private async Task LoadAsync(Conversation conversation)
     {
+        CloseRunView();   // 切換或新建對話：排程紀錄檢視關掉（M24 4.7.2）
         _resumeChecked = false;
         await DismissVisibleHintsAsync();   // 切換或新建對話：目前的提示收起（記為 Dismissed）
         Title = conversation.Title;
