@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.Reminders;
 
 namespace Lumi.App.ViewModels;
 
@@ -24,6 +25,7 @@ public partial class ContextBarViewModel : ObservableObject
     private readonly IClipboardImageService _clipboard;
     private readonly IAttachmentStore _attachments;
     private readonly TimeProvider _time;
+    private readonly IScheduledRunStore? _runs;
 
     private string? _conversationId;
     private int _historyTokens;
@@ -40,8 +42,10 @@ public partial class ContextBarViewModel : ObservableObject
         IFilePickerService picker,
         IClipboardImageService clipboard,
         IAttachmentStore attachments,
-        TimeProvider time)
+        TimeProvider time,
+        IScheduledRunStore? runs = null)
     {
+        _runs = runs;
         _store = store;
         _conversations = conversations;
         _inspector = inspector;
@@ -134,7 +138,18 @@ public partial class ContextBarViewModel : ObservableObject
         var items = await _store.GetAsync(conversationId);
         var chips = new List<ContextChipViewModel>();
         foreach (var item in items)
+        {
+            if (item.Kind == ContextKind.ScheduledRun)
+            {
+                // 排程紀錄的引用卡：不是檔案，只看紀錄還在不在（不在＝原紀錄已清除）
+                var run = _runs is null ? null : await _runs.GetAsync(item.Path);
+                chips.Add(new ContextChipViewModel(item,
+                    new ContextItemStatus(run is null ? ContextItemProblem.Missing : ContextItemProblem.None),
+                    run is null ? null : ScheduledRunContext.FormatTime(run.StartedAt ?? run.PlannedAt)));
+                continue;
+            }
             chips.Add(new ContextChipViewModel(item, await _inspector.InspectAsync(item.Kind, item.Path)));
+        }
 
         var history = await _conversations.GetMessagesAsync(conversationId);
         var historyTokens = _estimator.EstimateMessages(ConversationService.BuildRequestMessages(history));
@@ -240,6 +255,18 @@ public partial class ContextBarViewModel : ObservableObject
             _time.GetLocalNow().ToString("HH:mm", CultureInfo.InvariantCulture));
         await AddPathsAsync([path], name);
         return true;
+    }
+
+    /// <summary>「接著聊」（M24 4.7.3）：在剛建立的新對話加入排程紀錄的引用卡。不檢查 <see cref="CanChange"/>（新對話一定沒有在回應）。</summary>
+    public async Task AddScheduledRunAsync(string runId, string displayName)
+    {
+        if (_conversationId is not { } conversationId)
+            return;
+
+        Notice = null;
+        Error = null;
+        await _store.AddAsync(conversationId, ContextKind.ScheduledRun, runId, displayName);
+        await RefreshAsync();
     }
 
     // ---- 移除 ----
