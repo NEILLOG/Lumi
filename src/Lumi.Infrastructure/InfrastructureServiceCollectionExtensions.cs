@@ -34,6 +34,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<SqliteScheduledItemStore>();
         services.AddSingleton<IScheduledItemStore>(sp => sp.GetRequiredService<SqliteScheduledItemStore>());
 
+        // 排程跑 prompt 的執行紀錄（M24）：同一個資料庫
+        services.AddSingleton<SqliteScheduledRunStore>();
+        services.AddSingleton<IScheduledRunStore>(sp => sp.GetRequiredService<SqliteScheduledRunStore>());
+
         // 長期記憶（M14）：同一個資料庫；取代 Core 預設的記憶體版
         services.AddSingleton<SqliteMemoryStore>();
         services.Replace(ServiceDescriptor.Singleton<IMemoryStore>(sp => sp.GetRequiredService<SqliteMemoryStore>()));

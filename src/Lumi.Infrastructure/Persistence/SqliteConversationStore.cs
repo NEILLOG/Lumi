@@ -36,18 +36,21 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         }));
     }
 
-    public async Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
+    public Task<Conversation> CreateAsync(string title, CancellationToken ct = default) => CreateAsync(title, ConversationKind.Chat, ct);
+
+    public async Task<Conversation> CreateAsync(string title, ConversationKind kind, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
-        var conversation = new Conversation(Conversation.NewId(), title, now, now);
+        var conversation = new Conversation(Conversation.NewId(), title, now, now, kind);
 
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        command.CommandText = "INSERT INTO conversations (id, title, created_at, updated_at) VALUES ($id, $title, $created, $updated);";
+        command.CommandText = "INSERT INTO conversations (id, title, created_at, updated_at, kind) VALUES ($id, $title, $created, $updated, $kind);";
         command.Parameters.AddWithValue("$id", conversation.Id);
         command.Parameters.AddWithValue("$title", title);
         command.Parameters.AddWithValue("$created", FormatTime(now));
         command.Parameters.AddWithValue("$updated", FormatTime(now));
+        command.Parameters.AddWithValue("$kind", FormatConversationKind(kind));
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         return conversation;
     }
@@ -56,11 +59,12 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC, rowid DESC LIMIT 1;";
+        // 只看一般對話：排程執行的紀錄不進「最近的對話」（啟動時載入的那則）
+        command.CommandText = "SELECT id, title, created_at, updated_at, kind FROM conversations WHERE kind = 'chat' ORDER BY updated_at DESC, rowid DESC LIMIT 1;";
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
             return null;
-        return new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
+        return ReadConversation(reader);
     }
 
     public Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default) => ListAsync(limit, null, ct);
@@ -74,8 +78,8 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
             ? ""
             : "AND (c.updated_at < $beforeUpdated OR (c.updated_at = $beforeUpdated AND c.id < $beforeId))";
         command.CommandText = $"""
-            SELECT c.id, c.title, c.created_at, c.updated_at FROM conversations c
-            WHERE EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
+            SELECT c.id, c.title, c.created_at, c.updated_at, c.kind FROM conversations c
+            WHERE c.kind = 'chat' AND EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
             {cursor}
             ORDER BY c.updated_at DESC, c.id DESC LIMIT $limit;
             """;
@@ -89,7 +93,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         var list = new List<Conversation>();
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            list.Add(new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3))));
+            list.Add(ReadConversation(reader));
         return list;
     }
 
@@ -115,12 +119,13 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         // 中文沒有大小寫，1～2 字也能命中（不像 FTS trigram 要求至少 3 個字元）。
         // 片段取第一則命中的訊息（依送出順序）；只有標題命中時 hit 是 NULL。
         command.CommandText = """
-            SELECT c.id, c.title, c.created_at, c.updated_at,
+            SELECT c.id, c.title, c.created_at, c.updated_at, c.kind,
               (SELECT m.search_text FROM messages m
                WHERE m.conversation_id = c.id AND m.search_text LIKE $pattern ESCAPE '\'
                ORDER BY m.seq LIMIT 1) AS hit
             FROM conversations c
-            WHERE EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
+            WHERE c.kind = 'chat'
+              AND EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
               AND (c.title LIKE $pattern ESCAPE '\'
                    OR EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id AND m.search_text LIKE $pattern ESCAPE '\'))
             ORDER BY c.updated_at DESC, c.id DESC LIMIT $limit;
@@ -132,8 +137,8 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
-            var conversation = new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
-            var snippet = reader.IsDBNull(4) ? string.Empty : SearchSnippet.Create(reader.GetString(4), text);
+            var conversation = ReadConversation(reader);
+            var snippet = reader.IsDBNull(5) ? string.Empty : SearchSnippet.Create(reader.GetString(5), text);
             hits.Add(new ConversationSearchHit(conversation, snippet));
         }
         return hits;
@@ -373,12 +378,13 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         await using var connection = await OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT id, title, created_at, updated_at FROM conversations WHERE id = $id;";
+        // 不過濾 kind：排程紀錄的對話也要找得到（紀錄檢視用）
+        command.CommandText = "SELECT id, title, created_at, updated_at, kind FROM conversations WHERE id = $id;";
         command.Parameters.AddWithValue("$id", conversationId);
         await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
             return null;
-        return new Conversation(reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)));
+        return ReadConversation(reader);
     }
 
     public async Task ClearMessagesAsync(string conversationId, CancellationToken ct = default)
@@ -629,6 +635,24 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         ContextKind.Image => "image",
         ContextKind.ScheduledRun => "scheduled_run",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    // conversations 的列：id, title, created_at, updated_at, kind（五欄，順序固定）
+    private static Conversation ReadConversation(SqliteDataReader reader) => new(
+        reader.GetString(0), reader.GetString(1), ParseTime(reader.GetString(2)), ParseTime(reader.GetString(3)), ParseConversationKind(reader.GetString(4)));
+
+    private static string FormatConversationKind(ConversationKind kind) => kind switch
+    {
+        ConversationKind.Chat => "chat",
+        ConversationKind.ScheduledRun => "scheduled_run",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    private static ConversationKind ParseConversationKind(string text) => text switch
+    {
+        "chat" => ConversationKind.Chat,
+        "scheduled_run" => ConversationKind.ScheduledRun,
+        _ => throw new InvalidDataException($"未知的對話種類：{text}"),
     };
 
     private static ContextKind ParseKind(string text) => text switch
