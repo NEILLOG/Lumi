@@ -16,8 +16,8 @@ public partial class HistoryDrawer : UserControl
 {
     private HistoryViewModel? _subscribed;
 
-    /// <summary>抽屜裡的清單（只有一個 ListBox）。</summary>
-    private ListBox HistoryList => this.GetVisualDescendants().OfType<ListBox>().First();
+    /// <summary>抽屜裡的對話清單（以 class 找：排程分頁的紀錄清單也是 ListBox，但不是這一個）。</summary>
+    private ListBox HistoryList => this.GetVisualDescendants().OfType<ListBox>().First(list => list.Classes.Contains("history-list"));
 
     public HistoryDrawer()
     {

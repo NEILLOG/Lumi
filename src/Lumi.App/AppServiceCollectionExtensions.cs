@@ -145,6 +145,11 @@ public static class AppServiceCollectionExtensions
 
         services.AddSingleton<WorkbenchViewModel>();
         services.AddSingleton<IScheduledRunViewer>(sp => sp.GetRequiredService<WorkbenchViewModel>());   // 打開排程紀錄（M24）
+        // 歷史抽屜「排程」分頁（M24 24E）。檢視器用委派取得：工作台會建立歷史抽屜，直接注入會循環相依
+        services.AddSingleton(sp => new ScheduledRunsViewModel(sp.GetRequiredService<IScheduledRunStore>(), sp.GetRequiredService<ReminderService>(),
+            sp.GetRequiredService<IScheduledRunService>(), () => sp.GetRequiredService<IScheduledRunViewer>(), sp.GetRequiredService<ISettingsWindowService>(),
+            sp.GetRequiredService<IConfirmService>(), sp.GetRequiredService<IUiDispatcher>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ScheduledRunOptions>(), sp.GetRequiredService<ILogger<ScheduledRunsViewModel>>()));
         services.AddTransient<WorkbenchWindow>();
         return services;
     }
