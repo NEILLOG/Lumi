@@ -1,3 +1,4 @@
+using Lumi.Core.Context;
 using Microsoft.Extensions.Logging;
 
 namespace Lumi.Core.Reminders;
@@ -13,7 +14,8 @@ public sealed class ReminderService(
     INotificationSink sink,
     TimeProvider time,
     ReminderOptions options,
-    ILogger<ReminderService> logger) : IReminderService
+    ILogger<ReminderService> logger,
+    IScheduledRunDispatcher? dispatcher = null) : IReminderService
 {
     /// <summary>產生不重複的 Id 最多試幾次（隨機值，碰撞極少見）。</summary>
     private const int MaxIdAttempts = 5;
@@ -21,6 +23,10 @@ public sealed class ReminderService(
     /// <summary>錯過的彙總最多列出幾個標題。</summary>
     private const int MaxListedMissed = 5;
 
+    /// <summary>排程的 prompt 在 <see cref="ScheduledItem.Message"/> 裡保留的前幾個字（設定頁列表用）。</summary>
+    private const int PromptPreviewChars = 200;
+
+    private readonly IScheduledRunDispatcher _dispatcher = dispatcher ?? new NullScheduledRunDispatcher();
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly object _changeLock = new();
     private CancellationTokenSource _changes = new();
@@ -95,13 +101,72 @@ public sealed class ReminderService(
         return await CreateReminderAsync(request, ct);
     }
 
-    // TODO(M24 包 24B)：實作
-    public Task<ScheduledItem> CreatePromptScheduleAsync(NewPromptSchedule request, CancellationToken ct) =>
-        throw new NotImplementedException();
+    public async Task<ScheduledItem> CreatePromptScheduleAsync(NewPromptSchedule request, CancellationToken ct)
+    {
+        var name = ValidateText(request.Name, options.MaxTitleChars, "名稱");
+        var prompt = ValidateText(request.Prompt, options.MaxPromptChars, "提示內容");
+        var scope = ValidateScope(request.Scope);
+        var zoneId = ScheduleCalculator.ResolveTimeZone(request.TimeZoneId ?? string.Empty).Id;
+        var now = time.GetUtcNow();
+        var nextFireAt = FirstFireAt(request.Trigger, zoneId, now);
+        var action = new RunPromptAction(prompt, request.Grant, scope);
 
-    // TODO(M24 包 24B)：實作
-    public Task<ScheduledItem?> UpdatePromptScheduleAsync(string id, PromptScheduleUpdate update, CancellationToken ct) =>
-        throw new NotImplementedException();
+        ScheduledItem item;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            await EnsurePendingCapacityAsync(ct);
+            item = await AddAsNewItemAsync(id => new ScheduledItem(
+                Id: id,
+                Kind: request.Trigger is OneTimeTrigger ? ScheduledKind.Reminder : ScheduledKind.Schedule,
+                Title: name,
+                Message: PromptPreview(prompt),
+                Trigger: request.Trigger,
+                TimeZoneId: zoneId,
+                Action: action,
+                Status: ScheduledStatus.Pending,
+                Enabled: true,
+                NextFireAt: nextFireAt,
+                LastFiredAt: null,
+                CreatedBy: request.CreatedBy,
+                CreatedAt: now), ct);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        SignalChanged();
+        return item;
+    }
+
+    public async Task<ScheduledItem?> UpdatePromptScheduleAsync(string id, PromptScheduleUpdate update, CancellationToken ct)
+    {
+        ScheduledItem? updated;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var item = await store.GetAsync(id, ct);
+            if (item is null)
+                return null;
+            if (item.Action is not RunPromptAction current)
+                throw new ReminderException("這個項目不是跑 prompt 的排程，不能用這個方式修改。");
+
+            var prompt = update.Prompt is null ? current.Prompt : ValidateText(update.Prompt, options.MaxPromptChars, "提示內容");
+            var scope = update.Scope is null ? current.Scope : ValidateScope(update.Scope);
+            var action = current with { Prompt = prompt, Grant = update.Grant ?? current.Grant, Scope = scope };
+            updated = item with { Action = action, Message = PromptPreview(prompt) };
+
+            if (!await store.UpdateAsync(updated, ct))
+                return null;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        return updated;
+    }
 
     public async Task<IReadOnlyList<ScheduledItem>> ListAsync(ReminderQuery query, CancellationToken ct)
     {
@@ -218,7 +283,12 @@ public sealed class ReminderService(
         foreach (var due in await store.GetDueAsync(now, ct))
         {
             var claim = await ClaimAsync(due.Id, now, startup: false, ct);
-            if (claim is not null)
+            if (claim is null)
+                continue;
+
+            if (claim.Item.Action is RunPromptAction)
+                _dispatcher.Enqueue(claim.Item, claim.PlannedAt, ScheduledRunTrigger.Scheduled);
+            else
                 await NotifyAsync(ReminderNotification(claim.Item, now), ct);
         }
     }
@@ -236,10 +306,28 @@ public sealed class ReminderService(
             var claim = await ClaimAsync(due.Id, now, startup: true, ct);
             if (claim is null)
                 continue;
-            if (claim.Missed)
+
+            if (claim.Item.Action is RunPromptAction)
+            {
+                // 跑 prompt 的排程：寬限內補跑一次；超過只記一筆錯過（沒有對話、不呼叫 AI），彙總提示時列出
+                if (claim.Missed)
+                {
+                    await _dispatcher.RecordMissedAsync(claim.Item, claim.PlannedAt, ct);
+                    missed.Add(claim.Item);
+                }
+                else
+                {
+                    _dispatcher.Enqueue(claim.Item, claim.PlannedAt, ScheduledRunTrigger.CatchUp);
+                }
+            }
+            else if (claim.Missed)
+            {
                 missed.Add(claim.Item);
+            }
             else
+            {
                 await NotifyAsync(ReminderNotification(claim.Item, now), ct);
+            }
         }
 
         if (missed.Count > 0)
@@ -275,7 +363,8 @@ public sealed class ReminderService(
 
     /// <summary>
     /// 在鎖內重新讀取項目，確認仍然到點（之間可能被取消或停用），再寫入新狀態。
-    /// 回傳寫入後的項目；沒有需要處理時回 null。<paramref name="startup"/> 為 true 時才套用錯過的規則。
+    /// 回傳寫入後的項目與原本排定的時間；沒有需要處理時回 null。<paramref name="startup"/> 為 true 時才套用錯過的規則。
+    /// 跑 prompt 的項目用 <see cref="ReminderOptions.PromptCatchUpGrace"/>；週期項目錯過時仍推進到未來（只補一次）。
     /// </summary>
     private async Task<Claim?> ClaimAsync(string id, DateTimeOffset now, bool startup, CancellationToken ct)
     {
@@ -286,13 +375,17 @@ public sealed class ReminderService(
             if (current is null || !IsDue(current, now))
                 return null;
 
-            var missed = startup
-                && current.Trigger is OneTimeTrigger
-                && now - current.NextFireAt!.Value > options.MissedGrace;
-            var updated = missed ? current with { Status = ScheduledStatus.Missed } : Advance(current, now);
+            var plannedAt = current.NextFireAt!.Value;
+            var late = now - plannedAt;
+            var missed = current.Action is RunPromptAction
+                ? startup && late > options.PromptCatchUpGrace
+                : startup && current.Trigger is OneTimeTrigger && late > options.MissedGrace;
+            var updated = missed && current.Trigger is OneTimeTrigger
+                ? current with { Status = ScheduledStatus.Missed }
+                : Advance(current, now);
             if (!await store.UpdateAsync(updated, ct))
                 return null;
-            return new Claim(updated, missed);
+            return new Claim(updated, missed, plannedAt);
         }
         finally
         {
@@ -339,7 +432,7 @@ public sealed class ReminderService(
 
         return new AppNotification(
             $"missed-{now.ToUnixTimeMilliseconds()}",
-            $"你錯過了 {missed.Count} 個提醒",
+            $"你錯過了 {missed.Count} 個提醒或排程",
             string.Join("\n", lines),
             now,
             NotificationKind.MissedSummary);
@@ -398,6 +491,23 @@ public sealed class ReminderService(
         return trimmed;
     }
 
+    /// <summary>排程的 prompt 摘要：前 <see cref="PromptPreviewChars"/> 字，超過加「…」。</summary>
+    private static string PromptPreview(string prompt) =>
+        prompt.Length <= PromptPreviewChars ? prompt : prompt[..PromptPreviewChars] + "…";
+
+    /// <summary>範圍只能是檔案或資料夾（M24 Q1）；路徑不能是空的。</summary>
+    private static IReadOnlyList<ScheduleScopeItem> ValidateScope(IReadOnlyList<ScheduleScopeItem> scope)
+    {
+        foreach (var item in scope)
+        {
+            if (item.Kind is not (ContextKind.File or ContextKind.Folder))
+                throw new ReminderException("排程的工作範圍只能是檔案或資料夾。");
+            if (string.IsNullOrWhiteSpace(item.Path))
+                throw new ReminderException("排程的工作範圍項目缺少路徑。");
+        }
+        return scope;
+    }
+
     private static bool IsDue(ScheduledItem item, DateTimeOffset now) =>
         item.Enabled && item.Status == ScheduledStatus.Pending && item.NextFireAt is { } fireAt && fireAt <= now;
 
@@ -415,6 +525,6 @@ public sealed class ReminderService(
         previous.Cancel();
     }
 
-    /// <summary>寫入後的項目；<see cref="Missed"/> 表示這次是錯過（不響）。</summary>
-    private sealed record Claim(ScheduledItem Item, bool Missed);
+    /// <summary>寫入後的項目；<see cref="Missed"/> 表示這次是錯過（不響）；<see cref="PlannedAt"/> 是原本排定的時間（推進之前）。</summary>
+    private sealed record Claim(ScheduledItem Item, bool Missed, DateTimeOffset PlannedAt);
 }

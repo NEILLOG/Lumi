@@ -142,7 +142,7 @@ public sealed class ReminderServiceFireTests
         Assert.Equal(ScheduledStatus.Missed, (await h.Store.GetAsync(item.Id))!.Status);
         var summary = Assert.Single(h.Sink.Shown);
         Assert.Equal(NotificationKind.MissedSummary, summary.Kind);
-        Assert.Equal("你錯過了 1 個提醒", summary.Title);
+        Assert.Equal("你錯過了 1 個提醒或排程", summary.Title);
         Assert.Equal("・吃藥", summary.Message);
     }
 
@@ -158,7 +158,7 @@ public sealed class ReminderServiceFireTests
         await h.Service.OnStartupAsync(default);
 
         var summary = Assert.Single(h.Sink.Shown);
-        Assert.Equal("你錯過了 7 個提醒", summary.Title);
+        Assert.Equal("你錯過了 7 個提醒或排程", summary.Title);
         Assert.Equal(
             "・項目1\n・項目2\n・項目3\n・項目4\n・項目5\n…另外還有 2 個",
             summary.Message);
