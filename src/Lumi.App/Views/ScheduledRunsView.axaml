@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             x:Class="Lumi.App.Views.ScheduledRunsView"
+             x:DataType="vm:ScheduledRunsViewModel">
+
+  <UserControl.Styles>
+    <!-- 紀錄列右側的「⋯」：平常透明但保留版面，游標停在列上或鍵盤聚焦到列才顯示（同歷史抽屜的對話列） -->
+    <Style Selector="Button.run-more">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Button.run-more, ListBoxItem:focus-within Button.run-more">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <!-- 組標題的「⋯」：一直可見（組數少，不需要隱藏） -->
+    <Style Selector="Button.group-more">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- 組標題列：不能選取；鍵盤可以聚焦到它（Shift+F10 開組的選單），聚焦時畫 Accent 框 -->
+    <Style Selector="Border.group-head:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- 底部：保留說明與「在設定管理排程」 -->
+    <StackPanel DockPanel.Dock="Bottom" Margin="16,8,16,12" Spacing="4">
+      <TextBlock Text="{Binding KeepNote}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" TextWrapping="Wrap" />
+      <Button Classes="tertiary" HorizontalAlignment="Left" Content="{x:Static res:Strings.Schedule_ManageInSettings}"
+              Command="{Binding ManageInSettingsCommand}" />
+    </StackPanel>
+
+    <!-- 上方的一行提示（立即執行、停用、啟用的結果） -->
+    <TextBlock DockPanel.Dock="Top" IsVisible="{Binding HasNotice}" Text="{Binding Notice}" Classes="muted"
+               FontSize="{DynamicResource LumiFontSizeCaption}" TextWrapping="Wrap" Margin="16,8,16,0" />
+
+    <!-- 空狀態：沒有任何排程紀錄 -->
+    <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Schedule_RunsEmpty}" Classes="muted"
+               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
+
+    <ScrollViewer IsVisible="{Binding !IsEmpty}" Margin="8,8,8,0">
+      <ItemsControl ItemsSource="{Binding Groups}">
+        <ItemsControl.DataTemplates>
+          <DataTemplate x:DataType="vm:ScheduledGroupViewModel">
+            <StackPanel Margin="0,0,0,8">
+              <!-- 組標題：名稱與副標，右側「⋯」。Shift+F10 或選單鍵開同一個選單 -->
+              <Border Classes="group-head" Focusable="True" Padding="8,8,4,8" AutomationProperties.Name="{Binding Title}"
+                      KeyDown="OnGroupHeadKeyDown">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Subtitle}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Classes="tertiary group-more" IsTabStop="False" VerticalAlignment="Center"
+                          ToolTip.Tip="{x:Static res:Strings.Schedule_MenuTip}"
+                          AutomationProperties.Name="{x:Static res:Strings.Schedule_MenuTip}">
+                    <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+                    <Button.Flyout>
+                      <!-- 選單項目的命令與文字在開啟時由 code-behind 設定（Flyout 的內容不繼承組的 DataContext） -->
+                      <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="OnGroupMenuOpening">
+                        <MenuItem Tag="run" Header="{x:Static res:Strings.Schedule_RunNow}">
+                          <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconRepeat}" Size="16" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Tag="toggle">
+                          <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconBell}" Size="16" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Tag="edit" Header="{x:Static res:Strings.Schedule_EditInSettings}">
+                          <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconPencil}" Size="16" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Tag="delete" Header="{x:Static res:Strings.Schedule_DeleteRuns}">
+                          <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
+                        </MenuItem>
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                </Grid>
+              </Border>
+
+              <!-- 組內的紀錄：一個 ListBox（Tab 進來一次，方向鍵移動；移動即打開，與歷史抽屜一致） -->
+              <ListBox Classes="run-list" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun, Mode=TwoWay}"
+                       Background="Transparent" Margin="0,4,0,0"
+                       KeyDown="OnRunListKeyDown" ContextRequested="OnRunContextRequested"
+                       IsVisible="{Binding HasRuns}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ScheduledRunRowViewModel">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center"
+                          AutomationProperties.Name="{Binding AccessibleName}">
+                      <!-- 未讀圓點：沒有未讀時保留版面（透明） -->
+                      <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{DynamicResource LumiAccentBrush}"
+                               Opacity="{Binding DotOpacity}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Border Classes="badge">
+                          <TextBlock Text="{Binding StatusText}" />
+                        </Border>
+                        <Border Classes="badge" IsVisible="{Binding HasTrigger}">
+                          <TextBlock Text="{Binding TriggerText}" />
+                        </Border>
+                      </StackPanel>
+                      <TextBlock Grid.Column="2" Text="{Binding TimeText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}"
+                                 VerticalAlignment="Center" Margin="8,0,0,0" />
+                      <Button Grid.Column="3" Classes="tertiary run-more" Margin="4,0,0,0" IsTabStop="False"
+                              ToolTip.Tip="{x:Static res:Strings.History_Delete}"
+                              AutomationProperties.Name="{x:Static res:Strings.History_Delete}">
+                        <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+                        <Button.Flyout>
+                          <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="OnRunMenuOpening">
+                            <MenuItem Tag="delete" Header="{x:Static res:Strings.History_Delete}">
+                              <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
+                            </MenuItem>
+                          </MenuFlyout>
+                        </Button.Flyout>
+                      </Button>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.DataTemplates>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

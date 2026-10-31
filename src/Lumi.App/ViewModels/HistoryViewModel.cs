@@ -81,7 +81,7 @@ public partial class HistoryViewModel : ObservableObject
 
     public HistoryViewModel(IConversationStore store, IHistoryHost host, TimeProvider time, HistoryOptions? options = null,
         ConversationDeletionService? deletion = null, IConfirmService? confirm = null, ILogger<HistoryViewModel>? logger = null,
-        SpriteConversationService? sprite = null)
+        SpriteConversationService? sprite = null, ScheduledRunsViewModel? runs = null)
     {
         _store = store;
         _host = host;
@@ -91,6 +91,35 @@ public partial class HistoryViewModel : ObservableObject
         _confirm = confirm;
         _logger = logger ?? NullLogger<HistoryViewModel>.Instance;
         _sprite = sprite;
+        Runs = runs ?? ScheduledRunsViewModel.CreateInert();
+    }
+
+    /// <summary>「排程」分頁的內容（清單與未讀圓點）。沒有接排程時是空的。</summary>
+    public ScheduledRunsViewModel Runs { get; }
+
+    /// <summary>
+    /// 「對話｜排程」分段切換的排程分頁。排程分頁時清單換成排程紀錄，搜尋框隱藏；<see cref="SearchText"/> 不清掉，切回來還在。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChatsTab))]
+    private bool _isRunsTab;
+
+    /// <summary>「對話」分頁（分段切換的另一個選項）。設成 true 就切回對話分頁。</summary>
+    public bool IsChatsTab
+    {
+        get => !IsRunsTab;
+        set
+        {
+            if (value)
+                IsRunsTab = false;
+        }
+    }
+
+    /// <summary>切到排程分頁時重新載入（紀錄可能在別處變了）。</summary>
+    partial void OnIsRunsTabChanged(bool value)
+    {
+        if (value)
+            Observe(Runs.ReloadAsync());
     }
 
     /// <summary>目前列出的對話（browse 時是已載入的各頁，搜尋時是命中的結果），依清單順序。</summary>
@@ -587,7 +616,9 @@ public partial class HistoryViewModel : ObservableObject
     /// <summary>每次開啟都重新載入第一頁（啟動後第一次開啟時清單還是空的，所以不能只靠切換或送出時的重新載入）。</summary>
     partial void OnIsOpenChanged(bool value)
     {
-        if (value)
-            Observe(RefreshAsync(_host.CurrentConversationId));
+        if (!value)
+            return;
+        Observe(RefreshAsync(_host.CurrentConversationId));
+        Observe(Runs.ReloadAsync());
     }
 }

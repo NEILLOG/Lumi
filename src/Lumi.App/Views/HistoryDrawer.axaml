@@ -40,8 +40,25 @@
       <TextBlock Text="{x:Static res:Strings.Workbench_History}" FontWeight="Bold" />
     </Border>
 
+    <!-- 「對話｜排程」分段切換（ui-guide 第 3 節的 segmented 樣式）。排程分頁有未讀紀錄時「排程」帶圓點。切換不清搜尋文字 -->
+    <Border DockPanel.Dock="Top" Classes="segmented" HorizontalAlignment="Left" Margin="12,8,12,0">
+      <StackPanel Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once"
+                  AutomationProperties.Name="{x:Static res:Strings.Workbench_History}">
+        <RadioButton GroupName="HistoryTabs" Content="{x:Static res:Strings.Schedule_TabChats}"
+                     IsChecked="{Binding IsChatsTab, Mode=TwoWay}" />
+        <RadioButton GroupName="HistoryTabs" IsChecked="{Binding IsRunsTab, Mode=TwoWay}"
+                     AutomationProperties.Name="{Binding Runs.TabName}">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="{x:Static res:Strings.Schedule_TabRuns}" VerticalAlignment="Center" />
+            <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiAccentBrush}" VerticalAlignment="Center"
+                     IsVisible="{Binding Runs.HasUnread}" />
+          </StackPanel>
+        </RadioButton>
+      </StackPanel>
+    </Border>
+
     <!-- 搜尋：Lucide 搜尋圖示在左，有輸入時右側出現清除鈕；Esc 清除。輸入後 250 ms 才查（HistoryOptions） -->
-    <Grid DockPanel.Dock="Top" Margin="8,8,8,0" ColumnDefinitions="*" RowDefinitions="Auto">
+    <Grid DockPanel.Dock="Top" Margin="8,8,8,0" ColumnDefinitions="*" RowDefinitions="Auto" IsVisible="{Binding IsChatsTab}">
       <TextBox x:Name="SearchBox"
                Text="{Binding SearchText, Mode=TwoWay}"
                Watermark="{x:Static res:Strings.History_SearchPlaceholder}"
@@ -62,88 +79,99 @@
       </TextBox>
     </Grid>
 
-    <!-- 載入更多：不做無限捲動（焦點不會跳動）；搜尋模式沒有下一頁 -->
-    <Border DockPanel.Dock="Bottom" Padding="8" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0"
-            IsVisible="{Binding HasMore}">
-      <Button Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-              Content="{x:Static res:Strings.History_LoadMore}" Command="{Binding LoadMoreCommand}" />
-    </Border>
+    <!-- 內容區（填滿）：對話清單與排程紀錄兩個分頁疊在同一格，各自依分頁顯示 -->
+    <Panel>
+      <!-- 對話分頁（維持原本的版面）：載入更多在底部，清單填滿。排程分頁時整段隱藏 -->
+      <DockPanel IsVisible="{Binding IsChatsTab}">
+        <!-- 載入更多：不做無限捲動（焦點不會跳動）；搜尋模式沒有下一頁 -->
+        <Border DockPanel.Dock="Bottom" Padding="8" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0"
+                IsVisible="{Binding HasMore}">
+          <Button Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Content="{x:Static res:Strings.History_LoadMore}" Command="{Binding LoadMoreCommand}" />
+        </Border>
 
-    <Border BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
-      <Panel>
-        <!-- 空狀態：沒有對話紀錄，或搜尋沒有結果 -->
-        <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Workbench_HistoryEmpty}" Classes="muted"
-                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
-        <TextBlock IsVisible="{Binding ShowNoResults}" Text="{Binding NoResultsText}" Classes="muted"
-                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
+        <Border BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,1,0">
+          <Panel>
+            <!-- 空狀態：沒有對話紀錄，或搜尋沒有結果 -->
+            <TextBlock IsVisible="{Binding IsEmpty}" Text="{x:Static res:Strings.Workbench_HistoryEmpty}" Classes="muted"
+                       HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
+            <TextBlock IsVisible="{Binding ShowNoResults}" Text="{Binding NoResultsText}" Classes="muted"
+                       HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="16,24,16,0" />
 
-        <ListBox Classes="history-list" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedItem}"
-                 Background="Transparent" Margin="8"
-                 KeyDown="OnListKeyDown" ContextRequested="OnListContextRequested" LostFocus="OnListLostFocus"
-                 ContainerPrepared="OnContainerPrepared">
-          <ListBox.DataTemplates>
-            <!-- 群組標題（不能選取；ListBoxItem 在 OnContainerPrepared 停用） -->
-            <DataTemplate x:DataType="vm:HistoryGroupHeader">
-              <TextBlock Text="{Binding Title}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" Margin="4,8,0,4" />
-            </DataTemplate>
+            <ListBox Classes="history-list" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedItem}"
+                     Background="Transparent" Margin="8"
+                     KeyDown="OnListKeyDown" ContextRequested="OnListContextRequested" LostFocus="OnListLostFocus"
+                     ContainerPrepared="OnContainerPrepared">
+              <ListBox.DataTemplates>
+                <!-- 群組標題（不能選取；ListBoxItem 在 OnContainerPrepared 停用） -->
+                <DataTemplate x:DataType="vm:HistoryGroupHeader">
+                  <TextBlock Text="{Binding Title}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" Margin="4,8,0,4" />
+                </DataTemplate>
 
-            <DataTemplate x:DataType="vm:ConversationListItem">
-              <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
-                <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
-                  <!-- 小精靈的專屬對話（釘在最上方）：小精靈圖示加「小精靈」標籤 -->
-                  <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSprite}">
-                    <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" />
-                    <TextBlock Text="{Binding SpriteTagText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" VerticalAlignment="Center" />
-                  </StackPanel>
-                  <!-- 標題：命中字加粗；改名中換成輸入框 -->
-                  <ItemsControl ItemsSource="{Binding TitleSegments}" IsVisible="{Binding !IsEditing}">
-                    <ItemsControl.ItemsPanel>
-                      <ItemsPanelTemplate>
-                        <WrapPanel />
-                      </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.DataTemplates>
-                      <DataTemplate x:DataType="vm:TitlePart">
-                        <TextBlock Text="{Binding Text}" Classes.hit="{Binding Hit}" TextWrapping="Wrap" />
-                      </DataTemplate>
-                    </ItemsControl.DataTemplates>
-                  </ItemsControl>
-                  <TextBox Text="{Binding EditText, Mode=TwoWay}" IsVisible="{Binding IsEditing}" MaxLength="{Binding TitleMaxLength}"
-                           AutomationProperties.Name="{x:Static res:Strings.History_RenameName}" />
-                  <!-- 命中片段：一行，省略號截斷 -->
-                  <TextBlock Text="{Binding Snippet}" IsVisible="{Binding HasSnippet}" Classes="muted"
-                             FontSize="{DynamicResource LumiFontSizeCaption}" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                <DataTemplate x:DataType="vm:ConversationListItem">
+                  <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                      <!-- 小精靈的專屬對話（釘在最上方）：小精靈圖示加「小精靈」標籤 -->
+                      <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSprite}">
+                        <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="16" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                        <TextBlock Text="{Binding SpriteTagText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" VerticalAlignment="Center" />
+                      </StackPanel>
+                      <!-- 標題：命中字加粗；改名中換成輸入框 -->
+                      <ItemsControl ItemsSource="{Binding TitleSegments}" IsVisible="{Binding !IsEditing}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <WrapPanel />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.DataTemplates>
+                          <DataTemplate x:DataType="vm:TitlePart">
+                            <TextBlock Text="{Binding Text}" Classes.hit="{Binding Hit}" TextWrapping="Wrap" />
+                          </DataTemplate>
+                        </ItemsControl.DataTemplates>
+                      </ItemsControl>
+                      <TextBox Text="{Binding EditText, Mode=TwoWay}" IsVisible="{Binding IsEditing}" MaxLength="{Binding TitleMaxLength}"
+                               AutomationProperties.Name="{x:Static res:Strings.History_RenameName}" />
+                      <!-- 命中片段：一行，省略號截斷 -->
+                      <TextBlock Text="{Binding Snippet}" IsVisible="{Binding HasSnippet}" Classes="muted"
+                                 FontSize="{DynamicResource LumiFontSizeCaption}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
 
-                <TextBlock Grid.Column="1" Text="{Binding TimeText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}"
-                           VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !IsEditing}" />
+                    <TextBlock Grid.Column="1" Text="{Binding TimeText}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}"
+                               VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !IsEditing}" />
 
-                <Button Grid.Column="2" Classes="tertiary row-more" Margin="4,0,0,0" IsTabStop="False"
-                        IsVisible="{Binding !IsEditing}"
-                        ToolTip.Tip="{x:Static res:Strings.History_ItemMore}"
-                        AutomationProperties.Name="{x:Static res:Strings.History_ItemMore}">
-                  <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
-                  <Button.Flyout>
-                    <!-- 選單項目的命令與參數在開啟時由 code-behind 設定（Flyout 的內容不繼承列的 DataContext，綁定解析不到） -->
-                    <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="OnRowMenuOpening">
-                      <MenuItem Tag="rename" Header="{x:Static res:Strings.History_Rename}">
-                        <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconPencil}" Size="16" /></MenuItem.Icon>
-                      </MenuItem>
-                      <MenuItem Tag="delete" Header="{x:Static res:Strings.History_Delete}">
-                        <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
-                      </MenuItem>
-                      <!-- 小精靈的專屬對話沒有刪除，改成「清除內容」（OnRowMenuOpening 依列切換顯示） -->
-                      <MenuItem Tag="clear" IsVisible="False" Header="{x:Static res:Strings.Workbench_ClearConversation}">
-                        <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
-                      </MenuItem>
-                    </MenuFlyout>
-                  </Button.Flyout>
-                </Button>
-              </Grid>
-            </DataTemplate>
-          </ListBox.DataTemplates>
-        </ListBox>
-      </Panel>
-    </Border>
+                    <Button Grid.Column="2" Classes="tertiary row-more" Margin="4,0,0,0" IsTabStop="False"
+                            IsVisible="{Binding !IsEditing}"
+                            ToolTip.Tip="{x:Static res:Strings.History_ItemMore}"
+                            AutomationProperties.Name="{x:Static res:Strings.History_ItemMore}">
+                      <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+                      <Button.Flyout>
+                        <!-- 選單項目的命令與參數在開啟時由 code-behind 設定（Flyout 的內容不繼承列的 DataContext，綁定解析不到） -->
+                        <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="OnRowMenuOpening">
+                          <MenuItem Tag="rename" Header="{x:Static res:Strings.History_Rename}">
+                            <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconPencil}" Size="16" /></MenuItem.Icon>
+                          </MenuItem>
+                          <MenuItem Tag="delete" Header="{x:Static res:Strings.History_Delete}">
+                            <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
+                          </MenuItem>
+                          <!-- 小精靈的專屬對話沒有刪除，改成「清除內容」（OnRowMenuOpening 依列切換顯示） -->
+                          <MenuItem Tag="clear" IsVisible="False" Header="{x:Static res:Strings.Workbench_ClearConversation}">
+                            <MenuItem.Icon><ctl:LumiIcon Data="{StaticResource LumiIconTrash}" Size="16" /></MenuItem.Icon>
+                          </MenuItem>
+                        </MenuFlyout>
+                      </Button.Flyout>
+                    </Button>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.DataTemplates>
+            </ListBox>
+          </Panel>
+        </Border>
+      </DockPanel>
+
+    <!-- 排程分頁：每個排程一組（ScheduledRunsViewModel）。DataContext 指到 Runs，所以外層 Panel 負責依 IsRunsTab 顯示 -->
+    <Panel IsVisible="{Binding IsRunsTab}">
+      <views:ScheduledRunsView DataContext="{Binding Runs}" />
+    </Panel>
+    </Panel>
   </DockPanel>
 </UserControl>
