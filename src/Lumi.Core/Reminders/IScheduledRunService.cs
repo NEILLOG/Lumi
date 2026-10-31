@@ -1,4 +1,5 @@
 using Lumi.Core.Chat;
+using Lumi.Core.Tools;
 
 namespace Lumi.Core.Reminders;
 
@@ -31,6 +32,12 @@ public interface IScheduledRunService
 
     /// <summary>刪除某排程的全部紀錄（排程被刪、使用者選擇一併刪除時用）；進行中的略過。回傳刪除筆數。</summary>
     Task<int> DeleteRunsForScheduleAsync(string scheduleId, CancellationToken ct = default);
+
+    /// <summary>
+    /// 這筆執行正在等使用者確認的工具請求（待確認時打開紀錄，要能補出確認按鈕）；沒有等待中的請求回 null。
+    /// 預設回 null，只有真的執行排程的實作需要覆寫。
+    /// </summary>
+    ToolApprovalRequest? GetPendingApproval(string runId) => null;
 
     /// <summary>標已讀（打開紀錄時）。</summary>
     Task MarkReadAsync(string runId, CancellationToken ct = default);

@@ -188,12 +188,20 @@ public sealed class ScheduledRunService(
         }
     }
 
+    public ToolApprovalRequest? GetPendingApproval(string runId)
+    {
+        lock (_lock)
+            return _entries.TryGetValue(runId, out var entry) ? entry.PendingApproval : null;
+    }
+
     public async Task<IAsyncDisposable> PauseForApprovalAsync(string conversationId, ToolApprovalRequest request, CancellationToken ct)
     {
         var entry = FindEntryByConversation(conversationId);
         if (entry is null)
             return new NoopResume();
 
+        lock (_lock)
+            entry.PendingApproval = request;
         await SaveRunAsync(entry, Snapshot(entry) with { Status = ScheduledRunStatus.AwaitingApproval });
         ReleaseSlot(entry);
 
@@ -410,7 +418,10 @@ public sealed class ScheduledRunService(
     {
         CancellationToken token;
         lock (_lock)
+        {
             token = entry.Token;
+            entry.PendingApproval = null;
+        }
         if (token.IsCancellationRequested)
             return;
 
@@ -571,6 +582,9 @@ public sealed class ScheduledRunService(
         public CancellationTokenSource Cts { get; } = cts;
 
         public ScheduledRun Current { get; set; } = current;
+
+        /// <summary>正在等使用者確認的請求（待確認時）；回答後清掉。</summary>
+        public ToolApprovalRequest? PendingApproval { get; set; }
 
         public string RunId => Current.Id;
 

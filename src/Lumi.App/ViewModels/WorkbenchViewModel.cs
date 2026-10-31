@@ -34,6 +34,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private readonly IToolApprovalResponder _approvals;
     private readonly IUiDispatcher _dispatcher;
     private readonly IScheduledRunService? _scheduledRuns;
+    private readonly IConfirmService? _confirm;
+    private readonly IToolCatalog? _toolCatalog;
     private readonly IScheduledRunStore? _runStore;
     private readonly ILogger<ScheduledRunViewModel> _runLogger;
 
@@ -85,8 +87,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         UsageHintCoordinator? hintCoordinator = null,
         IScheduledRunService? scheduledRuns = null,
         IScheduledRunStore? runStore = null,
-        ILogger<ScheduledRunViewModel>? runLogger = null)
+        ILogger<ScheduledRunViewModel>? runLogger = null,
+        ScheduledRunsViewModel? scheduledRunsTab = null,
+        IToolCatalog? toolCatalog = null)
     {
+        _confirm = confirm;
+        _toolCatalog = toolCatalog;
         _store = store;
         _dispatcher = dispatcher;
         _scheduledRuns = scheduledRuns;
@@ -120,7 +126,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
-        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation);
+        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation, scheduledRunsTab);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, afterSelect: null,
             currentContextTokens: () => ContextUsed, newConversation: () => NewConversationAsync(),
             hints: hintCoordinator, currentConversationId: () => CurrentConversationId);

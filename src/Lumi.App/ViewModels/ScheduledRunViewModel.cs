@@ -30,10 +30,16 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
     private bool _subscribed;
     private bool _disposed;
 
+    private readonly IConfirmService? _confirm;
+    private readonly IToolCatalog? _toolCatalog;
+
     public ScheduledRunViewModel(
         ScheduledRun run, IScheduledRunService service, IConversationStore store, IUiDispatcher dispatcher,
-        IToolApprovalResponder approvals, IClipboardService clipboard, TimeProvider time, ILogger<ScheduledRunViewModel> logger)
+        IToolApprovalResponder approvals, IClipboardService clipboard, TimeProvider time, ILogger<ScheduledRunViewModel> logger,
+        IConfirmService? confirm = null, IToolCatalog? toolCatalog = null)
     {
+        _confirm = confirm;
+        _toolCatalog = toolCatalog;
         _run = run;
         _service = service;
         _store = store;
@@ -121,14 +127,32 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
 
         _cards.Clear();
         _bubble = null;
-        var items = ConversationTimeline.Build(history, use => CreateCard(use.Id, use.Name, use.Name, null, null, use.InputJson));
+        // 進行中（含待確認）的執行：還沒有結果是正常的，不要標成「沒有結果」
+        var items = ConversationTimeline.Build(
+            history, use => CreateCard(use.Id, use.Name, use.Name, null, null, use.InputJson), markUnfinished: !Run.IsActive);
         Messages.Clear();
         foreach (var item in items)
         {
             item.ShowScheduleBadge = item.IsUser;   // 紀錄裡的使用者訊息就是排程送出的 prompt
             Messages.Add(item);
         }
+
+        // 待確認：訂閱之前就已經送出的確認請求，補回確認按鈕
+        if (Run.Status == ScheduledRunStatus.AwaitingApproval
+            && _service.GetPendingApproval(Run.Id) is { } pending
+            && _cards.TryGetValue(pending.CallId, out var pendingCard))
+        {
+            MarkExclusion(pendingCard, pending);
+            pendingCard.SetAwaiting(pending);
+        }
         UpdateFlags();
+    }
+
+    /// <summary>「以後都允許」不適用的工具（記憶、上傳、管理排程、沒出現過的網站…）：卡片隱藏那顆按鈕（M24）。</summary>
+    private void MarkExclusion(ToolCardViewModel card, ToolApprovalRequest request)
+    {
+        var descriptor = _toolCatalog?.Find(request.ToolName)?.Descriptor;
+        card.ScheduleExcluded = descriptor is null || IsExcluded(descriptor, request);
     }
 
     /// <summary>開始接收事件與狀態改變（打開之後才訂閱，結束或換掉時 <see cref="Dispose"/> 取消）。</summary>
@@ -222,6 +246,8 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
                 (_bubble ??= StartBubble()).Complete(completed.Message, now);
                 _bubble = null;
                 break;
+            case ToolCallStarted started when _cards.ContainsKey(started.CallId):
+                break;   // 打開時存檔裡已經有這張卡（呼叫在打開前一刻才開始）
             case ToolCallStarted started:
             {
                 if (_bubble is { HasText: false, HasThinking: false })
@@ -236,7 +262,10 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
             }
             case ApprovalRequired approval:
                 if (_cards.TryGetValue(approval.Request.CallId, out var waiting))
+                {
+                    MarkExclusion(waiting, approval.Request);
                     waiting.SetAwaiting(approval.Request);
+                }
                 break;
             case ToolCallProgress progress:
                 if (_cards.TryGetValue(progress.CallId, out var progressCard))
@@ -255,7 +284,7 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
 
     private ToolCardViewModel CreateCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson)
     {
-        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time)
+        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time, _confirm)
         {
             IsScheduledRun = true,
         };

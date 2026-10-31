@@ -81,6 +81,28 @@ public class WorkbenchScheduledRunTests
 
     private static string? LastText(WorkbenchViewModel vm) => vm.ShownMessages.OfType<MessageViewModel>().LastOrDefault(m => m.IsAssistant)?.Text;
 
+    // ---- 整合：歷史抽屜的排程分頁、待確認的紀錄 ----
+
+    [Fact]
+    public async Task Open_AwaitingApprovalRun_RestoresTheConfirmButtons_AndDoesNotMarkTheCallAsNoResult()
+    {
+        var rig = new Rig();
+        var conversation = await rig.Store.CreateAsync("每日摘要");
+        await rig.Store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("整理")], Planned));
+        await rig.Store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant,
+            [new ToolUseBlock("call-1", "write_file", "{}")], Planned));
+        var run = new ScheduledRun(ScheduledRun.NewId(), "schedule-1", "每日摘要", conversation.Id, Planned, Planned, null,
+            ScheduledRunTrigger.Scheduled, ScheduledRunStatus.AwaitingApproval, null, null);
+        await rig.Runs.AddAsync(run);
+        rig.Service.Pending[run.Id] = new ToolApprovalRequest("call-1", "write_file", "寫入檔案", ToolPermission.Write, new ToolPreview("a.md", null), "{}");
+
+        await rig.Vm.OpenScheduledRunAsync(run.Id);
+
+        var card = rig.Vm.ShownMessages.OfType<ToolRunViewModel>().Single().Cards.Single();
+        Assert.True(card.IsAwaiting);
+        Assert.True(card.IsScheduledRun);
+    }
+
     // ---- 打開與標已讀 ----
 
     [Fact]

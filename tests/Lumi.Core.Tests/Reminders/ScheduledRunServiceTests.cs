@@ -544,9 +544,14 @@ public sealed class ScheduledRunServiceTests
         Assert.Equal("回聲", awaiting.Message);
         Assert.Equal(new OpenScheduledRun((await h.Runs.ListForScheduleAsync(first.Id)).Single().Id), awaiting.Target);
 
+        // 待確認時打開紀錄，要能拿到等待中的請求（補出確認按鈕）；回答後就沒有了
+        var firstRunId = (await h.Runs.ListForScheduleAsync(first.Id)).Single().Id;
+        Assert.Equal("w1", h.Runner.GetPendingApproval(firstRunId)?.CallId);
+
         approvals.Gate.SetResult(ApprovalDecision.AllowOnce);
         var done = await h.WaitForRunAsync(first.Id, ScheduledRunStatus.Completed);
         Assert.Null(done.FailureText);
+        Assert.Null(h.Runner.GetPendingApproval(firstRunId));
     }
 
     [Fact]

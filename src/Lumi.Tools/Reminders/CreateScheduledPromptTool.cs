@@ -40,7 +40,7 @@ public sealed class CreateScheduledPromptTool(IReminderService reminders, Remind
         + "granted_permissions 由系統填入，不要自己填。"
         + "時間參數與 create_reminder 相同（一次性用 at，週期用 recurrence 加 time）。"
         + "Lumi 沒有在執行時不會觸發，錯過 2 小時內會補跑一次；超過就只記錄為錯過。不要承諾一定準時。設定後會把解析後的時間與授權顯示給使用者確認。",
-        ToolPermission.Write, ToolModes.Both, TimeSpan.FromSeconds(10),
+        ToolPermission.Write, ToolModes.Workbench, TimeSpan.FromSeconds(10),
         Group: ToolGroups.Reminders, CanAlwaysAllow: false, AlwaysAsk: true,
         Summary: "在指定時間自動跑一次 prompt。");
 

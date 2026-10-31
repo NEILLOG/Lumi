@@ -150,6 +150,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.Core.Reminders.LazyScheduledRunDispatcher>(services.GetRequiredService<Lumi.Core.Reminders.IScheduledRunDispatcher>());
         Assert.IsType<Lumi.Core.Tools.RoutingToolApprovalService>(services.GetRequiredService<Lumi.Core.Tools.IToolApprovalService>());
         Assert.Null(services.GetRequiredService<Lumi.Core.Reminders.IScheduledRunHost>().FindByConversation("none"));
+        Assert.NotNull(services.GetRequiredService<WorkbenchViewModel>().History.Runs);   // 歷史抽屜的「排程」分頁有接上
         Assert.IsType<FileScopeFactory>(services.GetRequiredService<IFileScopeFactory>());
         Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IConversationContextStore>());
         // 4B：送出時的快照建構器、圖片附件存放與孤兒清理

@@ -49,14 +49,15 @@ public sealed class CreateScheduledPromptToolTests
     // ---- 描述符與說明 ----
 
     [Fact]
-    public void Descriptor_IsWriteBothAlwaysAsk_AndNeverAlwaysAllowed()
+    public void Descriptor_IsWriteWorkbenchOnlyAlwaysAsk_AndNeverAlwaysAllowed()
     {
         var d = _tool.Descriptor;
 
         Assert.Equal("create_scheduled_prompt", d.Name);
         Assert.Equal("建立排程", d.DisplayName);
         Assert.Equal(ToolPermission.Write, d.Permission);
-        Assert.Equal(ToolModes.Both, d.Modes);
+        // 小精靈的氣泡看不到排程內容、也不能勾選授權，所以建立排程只在工作台（M24 整合時的決定）
+        Assert.Equal(ToolModes.Workbench, d.Modes);
         Assert.Equal(TimeSpan.FromSeconds(10), d.Timeout);
         Assert.Equal(ToolGroups.Reminders, d.Group);
         Assert.True(d.AlwaysAsk);

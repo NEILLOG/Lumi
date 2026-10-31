@@ -1,4 +1,5 @@
 using Lumi.Core.Reminders;
+using Lumi.Core.Tools;
 
 namespace Lumi.App.Tests.TestSupport;
 
@@ -20,6 +21,11 @@ internal sealed class FakeScheduledRunService : IScheduledRunService
     public List<string> ReadRuns { get; } = [];
 
     public HashSet<string> ActiveConversations { get; } = [];
+
+    /// <summary>待確認的請求（依紀錄 id）；<see cref="GetPendingApproval"/> 回傳。</summary>
+    public Dictionary<string, ToolApprovalRequest> Pending { get; } = [];
+
+    public ToolApprovalRequest? GetPendingApproval(string runId) => Pending.GetValueOrDefault(runId);
 
     public Task<ScheduledRun?> RunNowAsync(string scheduleId, CancellationToken ct = default)
     {

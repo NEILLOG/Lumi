@@ -9,7 +9,7 @@ namespace Lumi.App.ViewModels;
 /// </summary>
 internal static class ConversationTimeline
 {
-    public static List<MessageViewModel> Build(IReadOnlyList<ChatMessage> history, Func<ToolUseBlock, ToolCardViewModel> createCard, CompactionState? compaction = null)
+    public static List<MessageViewModel> Build(IReadOnlyList<ChatMessage> history, Func<ToolUseBlock, ToolCardViewModel> createCard, CompactionState? compaction = null, bool markUnfinished = true)
     {
         var items = new List<MessageViewModel>();
         var cards = new Dictionary<string, ToolCardViewModel>(StringComparer.Ordinal);
@@ -57,9 +57,13 @@ internal static class ConversationTimeline
                 items.Add(new CompactionDividerViewModel(summary));
         }
 
-        // 沒有結果的呼叫（程式在中途結束）：標示成沒有結果，不要永遠轉圈
-        foreach (var card in cards.Values.Where(c => c.IsRunning))
-            card.MarkNoResult();
+        // 沒有結果的呼叫（程式在中途結束）：標示成沒有結果，不要永遠轉圈。
+        // 進行中的排程執行（M24）例外：還沒有結果是正常的，後續事件會補上
+        if (markUnfinished)
+        {
+            foreach (var card in cards.Values.Where(c => c.IsRunning))
+                card.MarkNoResult();
+        }
 
         return items;
     }

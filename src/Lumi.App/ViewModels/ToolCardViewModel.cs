@@ -47,7 +47,7 @@ public partial class ToolCardViewModel : ObservableObject
     /// 排程紀錄裡的確認屬於排除類（記憶、上傳檔案、等你登入、管理排程、沒出現過的網站，M24 卡點 5）：
     /// 隱藏「以後都允許」，說明改成排除類的文字。只對 <see cref="IsScheduledRun"/> 的卡片有意義。
     /// </summary>
-    public bool ScheduleExcluded { get; init; }
+    public bool ScheduleExcluded { get; set; }
 
     /// <param name="confirm">
     /// 破壞性操作的「以後都允許」要先確認（M24 2.2）。沒有傳就不提供這個按鈕（安全的預設）。
