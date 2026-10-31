@@ -12,7 +12,14 @@ public enum PromptPlacement { System, TurnSuffix }
 
 /// <summary>組 prompt 時看得到的資訊。不帶對話內容：層只依設定與模式產生文字。</summary>
 /// <param name="Memory">長期記憶（M14，第 5 層）；null＝記憶已關閉，這一層不出現。</param>
-public sealed record PromptContext(ChatMode Mode, PersonaSettings Persona, MemoryPromptContext? Memory = null);
+/// <param name="Run">這次是排程自動執行（M24）時的說明；一般對話是 null。</param>
+public sealed record PromptContext(ChatMode Mode, PersonaSettings Persona, MemoryPromptContext? Memory = null, ScheduledRunInfo? Run = null);
+
+/// <summary>排程執行的資訊（M24，給 <c>scheduled-run.md</c> 那一層）。</summary>
+public sealed record ScheduledRunInfo(string ScheduleName, DateTimeOffset PlannedAt, DateTimeOffset StartedAt);
+
+/// <summary><see cref="Chat.ConversationService"/> 一輪回應的額外選項（M24）。</summary>
+public sealed record ConversationRunOptions(ScheduledRunInfo? Run = null);
 
 public interface IPromptLayer
 {

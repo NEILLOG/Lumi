@@ -95,6 +95,14 @@ public sealed class ReminderService(
         return await CreateReminderAsync(request, ct);
     }
 
+    // TODO(M24 包 24B)：實作
+    public Task<ScheduledItem> CreatePromptScheduleAsync(NewPromptSchedule request, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    // TODO(M24 包 24B)：實作
+    public Task<ScheduledItem?> UpdatePromptScheduleAsync(string id, PromptScheduleUpdate update, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public async Task<IReadOnlyList<ScheduledItem>> ListAsync(ReminderQuery query, CancellationToken ct)
     {
         if (query.Limit < 1)

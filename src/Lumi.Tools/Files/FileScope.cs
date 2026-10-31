@@ -301,7 +301,7 @@ public sealed class FileScopeFactory : IFileScopeFactory
     {
         var roots = new List<ScopeRoot>();
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in items.Where(i => i.Kind != ContextKind.Image))
+        foreach (var item in items.Where(i => i.Kind is ContextKind.File or ContextKind.Folder))
         {
             var baseName = string.IsNullOrWhiteSpace(item.DisplayName) ? Path.GetFileName(item.Path.TrimEnd('/', '\\')) : item.DisplayName;
             if (string.IsNullOrWhiteSpace(baseName))

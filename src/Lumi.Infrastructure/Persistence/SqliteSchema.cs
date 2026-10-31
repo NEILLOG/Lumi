@@ -180,6 +180,31 @@ internal static class SqliteSchema
         CREATE INDEX ix_usage_hints_created ON usage_hints(created_at);
         CREATE INDEX ix_usage_hints_rule ON usage_hints(rule, conversation_id);
         """,
+
+        // 13：排程跑 prompt（M24）。conversations.kind 區分一般對話與排程執行的紀錄；
+        // scheduled_runs 記每次執行的狀態。schedule_id 刻意不設外鍵（刪排程時可以選擇保留紀錄，schedule_title 是當時名稱的快照）；
+        // conversation_id 隨對話刪除一併刪（保留上限清理、刪除紀錄都經過 ConversationDeletionService）。「錯過」沒有對話，conversation_id 是 NULL。
+        // 時間存 UTC 固定格式；trigger／status 存小寫底線字串。
+        """
+        ALTER TABLE conversations ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat';
+
+        CREATE TABLE scheduled_runs (
+          id              TEXT PRIMARY KEY,
+          schedule_id     TEXT NOT NULL,
+          schedule_title  TEXT NOT NULL,
+          conversation_id TEXT REFERENCES conversations(id) ON DELETE CASCADE,
+          planned_at      TEXT NOT NULL,
+          started_at      TEXT,
+          finished_at     TEXT,
+          trigger         TEXT NOT NULL,
+          status          TEXT NOT NULL,
+          failure_text    TEXT,
+          read_at         TEXT
+        );
+        CREATE INDEX ix_scheduled_runs_schedule ON scheduled_runs(schedule_id, planned_at);
+        CREATE INDEX ix_scheduled_runs_unread ON scheduled_runs(read_at);
+        CREATE INDEX ix_scheduled_runs_conversation ON scheduled_runs(conversation_id);
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

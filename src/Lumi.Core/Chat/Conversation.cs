@@ -1,6 +1,10 @@
 namespace Lumi.Core.Chat;
 
-public sealed record Conversation(string Id, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt)
+/// <summary>對話的種類（M24）：一般對話，或排程執行的紀錄。歷史清單、搜尋、啟動時載入的最近對話只看 <see cref="Chat"/>。</summary>
+public enum ConversationKind { Chat, ScheduledRun }
+
+public sealed record Conversation(
+    string Id, string Title, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, ConversationKind Kind = ConversationKind.Chat)
 {
     public static string NewId() => Guid.CreateVersion7().ToString();
 }

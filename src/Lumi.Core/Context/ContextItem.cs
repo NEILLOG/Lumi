@@ -1,6 +1,7 @@
 namespace Lumi.Core.Context;
 
-public enum ContextKind { File, Folder, Image }
+/// <summary><see cref="ScheduledRun"/>：「接著聊」帶進來的排程結果引用（M24），<c>Path</c> 存執行紀錄 id，不是檔案，檔案範圍會忽略它。</summary>
+public enum ContextKind { File, Folder, Image, ScheduledRun }
 
 /// <summary>
 /// 使用者加入這則對話的一個項目（輸入框上方的 chip）。<see cref="EmbeddedInMessageId"/> 是 null 代表還沒送出：

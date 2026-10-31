@@ -17,6 +17,12 @@ public sealed class ReminderOptions
     /// <summary>背景迴圈最長的等待時間；讓系統時鐘被調整、睡眠喚醒後最多晚這段時間發現。</summary>
     public TimeSpan MaxWait { get; set; } = TimeSpan.FromSeconds(60);
 
+    /// <summary>「跑 prompt」的排程錯過多久以內，啟動或喚醒後補跑一次；超過只記一筆「錯過」（M24）。</summary>
+    public TimeSpan PromptCatchUpGrace { get; set; } = TimeSpan.FromHours(2);
+
+    /// <summary>「跑 prompt」的 prompt 字數上限（M24）。</summary>
+    public int MaxPromptChars { get; set; } = 4000;
+
     public int MaxTitleChars { get; set; } = 100;
 
     public int MaxMessageChars { get; set; } = 500;

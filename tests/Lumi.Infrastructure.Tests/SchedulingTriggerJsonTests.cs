@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
+using Lumi.Core.Context;
 using Lumi.Core.Reminders;
+using Lumi.Core.Tools;
 
 namespace Lumi.Infrastructure.Tests;
 
@@ -114,4 +116,32 @@ public sealed class SchedulingTriggerJsonTests
     [Fact]
     public void UnknownTriggerType_ThrowsJsonException_SoTheStoreCanSkipTheRow() =>
         Assert.ThrowsAny<JsonException>(() => JsonSerializer.Deserialize<Trigger>("""{ "type": "future_kind" }"""));
+
+    [Fact]
+    public void RunPromptAction_SerializesAsTypeRunPrompt_AndRoundTrips()
+    {
+        ScheduledAction action = new RunPromptAction(
+            "整理今天的更新",
+            new ScheduleGrant(Write: true, Network: false, Destructive: false),
+            [new ScheduleScopeItem(ContextKind.Folder, "/data/notes", "notes")]);
+
+        var json = JsonSerializer.Serialize(action);
+        var parsed = Assert.IsType<RunPromptAction>(JsonSerializer.Deserialize<ScheduledAction>(json));
+
+        Assert.Contains("\"type\":\"run_prompt\"", json);
+        Assert.Equal("整理今天的更新", parsed.Prompt);
+        Assert.True(parsed.Grant.Write);
+        Assert.Equal(ContextKind.Folder, Assert.Single(parsed.Scope).Kind);
+    }
+
+    [Fact]
+    public void ScheduleGrant_AllowsOnlyWhatWasGranted_AndReadOnlyAlways()
+    {
+        var grant = ScheduleGrant.None.With(ToolPermission.Network);
+
+        Assert.True(grant.Allows(ToolPermission.ReadOnly));
+        Assert.True(grant.Allows(ToolPermission.Network));
+        Assert.False(grant.Allows(ToolPermission.Write));
+        Assert.False(grant.Allows(ToolPermission.Destructive));
+    }
 }

@@ -1056,4 +1056,113 @@
   <data name="Hint_RepeatPasteName" xml:space="preserve"><value>同一份內容反覆貼上</value></data>
   <data name="Hint_RepeatPasteSummary" xml:space="preserve"><value>前文裡已經有的內容，不用再貼一次。</value></data>
   <data name="Mcp_ToolDefinitionSizeFormat" xml:space="preserve"><value>工具說明約 {0} tokens</value></data>
+  <data name="Schedule_TabChats" xml:space="preserve"><value>對話</value></data>
+  <data name="Schedule_TabRuns" xml:space="preserve"><value>排程</value></data>
+  <data name="Schedule_TabRunsUnread" xml:space="preserve"><value>排程（有未讀紀錄）</value></data>
+  <data name="Schedule_RunsEmpty" xml:space="preserve"><value>還沒有排程紀錄。在對話裡告訴 Lumi「每天早上 9 點幫我整理…」就能建立排程。</value></data>
+  <data name="Schedule_RunsKeepNoteFormat" xml:space="preserve"><value>每個排程保留最近 {0} 次紀錄。</value></data>
+  <data name="Schedule_ManageInSettings" xml:space="preserve"><value>在設定管理排程</value></data>
+  <data name="Schedule_GroupDisabled" xml:space="preserve"><value>已停用</value></data>
+  <data name="Schedule_GroupDeleted" xml:space="preserve"><value>已刪除</value></data>
+  <data name="Schedule_GroupSubFormat" xml:space="preserve"><value>{0} · {1}</value></data>
+  <data name="Schedule_NextFormat" xml:space="preserve"><value>下次 {0}</value></data>
+  <data name="Schedule_Unread" xml:space="preserve"><value>未讀</value></data>
+  <data name="Schedule_MenuTip" xml:space="preserve"><value>更多操作：立即執行、停用、編輯</value></data>
+  <data name="Schedule_RunNow" xml:space="preserve"><value>立即執行</value></data>
+  <data name="Schedule_Disable" xml:space="preserve"><value>停用</value></data>
+  <data name="Schedule_Enable" xml:space="preserve"><value>重新啟用</value></data>
+  <data name="Schedule_EditInSettings" xml:space="preserve"><value>在設定中編輯</value></data>
+  <data name="Schedule_DeleteRuns" xml:space="preserve"><value>刪除這些紀錄</value></data>
+  <data name="Schedule_DeleteRunsQuestionFormat" xml:space="preserve"><value>要刪除「{0}」的所有執行紀錄嗎？紀錄的內容會一併刪除，無法復原。</value></data>
+  <data name="Schedule_RunNowStartedFormat" xml:space="preserve"><value>已開始執行「{0}」，完成後會通知你。</value></data>
+  <data name="Schedule_DisabledFormat" xml:space="preserve"><value>已停用「{0}」，到點不會執行，紀錄會保留。</value></data>
+  <data name="Schedule_EnabledFormat" xml:space="preserve"><value>已重新啟用「{0}」。</value></data>
+  <data name="Schedule_DeleteRunQuestion" xml:space="preserve"><value>要刪除這筆紀錄嗎？執行的內容會一併刪除，無法復原。</value></data>
+  <data name="Schedule_DeleteRunBlocked" xml:space="preserve"><value>執行中，暫時無法刪除</value></data>
+  <data name="Schedule_Status_Running" xml:space="preserve"><value>執行中</value></data>
+  <data name="Schedule_Status_AwaitingApproval" xml:space="preserve"><value>待確認</value></data>
+  <data name="Schedule_Status_Completed" xml:space="preserve"><value>完成</value></data>
+  <data name="Schedule_Status_Failed" xml:space="preserve"><value>失敗</value></data>
+  <data name="Schedule_Status_Missed" xml:space="preserve"><value>錯過</value></data>
+  <data name="Schedule_Status_Interrupted" xml:space="preserve"><value>中斷</value></data>
+  <data name="Schedule_Trigger_CatchUp" xml:space="preserve"><value>補跑</value></data>
+  <data name="Schedule_Trigger_Manual" xml:space="preserve"><value>立即執行</value></data>
+  <data name="Schedule_ViewBannerFormat" xml:space="preserve"><value>排程紀錄 · {0} · {1}</value></data>
+  <data name="Schedule_BackToChat" xml:space="preserve"><value>回到目前對話</value></data>
+  <data name="Schedule_StopRun" xml:space="preserve"><value>停止這次執行</value></data>
+  <data name="Schedule_RunBadge" xml:space="preserve"><value>排程</value></data>
+  <data name="Schedule_BarNote" xml:space="preserve"><value>這是排程紀錄，不能在這裡輸入。想接著問，按「接著聊」開一則新對話。</value></data>
+  <data name="Schedule_ContinueChat" xml:space="preserve"><value>接著聊</value></data>
+  <data name="Schedule_RunAgain" xml:space="preserve"><value>現在執行</value></data>
+  <data name="Schedule_MissedNote" xml:space="preserve"><value>這次沒有執行，當時 Lumi 沒有開啟。</value></data>
+  <data name="Schedule_InterruptedNote" xml:space="preserve"><value>執行到一半 Lumi 被關閉了，這次沒有完成。</value></data>
+  <data name="Schedule_FailedNoteFormat" xml:space="preserve"><value>這次沒有完成：{0}</value></data>
+  <data name="Schedule_AwaitingNoteFormat" xml:space="preserve"><value>這個排程沒有授權「{0}」，所以執行到這裡先停下來問你。</value></data>
+  <data name="Schedule_AwaitingNoteExcluded" xml:space="preserve"><value>這類動作（記憶、上傳檔案、等你登入、管理排程、沒出現過的網站）執行排程時一律要你確認。</value></data>
+  <data name="Schedule_AllowAlways" xml:space="preserve"><value>以後都允許（加入排程授權）</value></data>
+  <data name="Schedule_AllowAlwaysDestructiveFormat" xml:space="preserve"><value>要讓「{0}」以後執行時自動進行破壞性操作嗎？這類操作無法復原。</value></data>
+  <data name="Schedule_AllowAlwaysDestructiveConfirm" xml:space="preserve"><value>以後都允許</value></data>
+  <data name="Schedule_ApprovedBySchedule" xml:space="preserve"><value>已允許（排程授權）</value></data>
+  <data name="Schedule_Perm_Write" xml:space="preserve"><value>寫入（檔案、筆記、外部服務）</value></data>
+  <data name="Schedule_Perm_Network" xml:space="preserve"><value>網路</value></data>
+  <data name="Schedule_Perm_Destructive" xml:space="preserve"><value>破壞性操作</value></data>
+  <data name="Schedule_Perm_ReadOnly" xml:space="preserve"><value>讀取</value></data>
+  <data name="Schedule_QuoteTitleFormat" xml:space="preserve"><value>引用排程結果 · {0} · {1}</value></data>
+  <data name="Schedule_QuoteViewOriginal" xml:space="preserve"><value>查看原紀錄</value></data>
+  <data name="Schedule_QuoteGone" xml:space="preserve"><value>原紀錄已清除</value></data>
+  <data name="Schedule_ContinueNote" xml:space="preserve"><value>這是一則新對話，放在「對話」分頁。原本的排程紀錄不會改變。</value></data>
+  <data name="Schedule_ContinueChatTitleFormat" xml:space="preserve"><value>接著聊：{0}</value></data>
+  <data name="Schedule_Create_TitleFormat" xml:space="preserve"><value>建立排程 · {0}</value></data>
+  <data name="Schedule_Create_Waiting" xml:space="preserve"><value>等待允許</value></data>
+  <data name="Schedule_Create_Done" xml:space="preserve"><value>已建立</value></data>
+  <data name="Schedule_Create_Denied" xml:space="preserve"><value>你已拒絕</value></data>
+  <data name="Schedule_Field_Name" xml:space="preserve"><value>名稱</value></data>
+  <data name="Schedule_Field_When" xml:space="preserve"><value>時間</value></data>
+  <data name="Schedule_Field_Prompt" xml:space="preserve"><value>要做的事</value></data>
+  <data name="Schedule_Field_Model" xml:space="preserve"><value>模型</value></data>
+  <data name="Schedule_Field_Records" xml:space="preserve"><value>紀錄</value></data>
+  <data name="Schedule_Field_Scope" xml:space="preserve"><value>可以存取的資料夾</value></data>
+  <data name="Schedule_RecordsValueFormat" xml:space="preserve"><value>歷史對話的「排程」分頁，保留最近 {0} 次</value></data>
+  <data name="Schedule_ScopeNone" xml:space="preserve"><value>不存取檔案，只能用筆記</value></data>
+  <data name="Schedule_GrantHeading" xml:space="preserve"><value>執行時不再詢問的動作</value></data>
+  <data name="Schedule_GrantNote" xml:space="preserve"><value>Lumi 依「要做的事」先勾好建議，你可以調整。沒勾的動作執行到時會暫停，並通知你確認。</value></data>
+  <data name="Schedule_Grant_Read" xml:space="preserve"><value>讀取資料</value></data>
+  <data name="Schedule_Grant_ReadNote" xml:space="preserve"><value>讀取檔案、網頁、筆記。這類動作本來就不會詢問。</value></data>
+  <data name="Schedule_Grant_Write" xml:space="preserve"><value>寫入</value></data>
+  <data name="Schedule_Grant_WriteNote" xml:space="preserve"><value>建立或修改檔案與筆記，也包括外部服務的寫入動作（外部 MCP 工具預設算寫入）。</value></data>
+  <data name="Schedule_Grant_Network" xml:space="preserve"><value>網路</value></data>
+  <data name="Schedule_Grant_NetworkNote" xml:space="preserve"><value>開啟網頁、呼叫外部服務。</value></data>
+  <data name="Schedule_Grant_Destructive" xml:space="preserve"><value>破壞性操作</value></data>
+  <data name="Schedule_Grant_DestructiveBadge" xml:space="preserve"><value>無法復原</value></data>
+  <data name="Schedule_Grant_DestructiveNote" xml:space="preserve"><value>刪除檔案、清空資料夾等。預設不勾，執行到時會暫停並問你。</value></data>
+  <data name="Schedule_Grant_DestructiveOnNote" xml:space="preserve"><value>已勾選：這個排程執行時刪除檔案、清空資料夾也不會再問你。</value></data>
+  <data name="Schedule_Suggested" xml:space="preserve"><value>Lumi 建議</value></data>
+  <data name="Schedule_AlwaysAskNote" xml:space="preserve"><value>記憶、上傳檔案、等你登入、管理排程的動作，以及連到沒出現過的網站，執行時一律會先問你。</value></data>
+  <data name="Schedule_Create_Confirm" xml:space="preserve"><value>建立排程</value></data>
+  <data name="Schedule_Create_ConfirmDestructive" xml:space="preserve"><value>建立排程（含破壞性操作）</value></data>
+  <data name="Schedule_Create_Deny" xml:space="preserve"><value>拒絕</value></data>
+  <data name="Schedule_Create_AfterNote" xml:space="preserve"><value>之後可以在「設定」的「提醒排程」修改。</value></data>
+  <data name="Schedule_Created_NextFormat" xml:space="preserve"><value>下次執行：{0} · 執行時不再詢問：{1}</value></data>
+  <data name="Schedule_Created_ViewLink" xml:space="preserve"><value>在歷史對話的「排程」分頁查看</value></data>
+  <data name="Schedule_GrantListSeparator" xml:space="preserve"><value>、</value></data>
+  <data name="Schedule_Notify_View" xml:space="preserve"><value>查看</value></data>
+  <data name="Schedule_Notify_ViewTipFormat" xml:space="preserve"><value>查看「{0}」的執行紀錄</value></data>
+  <data name="Schedule_Notify_SpriteViewDisabled" xml:space="preserve"><value>回應結束後可以查看</value></data>
+  <data name="Reminders_KindNotify" xml:space="preserve"><value>通知</value></data>
+  <data name="Reminders_KindRunPrompt" xml:space="preserve"><value>跑 prompt</value></data>
+  <data name="Reminders_EnabledSwitchTipFormat" xml:space="preserve"><value>啟用或停用「{0}」</value></data>
+  <data name="Reminders_Edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="Reminders_EditPrompt" xml:space="preserve"><value>要做的事</value></data>
+  <data name="Reminders_EditGrant" xml:space="preserve"><value>執行時不再詢問的動作</value></data>
+  <data name="Reminders_EditScope" xml:space="preserve"><value>可以存取的資料夾</value></data>
+  <data name="Reminders_EditScopeRemoveTipFormat" xml:space="preserve"><value>移除 {0}</value></data>
+  <data name="Reminders_EditScopeNone" xml:space="preserve"><value>沒有。要加資料夾，請先在對話裡加入，再請 Lumi 重新建立排程。</value></data>
+  <data name="Reminders_EditTimeNote" xml:space="preserve"><value>要改時間，請在對話裡告訴 Lumi。</value></data>
+  <data name="Reminders_EditSave" xml:space="preserve"><value>儲存</value></data>
+  <data name="Reminders_EditSaved" xml:space="preserve"><value>已儲存。</value></data>
+  <data name="Reminders_EditSaveFailed" xml:space="preserve"><value>儲存失敗，請稍後再試。</value></data>
+  <data name="Reminders_EditPromptEmpty" xml:space="preserve"><value>要做的事不能是空的。</value></data>
+  <data name="Reminders_EditPromptTooLongFormat" xml:space="preserve"><value>最多 {0} 字。</value></data>
+  <data name="Reminders_DeleteWithRunsFormat" xml:space="preserve"><value>一併刪除 {0} 筆執行紀錄</value></data>
+  <data name="Reminders_DeleteRunPromptQuestion" xml:space="preserve"><value>要刪除這個排程嗎？刪除後就不會再執行。</value></data>
 </root>

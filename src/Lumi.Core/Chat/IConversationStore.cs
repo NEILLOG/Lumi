@@ -7,10 +7,19 @@ public interface IConversationStore
 {
     Task<Conversation> CreateAsync(string title, CancellationToken ct = default);
 
-    /// <summary>最近更新的一則對話；一則都沒有時回 null。</summary>
+    /// <summary>
+    /// 建立指定種類的對話（M24：排程執行的紀錄是 <see cref="ConversationKind.ScheduledRun"/>）。
+    /// 預設只支援一般對話；要支援排程紀錄的實作覆寫。
+    /// </summary>
+    Task<Conversation> CreateAsync(string title, ConversationKind kind, CancellationToken ct = default) =>
+        kind == ConversationKind.Chat
+            ? CreateAsync(title, ct)
+            : throw new NotSupportedException("這個對話儲存不支援排程紀錄。");
+
+    /// <summary>最近更新的一則<b>一般</b>對話（<see cref="ConversationKind.Chat"/>）；一則都沒有時回 null。</summary>
     Task<Conversation?> GetLatestAsync(CancellationToken ct = default);
 
-    /// <summary>有訊息的對話，依更新時間由新到舊。沒有任何訊息的對話不列出。</summary>
+    /// <summary>有訊息的<b>一般</b>對話，依更新時間由新到舊。沒有任何訊息的對話不列出。</summary>
     Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default) => ListAsync(limit, null, ct);
 
     /// <summary>

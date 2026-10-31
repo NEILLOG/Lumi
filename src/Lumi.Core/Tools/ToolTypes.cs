@@ -31,6 +31,7 @@ public static class ToolModesExtensions
 /// <param name="Summary">給使用者看的一句話（設定頁），不送給模型。</param>
 /// <param name="CanDisable">false＝設定頁不能關（<c>show_details</c>）。</param>
 /// <param name="CanAlwaysAllow">false＝不能設「永遠允許」（<c>memory_save</c>）；Destructive 一律不行，不必另外設。</param>
+/// <param name="AlwaysAsk">true＝一定詢問，不看設定的「永遠允許」與「本次對話都允許」，確認區也不提供「本次對話都允許」（M24：建立排程）。</param>
 /// <param name="RequiresMemory">長期記憶的工具（M14）：記憶在設定裡關閉時，工具不能執行（回說明、不詢問權限）；定義仍照送（2026-10-25：工具清單改變會讓 thinking 簽章失效）。只依使用者的設定、不依模式。</param>
 public sealed record ToolDescriptor(
     string Name,
@@ -44,13 +45,15 @@ public sealed record ToolDescriptor(
     string Group = ToolGroups.General,
     string? Summary = null,
     bool CanDisable = true,
-    bool CanAlwaysAllow = true);
+    bool CanAlwaysAllow = true,
+    bool AlwaysAsk = false);
 
 /// <summary>
 /// 顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。
 /// <paramref name="Url"/>：這次會連到的網址；有值時對話迴圈會套用網址來源規則（M17 D4）。
+/// <paramref name="Schedule"/>：建立排程的確認內容（M24），有值時確認區換成排程確認卡。
 /// </summary>
-public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null)
+public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null, ScheduleProposal? Schedule = null)
 {
     public static readonly ToolPreview None = new(null, null);
 }

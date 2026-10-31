@@ -12,10 +12,12 @@ internal sealed class InMemoryConversationStore : IConversationStore
     private readonly Dictionary<string, string> _meta = [];
     private readonly object _lock = new();
 
-    public Task<Conversation> CreateAsync(string title, CancellationToken ct = default)
+    public Task<Conversation> CreateAsync(string title, CancellationToken ct = default) => CreateAsync(title, ConversationKind.Chat, ct);
+
+    public Task<Conversation> CreateAsync(string title, ConversationKind kind, CancellationToken ct = default)
     {
         var now = DateTimeOffset.UtcNow;
-        var conversation = new Conversation(Conversation.NewId(), title, now, now);
+        var conversation = new Conversation(Conversation.NewId(), title, now, now, kind);
         lock (_lock)
         {
             _conversations[conversation.Id] = conversation;
@@ -27,7 +29,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
     public Task<Conversation?> GetLatestAsync(CancellationToken ct = default)
     {
         lock (_lock)
-            return Task.FromResult(_conversations.Values.OrderByDescending(c => c.UpdatedAt).FirstOrDefault());
+            return Task.FromResult(_conversations.Values.Where(c => c.Kind == ConversationKind.Chat).OrderByDescending(c => c.UpdatedAt).FirstOrDefault());
     }
 
     public Task<IReadOnlyList<Conversation>> ListAsync(int limit, CancellationToken ct = default) => ListAsync(limit, null, ct);
@@ -36,7 +38,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
     {
         lock (_lock)
             return Task.FromResult<IReadOnlyList<Conversation>>(_conversations.Values
-                .Where(c => _messages[c.Id].Count > 0)
+                .Where(c => c.Kind == ConversationKind.Chat && _messages[c.Id].Count > 0)
                 .Where(c => before is null || c.UpdatedAt < before.UpdatedAt
                             || (c.UpdatedAt == before.UpdatedAt && string.CompareOrdinal(c.Id, before.Id) < 0))
                 .OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id, StringComparer.Ordinal)
@@ -63,7 +65,7 @@ internal sealed class InMemoryConversationStore : IConversationStore
 
         lock (_lock)
         {
-            foreach (var conversation in _conversations.Values.Where(c => _messages[c.Id].Count > 0).OrderByDescending(c => c.UpdatedAt))
+            foreach (var conversation in _conversations.Values.Where(c => c.Kind == ConversationKind.Chat && _messages[c.Id].Count > 0).OrderByDescending(c => c.UpdatedAt))
             {
                 var matched = _messages[conversation.Id]
                     .Select(m => SearchTextExtractor.Extract(m.Content))

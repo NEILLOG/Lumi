@@ -9,6 +9,19 @@ public sealed record NewReminder(
     ScheduledKind Kind,
     ScheduledCreator CreatedBy);
 
+/// <summary>建立「跑 prompt」的排程或提醒（M24）。<paramref name="Name"/> 是排程名稱（存成 <see cref="ScheduledItem.Title"/>）。</summary>
+public sealed record NewPromptSchedule(
+    string Name,
+    string Prompt,
+    Trigger Trigger,
+    string? TimeZoneId,
+    ScheduleGrant Grant,
+    IReadOnlyList<ScheduleScopeItem> Scope,
+    ScheduledCreator CreatedBy);
+
+/// <summary>修改「跑 prompt」排程的內容；<c>null</c> 的欄位不動。時間不能在這裡改（第一版）。</summary>
+public sealed record PromptScheduleUpdate(string? Prompt, ScheduleGrant? Grant, IReadOnlyList<ScheduleScopeItem>? Scope);
+
 /// <summary>列出項目的條件；<c>null</c> 的集合表示不限。</summary>
 public sealed record ReminderQuery(
     IReadOnlyCollection<ScheduledStatus>? Statuses,
@@ -28,6 +41,12 @@ public interface IReminderService
 
     /// <summary>開始計時：<paramref name="durationSeconds"/> 秒後響一次。<paramref name="label"/> 為 null 或空白時用「計時器」。</summary>
     Task<ScheduledItem> StartTimerAsync(string? label, int durationSeconds, CancellationToken ct);
+
+    /// <summary>建立「跑 prompt」的排程（M24）。驗證失敗丟 <see cref="ReminderException"/>。</summary>
+    Task<ScheduledItem> CreatePromptScheduleAsync(NewPromptSchedule request, CancellationToken ct);
+
+    /// <summary>修改「跑 prompt」排程的 prompt、授權、範圍；找不到回 null，不是「跑 prompt」的項目丟 <see cref="ReminderException"/>。設定頁用。</summary>
+    Task<ScheduledItem?> UpdatePromptScheduleAsync(string id, PromptScheduleUpdate update, CancellationToken ct);
 
     Task<IReadOnlyList<ScheduledItem>> ListAsync(ReminderQuery query, CancellationToken ct);
 

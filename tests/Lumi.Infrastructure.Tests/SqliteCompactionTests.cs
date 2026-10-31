@@ -131,7 +131,7 @@ public sealed class SqliteCompactionTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE conversation_compactions; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 10;";
+            command.CommandText = "DROP TABLE conversation_compactions; DROP TABLE IF EXISTS scheduled_runs; ALTER TABLE conversations DROP COLUMN kind; DROP TABLE IF EXISTS request_usage; DROP TABLE IF EXISTS usage_hints; UPDATE schema_version SET version = 10;";
             command.ExecuteNonQuery();
         }
         SqliteConnection.ClearAllPools();

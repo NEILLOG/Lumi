@@ -1,6 +1,16 @@
 namespace Lumi.Core.Tools;
 
-public enum ApprovalDecision { AllowOnce, AllowForConversation, Deny }
+/// <summary><see cref="AllowBySchedule"/>：排程執行時，在建立排程時授權的範圍內（M24）；只有排程的權限分流會回這個值。</summary>
+public enum ApprovalDecision { AllowOnce, AllowForConversation, Deny, AllowBySchedule }
+
+/// <summary>
+/// 使用者的回答。<paramref name="AmendedArgumentsJson"/> 有值時，工具用它執行而不是模型給的參數（M24：建立排程的確認卡可以改授權勾選）；
+/// 存檔的 <c>tool_use</c> 仍是模型原本的參數（歷史不能改，agent.md 第 7 節）。
+/// </summary>
+public sealed record ApprovalAnswer(ApprovalDecision Decision, string? AmendedArgumentsJson = null)
+{
+    public static implicit operator ApprovalAnswer(ApprovalDecision decision) => new(decision);
+}
 
 public sealed record ToolApprovalRequest(
     string CallId,
@@ -15,7 +25,27 @@ public sealed record ToolApprovalRequest(
 
     /// <summary>false＝不提供「本次對話都允許」（M17：搜尋引擎網址每次都問）。</summary>
     public bool AllowRemember { get; init; } = true;
+
+    /// <summary>這次呼叫所屬的對話（M24：排程執行的權限要依對話分流）。</summary>
+    public string? ConversationId { get; init; }
+
+    /// <summary>建立排程的確認內容（M24）；不是建立排程的工具時是 null。</summary>
+    public ScheduleProposal? Schedule => Preview.Schedule;
 }
+
+/// <summary>
+/// 建立排程時確認卡要顯示的內容（M24 4.4）。由 <c>create_scheduled_prompt</c> 的 <c>Describe</c> 產生，放在 <see cref="ToolPreview.Schedule"/>。
+/// <paramref name="SuggestedWrite"/>、<paramref name="SuggestedNetwork"/> 是模型建議的預先勾選；破壞性不會被預先勾選。
+/// </summary>
+public sealed record ScheduleProposal(
+    string Name,
+    string WhenText,
+    string? NextRunText,
+    string Prompt,
+    string ModelText,
+    IReadOnlyList<string> ScopeNames,
+    bool SuggestedWrite,
+    bool SuggestedNetwork);
 
 /// <summary>
 /// 向使用者請求同意。對話迴圈在 <see cref="RequestAsync"/> 暫停，直到使用者選擇或被取消；
@@ -24,6 +54,13 @@ public sealed record ToolApprovalRequest(
 public interface IToolApprovalService
 {
     Task<ApprovalDecision> RequestAsync(ToolApprovalRequest request, CancellationToken ct);
+
+    /// <summary>
+    /// 帶回修改後參數的版本（M24）。對話迴圈呼叫這個；預設把 <see cref="RequestAsync"/> 的結果包起來，
+    /// 只有需要回傳修改後參數的實作（App 的 <c>ToolApprovalService</c>）才覆寫。
+    /// </summary>
+    async Task<ApprovalAnswer> RequestAnswerAsync(ToolApprovalRequest request, CancellationToken ct) =>
+        new(await RequestAsync(request, ct).ConfigureAwait(false));
 }
 
 /// <summary>沒有任何畫面可以詢問時的預設：一律拒絕（安全的預設）。</summary>
