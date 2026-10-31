@@ -109,7 +109,8 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     public event Action? Dismissed;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsStatus), nameof(IsAnswer), nameof(IsApproval), nameof(IsError), nameof(IsNotice), nameof(IsInteractive), nameof(HasTail))]
+    [NotifyPropertyChangedFor(nameof(IsVisible), nameof(IsStatus), nameof(IsAnswer), nameof(IsApproval), nameof(IsError), nameof(IsNotice), nameof(IsInteractive), nameof(HasTail),
+        nameof(IsResponding), nameof(CanViewReminder), nameof(ReminderViewTip))]
     private SpriteBubbleKind _kind = SpriteBubbleKind.Hidden;
 
     public bool IsVisible => Kind != SpriteBubbleKind.Hidden;
@@ -119,7 +120,7 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     /// 不受回應氣泡的淡出與 <see cref="Clear"/> 影響。與回應氣泡可以同時存在（提醒在上方）。
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasReminder), nameof(HasTail))]
+    [NotifyPropertyChangedFor(nameof(HasReminder), nameof(HasTail), nameof(CanViewReminder), nameof(ReminderViewTip))]
     private NotificationItemViewModel? _reminder;
 
     /// <summary>提醒的內文（超過氣泡上限就截斷，同回應氣泡的規則；完整內容在工作台的通知列）。</summary>
@@ -132,6 +133,15 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     private string? _reminderMoreText;
 
     public bool HasReminder => Reminder is not null;
+
+    /// <summary>小精靈正在回應（思考、工具、串流、等待確認）：提醒的「查看」要停用，避免在回應中切換視窗。</summary>
+    public bool IsResponding => Kind is SpriteBubbleKind.Status or SpriteBubbleKind.Streaming or SpriteBubbleKind.Approval;
+
+    /// <summary>提醒的「查看」能不能按：提醒帶著紀錄，而且小精靈沒有在回應。</summary>
+    public bool CanViewReminder => Reminder?.HasView == true && !IsResponding;
+
+    /// <summary>「查看」的 Tooltip：可以按時是查看的對象；回應中停用，這裡寫出原因。</summary>
+    public string ReminderViewTip => IsResponding ? Strings.Schedule_Notify_SpriteViewDisabled : Reminder?.ViewTip ?? "";
 
     public bool HasReminderMore => ReminderMoreText is not null;
 

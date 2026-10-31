@@ -42,7 +42,7 @@ public class SpriteReminderHeadlessTests
         public Rig(SpriteShellOptions? options = null)
         {
             Center = new NotificationCenter(new SyncUiDispatcher(), () => Windows, () => throw new InvalidOperationException("不應該要求小精靈"),
-                NullLogger<NotificationCenter>.Instance);
+                () => throw new InvalidOperationException("不應該要求排程紀錄檢視"), NullLogger<NotificationCenter>.Instance);
             var catalog = new SpriteCatalog([new OrbSpriteFactory()]);
             Window = new SpriteWindow(catalog, new QuietOverlay(), Settings, options ?? new SpriteShellOptions(), Time, NullLogger<SpriteWindow>.Instance,
                 notifications: Center);

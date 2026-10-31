@@ -114,6 +114,7 @@ public static class AppServiceCollectionExtensions
             sp.GetRequiredService<IUiDispatcher>(),
             () => sp.GetRequiredService<IWindowHost>(),
             () => sp.GetRequiredService<IAppModeCoordinator>(),
+            () => sp.GetRequiredService<IScheduledRunViewer>(),   // 通知的「查看」（M24）；工作台實作晚於這裡建立，所以也要延遲取得
             sp.GetRequiredService<ILogger<NotificationCenter>>()));
         services.Replace(ServiceDescriptor.Singleton<INotificationSink>(sp => sp.GetRequiredService<NotificationCenter>()));
 

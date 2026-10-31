@@ -63,11 +63,13 @@ public class NotificationCenterTests
 
         public FakeCoordinator Modes { get; } = new();
 
+        public FakeScheduledRunViewer Viewer { get; } = new();
+
         public NotificationCenter Center { get; }
 
         public Harness()
         {
-            Center = new NotificationCenter(Dispatcher, () => Windows, () => Modes, NullLogger<NotificationCenter>.Instance);
+            Center = new NotificationCenter(Dispatcher, () => Windows, () => Modes, () => Viewer, NullLogger<NotificationCenter>.Instance);
         }
 
         public async Task ShowAndFlushAsync(string id, NotificationKind kind = NotificationKind.Reminder)
