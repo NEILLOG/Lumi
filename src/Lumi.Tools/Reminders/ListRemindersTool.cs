@@ -35,7 +35,8 @@ public sealed class ListRemindersTool(IReminderService reminders) : ToolBase<Lis
     public override ToolDescriptor Descriptor { get; } = new(
         "list_reminders", "列出提醒",
         "列出使用者的提醒、計時器與週期排程，預設只列還沒響的項目。使用者問「我有哪些提醒」「還有什麼還沒響」時使用；"
-        + "要取消或停用某一項之前，可以先用這個工具找到它的 id。",
+        + "要取消或停用某一項之前，可以先用這個工具找到它的 id。"
+        + "action 為 run_prompt 的是定時自動執行的排程，會多列出 grant（已授權的權限）與 prompt（前 100 字）。",
         ToolPermission.ReadOnly, ToolModes.Both, TimeSpan.FromSeconds(10), Group: ToolGroups.Reminders, Summary: "列出目前的提醒與計時器。");
 
     protected override async Task<ToolResult> InvokeAsync(ListRemindersArgs args, ToolContext context, CancellationToken ct)
@@ -57,6 +58,7 @@ public sealed class ListRemindersTool(IReminderService reminders) : ToolBase<Lis
     {
         var zone = ReminderFormat.ZoneOf(item.TimeZoneId);
         var recurrence = item.Trigger is RecurrenceTrigger r ? ScheduleCalculator.Describe(r, item.TimeZoneId) : null;
+        var isPrompt = item.Action is RunPromptAction;
         return new ReminderListItem(
             item.Id,
             KindName(item.Kind),
@@ -66,7 +68,10 @@ public sealed class ListRemindersTool(IReminderService reminders) : ToolBase<Lis
             item.Enabled,
             ReminderFormat.Iso(item.NextFireAt, zone),
             ReminderFormat.Iso(item.LastFiredAt, zone),
-            recurrence);
+            recurrence,
+            isPrompt ? "run_prompt" : "notify",
+            item.Action is RunPromptAction run ? ReminderFormat.GrantNames(run.Grant) : null,
+            item.Action is RunPromptAction p ? ReminderFormat.PromptPreview(p.Prompt) : null);
     }
 
     /// <summary>篩選值去頭尾空白、不分大小寫；未知值回清楚的錯誤。</summary>
@@ -128,5 +133,8 @@ public sealed class ListRemindersTool(IReminderService reminders) : ToolBase<Lis
         bool Enabled,
         string? NextFireAt,
         string? LastFiredAt,
-        string? Recurrence);
+        string? Recurrence,
+        string Action,
+        IReadOnlyList<string>? Grant = null,
+        string? Prompt = null);
 }

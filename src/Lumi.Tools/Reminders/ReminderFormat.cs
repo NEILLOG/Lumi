@@ -86,6 +86,25 @@ internal static class ReminderFormat
     /// <summary>項目儲存的時區 id 還原成時區（找不到時 Core 會退回本機）。</summary>
     public static TimeZoneInfo ZoneOf(string timeZoneId) => ScheduleCalculator.ResolveTimeZone(timeZoneId);
 
+    /// <summary>「跑 prompt」的排程在列表裡顯示的 prompt 前幾個字（M24）。</summary>
+    public const int PromptPreviewChars = 100;
+
+    /// <summary>
+    /// 排程的授權給模型看的名稱：<c>read</c> 一律有（唯讀不必授權），其餘照授權列出，順序固定。
+    /// </summary>
+    public static IReadOnlyList<string> GrantNames(ScheduleGrant grant)
+    {
+        var names = new List<string> { "read" };
+        if (grant.Write) names.Add("write");
+        if (grant.Network) names.Add("network");
+        if (grant.Destructive) names.Add("destructive");
+        return names;
+    }
+
+    /// <summary>prompt 的前 <see cref="PromptPreviewChars"/> 字；不超過就原樣回傳。</summary>
+    public static string PromptPreview(string prompt) =>
+        prompt.Length > PromptPreviewChars ? prompt[..PromptPreviewChars] : prompt;
+
     /// <summary>必填文字：去頭尾空白後不可為空，且不超過上限。</summary>
     public static bool TryCheckText(string? raw, string name, int maxChars, out string text, out string? error)
     {

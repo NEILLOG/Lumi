@@ -5,6 +5,23 @@ using Lumi.Core.Reminders;
 namespace Lumi.Tools.Reminders;
 
 /// <summary>
+/// 時間參數（<c>create_reminder</c> 與 <c>create_scheduled_prompt</c> 共用）：一次性用 <c>At</c>，週期用 <c>Recurrence</c>＋<c>Time</c>（＋<c>Days</c>、<c>DayOfMonth</c>）。
+/// 兩個工具的參數 record 都實作這個介面，解析邏輯只寫一份。
+/// </summary>
+public interface IReminderTimeArgs
+{
+    string? At { get; }
+
+    string? Recurrence { get; }
+
+    string? Time { get; }
+
+    IReadOnlyList<string>? Days { get; }
+
+    int? DayOfMonth { get; }
+}
+
+/// <summary>
 /// <c>create_reminder</c> 的觸發條件解析（一次性的 <c>at</c>，或週期的 <c>recurrence</c>＋<c>time</c>）。
 /// 錯誤訊息沿用舊版（tool.md 5.3.7）的語意，參數名稱改成 snake_case。確認卡片與實際建立共用這段，兩邊結果一致。
 /// </summary>
@@ -21,7 +38,7 @@ internal static partial class ReminderParser
 
     public const string AtFormatError = "時間格式無效，請使用含時區偏移的 ISO 8601 格式（例如 2026-10-05T15:30:00+08:00），或不含偏移的當地時間（例如 2026-10-25T09:00）。";
 
-    public static bool TryParseTrigger(CreateReminderArgs args, TimeZoneInfo zone, out Trigger? trigger, out string? error)
+    public static bool TryParseTrigger(IReminderTimeArgs args, TimeZoneInfo zone, out Trigger? trigger, out string? error)
     {
         var hasAt = !string.IsNullOrWhiteSpace(args.At);
         var hasRecurrence = !string.IsNullOrWhiteSpace(args.Recurrence);
@@ -77,7 +94,7 @@ internal static partial class ReminderParser
         return new DateTimeOffset(local, zone.GetUtcOffset(local));
     }
 
-    private static bool TryParseRecurrence(CreateReminderArgs args, out Trigger? trigger, out string? error)
+    private static bool TryParseRecurrence(IReminderTimeArgs args, out Trigger? trigger, out string? error)
     {
         trigger = null;
         var kind = args.Recurrence!.Trim().ToLowerInvariant() switch
