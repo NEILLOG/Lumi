@@ -5,8 +5,9 @@ public enum SettingsSection { Connections, Models, Persona, Tools, McpServers, G
 /// <param name="ConnectionId">要選取的連線；null 表示不指定。</param>
 /// <param name="FocusApiKey">直接聚焦金鑰輸入框（缺金鑰流程）。</param>
 /// <param name="Notice">顯示在連線表單上方的一行說明。</param>
+/// <param name="ScheduleId">提醒排程頁要選取並展開的項目（M24「在設定中編輯」）；null 表示不指定。</param>
 public sealed record SettingsNavigation(
-    SettingsSection Section, string? ConnectionId = null, bool FocusApiKey = false, string? Notice = null);
+    SettingsSection Section, string? ConnectionId = null, bool FocusApiKey = false, string? Notice = null, string? ScheduleId = null);
 
 /// <summary>開啟設定視窗（單一執行個體，已開啟時只帶到前面並切換位置）。</summary>
 public interface ISettingsWindowService

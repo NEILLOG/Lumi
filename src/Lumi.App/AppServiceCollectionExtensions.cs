@@ -144,6 +144,7 @@ public static class AppServiceCollectionExtensions
         services.Replace(ServiceDescriptor.Singleton<Lumi.Core.Prompts.ISpriteVoiceProvider, SpriteVoiceProvider>());
 
         services.AddSingleton<WorkbenchViewModel>();
+        services.AddSingleton<IScheduledRunViewer>(sp => sp.GetRequiredService<WorkbenchViewModel>());   // 打開排程紀錄（M24）
         services.AddTransient<WorkbenchWindow>();
         return services;
     }

@@ -25,6 +25,12 @@ public partial class ToolCardViewModel : ObservableObject
 
     private readonly IToolApprovalResponder _responder;
     private readonly IClipboardService _clipboard;
+
+    /// <summary>
+    /// 這張卡在排程紀錄檢視裡（M24）：確認區的「本次對話都允許」換成「以後都允許（加入排程授權）」。
+    /// 由建立卡片的人在建立時設定；行為由包 24G 接上。
+    /// </summary>
+    public bool IsScheduledRun { get; init; }
     private readonly TimeProvider _time;
 
     public ToolCardViewModel(
