@@ -71,6 +71,31 @@ public sealed class SpriteVoicePromptLayer(ISpriteVoiceProvider voice) : IPrompt
 }
 
 /// <summary>
+/// 第 6 層：排程自動執行的說明（M24）。只在 <see cref="PromptContext.Run"/> 有值時出現，放在模式指示之後（尾端，隨訊息存檔）。
+/// 自成一個 <c>&lt;lumi_scheduled_run&gt;</c> 區塊，時間用本機時區的易讀格式。
+/// </summary>
+public sealed class ScheduledRunPromptLayer : IPromptLayer
+{
+    public int Order => 6;
+    public PromptPlacement Placement => PromptPlacement.TurnSuffix;
+
+    public string? Render(PromptContext context)
+    {
+        if (context.Run is not { } run)
+            return null;
+
+        var text = PromptText.Get("scheduled-run")
+            .Replace("{schedule_name}", run.ScheduleName, StringComparison.Ordinal)
+            .Replace("{planned_at}", LocalTime(run.PlannedAt), StringComparison.Ordinal)
+            .Replace("{started_at}", LocalTime(run.StartedAt), StringComparison.Ordinal);
+        return $"<lumi_scheduled_run>\n{text}\n</lumi_scheduled_run>";
+    }
+
+    private static string LocalTime(DateTimeOffset time) =>
+        time.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+}
+
+/// <summary>
 /// 第 5 層：長期記憶（M14）。system 層，所以工作台與小精靈送出的內容相同。<see cref="PromptContext.Memory"/> 為 null＝記憶關閉，整層不出現。
 /// 排序在這裡做（分類數值、再依 id），同樣的記憶永遠產生逐字相同的文字，快取才會命中。
 /// </summary>

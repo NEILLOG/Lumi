@@ -121,9 +121,13 @@ public sealed class ConversationService
         _attachments = attachments;
     }
 
-    /// <summary>先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。</summary>
+    /// <summary>
+    /// 先把使用者訊息存檔，再串流助理回應。第一則訊息會順便設定對話標題。
+    /// <paramref name="options"/> 是排程自動執行時的額外資訊（M24）；一般對話不傳。
+    /// </summary>
     public async IAsyncEnumerable<ChatEvent> SendAsync(
-        string conversationId, string userText, [EnumeratorCancellation] CancellationToken ct = default, ChatMode mode = ChatMode.Workbench)
+        string conversationId, string userText, [EnumeratorCancellation] CancellationToken ct = default, ChatMode mode = ChatMode.Workbench,
+        ConversationRunOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userText);
         Begin(conversationId);
@@ -148,7 +152,7 @@ public sealed class ConversationService
             if (existing.Count == 0)
                 await _store.RenameAsync(conversationId, MakeTitle(userText), ct).ConfigureAwait(false);
 
-            await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct).ConfigureAwait(false))
+            await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct, options).ConfigureAwait(false))
                 yield return chatEvent;
         }
         finally
@@ -212,7 +216,7 @@ public sealed class ConversationService
     }
 
     private async IAsyncEnumerable<ChatEvent> RunTurnAsync(
-        string conversationId, ChatMode mode, [EnumeratorCancellation] CancellationToken ct)
+        string conversationId, ChatMode mode, [EnumeratorCancellation] CancellationToken ct, ConversationRunOptions? options = null)
     {
         var model = ResolveModel();
         if (model is null)
@@ -280,7 +284,7 @@ public sealed class ConversationService
 
             // 每次呼叫供應商前重組：兩次請求之間設定或記憶可能被改了（同一輪模型剛存的記憶，下一次呼叫就帶上）
             var memory = await LoadMemoryAsync(ct).ConfigureAwait(false);
-            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory));
+            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory, options?.Run));
 
             // system 在一則對話內固定：第一次送出時記下來，之後都送它。記憶、人設、記憶開關在中途改變時，
             // 不改 system，而是把最新的完整內容附在這一則訊息後面（SystemPromptUpdate）——thinking 簽章綁定 system，改了會 400

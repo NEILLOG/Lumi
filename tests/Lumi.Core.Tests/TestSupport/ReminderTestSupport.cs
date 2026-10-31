@@ -91,13 +91,14 @@ internal sealed class CollidingScheduledItemStore(IScheduledItemStore inner, int
 /// <summary>組好的提醒服務（記憶體儲存、手動時鐘、記錄用的通知）。</summary>
 internal sealed class ReminderHarness
 {
-    public ReminderHarness(ReminderOptions? options = null, IScheduledItemStore? store = null, DateTimeOffset? now = null)
+    public ReminderHarness(ReminderOptions? options = null, IScheduledItemStore? store = null, DateTimeOffset? now = null,
+        IScheduledRunDispatcher? dispatcher = null)
     {
         Clock = new ManualClock(now ?? ReminderTestData.Start);
         Options = options ?? new ReminderOptions();
         Store = store ?? new InMemoryScheduledItemStore();
         Sink = new RecordingNotificationSink();
-        Service = new ReminderService(Store, Sink, Clock, Options, NullLogger<ReminderService>.Instance);
+        Service = new ReminderService(Store, Sink, Clock, Options, NullLogger<ReminderService>.Instance, dispatcher);
     }
 
     public ManualClock Clock { get; }
