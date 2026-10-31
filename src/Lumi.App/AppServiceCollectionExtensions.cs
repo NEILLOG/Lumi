@@ -3,6 +3,7 @@ using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Reminders;
 using Lumi.Core.Tools;
 using Lumi.Core.Usage;
@@ -75,8 +76,32 @@ public static class AppServiceCollectionExtensions
 
         // 權限確認：取代 Core 預設的「一律拒絕」；對話迴圈等在 IToolApprovalService，卡片上的按鈕走 IToolApprovalResponder
         services.AddSingleton<ToolApprovalService>();
-        services.Replace(ServiceDescriptor.Singleton<IToolApprovalService>(sp => sp.GetRequiredService<ToolApprovalService>()));
         services.AddSingleton<IToolApprovalResponder>(sp => sp.GetRequiredService<ToolApprovalService>());
+
+        // 排程跑 prompt（M24）：執行器同時是佇列（dispatcher）、UI 介面與權限分流用的 host。
+        // 有兩個循環相依，所以都延後取得：對話迴圈 → 權限分流 → 執行器（host）；提醒服務 → 執行器（dispatcher）→ 對話 → 工具 → 提醒服務；執行器拿的 IReminderService 同理
+        services.AddSingleton(new ScheduledRunOptions());
+        services.AddSingleton<ScheduledRunService>(sp => new ScheduledRunService(
+            sp.GetRequiredService<IScheduledRunStore>(),
+            sp.GetRequiredService<IScheduledItemStore>(),
+            sp.GetRequiredService<ConversationService>(),
+            sp.GetRequiredService<IConversationStore>(),
+            sp.GetRequiredService<IConversationContextStore>(),
+            sp.GetRequiredService<ConversationDeletionService>(),
+            sp.GetRequiredService<INotificationSink>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ScheduledRunOptions>(),
+            () => sp.GetRequiredService<IReminderService>(),
+            sp.GetRequiredService<ILogger<ScheduledRunService>>()));
+        services.AddSingleton<IScheduledRunService>(sp => sp.GetRequiredService<ScheduledRunService>());
+        services.AddSingleton<IScheduledRunDispatcher>(sp => new LazyScheduledRunDispatcher(() => sp.GetRequiredService<ScheduledRunService>()));
+        services.AddSingleton<IScheduledRunHost>(sp => new LazyScheduledRunHost(() => sp.GetRequiredService<ScheduledRunService>()));
+        services.Replace(ServiceDescriptor.Singleton<IToolApprovalService>(sp => new RoutingToolApprovalService(
+            sp.GetRequiredService<ToolApprovalService>(),
+            sp.GetRequiredService<IScheduledRunHost>(),
+            sp.GetRequiredService<IToolCatalog>(),
+            sp.GetRequiredService<ILogger<RoutingToolApprovalService>>())));
+        services.AddHostedService<ScheduledRunHostedService>();
 
         services.AddHostedService<AttachmentCleanupService>();
         services.AddHostedService<MemoryCleanupService>();        // 啟動時清掉到期超過 30 天的記憶（M14）

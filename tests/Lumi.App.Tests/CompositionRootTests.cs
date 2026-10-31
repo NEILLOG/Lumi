@@ -85,9 +85,10 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotNull(services.GetRequiredService<UsageSettingsViewModel>());
         Assert.NotNull(services.GetRequiredService<Lumi.App.Services.UsageHintCoordinator>());
         Assert.NotNull(services.GetRequiredService<Lumi.App.Services.BudgetAlertCoordinator>());
-        // 權限確認：App 的實作取代 Core 預設的「一律拒絕」，而且按鈕與對話迴圈用的是同一個執行個體
-        Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
-        Assert.Same(services.GetRequiredService<IToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
+        // 權限確認：App 的實作取代 Core 預設的「一律拒絕」；對話迴圈拿到的是排程分流服務（M24），它包著 App 的實作，按鈕用的是被包住的那一個
+        Assert.IsType<Lumi.Core.Tools.RoutingToolApprovalService>(services.GetRequiredService<IToolApprovalService>());
+        Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalResponder>());
+        Assert.Same(services.GetRequiredService<Lumi.App.Services.ToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
         Assert.Equal(["add_note", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "create_scheduled_prompt", "download_file", "edit_image", "generate_image", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
@@ -140,9 +141,15 @@ public sealed class CompositionRootTests : IDisposable
         // 筆記資料夾：設定實作取代 Core 的預設；INoteStore 由 Lumi.Tools 提供
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱
-        // M5：四個 prompt 層、M14 的第 5 層（記憶）都組進去了
-        Assert.Equal([1, 2, 3, 4, 5], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
+        // M5：四個 prompt 層、M14 的第 5 層（記憶）、M24 的第 6 層（排程說明）都組進去了
+        Assert.Equal([1, 2, 3, 4, 5, 6], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
         Assert.IsType<Lumi.Core.Prompts.PromptComposer>(services.GetRequiredService<Lumi.Core.Prompts.IPromptComposer>());
+        // M24：排程執行器是同一個執行個體，權限確認經過分流服務
+        var scheduledRuns = services.GetRequiredService<Lumi.Core.Reminders.ScheduledRunService>();
+        Assert.Same(scheduledRuns, services.GetRequiredService<Lumi.Core.Reminders.IScheduledRunService>());
+        Assert.IsType<Lumi.Core.Reminders.LazyScheduledRunDispatcher>(services.GetRequiredService<Lumi.Core.Reminders.IScheduledRunDispatcher>());
+        Assert.IsType<Lumi.Core.Tools.RoutingToolApprovalService>(services.GetRequiredService<Lumi.Core.Tools.IToolApprovalService>());
+        Assert.Null(services.GetRequiredService<Lumi.Core.Reminders.IScheduledRunHost>().FindByConversation("none"));
         Assert.IsType<FileScopeFactory>(services.GetRequiredService<IFileScopeFactory>());
         Assert.Same(services.GetRequiredService<IConversationStore>(), services.GetRequiredService<IConversationContextStore>());
         // 4B：送出時的快照建構器、圖片附件存放與孤兒清理

@@ -164,3 +164,30 @@ public sealed class NullScheduledRunHost : IScheduledRunHost
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }
+
+/// <summary>
+/// 延後取得真正的 <see cref="IScheduledRunHost"/>：對話迴圈 → 權限分流 → 排程執行器 → 對話迴圈 有循環相依，
+/// 分流服務拿到的是這個包裝，第一次用到時才向容器要執行器（M24）。
+/// </summary>
+public sealed class LazyScheduledRunHost(Func<IScheduledRunHost> resolve) : IScheduledRunHost
+{
+    public ActiveScheduledRun? FindByConversation(string conversationId) => resolve().FindByConversation(conversationId);
+
+    public Task<IAsyncDisposable> PauseForApprovalAsync(string conversationId, ToolApprovalRequest request, CancellationToken ct) =>
+        resolve().PauseForApprovalAsync(conversationId, request, ct);
+
+    public Task AddGrantAsync(string scheduleId, ToolPermission permission, CancellationToken ct) =>
+        resolve().AddGrantAsync(scheduleId, permission, ct);
+}
+
+/// <summary>
+/// 延後取得真正的 <see cref="IScheduledRunDispatcher"/>：提醒服務 → 排程執行器 → 對話迴圈 → 工具（create_reminder）→ 提醒服務 有循環相依（M24）。
+/// </summary>
+public sealed class LazyScheduledRunDispatcher(Func<IScheduledRunDispatcher> resolve) : IScheduledRunDispatcher
+{
+    public void Enqueue(ScheduledItem item, DateTimeOffset plannedAt, ScheduledRunTrigger trigger) =>
+        resolve().Enqueue(item, plannedAt, trigger);
+
+    public Task RecordMissedAsync(ScheduledItem item, DateTimeOffset plannedAt, CancellationToken ct) =>
+        resolve().RecordMissedAsync(item, plannedAt, ct);
+}
