@@ -14,7 +14,7 @@ public sealed record CreateReminderArgs(
     [property: Description("週期提醒每天觸發的時間，24 小時制 HH:mm（例如 09:00、18:30）。recurrence 有值時必填")] string? Time = null,
     [property: Description("weekly 用的星期幾，字串陣列，例如 [\"monday\", \"friday\"] 或 [\"1\", \"5\"]。英文星期不分大小寫；數字 1＝週一…7＝週日（0 也是週日）"), JsonConverter(typeof(LooseStringListConverter))] IReadOnlyList<string>? Days = null,
     [property: Description("monthly 用的每月日期，1～31，省略為 1。當月沒有那一天時（例如 2 月的 30 日）改用當月最後一天")] int? DayOfMonth = null,
-    [property: Description("時區的 IANA 名稱，例如 Asia/Taipei、America/New_York；省略就是使用者電腦的時區")] string? TimeZone = null);
+    [property: Description("時區的 IANA 名稱，例如 Asia/Taipei、America/New_York；省略就是使用者電腦的時區")] string? TimeZone = null) : IReminderTimeArgs;
 
 /// <summary>建立提醒（舊版 <c>reminder_create</c>、<c>schedule_create</c>，M10 10E1）：一次性用 <c>at</c>，週期用 <c>recurrence</c>。</summary>
 public sealed class CreateReminderTool(IReminderService reminders, ReminderOptions options) : ToolBase<CreateReminderArgs>

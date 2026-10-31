@@ -52,6 +52,7 @@ public static class ToolsServiceCollectionExtensions
 
         // 提醒與排程（M10 10E）：IReminderService 與 ReminderOptions 由 Lumi.Core 註冊
         services.AddLumiTool<CreateReminderTool>();
+        services.AddLumiTool<CreateScheduledPromptTool>();   // 排程跑 prompt（M24）：IModelCatalog 由組裝根提供
         services.AddLumiTool<StartTimerTool>();
         services.AddLumiTool<ListRemindersTool>();
         services.AddLumiTool<CancelReminderTool>();
