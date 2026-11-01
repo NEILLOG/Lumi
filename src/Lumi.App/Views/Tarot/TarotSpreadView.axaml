@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Lumi.App.Views.Tarot.TarotSpreadView">
   <!--
-    工具卡片裡的牌陣圖（plan/25 D9、25B 步驟 5）：水平可捲動，垂直不捲（卡片本身就會長高）。
-    牌的位置與旋轉在 TarotSpreadView.axaml.cs 依 TarotSpreadLayout 算出來。
+    牌陣圖（plan/25 D9、25D；ui-spec 3.1）：水平可捲動，垂直不捲（附件本身就會長高）。
+    牌、位置名稱與編號圓點的位置在 TarotStageLayout 算出，TarotSpreadView.axaml.cs 照擺。
   -->
   <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
     <Canvas x:Name="Stage" />

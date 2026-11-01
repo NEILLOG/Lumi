@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.Tarot.TarotPositionRow">
+  <!--
+    凱爾特十字對照清單的一行（ui-spec 3.1）：編號（Bold、Text 色、右對齊、寬 18）＋空隙 8＋「位置・牌名（逆位）」；字 12、行高 18。
+  -->
+  <StackPanel Orientation="Horizontal" Spacing="8" Height="18">
+    <TextBlock x:Name="Number" Width="18" FontSize="12" FontWeight="Bold" TextAlignment="Right"
+               VerticalAlignment="Center" Foreground="{DynamicResource LumiTextBrush}" />
+    <TextBlock x:Name="Text" FontSize="12" VerticalAlignment="Center">
+      <Run x:Name="Head" FontWeight="SemiBold" Foreground="{DynamicResource LumiTextBrush}" /><Run x:Name="Tail" Foreground="{DynamicResource LumiTextMutedBrush}" />
+    </TextBlock>
+  </StackPanel>
+</UserControl>
