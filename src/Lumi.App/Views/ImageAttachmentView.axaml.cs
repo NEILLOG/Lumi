@@ -20,23 +20,16 @@ public partial class ImageAttachmentView : UserControl
         DataContextChanged += (_, _) => UpdateTimer();
     }
 
-    /// <summary>
-    /// 點了「放大檢視」或縮圖時發生。有訂閱就交給訂閱者（看圖視窗，TODO(25G)）；沒有就用系統的預設程式開啟（R6：看圖視窗合進來前）。
-    /// </summary>
-    public event EventHandler<ImageAttachmentViewModel>? ViewLargerRequested;
-
-    private async void ViewLarger_Click(object? sender, RoutedEventArgs e)
+    /// <summary>點「放大檢視」或縮圖：用 Lumi 的看圖視窗開啟。</summary>
+    private void ViewLarger_Click(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not ImageAttachmentViewModel { ShowsImage: true } vm)
+        if (DataContext is not ImageAttachmentViewModel { ShowsImage: true, FilePath: { } path })
             return;
-        var handler = ViewLargerRequested;
-        if (handler is not null)
-        {
-            handler(this, vm);
-            return;
-        }
-        // TODO(25G)：改開 Lumi 看圖視窗（看圖視窗合進來之前暫時用系統看圖程式）
-        await OpenWithSystemAsync(vm);
+        var viewer = new ImageViewerWindow(path);
+        if (TopLevel.GetTopLevel(this) is Window owner)
+            viewer.Show(owner);
+        else
+            viewer.Show();
     }
 
     /// <summary>用其他程式開啟（系統預設程式）。</summary>

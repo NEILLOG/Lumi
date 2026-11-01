@@ -30,8 +30,7 @@ public partial class TarotSpreadWindow : Window
         Spread.ShowCaptions = false;
         Spread.CardWidth = TarotSpreadWindowLayout.DefaultCardWidth;
         Spread.Spread = spread;
-        // TODO(25G)：點牌放大（用看圖視窗開啟這張牌的大圖）
-        Spread.CardClicked += (_, _) => { };
+        Spread.CardClicked += (_, card) => TarotCardViewer.Open(card, this, Spread.Images);
         Spread.CardHovered += (_, card) => SetHighlight(card is null ? null : NumberOf(card));
 
         List.Spread = spread;

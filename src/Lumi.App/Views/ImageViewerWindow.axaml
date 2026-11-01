@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        x:Class="Lumi.App.Views.ImageViewerWindow"
+        Width="960" Height="720" MinWidth="420" MinHeight="320"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource LumiBackgroundBrush}">
+  <!--
+    看圖視窗（ui-spec 3.1）：滾輪以游標為中心縮放、拖曳平移、雙擊在「符合視窗」與 100% 之間切換；Esc 關閉。工具列只放縮放相關按鈕。
+    內容可以是圖片檔，也可以是畫好的控制項（點牌放大的牌面）；後者下方多一塊說明區。
+  -->
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="16,8">
+      <TextBlock x:Name="NameText" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+        <Button x:Name="ZoomOutButton" Classes="tertiary small" Content="{x:Static res:Strings.ImageViewer_ZoomOut}"
+                AutomationProperties.Name="{x:Static res:Strings.ImageViewer_ZoomOut}" />
+        <TextBlock x:Name="ZoomText" Classes="muted" MinWidth="48" TextAlignment="Center" VerticalAlignment="Center" />
+        <Button x:Name="ZoomInButton" Classes="tertiary small" Content="{x:Static res:Strings.ImageViewer_ZoomIn}"
+                AutomationProperties.Name="{x:Static res:Strings.ImageViewer_ZoomIn}" />
+        <Button x:Name="FitButton" Classes="tertiary small" Content="{x:Static res:Strings.ImageViewer_Fit}" />
+        <Button x:Name="ActualButton" Classes="tertiary small" Content="{x:Static res:Strings.ImageViewer_Actual}" />
+        <Button x:Name="CloseButton" Classes="secondary small" Content="{x:Static res:Strings.ImageViewer_Close}" IsCancel="True" />
+      </StackPanel>
+    </Grid>
+    <Panel x:Name="Stage" Grid.Row="1" ClipToBounds="True" Background="Transparent" Cursor="Hand">
+      <Image x:Name="Picture" Stretch="None" HorizontalAlignment="Left" VerticalAlignment="Top"
+             RenderTransformOrigin="0%,0%" RenderOptions.BitmapInterpolationMode="HighQuality" />
+    </Panel>
+    <ContentControl x:Name="DetailsHost" Grid.Row="2" IsVisible="False" />
+  </Grid>
+</Window>

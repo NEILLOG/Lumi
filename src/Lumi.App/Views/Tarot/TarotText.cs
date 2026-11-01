@@ -22,6 +22,16 @@ internal static class TarotText
         return position + tail;
     }
 
+    /// <summary>點牌放大的副標：英文名與編號，例「The Chariot・大阿爾克那 VII」；宮廷牌沒有編號，例「Queen of Cups・小阿爾克那」。</summary>
+    public static string Subtitle(TarotPlacedCard card)
+    {
+        var number = TarotCardFaceMetrics.Number(card.CardId);
+        var arcana = card.CardId.StartsWith("major_", StringComparison.Ordinal)
+            ? string.Format(Strings.Tarot_MajorArcanaFormat, number)
+            : number is null ? Strings.Tarot_MinorArcana : string.Format(Strings.Tarot_MinorArcanaFormat, number);
+        return string.Format(Strings.Tarot_CaptionFormat, card.CardNameEn, arcana);
+    }
+
     /// <summary>
     /// 牌的滑鼠提示：「位置：中文名 英文名（正位／逆位）」；有編號（凱爾特十字）時前面加編號，例「3 目標：命運之輪 Wheel of Fortune（正位）」。
     /// </summary>

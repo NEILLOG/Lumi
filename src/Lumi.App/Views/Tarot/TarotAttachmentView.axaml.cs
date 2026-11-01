@@ -39,8 +39,7 @@ public partial class TarotAttachmentView : UserControl
     public TarotAttachmentView()
     {
         InitializeComponent();
-        // TODO(25G)：點牌放大（用看圖視窗開啟這張牌的大圖）
-        Spread.CardClicked += (_, _) => { };
+        Spread.CardClicked += (_, card) => TarotCardViewer.Open(card, this, Spread.Images);
     }
 
     /// <summary>按下「在視窗中開啟牌陣」（只有凱爾特十字有）。</summary>

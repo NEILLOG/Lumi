@@ -1178,4 +1178,14 @@ public static class Strings
     public static string Image_ViewLarger => Get(nameof(Image_ViewLarger));
     public static string Image_OpenExternal => Get(nameof(Image_OpenExternal));
     public static string Image_AttachmentAutomationFormat => Get(nameof(Image_AttachmentAutomationFormat));
+
+    // 看圖視窗與點牌放大（M25 25G）
+    public static string ImageViewer_ZoomIn => Get(nameof(ImageViewer_ZoomIn));
+    public static string ImageViewer_ZoomOut => Get(nameof(ImageViewer_ZoomOut));
+    public static string ImageViewer_Fit => Get(nameof(ImageViewer_Fit));
+    public static string ImageViewer_Actual => Get(nameof(ImageViewer_Actual));
+    public static string ImageViewer_Close => Get(nameof(ImageViewer_Close));
+    public static string Tarot_MajorArcanaFormat => Get(nameof(Tarot_MajorArcanaFormat));
+    public static string Tarot_MinorArcanaFormat => Get(nameof(Tarot_MinorArcanaFormat));
+    public static string Tarot_MinorArcana => Get(nameof(Tarot_MinorArcana));
 }

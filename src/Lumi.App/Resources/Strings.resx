@@ -1185,4 +1185,12 @@
   <data name="Image_ViewLarger" xml:space="preserve"><value>放大檢視</value></data>
   <data name="Image_OpenExternal" xml:space="preserve"><value>用其他程式開啟</value></data>
   <data name="Image_AttachmentAutomationFormat" xml:space="preserve"><value>圖片：{0}</value></data>
+  <data name="ImageViewer_ZoomIn" xml:space="preserve"><value>放大</value></data>
+  <data name="ImageViewer_ZoomOut" xml:space="preserve"><value>縮小</value></data>
+  <data name="ImageViewer_Fit" xml:space="preserve"><value>符合視窗</value></data>
+  <data name="ImageViewer_Actual" xml:space="preserve"><value>100%</value></data>
+  <data name="ImageViewer_Close" xml:space="preserve"><value>關閉</value></data>
+  <data name="Tarot_MajorArcanaFormat" xml:space="preserve"><value>大阿爾克那 {0}</value></data>
+  <data name="Tarot_MinorArcanaFormat" xml:space="preserve"><value>小阿爾克那 {0}</value></data>
+  <data name="Tarot_MinorArcana" xml:space="preserve"><value>小阿爾克那</value></data>
 </root>

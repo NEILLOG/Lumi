@@ -121,20 +121,20 @@ public class ImageAttachmentRenderingTests
     }
 
     [AvaloniaFact]
-    public void Clicking_the_thumbnail_raises_view_larger_with_the_image()
+    public void Clicking_the_thumbnail_opens_the_image_viewer()
     {
         var path = Path.Combine(Path.GetTempPath(), "lumi-25e-" + Guid.NewGuid().ToString("N") + ".png");
         File.WriteAllBytes(path, Convert.FromBase64String(OnePixelPng));
         try
         {
             var vm = ImageAttachmentViewModel.ForFile("c1", path, exists: true, 1024, 1024);
-            var (view, _) = Show(vm);
-            ImageAttachmentViewModel? raised = null;
-            view.ViewLargerRequested += (_, image) => raised = image;
+            var (view, window) = Show(vm);
 
             view.FindByName<Button>("Thumbnail").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
-            Assert.Same(vm, raised);
+            var viewer = Assert.IsType<ImageViewerWindow>(Assert.Single(window.OwnedWindows));
+            Assert.Equal(Path.GetFileName(path), viewer.Title);
+            viewer.Close();
         }
         finally
         {

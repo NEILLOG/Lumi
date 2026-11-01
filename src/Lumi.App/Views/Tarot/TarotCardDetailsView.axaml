@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.Tarot.TarotCardDetailsView">
+  <!-- 點牌放大的說明區（ui-spec 3.1）：位置與位置意義、牌名與正逆位、關鍵字、牌義。太長時捲動，不把牌面擠掉 -->
+  <Border Background="{DynamicResource LumiSurfaceBrush}" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
+    <ScrollViewer MaxHeight="280" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="8" Margin="16,24">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+          <Border Classes="badge" VerticalAlignment="Top">
+            <TextBlock x:Name="PositionText" />
+          </Border>
+          <TextBlock x:Name="PositionMeaningText" Grid.Column="1" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}"
+                     TextWrapping="Wrap" VerticalAlignment="Center" />
+        </Grid>
+        <WrapPanel ItemSpacing="8" LineSpacing="4">
+          <TextBlock x:Name="NameText" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+          <TextBlock x:Name="SubtitleText" Classes="muted" FontSize="14" VerticalAlignment="Center" />
+          <Border BorderBrush="{DynamicResource LumiBorderStrongBrush}" BorderThickness="1" CornerRadius="11" Padding="8,0" Height="22" VerticalAlignment="Center">
+            <TextBlock x:Name="OrientationText" FontSize="12" VerticalAlignment="Center" />
+          </Border>
+        </WrapPanel>
+        <ItemsControl x:Name="KeywordList">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel ItemSpacing="4" LineSpacing="4" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Border Background="{DynamicResource LumiSurfaceAltBrush}" CornerRadius="12" Height="24" Padding="8,0">
+                <TextBlock Text="{Binding}" FontSize="12" VerticalAlignment="Center" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock x:Name="MeaningText" FontSize="14" LineHeight="22" TextWrapping="Wrap" />
+      </StackPanel>
+    </ScrollViewer>
+  </Border>
+</UserControl>
