@@ -219,6 +219,8 @@
 
                     <!-- 回覆附件（M25，ui-spec 3.1）：前面工具產生的牌陣、圖片，放在氣泡上方 -->
                     <views:ReplyAttachmentsView IsVisible="{Binding HasReplyAttachments}" />
+                    <!-- 只放附件的訊息被停止：附件下方說明，不在氣泡裡（ui-spec 3.1） -->
+                    <TextBlock IsVisible="{Binding ShowStoppedNote}" Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" />
 
                     <!-- 淡底氣泡（對話內容，不算卡片）：思考過程、Markdown、等待與停止提示 -->
                     <Border x:Name="AssistantBubble" IsVisible="{Binding ShowBubble}" HorizontalAlignment="Left" Padding="16,12"
@@ -234,13 +236,19 @@
                         <!-- 助理的回答用 Markdown 渲染；使用者訊息與思考過程維持純文字 -->
                         <md:MarkdownView IsVisible="{Binding HasText}" Markdown="{Binding Text}" IsStreaming="{Binding IsStreaming}" />
                         <TextBlock IsVisible="{Binding ShowTypingIndicator}" Text="…" Classes="muted" />
+                        <!-- 附件已經在、文字還沒來：三個 6px 圓點（ui-spec 3.1 R4）；高度 16 加上氣泡的 Padding 12＋12 = 40 -->
+                        <StackPanel IsVisible="{Binding ShowTypingDots}" Orientation="Horizontal" Spacing="4" MinHeight="16">
+                          <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                          <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                          <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
                         <TextBlock IsVisible="{Binding IsStopped}" Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" />
                       </StackPanel>
                     </Border>
 
                     <!-- 動作列：複製、重新產生（只有最後一則）、👍👎（停用，說明即將推出）、本輪 token -->
                     <StackPanel x:Name="MessageActions" IsVisible="{Binding ShowActions}" Orientation="Horizontal" Spacing="4">
-                      <Button Classes="tertiary small message-action"
+                      <Button Classes="tertiary small message-action" IsVisible="{Binding CanCopy}"
                               Command="{Binding $parent[views:ConversationView].((vm:WorkbenchViewModel)DataContext).CopyCommand}" CommandParameter="{Binding}"
                               ToolTip.Tip="{x:Static res:Strings.Workbench_CopyTip}" AutomationProperties.Name="{Binding CopyLabel}">
                         <StackPanel Orientation="Horizontal" Spacing="4">

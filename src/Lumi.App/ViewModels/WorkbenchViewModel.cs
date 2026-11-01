@@ -573,12 +573,26 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         await Context.LoadAsync(CurrentConversationId);
     }
 
-    private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson) =>
-        new(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time);
+    private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson)
+    {
+        // 卡片與工作台同生命週期（卡片只被訊息列表與 _cards 參照）；附件換掉時（完成、或產生中途換佔位）重新分配
+        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time);
+        card.PropertyChanged += OnCardPropertyChanged;
+        return card;
+    }
 
-    /// <summary>回合數、「最後一則助理訊息」旗標（只有它有重新產生）。</summary>
+    private void OnCardPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ToolCardViewModel.ReplyAttachments))
+            RefreshMessageState();
+    }
+
+    /// <summary>回合數、「最後一則助理訊息」旗標（只有它有重新產生）。附件歸屬與停止狀態也在這裡重算（ui-spec 3.1）。</summary>
     private void RefreshMessageState()
     {
+        ReplyAttachmentLayout.Apply(Messages);
+        ReplyAttachmentLayout.MarkStopped(Messages);
+
         // 回合數＝有回應的使用者訊息數（一輪可能有好幾個氣泡與工具段落）
         var turns = 0;
         var answered = true;
@@ -803,7 +817,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         if (outcome.Unexpected)
         {
             if (conversationId == CurrentConversationId)
-                ErrorMessage = Strings.Workbench_UnexpectedError;
+                ShowError(Strings.Workbench_UnexpectedError);
             await History.RefreshAsync(CurrentConversationId);
             return;
         }
@@ -825,7 +839,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         }
 
         if (conversationId == CurrentConversationId)
-            ErrorMessage = failure.Message;
+            ShowError(failure.Message);
         await History.RefreshAsync(CurrentConversationId);
     }
 
@@ -869,8 +883,28 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private void DropBubble()
     {
         if (_bubble is not null)
+        {
             Messages.Remove(_bubble);
+            RefreshMessageState();   // 拿掉的氣泡可能接著附件：附件重新歸屬（沒有文字就補一則只放附件的訊息）
+        }
         _bubble = null;
+    }
+
+    /// <summary>
+    /// 錯誤列的原因句尾：最後一則只放附件（工具之後沒有文字）時，補「抽到的牌已保留。」或「圖片已保留。」（ui-spec 3.1 狀態表、R3）。
+    /// 呼叫時分配已經完成（失敗路徑都在 <see cref="RefreshMessageState"/> 之後才設定錯誤），所以看得到最後一則的附件。
+    /// </summary>
+    private void ShowError(string message)
+    {
+        var note = "";
+        if (Messages.LastOrDefault() is { IsAttachmentHost: true } host)
+        {
+            if (host.ReplyAttachments.OfType<TarotAttachmentViewModel>().Any())
+                note = " " + Strings.Attachment_KeptTarot;
+            else if (host.ReplyAttachments.Count > 0)
+                note = " " + Strings.Attachment_KeptImage;
+        }
+        ErrorMessage = message + note;
     }
 
     private void OnEventReceived(object? sender, ChatEvent chatEvent)
@@ -904,7 +938,11 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 _bubble = null;
                 break;
             case Completed completed:
-                (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
+                // 工具之後模型直接結束（沒有文字、沒有思考）：空氣泡拿掉，附件自成一則（ui-spec 3.1）
+                if (!completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0) && _bubble is { HasText: false, HasThinking: false })
+                    DropBubble();
+                else
+                    (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
                 _bubble = null;
                 LastUsage = completed.Message.Usage ?? LastUsage;
                 CommitUsage(completed);
@@ -917,7 +955,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 if (_bubble is { HasText: false, HasThinking: false })
                     DropBubble();   // 等下一次回應用的空氣泡讓位給新的卡片
 
-                if (Messages.LastOrDefault() is not ToolRunViewModel run)
+                // 最後是只放附件的訊息、前面是工具段落：接在同一段，不另開段落（ui-spec 3.1）
+                if (ReplyAttachmentLayout.OpenRunForNewCall(Messages) is not { } run)
                 {
                     run = new ToolRunViewModel();
                     Messages.Add(run);
@@ -940,6 +979,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 if (_cards.TryGetValue(finished.CallId, out var finishedCard))
                     finishedCard.Complete(finished.Result);
                 _bubble ??= StartBubble();   // 工具跑完，等模型根據結果回應
+                RefreshMessageState();       // 附件已經在工具段落上：分配到接下來的文字（沒有文字就補一則只放附件的訊息）
                 break;
             case Failed failed:
                 if (_runConnectionId is not null && ConnectionStatusCache.StatusAfterFailure(failed.Failure.Kind) is { } status)
@@ -969,6 +1009,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
         IsResponding = false;
         RefreshMessageState();
+        // 使用者停止：只放附件的訊息（最後一則）標「你已停止這次回應」（ui-spec 3.1）
+        if (result.Cancelled && Messages.LastOrDefault() is { IsAttachmentHost: true } stoppedHost)
+            stoppedHost.IsStopped = true;
         OnCompactionRunFinished(args);
 
         // 用量：沒有定稿的那次請求不計；失敗或中止時以資料庫實際存下來的為準重算
@@ -986,9 +1029,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         {
             // 小精靈發起的：失敗只顯示在錯誤列（金鑰提示與重送由發起的那一邊處理）
             if (result.Unexpected)
-                ErrorMessage = Strings.Workbench_UnexpectedError;
+                ShowError(Strings.Workbench_UnexpectedError);
             else if (result.Failure is { } failure)
-                ErrorMessage = failure.Message;
+                ShowError(failure.Message);
             args.Defer(History.RefreshAsync(CurrentConversationId));
         }
 

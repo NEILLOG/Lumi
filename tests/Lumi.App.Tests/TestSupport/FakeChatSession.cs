@@ -44,6 +44,13 @@ internal sealed class FakeChatSession : IChatSession
         RunFinished?.Invoke(this, new RunFinishedArgs(new ChatRunResult(ConversationId!, null, false, false)));
     }
 
+    /// <summary>模擬一輪回應以指定的結果結束（停止、失敗）。</summary>
+    public void FinishRun(ChatRunResult result)
+    {
+        IsResponding = false;
+        RunFinished?.Invoke(this, new RunFinishedArgs(result));
+    }
+
     /// <summary>模擬切換到另一則對話。</summary>
     public void SwitchConversation(string conversationId)
     {
@@ -52,7 +59,12 @@ internal sealed class FakeChatSession : IChatSession
         ConversationChanged?.Invoke(this, new ConversationChangedArgs(new Conversation(conversationId, "對話", now, now)));
     }
 
-    public Task<Conversation> InitializeAsync(string newConversationTitle, CancellationToken ct = default) => throw new NotSupportedException();
+    /// <summary>回傳目前的對話（工作台視窗開啟時會呼叫，讓畫面不需要真的會話）。</summary>
+    public Task<Conversation> InitializeAsync(string newConversationTitle, CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UnixEpoch;
+        return Task.FromResult(new Conversation(ConversationId!, newConversationTitle, now, now));
+    }
     /// <summary>被要求開啟過的對話（依序）。</summary>
     public List<string> Opened { get; } = [];
 

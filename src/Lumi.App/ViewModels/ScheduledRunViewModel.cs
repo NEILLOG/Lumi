@@ -252,7 +252,8 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
             {
                 if (_bubble is { HasText: false, HasThinking: false })
                     DropBubble();
-                if (Messages.LastOrDefault() is not ToolRunViewModel run)
+                // 最後是只放附件的訊息、前面是工具段落：接在同一段（和工作台相同，ui-spec 3.1）
+                if (ReplyAttachmentLayout.OpenRunForNewCall(Messages) is not { } run)
                 {
                     run = new ToolRunViewModel();
                     Messages.Add(run);
@@ -288,6 +289,12 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
         {
             IsScheduledRun = true,
         };
+        // 附件換掉時（完成）重新分配；卡片與這個紀錄檢視同生命週期
+        card.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ToolCardViewModel.ReplyAttachments) && !_disposed)
+                UpdateFlags();
+        };
         _cards[callId] = card;
         return card;
     }
@@ -306,9 +313,11 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
         _bubble = null;
     }
 
-    /// <summary>每則訊息是不是後面緊接著工具段落（和工作台的 RefreshMessageState 相同）。</summary>
+    /// <summary>附件歸屬、停止狀態，以及每則訊息是不是後面緊接著工具段落（和工作台的 RefreshMessageState 相同）。</summary>
     private void UpdateFlags()
     {
+        ReplyAttachmentLayout.Apply(Messages);
+        ReplyAttachmentLayout.MarkStopped(Messages);
         for (var i = 0; i < Messages.Count; i++)
             Messages[i].IsFollowedByTools = i + 1 < Messages.Count && Messages[i + 1] is ToolRunViewModel;
     }
