@@ -80,8 +80,12 @@ public partial class GeneralViewModel : ObservableObject
         {
             _selectedTheme = ThemeOption.All.First(o => o.Preference == settings.Theme);
             OnPropertyChanged(nameof(SelectedTheme));
-            _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(settings.ThemeId));
-            OnPropertyChanged(nameof(SelectedPalette));
+            // 自己的寫入還沒結束時不動選取：事件帶的是寫入當下的快照，快速切換時晚到的舊事件會蓋掉剛選的新值
+            if (Volatile.Read(ref _paletteWritesInFlight) == 0)
+            {
+                _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(settings.ThemeId));
+                OnPropertyChanged(nameof(SelectedPalette));
+            }
             if (settings.Display.ShowTokenUsage != _showTokenUsage)
             {
                 _showTokenUsage = settings.Display.ShowTokenUsage;
@@ -171,6 +175,9 @@ public partial class GeneralViewModel : ObservableObject
 
     public IReadOnlyList<PaletteOption> Palettes => PaletteOption.All;
 
+    /// <summary>還沒寫完的主題色寫入數。</summary>
+    private int _paletteWritesInFlight;
+
     public PaletteOption SelectedPalette
     {
         get => _selectedPalette;
@@ -187,6 +194,7 @@ public partial class GeneralViewModel : ObservableObject
     public async Task ApplyPaletteAsync(string paletteId)
     {
         Error = null;
+        Interlocked.Increment(ref _paletteWritesInFlight);
         try
         {
             await _catalog.SetThemeIdAsync(paletteId);
@@ -196,6 +204,10 @@ public partial class GeneralViewModel : ObservableObject
             Error = ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed;
             _selectedPalette = PaletteOption.All.First(o => o.Id == ThemePalettes.Normalize(_catalog.Current.ThemeId));
             OnPropertyChanged(nameof(SelectedPalette));
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _paletteWritesInFlight);
         }
     }
 

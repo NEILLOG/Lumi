@@ -54,8 +54,28 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task SetSpriteModelAsync(string modelSettingsId, CancellationToken ct = default) => throw new NotSupportedException();
     public Task SetThemeAsync(ThemePreference theme, CancellationToken ct = default) => throw new NotSupportedException();
 
+    /// <summary>設成 true 時主題色寫入先排隊，由 <see cref="CompleteNextThemeWrite"/> 一筆一筆完成（模擬寫檔比使用者操作慢）。</summary>
+    public bool HoldThemeWrites { get; set; }
+
+    private readonly Queue<(string ThemeId, TaskCompletionSource Done)> _heldThemeWrites = new();
+
+    /// <summary>完成最早的一筆排隊寫入：更新設定、發出 <see cref="Changed"/>，然後才結束那次呼叫（順序同正式實作）。</summary>
+    public void CompleteNextThemeWrite()
+    {
+        var (themeId, done) = _heldThemeWrites.Dequeue();
+        Current = Current with { ThemeId = Lumi.Core.Models.ThemePalettes.Normalize(themeId) };
+        Raise();
+        done.SetResult();
+    }
+
     public Task SetThemeIdAsync(string themeId, CancellationToken ct = default)
     {
+        if (HoldThemeWrites)
+        {
+            var done = new TaskCompletionSource();
+            _heldThemeWrites.Enqueue((themeId, done));
+            return done.Task;
+        }
         Current = Current with { ThemeId = Lumi.Core.Models.ThemePalettes.Normalize(themeId) };
         Raise();
         return Task.CompletedTask;
