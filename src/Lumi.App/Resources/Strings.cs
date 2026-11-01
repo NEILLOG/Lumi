@@ -1154,4 +1154,11 @@ public static class Strings
     public static string Reminders_EditPromptTooLongFormat => Get(nameof(Reminders_EditPromptTooLongFormat));
     public static string Reminders_DeleteWithRunsFormat => Get(nameof(Reminders_DeleteWithRunsFormat));
     public static string Reminders_DeleteRunPromptQuestion => Get(nameof(Reminders_DeleteRunPromptQuestion));
+
+    // 塔羅牌陣圖（M25）
+    public static string Tarot_ReversedBadge => Get(nameof(Tarot_ReversedBadge));
+    public static string Tarot_PositionTooltipFormat => Get(nameof(Tarot_PositionTooltipFormat));
+    public static string Tarot_Upright => Get(nameof(Tarot_Upright));
+    public static string Tarot_Reversed => Get(nameof(Tarot_Reversed));
+    public static string Tarot_SpreadAutomationFormat => Get(nameof(Tarot_SpreadAutomationFormat));
 }

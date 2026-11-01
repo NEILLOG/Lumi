@@ -1,0 +1,3 @@
+[submodule "external/TarotMcp"]
+	path = external/TarotMcp
+	url = https://github.com/NEILLOG/TarotMcp.git

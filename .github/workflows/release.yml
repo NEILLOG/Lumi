@@ -29,6 +29,8 @@ jobs:
           fi
           echo "VERSION=$v" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -51,6 +53,8 @@ jobs:
           fi
           echo "VERSION=$v" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -83,6 +87,8 @@ jobs:
           fi
           echo "VERSION=$v" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -98,6 +104,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4   # 讀 docs/release-notes/v{版本}.md
+        with:
+          submodules: recursive
       - name: 取得版本號
         shell: bash
         env:

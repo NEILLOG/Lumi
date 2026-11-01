@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Tarot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.Tarot.Tests" />
+  </ItemGroup>
+
+  <!-- TarotMcp.Core 只能出現在這個專案（架構測試 TarotLibraryRuleTests 守住）；它內嵌了牌義資料與牌面圖片 -->
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
+    <ProjectReference Include="..\..\external\TarotMcp\src\TarotMcp.Core\TarotMcp.Core.csproj" />
+  </ItemGroup>
+
+</Project>

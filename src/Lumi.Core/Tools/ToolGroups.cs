@@ -16,6 +16,7 @@ public static class ToolGroups
     public const string Memory = "memory";
     public const string Sprite = "sprite";
     public const string Images = "images";
+    public const string Tarot = "tarot";
 
     public static IReadOnlyList<ToolGroupInfo> BuiltIn { get; } =
     [
@@ -29,6 +30,7 @@ public static class ToolGroups
         new(Memory, "長期記憶", 7),
         new(Sprite, "小精靈", 8),
         new(Images, "圖片", 9),
+        new(Tarot, "塔羅牌", 10),
     ];
 
     /// <summary>找不到（例如 MCP 的群組）回 null。</summary>

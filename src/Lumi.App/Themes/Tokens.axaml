@@ -9,6 +9,25 @@
   <BoxShadows x:Key="LumiSpriteShadow">0 8 24 0 #59000000</BoxShadows>
   <!-- 可點擊卡片 Hover 的陰影（ui-guide.html：陰影只用在浮起與 Hover） -->
   <BoxShadows x:Key="LumiCardHoverShadow">0 4 12 0 #1F000000</BoxShadows>
+  <!-- 塔羅牌面（M25，plan/25 D10c）：牌是「物件」不是介面框線，固定色、不隨主題與淺深色變 -->
+  <Color x:Key="LumiTarotIllustrationBackColor">#0C0919</Color>   <!-- 插畫層底色（逆位旋轉後不露白） -->
+  <Color x:Key="LumiTarotMajorColor">#3B2A5C</Color>   <!-- 替代插畫：大牌 -->
+  <Color x:Key="LumiTarotWandsColor">#8C2F27</Color>   <!-- 替代插畫：權杖 -->
+  <Color x:Key="LumiTarotCupsColor">#2B4F7A</Color>   <!-- 替代插畫：聖杯 -->
+  <Color x:Key="LumiTarotSwordsColor">#5A6068</Color>   <!-- 替代插畫：寶劍 -->
+  <Color x:Key="LumiTarotPentaclesColor">#8A6A2E</Color>   <!-- 替代插畫：錢幣 -->
+  <Color x:Key="LumiTarotGoldColor">#C9A55A</Color>   <!-- 簡易金框、牌名板細框、圓章 -->
+  <Color x:Key="LumiTarotPlateColor">#1E1830</Color>   <!-- 牌名板底色 -->
+  <Color x:Key="LumiTarotPlateTextColor">#F3E9D2</Color>   <!-- 牌名板與圓章的文字、「逆」角標 -->
+  <SolidColorBrush x:Key="LumiTarotIllustrationBackBrush" Color="{StaticResource LumiTarotIllustrationBackColor}" />
+  <SolidColorBrush x:Key="LumiTarotMajorBrush" Color="{StaticResource LumiTarotMajorColor}" />
+  <SolidColorBrush x:Key="LumiTarotWandsBrush" Color="{StaticResource LumiTarotWandsColor}" />
+  <SolidColorBrush x:Key="LumiTarotCupsBrush" Color="{StaticResource LumiTarotCupsColor}" />
+  <SolidColorBrush x:Key="LumiTarotSwordsBrush" Color="{StaticResource LumiTarotSwordsColor}" />
+  <SolidColorBrush x:Key="LumiTarotPentaclesBrush" Color="{StaticResource LumiTarotPentaclesColor}" />
+  <SolidColorBrush x:Key="LumiTarotGoldBrush" Color="{StaticResource LumiTarotGoldColor}" />
+  <SolidColorBrush x:Key="LumiTarotPlateBrush" Color="{StaticResource LumiTarotPlateColor}" />
+  <SolidColorBrush x:Key="LumiTarotPlateTextBrush" Color="{StaticResource LumiTarotPlateTextColor}" />
 
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">

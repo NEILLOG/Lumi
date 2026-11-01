@@ -1165,4 +1165,9 @@
   <data name="Reminders_EditPromptTooLongFormat" xml:space="preserve"><value>最多 {0} 字。</value></data>
   <data name="Reminders_DeleteWithRunsFormat" xml:space="preserve"><value>一併刪除 {0} 筆執行紀錄</value></data>
   <data name="Reminders_DeleteRunPromptQuestion" xml:space="preserve"><value>要刪除這個排程嗎？刪除後就不會再執行。</value></data>
+  <data name="Tarot_ReversedBadge" xml:space="preserve"><value>逆</value></data>
+  <data name="Tarot_PositionTooltipFormat" xml:space="preserve"><value>{0}：{1}（{2}）</value></data>
+  <data name="Tarot_Upright" xml:space="preserve"><value>正位</value></data>
+  <data name="Tarot_Reversed" xml:space="preserve"><value>逆位</value></data>
+  <data name="Tarot_SpreadAutomationFormat" xml:space="preserve"><value>塔羅牌陣：{0}</value></data>
 </root>
