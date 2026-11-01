@@ -6,13 +6,13 @@
              x:Class="Lumi.App.Views.ReplyAttachmentsView"
              x:DataType="vm:MessageViewModel">
   <!--
-    回覆附件（M25，ui-spec 3.1）：助理訊息的名稱與時間下方、氣泡上方。依工具呼叫順序上下排，間距 12；
-    寬度依內容，不撐滿。
+    回覆附件（M25，ui-spec 3.1）：助理訊息的名稱與時間下方、氣泡上方。依工具呼叫順序排；
+    圖片連續時寬度夠就並排、放不下換行（ReplyAttachmentsPanel），牌陣自成一列；間距 12；寬度依內容，不撐滿。
   -->
   <ItemsControl x:Name="AttachmentList" ItemsSource="{Binding ReplyAttachments}" HorizontalAlignment="Left">
     <ItemsControl.ItemsPanel>
       <ItemsPanelTemplate>
-        <StackPanel Spacing="12" />
+        <views:ReplyAttachmentsPanel />
       </ItemsPanelTemplate>
     </ItemsControl.ItemsPanel>
     <ItemsControl.DataTemplates>

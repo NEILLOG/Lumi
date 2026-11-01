@@ -70,6 +70,8 @@ public partial class ToolCardViewModel : ObservableObject
         _clipboard = clipboard;
         _confirm = confirm;
         _time = time;
+        // 產生類工具：Running 就先顯示佔位（ApprovalRequired 到了會移除，允許後從那時開始計時）
+        SyncPendingAttachment();
     }
 
     public string CallId { get; }
@@ -169,6 +171,29 @@ public partial class ToolCardViewModel : ObservableObject
     /// <summary>產生圖片的工具（<c>generate_image</c>、<c>edit_image</c>）：結果是圖片附件。</summary>
     public bool IsImageTool => ToolName is "generate_image" or "edit_image";
 
+    /// <summary>
+    /// 產生類工具的佔位（R5）：執行中才有 <see cref="ImageAttachmentViewModel.Pending"/>，等待允許、拒絕、結束時移除。
+    /// 建立卡片時還不知道會不會詢問（沒有 <c>ApprovalRequired</c> 就是自動允許），所以先放著，收到確認請求時再拿掉。
+    /// </summary>
+    private void SyncPendingAttachment()
+    {
+        if (!IsImageTool)
+            return;
+        var hasPending = ReplyAttachments.OfType<ImageAttachmentViewModel>().Any(a => a.IsPending);
+        if (State == ToolCardState.Running)
+        {
+            if (!hasPending)
+            {
+                var (width, height) = ImageSizeArgument();
+                ReplyAttachments = [ImageAttachmentViewModel.Pending(CallId, width, height, _time.GetUtcNow())];
+            }
+        }
+        else if (hasPending)
+        {
+            ReplyAttachments = [];
+        }
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DurationText), nameof(HasDuration))]
     private long _durationMs;
@@ -227,8 +252,11 @@ public partial class ToolCardViewModel : ObservableObject
 
     public bool IsDenied => State == ToolCardState.Denied;
 
-    /// <summary>執行中與等待允許的卡片強制展開、不能收合（ui-spec 第 4 節）。</summary>
-    public bool IsForcedOpen => State is ToolCardState.Running or ToolCardState.AwaitingApproval;
+    /// <summary>
+    /// 執行中與等待允許的卡片強制展開、不能收合（ui-spec 第 4 節）。例外（R5）：產生類工具允許之後的執行中收成一行，
+    /// 進度由回覆附件的產生中佔位表達；等待允許時照舊強制展開。
+    /// </summary>
+    public bool IsForcedOpen => State == ToolCardState.AwaitingApproval || (State == ToolCardState.Running && !IsImageTool);
 
     public bool IsOpen => IsForcedOpen || IsExpanded;
 
@@ -397,6 +425,7 @@ public partial class ToolCardViewModel : ObservableObject
         ScheduleNetwork = request.Schedule?.SuggestedNetwork == true;
         ScheduleDestructive = false;
         State = ToolCardState.AwaitingApproval;
+        SyncPendingAttachment();
     }
 
     /// <summary>執行中換成最新的進度文字（M19 D12）；只在執行中有效，等待確認與結束後不覆蓋。</summary>
@@ -464,6 +493,7 @@ public partial class ToolCardViewModel : ObservableObject
     {
         Summary = Strings.Tool_NoResult;
         State = ToolCardState.Failed;
+        SyncPendingAttachment();
     }
 
     [RelayCommand(CanExecute = nameof(CanToggle))]
@@ -530,6 +560,7 @@ public partial class ToolCardViewModel : ObservableObject
             Approval = ToolApproval.Denied;
             Request = null;
             State = ToolCardState.Denied;
+            SyncPendingAttachment();
             return;
         }
 
@@ -539,6 +570,7 @@ public partial class ToolCardViewModel : ObservableObject
             : ToolApproval.AllowedOnce;
         Request = null;
         State = ToolCardState.Running;
+        SyncPendingAttachment();   // 允許之後才開始產生：佔位從這一刻開始計時
     }
 
     [RelayCommand]
