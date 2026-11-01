@@ -17,8 +17,11 @@ internal static class TarotStageLayout
     /// <summary>圓點的錨點：牌（旋轉後外框）左上角往外的距離（x−6、y−6）。</summary>
     public const double BadgeOutset = 6;
 
-    /// <summary>有編號時四周留白，讓往外 6 的圓點不被切掉（ui-spec 3.1）。</summary>
-    public const double NumberedGutter = 8;
+    /// <summary>
+    /// 有編號時四周留白，讓往外 6 的圓點不被切掉（ui-spec 3.1）。高亮時圓點放大到 24 再加 2px 外圈，
+    /// 比一般大小往外多約 5，所以留 12（6 + 5 再取整）。
+    /// </summary>
+    public const double NumberedGutter = 12;
 
     /// <summary>
     /// 一張牌的版面（畫布座標，已扣掉最小值並加上留白）。<see cref="BoundsLeft"/>、<see cref="BoundsTop"/> 是旋轉後外框的左上角，
