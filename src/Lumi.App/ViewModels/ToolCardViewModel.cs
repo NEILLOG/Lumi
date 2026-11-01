@@ -8,6 +8,7 @@ using Lumi.App.Resources;
 using Lumi.Core.Chat;
 using Lumi.Core.Tools;
 using Lumi.Tools;
+using Lumi.Tarot;
 
 namespace Lumi.App.ViewModels;
 
@@ -150,6 +151,13 @@ public partial class ToolCardViewModel : ObservableObject
     private IReadOnlyList<ToolCardImage> _images = [];
 
     public bool HasImages => Images.Count > 0;
+
+    /// <summary>塔羅牌陣（M25）：只有 tarot_draw 的成功結果能解析出牌陣時才有值，其他情況為 null（卡片退回一般文字結果）。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTarotSpread))]
+    private TarotSpreadModel? _tarotSpread;
+
+    public bool HasTarotSpread => TarotSpread is not null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DurationText), nameof(HasDuration))]
@@ -400,6 +408,7 @@ public partial class ToolCardViewModel : ObservableObject
         DurationMs = result.DurationMs;
         Approval = result.Approval;
         Images = (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))).ToList();
+        TarotSpread = ToolName == TarotToolNames.Draw && !result.IsError && TarotSpreadParser.TryParse(result.Content, out var spread) ? spread : null;
         ScheduleSummary = IsCreateSchedule && result is { IsError: false, Approval: not ToolApproval.Denied } ? CreatedSummary(result.Content) : null;
         Request = null;
         State = result.Approval == ToolApproval.Denied ? ToolCardState.Denied

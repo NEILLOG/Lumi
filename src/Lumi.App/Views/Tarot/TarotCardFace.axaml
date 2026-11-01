@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.Tarot.TarotCardFace">
+  <!--
+    一張牌的牌面（plan/25 D10、D10b）：由下往上疊三層。尺寸與位置在 TarotCardFace.axaml.cs 依 TarotCardFaceMetrics 設定。
+    ① 插畫層（IllustrationLayer）：逆位只轉這一層；② 邊框層（FrameLayer）；③ 文字層（TextLayer）。
+    顏色只用 Themes/Tokens.axaml 的 LumiTarot* 固定色，不隨主題變。
+  -->
+  <Panel x:Name="Root" ClipToBounds="True">
+    <!-- 底層：不旋轉，逆位旋轉後插畫層的角落也不露出底下的白色 -->
+    <Border x:Name="BaseLayer" Background="{DynamicResource LumiTarotIllustrationBackBrush}" />
+
+    <Panel x:Name="IllustrationLayer" ClipToBounds="True">
+      <Image x:Name="IllustrationImage" Stretch="Fill" IsVisible="False" />
+      <Border x:Name="SuitBlock" IsVisible="False" />
+    </Panel>
+
+    <Panel x:Name="FrameLayer">
+      <Image x:Name="FrameImage" Stretch="Fill" IsVisible="False" />
+      <!-- 替代邊框（無邊框範本時）：金色細框 -->
+      <Border x:Name="GoldFrame" IsVisible="False" BorderBrush="{DynamicResource LumiTarotGoldBrush}" Background="Transparent" />
+    </Panel>
+
+    <Canvas x:Name="TextLayer">
+      <Border x:Name="Seal">
+        <TextBlock x:Name="SealText" Foreground="{DynamicResource LumiTarotPlateTextBrush}" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+      </Border>
+      <!-- 有邊框範本時圓章與牌名板是範本畫好的，這裡只寫字（背景與框線在程式碼依有無範本設定） -->
+      <Border x:Name="Plate">
+        <TextBlock x:Name="NameZh" Foreground="{DynamicResource LumiTarotPlateTextBrush}" FontWeight="Bold" VerticalAlignment="Center"
+                   TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
+      </Border>
+      <Border x:Name="ReversedBadge" Background="{DynamicResource LumiTarotPlateBrush}" BorderBrush="{DynamicResource LumiTarotGoldBrush}"
+              BorderThickness="1" CornerRadius="2" IsVisible="False">
+        <TextBlock x:Name="ReversedText" Foreground="{DynamicResource LumiTarotPlateTextBrush}" FontWeight="Bold"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+      </Border>
+    </Canvas>
+  </Panel>
+</UserControl>
