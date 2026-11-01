@@ -18,7 +18,14 @@ public partial class MessageViewModel : ObservableObject
     {
         IsUser = isUser;
         CreatedAt = createdAt ?? DateTimeOffset.UtcNow;
-        ReplyAttachments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasReplyAttachments));
+        ReplyAttachments.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasReplyAttachments));
+            OnPropertyChanged(nameof(ShowTypingDots));
+            OnPropertyChanged(nameof(ShowTypingIndicator));
+            OnPropertyChanged(nameof(ShowBubble));
+            OnPropertyChanged(nameof(ShowActions));
+        };
     }
 
     /// <summary>訊息建立時間。載入的訊息用資料庫裡的 <c>CreatedAt</c>；串流中的助理訊息用氣泡建立的當下。</summary>
@@ -33,7 +40,7 @@ public partial class MessageViewModel : ObservableObject
     public virtual bool IsAssistant => !IsUser;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasText), nameof(ShowTypingIndicator), nameof(ShowActions), nameof(ShowBubble))]
+    [NotifyPropertyChangedFor(nameof(HasText), nameof(CanCopy), nameof(ShowTypingIndicator), nameof(ShowTypingDots), nameof(ShowActions), nameof(ShowBubble))]
     private string _text = "";
 
     [ObservableProperty]
@@ -41,11 +48,11 @@ public partial class MessageViewModel : ObservableObject
     private string _thinking = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowBubble))]
+    [NotifyPropertyChangedFor(nameof(ShowBubble), nameof(ShowStoppedNote))]
     private bool _isStopped;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowTypingIndicator), nameof(ShowActions), nameof(ShowBubble))]
+    [NotifyPropertyChangedFor(nameof(ShowTypingIndicator), nameof(ShowTypingDots), nameof(ShowActions), nameof(ShowBubble))]
     private bool _isStreaming;
 
     /// <summary>後面緊接著工具段落：這則只是「先說一聲再去用工具」，不是這一輪的結尾，不顯示動作列。</summary>
@@ -64,6 +71,7 @@ public partial class MessageViewModel : ObservableObject
 
     /// <summary>目前的對話裡最後一則助理訊息：只有它有「重新產生」。</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowActions))]
     private bool _isLastAssistant;
 
     [ObservableProperty]
@@ -101,18 +109,32 @@ public partial class MessageViewModel : ObservableObject
 
     public bool HasText => Text.Length > 0;
 
+    /// <summary>「複製」只複製文字（ui-spec 3.1）：沒有文字（只放附件）就不顯示。</summary>
+    public bool CanCopy => HasText;
+
     public bool HasThinking => Thinking.Length > 0;
 
     public bool HasUsage => Usage is not null;
 
-    /// <summary>已送出、但還沒收到任何文字時顯示「…」。</summary>
-    public bool ShowTypingIndicator => IsStreaming && !HasText;
+    /// <summary>已送出、還沒收到任何文字、也沒有附件時顯示「…」（ui-spec 3.1 R4：有附件時改用三圓點）。</summary>
+    public bool ShowTypingIndicator => IsStreaming && !HasText && !HasReplyAttachments && !IsAttachmentHost;
 
-    /// <summary>助理的淡底氣泡：至少有思考過程、文字、等待中的「…」或「已停止」其中一項才畫（避免空泡）。</summary>
-    public bool ShowBubble => HasThinking || HasText || ShowTypingIndicator || IsStopped;
+    /// <summary>工具完成、文字還沒出現而附件已經在：附件下方的小氣泡是三個圓點（ui-spec 3.1 R4）。</summary>
+    public bool ShowTypingDots => IsStreaming && !HasText && HasReplyAttachments;
 
-    /// <summary>動作列（複製、重新產生、token）：助理訊息、不在串流中、有文字才顯示。</summary>
-    public bool ShowActions => IsAssistant && !IsStreaming && HasText && !IsFollowedByTools;
+    /// <summary>只放附件的訊息沒有氣泡（ui-spec 3.1）。</summary>
+    public bool ShowBubble => !IsAttachmentHost && (HasThinking || HasText || ShowTypingIndicator || ShowTypingDots || IsStopped);
+
+    /// <summary>只放附件的訊息被停止：附件下方顯示「你已停止這次回應」，不在氣泡裡（ui-spec 3.1）。</summary>
+    public bool ShowStoppedNote => IsAttachmentHost && IsStopped;
+
+    /// <summary>
+    /// 動作列（複製、重新產生、token）。一般助理訊息：不在串流中、有文字、不是「先說一聲再用工具」的那則。
+    /// 只放附件的訊息：只有最後一則才有「重新產生」（沒有文字可複製）。
+    /// </summary>
+    public bool ShowActions => IsAttachmentHost
+        ? IsLastAssistant && !IsStreaming
+        : IsAssistant && !IsStreaming && HasText && !IsFollowedByTools;
 
     public string ThinkingTitle => ThinkingSeconds is { } seconds
         ? string.Format(CultureInfo.CurrentCulture, Strings.Workbench_ThinkingWithSeconds, seconds)
