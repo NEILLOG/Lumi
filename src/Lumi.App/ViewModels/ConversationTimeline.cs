@@ -26,8 +26,12 @@ internal static class ConversationTimeline
                 {
                     var uses = message.Content.OfType<ToolUseBlock>().ToList();
                     var hasText = message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0);
-                    // 只有思考或工具呼叫、沒有文字的中間步驟不顯示（Q5）
-                    if (hasText || uses.Count == 0)
+                    var hasThinking = message.Content.OfType<ThinkingBlock>().Any(t => t.Thinking.Length > 0);
+                    // 只有思考或工具呼叫、沒有文字的中間步驟不顯示（Q5）。
+                    // 工具之後完全空白的回答也不顯示：附件會自成一則（M25，ui-spec 3.1），與串流時拿掉空氣泡一致
+                    var emptyAfterTools = !hasText && !hasThinking && items.LastOrDefault() is ToolRunViewModel previousRun
+                        && previousRun.Cards.Any(c => c.ReplyAttachments.Count > 0);
+                    if ((hasText || uses.Count == 0) && !emptyAfterTools)
                         items.Add(MessageViewModel.From(message));
 
                     foreach (var use in uses)

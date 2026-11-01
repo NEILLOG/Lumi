@@ -100,6 +100,66 @@ public class WorkbenchReplyAttachmentTests
         Assert.False(waiting.ShowTypingIndicator);
     }
 
+    private static Completed Empty() =>
+        new(new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [], DateTimeOffset.UtcNow), StopReason.EndTurn);
+
+    [Fact]
+    public void EmptyAnswerAfterTarot_LeavesOnlyTheAttachmentHost()
+    {
+        var rig = CreateRig();
+        var vm = rig.Vm;
+
+        rig.Session.StartRun();
+        rig.Session.Emit(Started("t1", TarotToolNames.Draw));
+        rig.Session.Emit(TarotDone("t1"));
+        rig.Session.Emit(Empty());
+        rig.Session.FinishRun(new ChatRunResult(rig.ConversationId, null, false, false));
+
+        var host = vm.Messages[^1];
+        Assert.True(host.IsAttachmentHost);
+        Assert.IsType<ToolRunViewModel>(vm.Messages[^2]);
+        Assert.True(host.ShowActions);
+    }
+
+    [Fact]
+    public void EmptyAnswerWithoutTools_IsKeptAsBefore()
+    {
+        var rig = CreateRig();
+        var vm = rig.Vm;
+
+        rig.Session.StartRun();
+        rig.Session.Emit(Empty());
+        rig.Session.FinishRun(new ChatRunResult(rig.ConversationId, null, false, false));
+
+        var last = vm.Messages[^1];
+        Assert.True(last.IsAssistant);
+        Assert.False(last.IsAttachmentHost);
+        Assert.False(last.HasText);
+    }
+
+    [Fact]
+    public async Task EmptyAnswerAfterTarot_ReloadsTheSameWay()
+    {
+        var rig = CreateRig();
+        var vm = rig.Vm;
+        var now = DateTimeOffset.UtcNow;
+        await rig.Store.AppendMessageAsync(rig.ConversationId, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("請抽牌")], now));
+        await rig.Store.AppendMessageAsync(rig.ConversationId, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant,
+            [new ToolUseBlock("t1", TarotToolNames.Draw, "{}")], now));
+        await rig.Store.AppendMessageAsync(rig.ConversationId, new ChatMessage(ChatMessage.NewId(), ChatRole.Tool,
+            [new ToolResultBlock("t1", SpreadJson, false, "塔羅抽牌", null, null, 0, ToolApproval.NotRequired)], now));
+        await rig.Store.AppendMessageAsync(rig.ConversationId, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [], now));
+
+        var other = await rig.Store.CreateAsync("別的對話");
+        await vm.OpenConversationAsync(other);
+        var saved = await rig.Store.GetConversationAsync(rig.ConversationId);
+        await vm.OpenConversationAsync(saved!);
+
+        Assert.Equal(3, vm.Messages.Count);   // 使用者、工具段落、只放附件的訊息（空白回答不顯示）
+        Assert.True(vm.Messages[^1].IsAttachmentHost);
+        Assert.IsType<TarotAttachmentViewModel>(Assert.Single(vm.Messages[^1].ReplyAttachments));
+    }
+
     [Fact]
     public void ToolCallStartedWhileTheHostIsLast_JoinsTheSameRun()
     {

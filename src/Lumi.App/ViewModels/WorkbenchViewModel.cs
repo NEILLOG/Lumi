@@ -938,8 +938,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
                 _bubble = null;
                 break;
             case Completed completed:
-                // 工具之後模型直接結束（沒有文字、沒有思考）：空氣泡拿掉，附件自成一則（ui-spec 3.1）
-                if (!completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0) && _bubble is { HasText: false, HasThinking: false })
+                // 工具之後模型直接結束（沒有文字、沒有思考）：放著附件的空氣泡拿掉，附件自成一則（ui-spec 3.1）。
+                // 沒有附件的空回答照舊留著（與重讀時一致，見 ConversationTimeline）
+                if (!completed.Message.Content.OfType<TextBlock>().Any(t => t.Text.Length > 0) && _bubble is { HasText: false, HasThinking: false, HasReplyAttachments: true })
                     DropBubble();
                 else
                     (_bubble ??= StartBubble()).Complete(completed.Message, _time.GetUtcNow());
