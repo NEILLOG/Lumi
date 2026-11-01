@@ -17,15 +17,15 @@
     <Button x:Name="Thumbnail" Padding="0" Background="Transparent" BorderThickness="0" HorizontalAlignment="Left"
             IsVisible="{Binding ShowsImage}" Click="ViewLarger_Click"
             ToolTip.Tip="{Binding FileName}" AutomationProperties.Name="{Binding AttachmentName}">
-      <Border Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}"
-              CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
+      <!-- 依圖片實際比例縮進 320 × 320（參數沒填尺寸時不知道比例，所以不用 DisplayWidth／Height 的框，免得留白邊） -->
+      <Border CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
         <Image Source="{Binding FilePath, Converter={x:Static views:PathToBitmapConverter.Instance}, ConverterParameter=640}"
-               Stretch="Uniform" />
+               MaxWidth="320" MaxHeight="320" Stretch="Uniform" />
       </Border>
     </Button>
 
     <!-- 完成：動作列（直接顯示，放不下換行） -->
-    <WrapPanel IsVisible="{Binding ShowsImage}" Width="{Binding DisplayWidth}" ItemSpacing="4" LineSpacing="4">
+    <WrapPanel IsVisible="{Binding ShowsImage}" MaxWidth="320" HorizontalAlignment="Left" ItemSpacing="4" LineSpacing="4">
       <Button Classes="tertiary small" Click="ViewLarger_Click" ToolTip.Tip="{x:Static res:Strings.Image_ViewLarger}"
               AutomationProperties.Name="{x:Static res:Strings.Image_ViewLarger}">
         <StackPanel Orientation="Horizontal" Spacing="4">
