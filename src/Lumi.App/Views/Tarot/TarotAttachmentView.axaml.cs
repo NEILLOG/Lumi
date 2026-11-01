@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.VisualTree;
 using Lumi.App.ViewModels;
 using Lumi.Tarot;
+using System.Runtime.CompilerServices;
 
 namespace Lumi.App.Views.Tarot;
 
@@ -156,8 +158,19 @@ public partial class TarotAttachmentView : UserControl
 
     private void OnOpenWindowClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        // TODO(25F)：開啟牌陣視窗（同一個牌陣重複開啟只帶到前面）
-        if (_spread is { } spread)
-            OpenWindowRequested?.Invoke(this, spread);
+        if (_spread is not { } spread)
+            return;
+        // 同一個附件（CallId）重複開啟只帶到前面；沒有 ViewModel 時用牌陣物件的身分當 key
+        var key = (DataContext as TarotAttachmentViewModel)?.CallId
+            ?? $"spread-{RuntimeHelpers.GetHashCode(spread)}";
+        TarotSpreadWindowRegistry.Default.Open(key, spread, ConversationTitle());
+        OpenWindowRequested?.Invoke(this, spread);
     }
+
+    /// <summary>從視覺樹往上找 DataContext 是工作台 ViewModel 的節點，取它的標題（對話標題）；找不到回 null。</summary>
+    private string? ConversationTitle() =>
+        this.GetVisualAncestors().OfType<StyledElement>()
+            .Select(element => element.DataContext)
+            .OfType<WorkbenchViewModel>()
+            .FirstOrDefault()?.Title;
 }
