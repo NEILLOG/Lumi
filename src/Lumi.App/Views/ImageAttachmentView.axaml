@@ -3,28 +3,78 @@
              xmlns:vm="using:Lumi.App.ViewModels"
              xmlns:res="using:Lumi.App.Resources"
              xmlns:views="using:Lumi.App.Views"
+             xmlns:ctl="using:Lumi.App.Controls"
              x:Class="Lumi.App.Views.ImageAttachmentView"
              x:DataType="vm:ImageAttachmentViewModel">
   <!--
-    圖片附件（ui-spec 3.1）：縮圖最寬、最高 320、等比、圓角 10；點縮圖用系統的看圖程式開啟；檔案不在了顯示說明與檔名。
-    TODO(25E)：三個動作（放大檢視、用其他程式開啟、開啟資料夾）、產生中佔位、遺失佔位、檔名改放 Tooltip。
+    圖片附件（M25，ui-spec 3.1「圖片附件」）：三種狀態共用同一個尺寸（DisplayWidth × DisplayHeight）。
+    完成＝縮圖（點了＝放大檢視）＋ 動作列；產生中＝虛線佔位（live region）；檔案不在了＝遺失佔位（沒有動作）。
+    寬度依內容，靠左。
   -->
-  <StackPanel Spacing="4" HorizontalAlignment="Left">
-    <Button x:Name="Thumbnail" Padding="0" Background="Transparent" BorderThickness="0" IsVisible="{Binding ShowsImage}" Click="OpenImage_Click"
-            HorizontalAlignment="Left" ToolTip.Tip="{Binding FileName}">
-      <Border CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
-        <Image Source="{Binding FilePath, Converter={x:Static views:PathToBitmapConverter.Instance}, ConverterParameter=320}"
-               MaxWidth="320" MaxHeight="320" Stretch="Uniform" />
+  <StackPanel Spacing="8" HorizontalAlignment="Left">
+
+    <!-- 完成：縮圖。點縮圖＝放大檢視 -->
+    <Button x:Name="Thumbnail" Padding="0" Background="Transparent" BorderThickness="0" HorizontalAlignment="Left"
+            IsVisible="{Binding ShowsImage}" Click="ViewLarger_Click"
+            ToolTip.Tip="{Binding FileName}" AutomationProperties.Name="{Binding AttachmentName}">
+      <Border Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}"
+              CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
+        <Image Source="{Binding FilePath, Converter={x:Static views:PathToBitmapConverter.Instance}, ConverterParameter=640}"
+               Stretch="Uniform" />
       </Border>
     </Button>
-    <TextBlock IsVisible="{Binding IsPending}" Text="{x:Static res:Strings.Image_Generating}" Classes="muted" />
-    <StackPanel IsVisible="{Binding IsMissing}" Spacing="4">
-      <TextBlock Text="{x:Static res:Strings.ToolCard_ImageMissing}" Classes="muted" />
-      <TextBlock Text="{Binding FileName}" Classes="muted" />
-    </StackPanel>
-    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding ShowsImage}">
-      <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenImage}" Click="OpenImage_Click" />
-      <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenFolder}" Click="OpenFolder_Click" />
-    </StackPanel>
+
+    <!-- 完成：動作列（直接顯示，放不下換行） -->
+    <WrapPanel IsVisible="{Binding ShowsImage}" Width="{Binding DisplayWidth}" ItemSpacing="4" LineSpacing="4">
+      <Button Classes="tertiary small" Click="ViewLarger_Click" ToolTip.Tip="{x:Static res:Strings.Image_ViewLarger}"
+              AutomationProperties.Name="{x:Static res:Strings.Image_ViewLarger}">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <ctl:LumiIcon Data="{StaticResource LumiIconZoomIn}" Size="14" />
+          <TextBlock Text="{x:Static res:Strings.Image_ViewLarger}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <Button Classes="tertiary small" Click="OpenExternal_Click" ToolTip.Tip="{x:Static res:Strings.Image_OpenExternal}"
+              AutomationProperties.Name="{x:Static res:Strings.Image_OpenExternal}">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <ctl:LumiIcon Data="{StaticResource LumiIconExternalLink}" Size="14" />
+          <TextBlock Text="{x:Static res:Strings.Image_OpenExternal}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <Button Classes="tertiary small" Click="OpenFolder_Click" ToolTip.Tip="{x:Static res:Strings.ToolCard_OpenFolder}"
+              AutomationProperties.Name="{x:Static res:Strings.ToolCard_OpenFolder}">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <ctl:LumiIcon Data="{StaticResource LumiIconFolderOpen}" Size="14" />
+          <TextBlock Text="{x:Static res:Strings.ToolCard_OpenFolder}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </WrapPanel>
+
+    <!-- 產生中：虛線佔位。整塊是 live region，螢幕閱讀器念出狀態 -->
+    <Grid IsVisible="{Binding IsPending}" Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}"
+          AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{Binding StatusText}">
+      <Border Background="{DynamicResource LumiSurfaceAltBrush}" CornerRadius="{StaticResource LumiRadiusInput}" />
+      <!-- Border 不支援虛線，用 Rectangle 疊在上面畫 1px 虛線框 -->
+      <Rectangle Stretch="Fill" Stroke="{DynamicResource LumiBorderStrongBrush}" StrokeThickness="1"
+                 StrokeDashArray="4,3" RadiusX="10" RadiusY="10" />
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+        <ctl:LumiIcon Data="{StaticResource LumiIconImage}" Size="24" Foreground="{DynamicResource LumiTextMutedBrush}" />
+        <TextBlock Text="{x:Static res:Strings.Image_Generating}" FontSize="14" HorizontalAlignment="Center" />
+        <ProgressBar IsIndeterminate="True" Width="120" Height="4" MinHeight="4" HorizontalAlignment="Center" />
+        <TextBlock Text="{Binding ElapsedText}" Classes="muted" HorizontalAlignment="Center" />
+      </StackPanel>
+    </Grid>
+
+    <!-- 遺失：同尺寸的實線佔位，沒有動作按鈕 -->
+    <Border IsVisible="{Binding IsMissing}" Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}"
+            Background="{DynamicResource LumiSurfaceAltBrush}" BorderBrush="{DynamicResource LumiBorderBrush}"
+            BorderThickness="1" CornerRadius="{StaticResource LumiRadiusInput}" Padding="12"
+            AutomationProperties.Name="{Binding StatusText}">
+      <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="8">
+        <ctl:LumiIcon Data="{StaticResource LumiIconImageOff}" Size="24" Foreground="{DynamicResource LumiTextMutedBrush}" />
+        <TextBlock Text="{x:Static res:Strings.ToolCard_ImageMissing}" FontSize="14" HorizontalAlignment="Center" TextAlignment="Center" />
+        <TextBlock Text="{Binding FileName}" Classes="muted" FontFamily="{DynamicResource LumiMonoFont}"
+                   HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </Border>
   </StackPanel>
 </UserControl>
