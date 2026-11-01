@@ -5,6 +5,7 @@
              xmlns:res="using:Lumi.App.Resources"
              xmlns:md="using:Lumi.App.Markdown"
              xmlns:views="using:Lumi.App.Views"
+             xmlns:tarot="using:Lumi.App.Views.Tarot"
              x:Class="Lumi.App.Views.ToolCardView"
              x:DataType="vm:ToolCardViewModel">
   <!--
@@ -109,6 +110,8 @@
       </Button>
 
       <StackPanel IsVisible="{Binding IsOpen}" Spacing="8" Margin="16,0,16,16">
+        <!-- 塔羅牌陣圖（M25）：只有 tarot_draw 的結果解析得出牌陣時才顯示；展開才載入圖片（IsActive） -->
+        <tarot:TarotSpreadView Spread="{Binding TarotSpread}" IsActive="{Binding IsOpen}" IsVisible="{Binding HasTarotSpread}" />
         <!-- 確認區（等待允許時）：這次會做什麼、按鈕依權限等級 -->
         <StackPanel IsVisible="{Binding IsAwaiting}" Spacing="8">
           <!-- 排程紀錄的確認（M24 4.3）：說明這個權限沒有授權、所以停下來問 -->
