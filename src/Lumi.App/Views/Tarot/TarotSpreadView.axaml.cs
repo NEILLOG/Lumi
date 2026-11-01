@@ -11,8 +11,8 @@ namespace Lumi.App.Views.Tarot;
 
 /// <summary>
 /// 工具卡片裡的牌陣圖（plan/25 D9、D6b、25B 步驟 2、5、6）。
-/// 只有「已附加到視覺樹、<see cref="IsActive"/>（卡片展開）、<see cref="Spread"/> 不為 null」時才建立牌面與解碼圖片；
-/// 其餘情況一律釋放所有 Bitmap 並清空畫布，所以收合的卡片不佔記憶體。
+/// 只有「已附加到視覺樹、<see cref="IsActive"/>、<see cref="Spread"/> 不為 null」時才建立牌面與解碼圖片；
+/// 其餘情況一律釋放所有 Bitmap 並清空畫布，所以離開畫面的牌陣不佔記憶體。
 /// </summary>
 public partial class TarotSpreadView : UserControl
 {

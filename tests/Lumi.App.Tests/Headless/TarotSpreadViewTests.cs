@@ -277,7 +277,7 @@ public class TarotSpreadViewTests
     }
 
     [AvaloniaFact]
-    public void Tool_card_builds_the_spread_only_after_it_is_expanded()
+    public void Tool_card_shows_the_spread_without_expanding()
     {
         var card = new ToolCardViewModel("c1", "tarot_draw", "塔羅抽牌", ToolPermission.ReadOnly, "三張牌", "{}",
             new NoopResponder(), new FakeClipboardService(), new FakeTimeProvider());
@@ -288,9 +288,15 @@ public class TarotSpreadViewTests
         window.Show();
         window.UpdateLayout();
 
-        Assert.Empty(Faces(view));
+        // 牌陣在收合區外：卡片收合時就畫出來，展開、收合都不影響
+        Assert.False(card.IsOpen);
+        Assert.Equal(3, Faces(view).Count);
 
         card.IsExpanded = true;
+        view.UpdateLayout();
+        Assert.Equal(3, Faces(view).Count);
+
+        card.IsExpanded = false;
         view.UpdateLayout();
         Assert.Equal(3, Faces(view).Count);
     }
