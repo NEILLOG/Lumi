@@ -78,4 +78,49 @@ public sealed class TarotSpreadParserTests
         Assert.Equal(90, crossing.Rotation, 3);
         Assert.Equal(1, crossing.Z);
     }
+
+    [Fact]
+    public void TryParse_ReadsSpreadIdAndDescriptionFields()
+    {
+        Assert.True(TarotSpreadParser.TryParse(SingleReversedJson, out var model));
+
+        Assert.Equal("single_card", model.SpreadId);
+        var card = Assert.Single(model.Cards);
+        Assert.Equal("x", card.PositionMeaning);
+        Assert.Equal(["a"], card.Keywords);
+        Assert.Equal("m", card.Meaning);
+    }
+
+    [Fact]
+    public void TryParse_MissingDescriptionFields_StillParses()
+    {
+        const string json = """
+            {"spread_name":"單張牌","allow_reversed":true,"positions":[
+              {"index":1,"position_name":"指引","layout":{"x":0,"y":0,"rotation":0,"z":0},
+               "card":{"id":"major_00","name_zh":"愚者","name_en":"The Fool","orientation":"upright","keywords":"不是陣列"}}]}
+            """;
+
+        Assert.True(TarotSpreadParser.TryParse(json, out var model));
+
+        Assert.Equal("", model.SpreadId);
+        var card = Assert.Single(model.Cards);
+        Assert.Equal("", card.PositionMeaning);
+        Assert.Empty(card.Keywords);
+        Assert.Equal("", card.Meaning);
+    }
+
+    [Fact]
+    public async Task TryParse_DrawResult_HasDescriptionForEveryCard()
+    {
+        var json = await DrawJsonAsync("three_card_timeline");
+
+        Assert.True(TarotSpreadParser.TryParse(json, out var model));
+        Assert.Equal("three_card_timeline", model.SpreadId);
+        Assert.All(model.Cards, c =>
+        {
+            Assert.NotEqual("", c.PositionMeaning);
+            Assert.NotEmpty(c.Keywords);
+            Assert.NotEqual("", c.Meaning);
+        });
+    }
 }

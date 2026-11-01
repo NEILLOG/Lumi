@@ -217,6 +217,9 @@
                       <TextBlock Classes="muted message-time" Text="{Binding TimeText}" VerticalAlignment="Center" />
                     </StackPanel>
 
+                    <!-- 回覆附件（M25，ui-spec 3.1）：前面工具產生的牌陣、圖片，放在氣泡上方 -->
+                    <views:ReplyAttachmentsView IsVisible="{Binding HasReplyAttachments}" />
+
                     <!-- 淡底氣泡（對話內容，不算卡片）：思考過程、Markdown、等待與停止提示 -->
                     <Border x:Name="AssistantBubble" IsVisible="{Binding ShowBubble}" HorizontalAlignment="Left" Padding="16,12"
                             CornerRadius="{StaticResource LumiRadiusCard}" Background="{DynamicResource LumiAssistantBubbleBrush}">

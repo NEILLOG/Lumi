@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:tarot="using:Lumi.App.Views.Tarot"
+             x:Class="Lumi.App.Views.Tarot.TarotAttachmentView"
+             x:DataType="vm:TarotAttachmentViewModel">
+  <!--
+    塔羅牌陣附件（ui-spec 3.1）：card 樣式的外框包住整個牌陣；在氣泡外，不算卡片巢狀。
+    TODO(25D)：牌寬依牌陣、牌下位置名稱、凱爾特十字縮小版（編號圓點＋對照清單）、「在視窗中開啟牌陣」。
+  -->
+  <Border x:Name="Frame" Classes="card" HorizontalAlignment="Left">
+    <tarot:TarotSpreadView x:Name="Spread" Spread="{Binding Spread}" IsActive="True" />
+  </Border>
+</UserControl>

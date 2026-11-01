@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.ImageAttachmentView"
+             x:DataType="vm:ImageAttachmentViewModel">
+  <!--
+    圖片附件（ui-spec 3.1）：縮圖最寬、最高 320、等比、圓角 10；點縮圖用系統的看圖程式開啟；檔案不在了顯示說明與檔名。
+    TODO(25E)：三個動作（放大檢視、用其他程式開啟、開啟資料夾）、產生中佔位、遺失佔位、檔名改放 Tooltip。
+  -->
+  <StackPanel Spacing="4" HorizontalAlignment="Left">
+    <Button x:Name="Thumbnail" Padding="0" Background="Transparent" BorderThickness="0" IsVisible="{Binding ShowsImage}" Click="OpenImage_Click"
+            HorizontalAlignment="Left" ToolTip.Tip="{Binding FileName}">
+      <Border CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
+        <Image Source="{Binding FilePath, Converter={x:Static views:PathToBitmapConverter.Instance}, ConverterParameter=320}"
+               MaxWidth="320" MaxHeight="320" Stretch="Uniform" />
+      </Border>
+    </Button>
+    <TextBlock IsVisible="{Binding IsPending}" Text="{x:Static res:Strings.Image_Generating}" Classes="muted" />
+    <StackPanel IsVisible="{Binding IsMissing}" Spacing="4">
+      <TextBlock Text="{x:Static res:Strings.ToolCard_ImageMissing}" Classes="muted" />
+      <TextBlock Text="{Binding FileName}" Classes="muted" />
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding ShowsImage}">
+      <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenImage}" Click="OpenImage_Click" />
+      <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenFolder}" Click="OpenFolder_Click" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

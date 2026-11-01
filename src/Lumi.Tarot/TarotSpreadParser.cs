@@ -32,7 +32,7 @@ public static class TarotSpreadParser
                 return false;
             }
 
-            model = new TarotSpreadModel(spreadName, allowReversed, cards);
+            model = new TarotSpreadModel(spreadName, allowReversed, cards) { SpreadId = GetOptionalString(root, "spread_id") ?? "" };
             return true;
         }
         catch (Exception)
@@ -58,7 +58,24 @@ public static class TarotSpreadParser
             X: GetDouble(layout, "x"),
             Y: GetDouble(layout, "y"),
             Rotation: GetDouble(layout, "rotation"),
-            Z: GetInt(layout, "z"));
+            Z: GetInt(layout, "z"))
+        {
+            // 說明用的欄位：缺少不影響畫牌陣，所以都是選填
+            PositionMeaning = GetOptionalString(position, "position_meaning") ?? "",
+            Keywords = GetOptionalStrings(card, "keywords"),
+            Meaning = GetOptionalString(card, "meaning") ?? "",
+        };
+    }
+
+    /// <summary>字串陣列；缺少、null 或型別不對都當成空陣列（只是說明用）。</summary>
+    private static IReadOnlyList<string> GetOptionalStrings(JsonElement obj, string name)
+    {
+        if (!obj.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return value.EnumerateArray().Where(v => v.ValueKind == JsonValueKind.String).Select(v => v.GetString()!).ToList();
     }
 
     // 以下的讀取方式：欄位缺少或型別不對就丟 FormatException（或 KeyNotFoundException），由 TryParse 統一接住

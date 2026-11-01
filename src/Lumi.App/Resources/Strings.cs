@@ -1161,4 +1161,21 @@ public static class Strings
     public static string Tarot_Upright => Get(nameof(Tarot_Upright));
     public static string Tarot_Reversed => Get(nameof(Tarot_Reversed));
     public static string Tarot_SpreadAutomationFormat => Get(nameof(Tarot_SpreadAutomationFormat));
+
+    // 回覆附件（M25，ui-spec 3.1）
+    public static string Attachment_KeptTarot => Get(nameof(Attachment_KeptTarot));
+    public static string Attachment_KeptImage => Get(nameof(Attachment_KeptImage));
+    public static string Tarot_CaptionFormat => Get(nameof(Tarot_CaptionFormat));
+    public static string Tarot_ReversedSuffix => Get(nameof(Tarot_ReversedSuffix));
+    public static string Tarot_NumberedTooltipFormat => Get(nameof(Tarot_NumberedTooltipFormat));
+    public static string Tarot_OpenSpreadWindow => Get(nameof(Tarot_OpenSpreadWindow));
+    public static string Tarot_SpreadWindowTitleFormat => Get(nameof(Tarot_SpreadWindowTitleFormat));
+    public static string Tarot_KeepOnTop => Get(nameof(Tarot_KeepOnTop));
+    public static string Tarot_SpreadWindowHint => Get(nameof(Tarot_SpreadWindowHint));
+    public static string Tarot_PositionListAutomation => Get(nameof(Tarot_PositionListAutomation));
+    public static string Image_Generating => Get(nameof(Image_Generating));
+    public static string Image_GeneratingElapsedFormat => Get(nameof(Image_GeneratingElapsedFormat));
+    public static string Image_ViewLarger => Get(nameof(Image_ViewLarger));
+    public static string Image_OpenExternal => Get(nameof(Image_OpenExternal));
+    public static string Image_AttachmentAutomationFormat => Get(nameof(Image_AttachmentAutomationFormat));
 }

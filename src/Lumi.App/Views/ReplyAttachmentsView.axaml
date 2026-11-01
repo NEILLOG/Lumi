@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:views="using:Lumi.App.Views"
+             xmlns:tarot="using:Lumi.App.Views.Tarot"
+             x:Class="Lumi.App.Views.ReplyAttachmentsView"
+             x:DataType="vm:MessageViewModel">
+  <!--
+    回覆附件（M25，ui-spec 3.1）：助理訊息的名稱與時間下方、氣泡上方。依工具呼叫順序上下排，間距 12；
+    寬度依內容，不撐滿。
+  -->
+  <ItemsControl x:Name="AttachmentList" ItemsSource="{Binding ReplyAttachments}" HorizontalAlignment="Left">
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate>
+        <StackPanel Spacing="12" />
+      </ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+    <ItemsControl.DataTemplates>
+      <DataTemplate DataType="vm:TarotAttachmentViewModel">
+        <tarot:TarotAttachmentView />
+      </DataTemplate>
+      <DataTemplate DataType="vm:ImageAttachmentViewModel">
+        <views:ImageAttachmentView />
+      </DataTemplate>
+    </ItemsControl.DataTemplates>
+  </ItemsControl>
+</UserControl>

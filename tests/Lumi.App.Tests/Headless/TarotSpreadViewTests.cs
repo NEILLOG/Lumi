@@ -277,27 +277,34 @@ public class TarotSpreadViewTests
     }
 
     [AvaloniaFact]
-    public void Tool_card_shows_the_spread_without_expanding()
+    public void Tool_card_no_longer_draws_the_spread_it_becomes_a_reply_attachment()
     {
         var card = new ToolCardViewModel("c1", "tarot_draw", "塔羅抽牌", ToolPermission.ReadOnly, "三張牌", "{}",
             new NoopResponder(), new FakeClipboardService(), new FakeTimeProvider());
         card.Complete(new ToolResultBlock("c1", "找不到牌陣", true, "塔羅抽牌", null, "失敗", 3, ToolApproval.NotRequired));
-        card.TarotSpread = ThreeSpread();   // 直接給牌陣，不經過解析器（解析器在 25A 才實作）
+        card.TarotSpread = ThreeSpread();   // 直接給牌陣，不經過解析器
         var view = new ToolCardView { DataContext = card };
         var window = new Window { Width = 800, Height = 700, Content = view };
         window.Show();
         window.UpdateLayout();
 
-        // 牌陣在收合區外：卡片收合時就畫出來，展開、收合都不影響
-        Assert.False(card.IsOpen);
-        Assert.Equal(3, Faces(view).Count);
-
+        // 牌陣在回覆附件裡（ui-spec 3.1），工具卡片只是過程紀錄：收合、展開都不畫牌
+        Assert.Empty(Faces(view));
         card.IsExpanded = true;
         view.UpdateLayout();
-        Assert.Equal(3, Faces(view).Count);
+        Assert.Empty(Faces(view));
+    }
 
-        card.IsExpanded = false;
-        view.UpdateLayout();
+    [AvaloniaFact]
+    public void Reply_attachments_view_draws_the_tarot_attachment()
+    {
+        var message = MessageViewModel.AttachmentHost();
+        message.ReplyAttachments.Add(new TarotAttachmentViewModel("c1", ThreeSpread()));
+        var view = new ReplyAttachmentsView { DataContext = message };
+        var window = new Window { Width = 800, Height = 700, Content = view };
+        window.Show();
+        window.UpdateLayout();
+
         Assert.Equal(3, Faces(view).Count);
     }
 

@@ -5,12 +5,12 @@
              xmlns:res="using:Lumi.App.Resources"
              xmlns:md="using:Lumi.App.Markdown"
              xmlns:views="using:Lumi.App.Views"
-             xmlns:tarot="using:Lumi.App.Views.Tarot"
              x:Class="Lumi.App.Views.ToolCardView"
              x:DataType="vm:ToolCardViewModel">
   <!--
     一次工具呼叫的卡片（ui-spec 第 4、5 節）：預設收合，標題「動作 · 對象 · 結果摘要 … 耗時 ›」；
     執行中與等待允許強制展開；等待允許時確認區嵌在卡片內。只用 token 上色。
+    牌陣與圖片不畫在卡片上，是回覆附件（ui-spec 3.1，ReplyAttachmentsView）。
   -->
   <UserControl.Styles>
     <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
@@ -108,10 +108,6 @@
           </Panel>
         </Grid>
       </Button>
-
-      <!-- 塔羅牌陣圖（M25）：只有 tarot_draw 的結果解析得出牌陣時才顯示；放在收合區外，抽完不用展開就看得到牌 -->
-      <tarot:TarotSpreadView Spread="{Binding TarotSpread}" IsActive="{Binding HasTarotSpread}" IsVisible="{Binding HasTarotSpread}"
-                             Margin="16,0,16,16" />
 
       <StackPanel IsVisible="{Binding IsOpen}" Spacing="8" Margin="16,0,16,16">
         <!-- 確認區（等待允許時）：這次會做什麼、按鈕依權限等級 -->
@@ -276,34 +272,6 @@
             <Button Classes="tertiary small" Content="{Binding CopyLabel}" Command="{Binding CopyResultCommand}" />
           </StackPanel>
         </StackPanel>
-
-        <!-- 圖片（22F）：縮圖最寬 320、等比；點縮圖或「開啟圖片」用系統的看圖程式開啟（放大、平移在那裡做）；檔案不在了顯示檔名與說明 -->
-        <ItemsControl IsVisible="{Binding HasImages}" ItemsSource="{Binding Images}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Spacing="8" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:ToolCardImage">
-              <StackPanel Spacing="4">
-                <TextBlock Text="{Binding FileName}" Classes="cardlabel" />
-                <Button Padding="0" Background="Transparent" BorderThickness="0" IsVisible="{Binding Exists}" Click="OpenImage_Click"
-                        HorizontalAlignment="Left">
-                  <Border CornerRadius="{StaticResource LumiRadiusInput}" ClipToBounds="True">
-                    <Image Source="{Binding FilePath, Converter={x:Static views:PathToBitmapConverter.Instance}, ConverterParameter=320}"
-                           MaxWidth="320" Stretch="Uniform" />
-                  </Border>
-                </Button>
-                <TextBlock IsVisible="{Binding !Exists}" Text="{x:Static res:Strings.ToolCard_ImageMissing}" Classes="muted" />
-                <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding Exists}">
-                  <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenImage}" Click="OpenImage_Click" />
-                  <Button Classes="tertiary small" Content="{x:Static res:Strings.ToolCard_OpenFolder}" Click="OpenFolder_Click" />
-                </StackPanel>
-              </StackPanel>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
       </StackPanel>
     </StackPanel>
   </Border>

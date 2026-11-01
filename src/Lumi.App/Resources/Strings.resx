@@ -1170,4 +1170,19 @@
   <data name="Tarot_Upright" xml:space="preserve"><value>正位</value></data>
   <data name="Tarot_Reversed" xml:space="preserve"><value>逆位</value></data>
   <data name="Tarot_SpreadAutomationFormat" xml:space="preserve"><value>塔羅牌陣：{0}</value></data>
+  <data name="Attachment_KeptTarot" xml:space="preserve"><value>抽到的牌已保留。</value></data>
+  <data name="Attachment_KeptImage" xml:space="preserve"><value>圖片已保留。</value></data>
+  <data name="Tarot_CaptionFormat" xml:space="preserve"><value>{0}・{1}</value></data>
+  <data name="Tarot_ReversedSuffix" xml:space="preserve"><value>（逆位）</value></data>
+  <data name="Tarot_NumberedTooltipFormat" xml:space="preserve"><value>{0} {1}</value></data>
+  <data name="Tarot_OpenSpreadWindow" xml:space="preserve"><value>在視窗中開啟牌陣</value></data>
+  <data name="Tarot_SpreadWindowTitleFormat" xml:space="preserve"><value>{0}・{1}</value></data>
+  <data name="Tarot_KeepOnTop" xml:space="preserve"><value>保持在最上層</value></data>
+  <data name="Tarot_SpreadWindowHint" xml:space="preserve"><value>滑鼠移到清單或牌上會互相標示；點一張牌看大圖</value></data>
+  <data name="Tarot_PositionListAutomation" xml:space="preserve"><value>位置對照清單</value></data>
+  <data name="Image_Generating" xml:space="preserve"><value>正在產生圖片…</value></data>
+  <data name="Image_GeneratingElapsedFormat" xml:space="preserve"><value>已 {0} 秒・通常需要 10 秒到幾分鐘</value></data>
+  <data name="Image_ViewLarger" xml:space="preserve"><value>放大檢視</value></data>
+  <data name="Image_OpenExternal" xml:space="preserve"><value>用其他程式開啟</value></data>
+  <data name="Image_AttachmentAutomationFormat" xml:space="preserve"><value>圖片：{0}</value></data>
 </root>

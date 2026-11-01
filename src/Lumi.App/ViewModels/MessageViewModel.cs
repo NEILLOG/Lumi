@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lumi.App.Resources;
@@ -17,6 +18,7 @@ public partial class MessageViewModel : ObservableObject
     {
         IsUser = isUser;
         CreatedAt = createdAt ?? DateTimeOffset.UtcNow;
+        ReplyAttachments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasReplyAttachments));
     }
 
     /// <summary>訊息建立時間。載入的訊息用資料庫裡的 <c>CreatedAt</c>；串流中的助理訊息用氣泡建立的當下。</summary>
@@ -83,6 +85,20 @@ public partial class MessageViewModel : ObservableObject
 
     public bool HasAttachments => Attachments.Count > 0;
 
+    /// <summary>
+    /// 回覆附件（M25，ui-spec 3.1）：前面工具段落產生的牌陣、圖片，畫在名稱與時間下方、氣泡上方。
+    /// 由工作台依「附件跟著工具之後的第一段助理文字」分配，不存檔（從工具結果還原）。
+    /// </summary>
+    public ObservableCollection<ReplyAttachmentViewModel> ReplyAttachments { get; } = [];
+
+    public bool HasReplyAttachments => ReplyAttachments.Count > 0;
+
+    /// <summary>
+    /// 只為了放附件而補的助理訊息：工具之後沒有任何文字（停止、出錯、模型直接結束）時，附件自成一則（ui-spec 3.1）。
+    /// 不對應任何存檔的訊息。
+    /// </summary>
+    public bool IsAttachmentHost { get; init; }
+
     public bool HasText => Text.Length > 0;
 
     public bool HasThinking => Thinking.Length > 0;
@@ -120,6 +136,10 @@ public partial class MessageViewModel : ObservableObject
 
     public static MessageViewModel StreamingAssistant(DateTimeOffset? createdAt = null) =>
         new(isUser: false, createdAt) { IsStreaming = true };
+
+    /// <summary>只放附件的助理訊息（見 <see cref="IsAttachmentHost"/>）。</summary>
+    public static MessageViewModel AttachmentHost(DateTimeOffset? createdAt = null) =>
+        new(isUser: false, createdAt) { IsAttachmentHost = true };
 
     public static MessageViewModel From(ChatMessage message)
     {

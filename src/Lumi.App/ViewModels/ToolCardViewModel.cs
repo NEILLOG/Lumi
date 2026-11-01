@@ -159,6 +159,16 @@ public partial class ToolCardViewModel : ObservableObject
 
     public bool HasTarotSpread => TarotSpread is not null;
 
+    /// <summary>
+    /// 這次呼叫產生的回覆附件（M25，ui-spec 3.1）：塔羅牌陣、圖片。卡片本身不再畫它們，
+    /// 由工作台把它們放到工具之後那則助理訊息的氣泡上方。整個清單換掉時才通知（不是逐筆增減）。
+    /// </summary>
+    [ObservableProperty]
+    private IReadOnlyList<ReplyAttachmentViewModel> _replyAttachments = [];
+
+    /// <summary>產生圖片的工具（<c>generate_image</c>、<c>edit_image</c>）：結果是圖片附件。</summary>
+    public bool IsImageTool => ToolName is "generate_image" or "edit_image";
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DurationText), nameof(HasDuration))]
     private long _durationMs;
@@ -409,11 +419,44 @@ public partial class ToolCardViewModel : ObservableObject
         Approval = result.Approval;
         Images = (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))).ToList();
         TarotSpread = ToolName == TarotToolNames.Draw && !result.IsError && TarotSpreadParser.TryParse(result.Content, out var spread) ? spread : null;
+        ReplyAttachments = BuildAttachments();
         ScheduleSummary = IsCreateSchedule && result is { IsError: false, Approval: not ToolApproval.Denied } ? CreatedSummary(result.Content) : null;
         Request = null;
         State = result.Approval == ToolApproval.Denied ? ToolCardState.Denied
             : result.IsError ? ToolCardState.Failed
             : ToolCardState.Succeeded;
+    }
+
+    /// <summary>完成後的附件：牌陣一個、每張圖片一個（尺寸取自參數，沒填時當正方形）。</summary>
+    private IReadOnlyList<ReplyAttachmentViewModel> BuildAttachments()
+    {
+        var attachments = new List<ReplyAttachmentViewModel>();
+        if (TarotSpread is { } spread)
+            attachments.Add(new TarotAttachmentViewModel(CallId, spread));
+        var (width, height) = ImageSizeArgument();
+        foreach (var image in Images)
+            attachments.Add(ImageAttachmentViewModel.ForFile(CallId, image.FilePath, image.Exists, width, height));
+        return attachments;
+    }
+
+    /// <summary>參數裡的 <c>size</c>（例如 <c>1536x1024</c>）；沒填或看不懂時是 1024×1024。</summary>
+    internal (int Width, int Height) ImageSizeArgument()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(_argumentsJson) ? "{}" : _argumentsJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("size", out var size) && size.ValueKind == JsonValueKind.String
+                && size.GetString()!.Split('x', 'X', '×') is [var w, var h]
+                && int.TryParse(w.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var width)
+                && int.TryParse(h.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var height)
+                && width > 0 && height > 0)
+                return (width, height);
+        }
+        catch (JsonException)
+        {
+        }
+        return (1024, 1024);
     }
 
     /// <summary>從歷史重建時，呼叫沒有留下結果（程式在中途結束）。</summary>
