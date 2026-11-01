@@ -207,13 +207,21 @@ public class TarotSpreadWindowTests
         Assert.Equal(3, SpreadOf(window).HighlightedIndex);
         Assert.True(row.Highlighted);
         Assert.Equal(1, rows.Count(r => r.Highlighted));
+        // 真的換成淡底（樣式要蓋得過；本地值會擋住樣式）
+        var highlightedBackground = RowBackground(row);
+        Assert.True(row.TryFindResource("LumiAccentSoftBrush", row.ActualThemeVariant, out var accentSoft));
+        Assert.Same(accentSoft, highlightedBackground);
 
         window.MouseMove(new Point(2, 2));   // 視窗左上角的空白，不在清單上
         window.UpdateLayout();
         Assert.Null(window.HighlightedIndex);
         Assert.Null(SpreadOf(window).HighlightedIndex);
         Assert.False(row.Highlighted);
+        Assert.NotEqual(highlightedBackground, RowBackground(row));
     }
+
+    private static object? RowBackground(TarotPositionRow row) =>
+        row.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("position-row")).Background;
 
     [AvaloniaFact]
     public void Hovering_a_card_highlights_its_row_and_leaving_clears_it()
