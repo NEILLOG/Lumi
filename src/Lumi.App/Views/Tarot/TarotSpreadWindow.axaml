@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        xmlns:ctl="using:Lumi.App.Controls"
+        xmlns:tarot="using:Lumi.App.Views.Tarot"
+        Icon="avares://Lumi.App/Assets/Icons/lumi-256.png"
+        x:Class="Lumi.App.Views.Tarot.TarotSpreadWindow"
+        Width="600" Height="760" MinWidth="360" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource LumiBackgroundBrush}">
+  <!--
+    凱爾特十字牌陣視窗（plan/25 25F；ui-spec 3.1）：牌陣（資料原座標、隨視窗等比縮放）＋兩欄對照清單＋底部說明列。
+    標題列用系統的；上方一列放「保持在最上層」（右側）。牌寬與清單高亮在 TarotSpreadWindow.axaml.cs 設定。
+  -->
+  <Window.Styles>
+    <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
+    <!-- 保持在最上層：開啟中 Soft 底＋OnSoft 圖示（和工作台標題列的釘選同一組色） -->
+    <Style Selector="Button.pin">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.pin.pinned">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="Button.pin.pinned /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="Button.pin.pinned:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,*,Auto,Auto">
+    <!-- 上方一列：右側的保持在最上層 -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="16,8,16,0">
+      <Button x:Name="PinButton" Grid.Column="1" Classes="chrome pin"
+              ToolTip.Tip="{x:Static res:Strings.Tarot_KeepOnTop}"
+              AutomationProperties.Name="{x:Static res:Strings.Tarot_KeepOnTop}">
+        <ctl:LumiIcon Data="{StaticResource LumiIconPin}" Size="16" />
+      </Button>
+    </Grid>
+
+    <!-- 牌陣區：內距扣掉後才是牌寬的可用範圍（TarotSpreadWindow.axaml.cs 的 SizeChanged） -->
+    <Border x:Name="SpreadHost" Grid.Row="1" Padding="16,8">
+      <tarot:TarotSpreadView x:Name="Spread" IsActive="True" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+
+    <!-- 兩欄對照清單（互動模式：可高亮、hover 會與牌互相標示） -->
+    <tarot:TarotPositionList x:Name="List" Grid.Row="2" Margin="16,0,16,16" HorizontalAlignment="Center"
+                             TwoColumns="True" Interactive="True" />
+
+    <!-- 底部說明列：Surface 底、上方 1px Border、高 36、Caption、TextMuted、置中 -->
+    <Border Grid.Row="3" Height="36" Background="{DynamicResource LumiSurfaceBrush}"
+            BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,1,0,0">
+      <TextBlock Text="{x:Static res:Strings.Tarot_SpreadWindowHint}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" Foreground="{DynamicResource LumiTextMutedBrush}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+  </Grid>
+</Window>
