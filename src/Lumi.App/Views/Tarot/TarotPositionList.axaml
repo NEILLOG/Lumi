@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.Tarot.TarotPositionList"
+             AutomationProperties.Name="{x:Static res:Strings.Tarot_PositionListAutomation}">
+  <!-- 位置對照清單（ui-spec 3.1）：一行一個位置；排版（單欄或兩欄）在 TarotPositionList.axaml.cs 依 TwoColumns 設定。 -->
+  <StackPanel x:Name="Rows" Spacing="4" />
+</UserControl>

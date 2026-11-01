@@ -2,13 +2,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Lumi.App.ViewModels"
              xmlns:tarot="using:Lumi.App.Views.Tarot"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
              x:Class="Lumi.App.Views.Tarot.TarotAttachmentView"
              x:DataType="vm:TarotAttachmentViewModel">
   <!--
-    塔羅牌陣附件（ui-spec 3.1）：card 樣式的外框包住整個牌陣；在氣泡外，不算卡片巢狀。
-    TODO(25D)：牌寬依牌陣、牌下位置名稱、凱爾特十字縮小版（編號圓點＋對照清單）、「在視窗中開啟牌陣」。
+    塔羅牌陣附件（ui-spec 3.1）：card 樣式的外框包住整個牌陣（凱爾特十字時連同對照清單）；在氣泡外，不算卡片巢狀。
+    牌寬、排法與位置名稱依牌陣 id 在 TarotAttachmentView.axaml.cs 設定；外框放不下時清單改到牌陣下方（Narrow）。
   -->
-  <Border x:Name="Frame" Classes="card" HorizontalAlignment="Left">
-    <tarot:TarotSpreadView x:Name="Spread" Spread="{Binding Spread}" IsActive="True" />
-  </Border>
+  <UserControl.Styles>
+    <!-- 三段 RWD：Narrow 時外框左右 Padding 12（上下 16，ui-spec 9.4） -->
+    <Style Selector="Window.narrow Border.tarot-card">
+      <Setter Property="Padding" Value="12,16" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="8" HorizontalAlignment="Left">
+    <Border x:Name="Frame" Classes="card tarot-card" HorizontalAlignment="Left">
+      <Grid x:Name="Body" ColumnDefinitions="Auto,Auto">
+        <tarot:TarotSpreadView x:Name="Spread" IsActive="True" />
+        <tarot:TarotPositionList x:Name="List" IsVisible="False" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <!-- 只有凱爾特十字有：在獨立視窗開啟（25F 接線） -->
+    <Button x:Name="OpenWindowButton" Classes="tertiary small" IsVisible="False" HorizontalAlignment="Left"
+            Click="OnOpenWindowClick">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <ctl:LumiIcon Data="{StaticResource LumiIconExternalLink}" Size="14" />
+        <TextBlock Text="{x:Static res:Strings.Tarot_OpenSpreadWindow}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Button>
+  </StackPanel>
 </UserControl>

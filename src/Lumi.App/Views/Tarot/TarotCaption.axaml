@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.Tarot.TarotCaption">
+  <!--
+    牌下方的位置名稱行（ui-spec 3.1）：一行、置中、Caption 字級；寬度由程式設成牌寬 × 橫向間距，超出以省略號截斷。
+    位置名稱 SemiBold（Text 色），「・中文牌名」與「（逆位）」TextMuted。
+  -->
+  <TextBlock x:Name="Text" Height="16" HorizontalAlignment="Stretch" TextAlignment="Center"
+             TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+             FontSize="{DynamicResource LumiFontSizeCaption}">
+    <Run x:Name="Head" FontWeight="SemiBold" Foreground="{DynamicResource LumiTextBrush}" /><Run x:Name="Tail" Foreground="{DynamicResource LumiTextMutedBrush}" />
+  </TextBlock>
+</UserControl>

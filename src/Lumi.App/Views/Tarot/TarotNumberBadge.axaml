@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Lumi.App.Views.Tarot.TarotNumberBadge">
+  <!--
+    凱爾特十字的編號圓點（ui-spec 3.1）。一般：18×18（兩位數 22 寬）、Text 底、Surface 色字 10／700、2px Surface 框。
+    高亮：圓點 24×24（兩位數 28 寬）改 AccentText 底，外面再加 2px AccentText 外圈（外層 Root 的框）。尺寸與位置在 TarotNumberBadge.axaml.cs 設定。
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.badge-root">
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentTextBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.badge-root.highlighted">
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.badge-disc">
+      <Setter Property="Background" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.badge-disc.highlighted">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentTextBrush}" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+  </UserControl.Styles>
+  <Border x:Name="Root" Classes="badge-root" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Border x:Name="Disc" Classes="badge-disc" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+      <TextBlock x:Name="Number" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource LumiSurfaceBrush}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+    </Border>
+  </Border>
+</UserControl>
