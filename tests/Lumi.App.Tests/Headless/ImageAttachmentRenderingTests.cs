@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
@@ -100,9 +101,12 @@ public class ImageAttachmentRenderingTests
             Assert.True(thumbnail.IsEffectivelyVisible);
             Assert.Equal(Path.GetFileName(path), ToolTip.GetTip(thumbnail));
             Assert.Equal(string.Format(Strings.Image_AttachmentAutomationFormat, Path.GetFileName(path)), AutomationProperties.GetName(thumbnail));
-            var frame = thumbnail.GetVisualDescendants().OfType<Border>().First(b => b.ClipToBounds);
-            Assert.Equal(320, frame.Width);
-            Assert.Equal(213, frame.Height);
+            // 縮圖依圖片實際比例縮進 320 × 320（不套參數尺寸的框）
+            var image = thumbnail.GetVisualDescendants().OfType<Image>().Single();
+            Assert.Equal(320, image.MaxWidth);
+            Assert.Equal(320, image.MaxHeight);
+            Assert.Equal(Stretch.Uniform, image.Stretch);
+            Assert.Contains(thumbnail.GetVisualDescendants().OfType<Border>(), b => b.ClipToBounds);
 
             var actions = VisibleButtons(view).Where(b => b.Classes.Contains("tertiary")).ToList();
             Assert.Equal(3, actions.Count);
