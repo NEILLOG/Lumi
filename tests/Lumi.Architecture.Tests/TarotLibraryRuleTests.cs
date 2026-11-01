@@ -75,7 +75,6 @@ public class TarotLibraryRuleTests
             .Select(t => t.Name)
             .ToArray();
 
-        // TODO(整合)：兩個工具合併後改成剛好這兩個
-        Assert.All(tools, name => Assert.Contains(name, new[] { "TarotDrawTool", "TarotCardTool" }));
+        Assert.Equal(["TarotCardTool", "TarotDrawTool"], tools.Order());
     }
 }

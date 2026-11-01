@@ -12,6 +12,7 @@ using Lumi.Mcp;
 using Lumi.Platform;
 using Lumi.Providers;
 using Lumi.Speech;
+using Lumi.Tarot;
 using Lumi.Tools;
 using Lumi.Web;
 using Microsoft.Extensions.Configuration;
@@ -74,6 +75,7 @@ internal static class Program
         builder.Services.AddLumiDocuments();   // 文件讀取（M10 10C）：read_document 用
         builder.Services.AddLumiInfrastructure();
         builder.Services.AddLumiTools();
+        builder.Services.AddLumiTarot();   // 塔羅牌（M25）
         builder.Services.AddLumiMcp();   // MCP 伺服器（M16）
         builder.Services.AddLumiBrowser(o => o.ProfileRoot = Path.Combine(LumiPaths.DataDirectory, "browser"));   // 瀏覽器自動化（M18）
         builder.Services.AddLumiApp();
