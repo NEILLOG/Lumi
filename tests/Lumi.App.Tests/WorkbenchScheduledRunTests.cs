@@ -66,7 +66,7 @@ public class WorkbenchScheduledRunTests
         string? conversationId = null;
         if (withConversation)
         {
-            var conversation = await rig.Store.CreateAsync("每日摘要");
+            var conversation = await rig.Store.CreateAsync("每日摘要", ConversationKind.ScheduledRun);
             conversationId = conversation.Id;
             await rig.Store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new TextBlock("整理今天的新聞")], Planned));
             if (answer.Length > 0)
