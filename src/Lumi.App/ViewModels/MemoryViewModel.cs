@@ -184,6 +184,7 @@ public sealed partial class MemoryViewModel : ObservableObject, IDisposable
     private readonly List<MemoryItem> _items = [];
     private CancellationTokenRegistration _registration;
     private bool _enabled;
+    private bool _recentConversations;
     private FormMode _formMode;
     private int _editingId;
     private int _generation;
@@ -200,6 +201,7 @@ public sealed partial class MemoryViewModel : ObservableObject, IDisposable
         _time = time;
         _options = options ?? new MemoryOptions();
         _enabled = catalog.Current.Memory.Enabled;
+        _recentConversations = catalog.Current.Memory.RecentConversations;
         Form = new MemoryFormViewModel(_options, SaveAsync, CloseForm);
         catalog.Changed += OnCatalogChanged;
         Subscribe();
@@ -242,6 +244,21 @@ public sealed partial class MemoryViewModel : ObservableObject, IDisposable
 
     /// <summary>關閉時寫在開關旁邊的說明；開啟時是 null。</summary>
     public string? EnabledNote => _enabled ? null : Strings.Memory_DisabledNote;
+
+    /// <summary>
+    /// 開新對話時參考最近的對話（M26 D10）。和長期記憶的開關互相獨立：這個開關不綁 <see cref="IsEnabled"/>，
+    /// 關閉長期記憶時這裡照常可以操作。立即套用，失敗時還原，同 <see cref="IsEnabled"/>。
+    /// </summary>
+    public bool IsRecentConversationsEnabled
+    {
+        get => _recentConversations;
+        set
+        {
+            if (value == _recentConversations)
+                return;
+            _ = ApplyRecentConversationsAsync(value);
+        }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMessage))]
@@ -328,7 +345,10 @@ public sealed partial class MemoryViewModel : ObservableObject, IDisposable
         _dispatcher.Post(() =>
         {
             if (!_disposed)
+            {
                 SetEnabled(settings.Memory.Enabled);
+                SetRecentConversations(settings.Memory.RecentConversations);
+            }
         });
 
     private async Task ApplyEnabledAsync(bool enabled)
@@ -346,6 +366,21 @@ public sealed partial class MemoryViewModel : ObservableObject, IDisposable
         }
     }
 
+    private async Task ApplyRecentConversationsAsync(bool enabled)
+    {
+        Message = null;
+        try
+        {
+            await _catalog.SetRecentConversationsEnabledAsync(enabled);
+            SetRecentConversations(enabled);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            SetMessage(ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed, isError: true);
+            OnPropertyChanged(nameof(IsRecentConversationsEnabled));   // 沒有存成功：開關回到原來的值
+        }
+    }
+
     private void SetEnabled(bool value)
     {
         if (_enabled == value)
@@ -353,6 +388,14 @@ public sealed partial class MemoryViewModel : ObservableObject, IDisposable
         _enabled = value;
         OnPropertyChanged(nameof(IsEnabled));
         OnPropertyChanged(nameof(EnabledNote));
+    }
+
+    private void SetRecentConversations(bool value)
+    {
+        if (_recentConversations == value)
+            return;
+        _recentConversations = value;
+        OnPropertyChanged(nameof(IsRecentConversationsEnabled));
     }
 
     private void Rebuild(IReadOnlyList<MemoryItem> items)

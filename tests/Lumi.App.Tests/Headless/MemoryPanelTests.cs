@@ -69,6 +69,59 @@ public class MemoryPanelTests
     }
 
     [AvaloniaFact]
+    public async Task RecentConversations_ShowsTheSwitch_AndItsFullNote()
+    {
+        using var rig = await SettingsRig.CreateAsync("memory");
+        var window = rig.Window;
+
+        var box = window.FindByName<CheckBox>("RecentConversationsBox");
+        Assert.True(box.IsEffectivelyVisible);
+        Assert.Equal(Strings.Memory_RecentConversations, box.Content as string);
+        Assert.True(box.IsChecked == true);   // 預設開啟
+        Assert.True(HasVisibleText(window, Strings.Memory_RecentConversationsNote));   // 唯一的說明，完整顯示
+        rig.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task RecentConversations_StaysOperable_WhenLongTermMemoryIsOff()
+    {
+        using var rig = await SettingsRig.CreateAsync("memory");
+        var window = rig.Window;
+
+        window.FindByName<CheckBox>("MemoryEnabledBox").IsChecked = false;
+        await SettingsHost.WaitUntil(() => !rig.Host.Catalog.Current.Memory.Enabled);
+        rig.Settle();
+
+        var box = window.FindByName<CheckBox>("RecentConversationsBox");
+        Assert.True(box.IsEffectivelyEnabled);   // 不綁長期記憶的開關
+        Assert.True(box.IsChecked == true);
+
+        box.IsChecked = false;
+        await SettingsHost.WaitUntil(() => !rig.Host.Catalog.Current.Memory.RecentConversations);
+        rig.Settle();
+
+        Assert.False(rig.Host.Catalog.Current.Memory.Enabled);   // 長期記憶仍是關的
+        Assert.False(rig.Host.Memory.IsRecentConversationsEnabled);
+        Assert.False(box.IsChecked == true);
+        rig.Dispose();
+    }
+
+    [AvaloniaFact]
+    public async Task RecentConversations_Click_ChangesTheViewModel_AndTheSettingsFile()
+    {
+        using var rig = await SettingsRig.CreateAsync("memory");
+        var box = rig.Window.FindByName<CheckBox>("RecentConversationsBox");
+
+        box.IsChecked = false;
+        await SettingsHost.WaitUntil(() => !rig.Host.Catalog.Current.Memory.RecentConversations);
+        rig.Settle();
+
+        Assert.False(rig.Host.Memory.IsRecentConversationsEnabled);
+        Assert.True(rig.Host.Catalog.Current.Memory.Enabled);   // 長期記憶不受影響
+        rig.Dispose();
+    }
+
+    [AvaloniaFact]
     public async Task Usage_ShowsTheCountsAndTheLimits()
     {
         using var rig = await SettingsRig.CreateAsync("memory");

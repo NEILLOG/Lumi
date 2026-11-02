@@ -169,6 +169,13 @@
           <TextBlock Classes="muted" Text="{x:Static res:Strings.Memory_SentToProvider}" TextWrapping="Wrap" />
         </StackPanel>
 
+        <!-- 近況清單（M26 D1、D10）：和長期記憶的開關互相獨立，不綁 IsEnabled。立即套用。畫面上沒有其他提示，這段說明不可縮短 -->
+        <StackPanel x:Name="RecentConversationsSection" Margin="0,16,0,0" Spacing="8">
+          <CheckBox x:Name="RecentConversationsBox" Content="{x:Static res:Strings.Memory_RecentConversations}"
+                    IsChecked="{Binding IsRecentConversationsEnabled, Mode=TwoWay}" />
+          <TextBlock Classes="muted" Text="{x:Static res:Strings.Memory_RecentConversationsNote}" TextWrapping="Wrap" />
+        </StackPanel>
+
         <Border Classes="divider" />
 
         <!-- 用量：達 90% 時文字換 Warning 色，並另外寫出「接近上限」 -->
