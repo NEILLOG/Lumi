@@ -141,7 +141,15 @@ public sealed class ConversationService
                 ? ContextAttachments.None
                 : await _attachmentBuilder.BuildAsync(pending, ct).ConfigureAwait(false);
 
-            List<ContentBlock> content = [.. attachments.Blocks, new TextBlock(userText)];
+            // 近況清單（M26）：新對話的第一則、工作台、非排程、設定開啟時才帶入。要在存使用者訊息之前讀，
+            // 這時目前對話還沒有訊息，ListAsync 不會列到它；失敗只記 log，這則就不帶（D9）
+            var digest = existing.Count == 0 && mode == ChatMode.Workbench && options?.Run is null && _catalog.Current.Memory.RecentConversations
+                ? await BuildRecentDigestAsync(conversationId, ct).ConfigureAwait(false)
+                : null;
+
+            List<ContentBlock> content = digest is null ? [] : [digest];
+            content.AddRange(attachments.Blocks);
+            content.Add(new TextBlock(userText));
             var userMessage = new ChatMessage(ChatMessage.NewId(), ChatRole.User, content, DateTimeOffset.UtcNow);
             await _store.AppendMessageAsync(conversationId, userMessage, ct).ConfigureAwait(false);
             if (attachments.ItemIds.Count > 0)
@@ -212,6 +220,32 @@ public sealed class ConversationService
         finally
         {
             End(conversationId);
+        }
+    }
+
+    /// <summary>
+    /// 組出近況清單的區塊（M26）。沒有可用的對話時回 null。取消照常往外丟；其他例外記 log 後回 null，訊息照送。
+    /// </summary>
+    private async Task<ContextBlock?> BuildRecentDigestAsync(string conversationId, CancellationToken ct)
+    {
+        try
+        {
+            var recent = await _store.ListAsync(RecentConversationDigest.MaxConversations + 2, ct).ConfigureAwait(false);
+            var sources = new List<(Conversation Conversation, IReadOnlyList<ChatMessage> Messages)>();
+            foreach (var conversation in recent.Where(c => c.Id != conversationId))
+                sources.Add((conversation, await _store.GetMessagesAsync(conversation.Id, ct).ConfigureAwait(false)));
+
+            var digest = RecentConversationDigest.Build(sources, _time.GetUtcNow());
+            return digest is null ? null : new ContextBlock(ContextKind.RecentConversations, "recent_conversations", "", digest, true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "組合近況清單失敗，這則訊息不帶近況清單");
+            return null;
         }
     }
 
