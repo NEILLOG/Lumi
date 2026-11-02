@@ -197,7 +197,7 @@ public sealed class SdkMcpConnectionFactory(IHttpClientFactory? httpClientFactor
         private static McpContentPart ToPart(ContentBlock block) => block switch
         {
             TextContentBlock text => new McpTextPart(text.Text),
-            ImageContentBlock image => new McpImagePart(image.MimeType ?? "application/octet-stream", image.DecodedData.Length),
+            ImageContentBlock image => new McpImagePart(image.MimeType ?? "application/octet-stream", image.DecodedData.ToArray()),
             EmbeddedResourceBlock { Resource: TextResourceContents text } => new McpResourcePart(text.Uri, text.Text),
             EmbeddedResourceBlock embedded => new McpResourcePart(embedded.Resource.Uri, null),
             ResourceLinkBlock link => new McpResourcePart(link.Uri, null),

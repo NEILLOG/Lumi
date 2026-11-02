@@ -33,8 +33,8 @@ public abstract record McpContentPart;
 
 public sealed record McpTextPart(string Text) : McpContentPart;
 
-/// <summary>圖片目前不交給模型，只記下種類與大小（給一行說明用）。</summary>
-public sealed record McpImagePart(string MimeType, int Bytes) : McpContentPart;
+/// <summary>圖片的原始位元組與伺服器宣稱的種類（能不能交給模型由 <see cref="McpResultFormatter"/> 判斷）。</summary>
+public sealed record McpImagePart(string MimeType, byte[] Data) : McpContentPart;
 
 /// <summary>資源：嵌入的文字資源有 <see cref="Text"/>；其他只有 URI。</summary>
 public sealed record McpResourcePart(string Uri, string? Text) : McpContentPart;

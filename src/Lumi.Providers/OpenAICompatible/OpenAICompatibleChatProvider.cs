@@ -29,6 +29,9 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     /// </summary>
     private readonly ConcurrentDictionary<string, byte> _noStreamOptions = new();
 
+    /// <summary>工具圖片被拒、改用文字重送時，接在該工具結果後面的說明。</summary>
+    internal const string ToolImagesOmittedNote = "[這個模型收不到工具結果的圖片，上面提到的圖片沒有送出]";
+
     public OpenAICompatibleChatProvider(
         HttpClient httpClient, ISecretStore secrets, ILogger<OpenAICompatibleChatProvider> logger, IAttachmentStore? attachments = null)
     {
@@ -67,6 +70,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
         IAsyncEnumerator<SseItem<string>>? enumerator = null;
         // 這個連線之前已確認不認得 stream_options 就直接不帶；否則第一次帶，被拒時下面會退回重送一次
         var includeStreamOptions = !_noStreamOptions.ContainsKey(connection.Id);
+        var includeToolImages = true;
         try
         {
             while (true)
@@ -78,7 +82,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                 {
                     if (enumerator is null)
                     {
-                        using var httpRequest = BuildRequest(request, baseUri, apiKey, images, includeStreamOptions);
+                        using var httpRequest = BuildRequest(request, baseUri, apiKey, images, includeStreamOptions, includeToolImages);
                         response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                         if (!response.IsSuccessStatusCode)
                         {
@@ -95,6 +99,18 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                                 _noStreamOptions.TryAdd(connection.Id, 0);
                                 _logger.LogInformation("連線 {ConnectionId} 不支援 stream_options，改為不帶並估算用量", connection.Id);
                                 includeStreamOptions = false;
+                                response.Dispose();
+                                response = null;
+                                continue;
+                            }
+
+                            // 這個模型可能沒有視覺能力：工具自動帶回的圖片留在歷史裡，不退回的話這則對話之後每個請求都會失敗。
+                            // 拿掉工具圖片重送一次（使用者自己附的圖不動，照原本的錯誤提示）。不記住：下一輪仍先試，錯判也不會一直收不到圖。
+                            if (includeToolImages && (int)response.StatusCode is 400 or 422
+                                && ImageAttachments.HasToolImages(request) && !ContextLengthErrors.Matches(errorBody))
+                            {
+                                _logger.LogInformation("連線 {ConnectionId} 拒絕含工具圖片的請求，改為不帶圖片重送", connection.Id);
+                                includeToolImages = false;
                                 response.Dispose();
                                 response = null;
                                 continue;
@@ -154,11 +170,11 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     }
 
     private static HttpRequestMessage BuildRequest(
-        ChatRequest request, Uri baseUri, string? apiKey, IReadOnlyDictionary<string, byte[]> images, bool includeStreamOptions)
+        ChatRequest request, Uri baseUri, string? apiKey, IReadOnlyDictionary<string, byte[]> images, bool includeStreamOptions, bool includeToolImages)
     {
         var message = new HttpRequestMessage(HttpMethod.Post, OpenAIUrls.Endpoint(baseUri, "chat/completions"))
         {
-            Content = new StringContent(BuildBody(request, images, includeStreamOptions), Encoding.UTF8, "application/json"),
+            Content = new StringContent(BuildBody(request, images, includeStreamOptions, includeToolImages), Encoding.UTF8, "application/json"),
         };
         message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
         if (!string.IsNullOrEmpty(apiKey))
@@ -176,7 +192,7 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
     /// OpenAI 的前綴快取是自動的，只要這段前綴逐位元組相同就會命中，不需要標記（M5 的 Q2）。
     /// </para>
     /// </summary>
-    internal static string BuildBody(ChatRequest request, IReadOnlyDictionary<string, byte[]>? images = null, bool includeStreamOptions = true)
+    internal static string BuildBody(ChatRequest request, IReadOnlyDictionary<string, byte[]>? images = null, bool includeStreamOptions = true, bool includeToolImages = true)
     {
         images ??= ImageAttachments.None;
         var messages = new List<object>();
@@ -247,6 +263,12 @@ public sealed class OpenAICompatibleChatProvider : IChatProvider
                 case ChatRole.Tool:
                     foreach (var result in message.Content.OfType<ToolResultBlock>())
                     {
+                        if (!includeToolImages && result.Images is { Count: > 0 })
+                        {
+                            messages.Add(new { role = "tool", tool_call_id = result.ToolUseId, content = $"{result.Content}\n{ToolImagesOmittedNote}" });
+                            continue;
+                        }
+
                         messages.Add(new { role = "tool", tool_call_id = result.ToolUseId, content = result.Content });
                         // tool 角色不能帶圖片：圖片留到這一批 tool 訊息之後，讀不到的略過
                         foreach (var image in result.Images ?? [])

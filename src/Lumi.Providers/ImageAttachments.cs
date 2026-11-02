@@ -30,6 +30,10 @@ internal static class ImageAttachments
     public static bool HasImages(ChatRequest request) =>
         request.Messages.Any(m => m.Content.Any(b => ImagesOf(b).Any()));
 
+    /// <summary>有沒有工具結果附的圖片（不算使用者自己附的圖）。</summary>
+    public static bool HasToolImages(ChatRequest request) =>
+        request.Messages.Any(m => m.Content.OfType<ToolResultBlock>().Any(r => r.Images is { Count: > 0 }));
+
     /// <summary>一個內容區塊帶的圖片：圖片區塊本身，或工具結果上附的圖片（M18 D12）。</summary>
     public static IEnumerable<ImageBlock> ImagesOf(ContentBlock block) => block switch
     {

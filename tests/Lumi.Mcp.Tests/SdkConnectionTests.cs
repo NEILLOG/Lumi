@@ -11,6 +11,8 @@ namespace Lumi.Mcp.Tests;
 /// <summary>用 SDK 的伺服器端與記憶體內的串流，驗證 <see cref="SdkMcpConnectionFactory.SdkMcpConnection"/> 的列工具與呼叫。</summary>
 public sealed class SdkConnectionTests : IAsyncLifetime
 {
+    private static readonly byte[] ImageBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];
+
     private readonly CancellationTokenSource _serverCts = new();
     private Task _serverRun = Task.CompletedTask;
     private SdkMcpConnectionFactory.SdkMcpConnection _connection = null!;
@@ -23,6 +25,8 @@ public sealed class SdkConnectionTests : IAsyncLifetime
         Func<string, string> echo = text => "echo: " + text;
         var tools = new McpServerPrimitiveCollection<McpServerTool>();
         tools.Add(McpServerTool.Create(echo, new McpServerToolCreateOptions { Name = "echo", Description = "回傳輸入的文字。" }));
+        Func<ContentBlock> screenshot = () => ImageContentBlock.FromBytes(ImageBytes, "image/png");
+        tools.Add(McpServerTool.Create(screenshot, new McpServerToolCreateOptions { Name = "screenshot", Description = "回傳一張圖。" }));
 
         var server = McpServer.Create(
             new StreamServerTransport(clientToServer.Reader.AsStream(), serverToClient.Writer.AsStream(), "test-server", NullLoggerFactory.Instance),
@@ -60,12 +64,24 @@ public sealed class SdkConnectionTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Image_blocks_keep_their_bytes()
+    {
+        using var arguments = JsonDocument.Parse("{}");
+
+        var result = await _connection.CallToolAsync("screenshot", arguments.RootElement, default);
+
+        var image = Assert.IsType<McpImagePart>(Assert.Single(result.Parts));
+        Assert.Equal("image/png", image.MimeType);
+        Assert.Equal(ImageBytes, image.Data);
+    }
+
+    [Fact]
     public async Task Lists_the_tools_with_their_schemas()
     {
         var tools = await _connection.ListToolsAsync(default);
 
-        var echo = Assert.Single(tools);
-        Assert.Equal("echo", echo.Name);
+        Assert.Equal(2, tools.Count);
+        var echo = Assert.Single(tools, t => t.Name == "echo");
         Assert.Equal("回傳輸入的文字。", echo.Description);
         Assert.Contains("object", echo.InputSchemaJson);
     }
