@@ -52,6 +52,7 @@ public static class CoreServiceCollectionExtensions
         services.AddLumiPromptLayer<SpriteVoicePromptLayer>();
         services.AddLumiPromptLayer<MemoryPromptLayer>();   // 第 5 層：長期記憶（M14）
         services.AddLumiPromptLayer<ScheduledRunPromptLayer>();   // 第 6 層：排程自動執行的說明（M24，只在排程執行時出現）
+        services.AddLumiPromptLayer<RecentConversationsPromptLayer>();   // 第 7 層：近況清單的使用規則（M26）
 
         // 長期記憶（M14）：預設是記憶體版（測試與沒有資料庫時）；Lumi.Infrastructure 取代成 SQLite 版
         services.TryAddSingleton(new MemoryOptions());

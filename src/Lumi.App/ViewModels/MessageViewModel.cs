@@ -248,6 +248,8 @@ public sealed record MessageChipViewModel(ContextKind Kind, string DisplayName, 
         {
             switch (block)
             {
+                case ContextBlock { Kind: ContextKind.RecentConversations }:
+                    break;   // 近況清單（M26）是程式自動帶入的，畫面不顯示
                 case ContextBlock { Kind: ContextKind.ScheduledRun } run:
                     // 引用卡：時間放在 Note（內嵌時），紀錄已清掉（沒有內嵌）時 RunGone
                     chips.Add(new MessageChipViewModel(ContextKind.ScheduledRun, run.DisplayName, run.Embedded ? run.Note : null, false,

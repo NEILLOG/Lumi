@@ -284,7 +284,7 @@ public sealed class ConversationService
 
             // 每次呼叫供應商前重組：兩次請求之間設定或記憶可能被改了（同一輪模型剛存的記憶，下一次呼叫就帶上）
             var memory = await LoadMemoryAsync(ct).ConfigureAwait(false);
-            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory, options?.Run));
+            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory, options?.Run, _catalog.Current.Memory.RecentConversations));
 
             // system 在一則對話內固定：第一次送出時記下來，之後都送它。記憶、人設、記憶開關在中途改變時，
             // 不改 system，而是把最新的完整內容附在這一則訊息後面（SystemPromptUpdate）——thinking 簽章綁定 system，改了會 400

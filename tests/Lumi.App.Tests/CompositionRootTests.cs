@@ -142,7 +142,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱
         // M5：四個 prompt 層、M14 的第 5 層（記憶）、M24 的第 6 層（排程說明）都組進去了
-        Assert.Equal([1, 2, 3, 4, 5, 6], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
+        Assert.Equal([1, 2, 3, 4, 5, 6, 7], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
         Assert.IsType<Lumi.Core.Prompts.PromptComposer>(services.GetRequiredService<Lumi.Core.Prompts.IPromptComposer>());
         // M24：排程執行器是同一個執行個體，權限確認經過分流服務
         var scheduledRuns = services.GetRequiredService<Lumi.Core.Reminders.ScheduledRunService>();

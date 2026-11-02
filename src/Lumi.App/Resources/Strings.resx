@@ -492,6 +492,8 @@
   <data name="Memory_StoredHere" xml:space="preserve"><value>記憶存在這台裝置。</value></data>
   <data name="Memory_SentToProvider" xml:space="preserve"><value>記憶會隨每則訊息送到你目前使用的模型供應商。</value></data>
   <data name="Memory_DisabledNote" xml:space="preserve"><value>已關閉：記憶不會送出，Lumi 也不會新增記憶。</value></data>
+  <data name="Memory_RecentConversations" xml:space="preserve"><value>開新對話時，讓 Lumi 參考最近幾則對話</value></data>
+  <data name="Memory_RecentConversationsNote" xml:space="preserve"><value>會把最近 3 則對話的標題、你的要求、做過的動作和最後回覆的片段，隨新對話的第一則訊息送到目前使用的模型供應商，即使那幾則用的是別的模型。</value></data>
   <data name="Memory_Usage" xml:space="preserve"><value>{0}／{1} 則 · {2}／{3} 字</value></data>
   <data name="Memory_NearLimit" xml:space="preserve"><value>接近上限</value></data>
   <data name="Memory_Empty" xml:space="preserve"><value>還沒有記憶。試著對 Lumi 說：『記住我偏好用繁體中文』。</value></data>

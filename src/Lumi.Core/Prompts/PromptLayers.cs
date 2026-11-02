@@ -96,6 +96,20 @@ public sealed class ScheduledRunPromptLayer : IPromptLayer
 }
 
 /// <summary>
+/// 第 7 層：近況清單的使用規則（M26）。固定文字，所有對話逐字相同，不影響跨對話的快取；依開關出現，不依模式改變
+/// （小精靈不帶清單，但 system 層規定不能依模式改內容，沒有清單時規則也不會有作用）。排程執行不出現。
+/// 清單本身放在第一則訊息（<see cref="Context.ContextKind.RecentConversations"/>），不放 system：每則對話內容不同。
+/// </summary>
+public sealed class RecentConversationsPromptLayer : IPromptLayer
+{
+    public int Order => 7;
+    public PromptPlacement Placement => PromptPlacement.System;
+
+    public string? Render(PromptContext context) =>
+        context.RecentConversations && context.Run is null ? $"## 最近的對話\n{PromptText.Get("recent-conversations")}" : null;
+}
+
+/// <summary>
 /// 第 5 層：長期記憶（M14）。system 層，所以工作台與小精靈送出的內容相同。<see cref="PromptContext.Memory"/> 為 null＝記憶關閉，整層不出現。
 /// 排序在這裡做（分類數值、再依 id），同樣的記憶永遠產生逐字相同的文字，快取才會命中。
 /// </summary>

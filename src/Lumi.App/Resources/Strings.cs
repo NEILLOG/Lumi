@@ -480,6 +480,8 @@ public static class Strings
     public static string Memory_StoredHere => Get(nameof(Memory_StoredHere));
     public static string Memory_SentToProvider => Get(nameof(Memory_SentToProvider));
     public static string Memory_DisabledNote => Get(nameof(Memory_DisabledNote));
+    public static string Memory_RecentConversations => Get(nameof(Memory_RecentConversations));
+    public static string Memory_RecentConversationsNote => Get(nameof(Memory_RecentConversationsNote));
     public static string Memory_Usage => Get(nameof(Memory_Usage));
     public static string Memory_NearLimit => Get(nameof(Memory_NearLimit));
     public static string Memory_Empty => Get(nameof(Memory_Empty));

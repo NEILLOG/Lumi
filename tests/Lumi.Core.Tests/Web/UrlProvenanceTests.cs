@@ -24,6 +24,14 @@ public class UrlProvenanceTests
     private static Uri U(string url) => new(url);
 
     [Fact]
+    public void Recent_conversations_digest_is_not_a_source()
+    {
+        var provenance = From(Message(ChatRole.User, new ContextBlock(ContextKind.RecentConversations, "recent_conversations", "", "最後回覆：見 https://a.example/x", true)));
+
+        Assert.False(provenance.IsKnown(U("https://a.example/x")));
+    }
+
+    [Fact]
     public void User_text_url_allows_the_whole_site()
     {
         var provenance = From(UserText("看一下 https://a.example/docs/intro 這頁"));

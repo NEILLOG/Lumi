@@ -170,7 +170,18 @@ internal sealed class FakeModelCatalog : IModelCatalog
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default)
     {
         MemoryEnabledSaves.Add(enabled);
-        Current = Current with { Memory = new Lumi.Core.Models.MemorySettings(enabled) };
+        Current = Current with { Memory = Current.Memory with { Enabled = enabled } };
+        Raise();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>每次 <see cref="SetRecentConversationsEnabledAsync"/> 收到的值。</summary>
+    public List<bool> RecentConversationsSaves { get; } = [];
+
+    public Task SetRecentConversationsEnabledAsync(bool enabled, CancellationToken ct = default)
+    {
+        RecentConversationsSaves.Add(enabled);
+        Current = Current with { Memory = Current.Memory with { RecentConversations = enabled } };
         Raise();
         return Task.CompletedTask;
     }

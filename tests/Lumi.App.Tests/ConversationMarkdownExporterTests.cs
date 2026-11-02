@@ -114,6 +114,20 @@ public class ConversationMarkdownExporterTests
     }
 
     [Fact]
+    public void RecentConversationsDigest_IsNotExported()
+    {
+        var markdown = ConversationMarkdownExporter.Export("標題", [
+            User(
+                new ContextBlock(ContextKind.RecentConversations, "recent_conversations", "", "<recent_conversations>片段</recent_conversations>", Embedded: true),
+                new TextBlock("看這個")),
+        ], ExportedAt);
+
+        Assert.DoesNotContain("recent_conversations", markdown);
+        Assert.DoesNotContain("片段", markdown);
+        Assert.Contains("看這個", markdown);
+    }
+
+    [Fact]
     public void EmptyMessages_AreSkipped()
     {
         var markdown = ConversationMarkdownExporter.Export("標題", [

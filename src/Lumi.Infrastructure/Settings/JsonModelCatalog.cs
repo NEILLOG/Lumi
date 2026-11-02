@@ -249,7 +249,10 @@ public sealed class JsonModelCatalog : IModelCatalog
         MutateAsync(s => s with { Tools = tools.Normalize() }, ct);
 
     public Task SetMemoryEnabledAsync(bool enabled, CancellationToken ct = default) =>
-        MutateAsync(s => s with { Memory = new MemorySettings(enabled).Normalize() }, ct);
+        MutateAsync(s => s with { Memory = (s.Memory with { Enabled = enabled }).Normalize() }, ct);
+
+    public Task SetRecentConversationsEnabledAsync(bool enabled, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Memory = (s.Memory with { RecentConversations = enabled }).Normalize() }, ct);
 
     public Task SetImageGenerationAsync(ImageGenerationSettings settings, CancellationToken ct = default) =>
         MutateAsync(s => s with { ImageGeneration = settings.Normalize() }, ct);

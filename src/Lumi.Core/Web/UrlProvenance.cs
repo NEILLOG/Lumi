@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 
 namespace Lumi.Core.Web;
 
@@ -33,7 +34,8 @@ public sealed partial class UrlProvenance
                         foreach (var url in ExtractUrls(text.Text))
                             provenance._origins.Add(WebOrigin.Of(url));
                         break;
-                    case (ChatRole.User, ContextBlock { Content: { } content }):
+                    // 近況清單（M26）不算來源：它是程式自動帶入的，不是使用者這次給的，不能因此繞過「沒出現過的網站一定詢問」
+                    case (ChatRole.User, ContextBlock { Kind: not ContextKind.RecentConversations, Content: { } content }):
                         provenance.AddExact(content);
                         break;
                     case (ChatRole.Tool, ToolResultBlock result):

@@ -13,7 +13,8 @@ public enum PromptPlacement { System, TurnSuffix }
 /// <summary>組 prompt 時看得到的資訊。不帶對話內容：層只依設定與模式產生文字。</summary>
 /// <param name="Memory">長期記憶（M14，第 5 層）；null＝記憶已關閉，這一層不出現。</param>
 /// <param name="Run">這次是排程自動執行（M24）時的說明；一般對話是 null。</param>
-public sealed record PromptContext(ChatMode Mode, PersonaSettings Persona, MemoryPromptContext? Memory = null, ScheduledRunInfo? Run = null);
+/// <param name="RecentConversations">近況清單的開關（M26，第 7 層）；關閉時這一層不出現。</param>
+public sealed record PromptContext(ChatMode Mode, PersonaSettings Persona, MemoryPromptContext? Memory = null, ScheduledRunInfo? Run = null, bool RecentConversations = false);
 
 /// <summary>排程執行的資訊（M24，給 <c>scheduled-run.md</c> 那一層）。</summary>
 public sealed record ScheduledRunInfo(string ScheduleName, DateTimeOffset PlannedAt, DateTimeOffset StartedAt);
@@ -23,7 +24,7 @@ public sealed record ConversationRunOptions(ScheduledRunInfo? Run = null);
 
 public interface IPromptLayer
 {
-    /// <summary>1 基底、2 人設、3 模式格式、4 角色語氣、5 記憶（System）。不能重複。</summary>
+    /// <summary>1 基底、2 人設、3 模式格式、4 角色語氣、5 記憶（System）、6 排程說明（尾端）、7 近況清單的使用規則（System）。不能重複。</summary>
     int Order { get; }
 
     PromptPlacement Placement { get; }

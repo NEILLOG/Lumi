@@ -53,6 +53,21 @@ public sealed class JsonModelCatalogBehaviorTests : IDisposable
     }
 
     [Fact]
+    public async Task RecentConversations_DefaultsOn_AndIsIndependentOfMemoryEnabled()
+    {
+        var catalog = NewCatalog();
+        Assert.True(catalog.Current.Memory.RecentConversations);
+
+        await catalog.SetRecentConversationsEnabledAsync(false);
+        await catalog.SetMemoryEnabledAsync(false);
+        await catalog.SetMemoryEnabledAsync(true);
+
+        var reloaded = NewCatalog().Current.Memory;
+        Assert.True(reloaded.Enabled);
+        Assert.False(reloaded.RecentConversations);   // 開關記憶不會把它重設
+    }
+
+    [Fact]
     public async Task Saving_DoesNotChangeTheOtherSettings()
     {
         var catalog = NewCatalog();

@@ -1,8 +1,9 @@
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
+using System.Text;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 
 namespace Lumi.Core.Usage;
 
@@ -116,7 +117,8 @@ public static class UsageHintRules
             if (message.Role != ChatRole.User || message.Seq <= summarizedUpto)
                 continue;
 
-            foreach (var block in message.Content.OfType<ContextBlock>())
+            // 近況清單（M26）不是使用者加入的檔案，不提示
+            foreach (var block in message.Content.OfType<ContextBlock>().Where(b => b.Kind != ContextKind.RecentConversations))
             {
                 var tokens = ContextEstimator.EstimateText(block.Content);
                 if (tokens < UsageHintThresholds.BigFileTokens || tokens <= bestTokens)

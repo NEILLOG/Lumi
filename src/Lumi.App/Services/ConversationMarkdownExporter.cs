@@ -72,6 +72,8 @@ public static class ConversationMarkdownExporter
                 case ImageBlock image:
                     parts.Add(string.Format(CultureInfo.CurrentCulture, Strings.Export_ImageFormat, image.DisplayName));
                     break;
+                case ContextBlock { Kind: ContextKind.RecentConversations }:
+                    break;   // 近況清單（M26）是程式自動帶入的，使用者看不到，匯出也不列
                 case ContextBlock context:
                     parts.Add(string.Format(CultureInfo.CurrentCulture, Strings.Export_FileFormat, context.DisplayName));
                     break;

@@ -634,6 +634,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         ContextKind.Folder => "folder",
         ContextKind.Image => "image",
         ContextKind.ScheduledRun => "scheduled_run",
+        ContextKind.RecentConversations => "recent_conversations",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -661,6 +662,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         "folder" => ContextKind.Folder,
         "image" => ContextKind.Image,
         "scheduled_run" => ContextKind.ScheduledRun,
+        "recent_conversations" => ContextKind.RecentConversations,
         _ => throw new InvalidDataException($"未知的上下文種類：{text}"),
     };
 

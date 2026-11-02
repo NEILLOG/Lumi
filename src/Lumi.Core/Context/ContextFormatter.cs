@@ -19,6 +19,10 @@ public static class ContextBlockFormatter
         if (block.Kind == ContextKind.ScheduledRun)
             return ScheduledRunText(block);
 
+        // 近況清單（M26）：內文已經包好 <recent_conversations>，原樣送出
+        if (block.Kind == ContextKind.RecentConversations)
+            return block.Content ?? "";
+
         if (!block.Embedded || block.Content is null)
         {
             // 沒有放內容：告訴模型這個項目在範圍內（檔案與資料夾）以及為什麼沒放內容

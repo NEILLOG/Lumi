@@ -167,6 +167,15 @@ public sealed class UsageHintRulesTests
     }
 
     [Fact]
+    public void BigFile_IgnoresRecentConversationsDigest()
+    {
+        var digest = File("recent_conversations", 15_000) with { Kind = Lumi.Core.Context.ContextKind.RecentConversations };
+        var history = new History().UserWith(digest).Replies(20);
+
+        Assert.DoesNotContain(UsageHintIds.BigFile, Rules(Input(history)));
+    }
+
+    [Fact]
     public void BigFile_NotTriggeredJustBelow15K()
     {
         var history = new History().UserWith(File("a.txt", 14_999)).Replies(20);
