@@ -49,6 +49,7 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<AddNoteTool>();
         services.AddLumiTool<ReadNotesTool>();
         services.AddLumiTool<ConversationSearchTool>();
+        services.AddLumiTool<ReadConversationTool>();
 
         // 提醒與排程（M10 10E）：IReminderService 與 ReminderOptions 由 Lumi.Core 註冊
         services.AddLumiTool<CreateReminderTool>();
