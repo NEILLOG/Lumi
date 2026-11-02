@@ -1,7 +1,9 @@
+using System.Reflection;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
 using Lumi.Core.Memory;
+using Lumi.Core.Models;
 
 namespace Lumi.App.Tests;
 
@@ -517,5 +519,125 @@ public sealed class MemoryViewModelTests : IDisposable
 
         Assert.False(_vm.IsEnabled);
         Assert.Equal(Strings.Memory_DisabledNote, _vm.EnabledNote);
+    }
+
+    // ---- 近況清單的開關（M26 D10：和長期記憶互相獨立，立即套用） ----
+
+    [Fact]
+    public void RecentConversations_DefaultsOn()
+    {
+        Assert.True(_vm.IsRecentConversationsEnabled);
+    }
+
+    [Fact]
+    public void RecentConversations_ReadsOff_WhenTheSettingsSayOff()
+    {
+        _catalog.Current = _catalog.Current with { Memory = new Lumi.Core.Models.MemorySettings(RecentConversations: false) };
+        using var vm = new MemoryViewModel(_store, _catalog, _confirm, new SyncUiDispatcher(), new FakeTimeProvider());
+
+        Assert.False(vm.IsRecentConversationsEnabled);
+        Assert.True(vm.IsEnabled);   // 長期記憶仍是開的
+    }
+
+    [Fact]
+    public void RecentConversations_Toggle_CallsSave_AndUpdatesTheSwitch()
+    {
+        _vm.IsRecentConversationsEnabled = false;
+
+        Assert.Equal([false], _catalog.RecentConversationsSaves);
+        Assert.False(_catalog.Current.Memory.RecentConversations);
+        Assert.False(_vm.IsRecentConversationsEnabled);
+
+        _vm.IsRecentConversationsEnabled = true;
+
+        Assert.Equal([false, true], _catalog.RecentConversationsSaves);
+        Assert.True(_vm.IsRecentConversationsEnabled);
+    }
+
+    [Fact]
+    public void RecentConversations_ToTheSameValue_DoesNotSave()
+    {
+        _vm.IsRecentConversationsEnabled = true;
+
+        Assert.Empty(_catalog.RecentConversationsSaves);
+    }
+
+    [Fact]
+    public void RecentConversations_AndMemoryEnabled_DoNotAffectEachOther()
+    {
+        _vm.IsEnabled = false;
+
+        Assert.True(_vm.IsRecentConversationsEnabled);
+        Assert.Empty(_catalog.RecentConversationsSaves);
+
+        _vm.IsRecentConversationsEnabled = false;
+
+        Assert.False(_vm.IsEnabled);   // 關閉近況清單不會把長期記憶一起關掉
+        Assert.Equal([false], _catalog.MemoryEnabledSaves);
+        Assert.Equal([false], _catalog.RecentConversationsSaves);
+    }
+
+    [Fact]
+    public void RecentConversations_SaveFailure_RestoresTheSwitch_AndShowsTheError()
+    {
+        using var vm = new MemoryViewModel(_store, SaveFailingModelCatalog.Wrap(_catalog, new InvalidOperationException("設定檔寫不進去")),
+            _confirm, new SyncUiDispatcher(), new FakeTimeProvider());
+
+        vm.IsRecentConversationsEnabled = false;
+
+        Assert.True(vm.IsRecentConversationsEnabled);   // 沒有存成功：回到原來的值
+        Assert.Equal("設定檔寫不進去", vm.Message);
+        Assert.True(vm.MessageIsError);
+        Assert.True(vm.IsEnabled);   // 長期記憶不受影響
+    }
+
+    [Fact]
+    public void RecentConversations_IoFailure_ShowsTheGenericSaveError()
+    {
+        using var vm = new MemoryViewModel(_store, SaveFailingModelCatalog.Wrap(_catalog, new IOException("disk")),
+            _confirm, new SyncUiDispatcher(), new FakeTimeProvider());
+
+        vm.IsRecentConversationsEnabled = false;
+
+        Assert.True(vm.IsRecentConversationsEnabled);
+        Assert.Equal(Strings.Settings_SaveFailed, vm.Message);
+        Assert.True(vm.MessageIsError);
+    }
+
+    [Fact]
+    public void RecentConversations_ExternalChange_UpdatesTheSwitch_WithoutTouchingMemoryEnabled()
+    {
+        _catalog.Current = _catalog.Current with { Memory = new Lumi.Core.Models.MemorySettings(Enabled: true, RecentConversations: false) };
+
+        _catalog.Raise();
+
+        Assert.False(_vm.IsRecentConversationsEnabled);
+        Assert.True(_vm.IsEnabled);
+    }
+}
+
+/// <summary>
+/// 讓 <see cref="IModelCatalog.SetRecentConversationsEnabledAsync"/> 回傳失敗的假目錄；其餘成員都轉給 <see cref="FakeModelCatalog"/>。
+/// 用 <see cref="DispatchProxy"/> 是因為 FakeModelCatalog 是 sealed，而 IModelCatalog 的成員很多。
+/// </summary>
+public class SaveFailingModelCatalog : DispatchProxy
+{
+    private FakeModelCatalog _inner = null!;
+    private Exception _failure = null!;
+
+    internal static IModelCatalog Wrap(FakeModelCatalog inner, Exception failure)
+    {
+        var proxy = Create<IModelCatalog, SaveFailingModelCatalog>();
+        var typed = (SaveFailingModelCatalog)proxy;
+        typed._inner = inner;
+        typed._failure = failure;
+        return proxy;
+    }
+
+    protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+    {
+        if (targetMethod!.Name == nameof(IModelCatalog.SetRecentConversationsEnabledAsync))
+            return Task.FromException(_failure);
+        return targetMethod.Invoke(_inner, args);
     }
 }
