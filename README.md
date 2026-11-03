@@ -12,8 +12,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![BYOK](https://img.shields.io/badge/BYOK-自帶金鑰-2E7D6B)
 
-<!-- TODO 主視覺：一段 6～8 秒的 GIF——桌面上的光球被點開 → 浮出輸入列 → 簡短回答 → 一鍵展開成工作台 -->
-<!-- <img src="docs/images/hero.gif" width="760" alt="Lumi 從小精靈切換到工作台"> -->
+<img src="docs/images/hero.gif" width="760" alt="Lumi 從小精靈切換到工作台">
 
 [**⬇ 下載 Windows／macOS 版**](https://github.com/NEILLOG/Lumi/releases/latest) · [功能一覽](#-亮點) · [打造你的小精靈](#-打造你自己的小精靈) · [從原始碼建置](#-技術棧與建置)
 
@@ -43,16 +42,14 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 </td>
 <td width="50%" valign="top">
 
-<!-- TODO 截圖：桌面上的小精靈＋氣泡回答 -->
-<!-- <img src="docs/images/sprite-mode.png" alt="小精靈模式"> -->
+<img src="docs/images/sprite-mode.png" alt="小精靈模式">
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-<!-- TODO 截圖：工作台，工具卡片＋權限確認 -->
-<!-- <img src="docs/images/tools.png" alt="工具呼叫與確認"> -->
+<img src="docs/images/tools.png" alt="工具呼叫與確認">
 
 </td>
 <td valign="top">
@@ -73,16 +70,14 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 </td>
 <td valign="top">
 
-<!-- TODO 截圖：設定 › 用量與費用 -->
-<!-- <img src="docs/images/usage.png" alt="用量與費用"> -->
+<img src="docs/images/usage.png" alt="用量與費用">
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-<!-- TODO 截圖：歷史對話的「排程」分頁 -->
-<!-- <img src="docs/images/schedule.png" alt="排程"> -->
+<img src="docs/images/schedule.png" alt="排程">
 
 </td>
 <td valign="top">
@@ -102,16 +97,14 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 </td>
 <td valign="top">
 
-<!-- TODO 截圖：設定 › 記憶 -->
-<!-- <img src="docs/images/memory.png" alt="長期記憶"> -->
+<img src="docs/images/memory.png" alt="長期記憶">
 
 </td>
 </tr>
 <tr>
 <td valign="top">
 
-<!-- TODO 截圖：設定 › MCP 伺服器，貼上 JSON 匯入 -->
-<!-- <img src="docs/images/mcp.png" alt="MCP 伺服器"> -->
+<img src="docs/images/mcp.png" alt="MCP 伺服器">
 
 </td>
 <td valign="top">
@@ -147,8 +140,7 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 <table>
 <tr>
 <td align="center" width="33%">
-<!-- TODO 光球是程式繪製的，沒有 preview.png；可以截一張或錄 GIF 放這裡 -->
-<!-- <img src="docs/images/orb.png" width="140" alt="光球"><br> -->
+<img src="docs/images/orb.png" width="140" alt="光球"><br>
 <b>光球</b><br><sub>程式繪製・會呼吸・閒置自動降幀省電</sub>
 </td>
 <td align="center" width="33%">
