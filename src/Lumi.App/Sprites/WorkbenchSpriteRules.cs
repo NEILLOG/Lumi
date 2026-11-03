@@ -24,7 +24,7 @@ public static class WorkbenchSpriteRules
     public const double MinCapsuleWidth = 280;
 
     /// <summary>探頭時，頭頂以下露出多少。</summary>
-    public const double PeekShow = 16;
+    public const double PeekShow = 24;
 
     /// <summary>閒置多久才縮回去。</summary>
     public static readonly TimeSpan PeekDelay = TimeSpan.FromSeconds(10);

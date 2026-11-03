@@ -113,22 +113,22 @@ public class WorkbenchSpriteRulesTests
     [Fact]
     public void PeekDepth_Corgi_IsFromTheVisibleTop()
     {
-        // 柯基：框 56，頭頂 6.72 → 露出 16 → 下沉 33.28
-        Assert.Equal(33.28, WorkbenchSpriteRules.PeekDepth(56, 6.72), 6);
+        // 柯基：框 56，頭頂 6.72 → 露出 16 → 下沉 25.28
+        Assert.Equal(25.28, WorkbenchSpriteRules.PeekDepth(56, 6.72), 6);
     }
 
     [Fact]
     public void PeekDepth_Robot_IsFromTheVisibleTop()
     {
-        // 機器人：框 48，頭頂 7.68 → 下沉 24.32
-        Assert.Equal(24.32, WorkbenchSpriteRules.PeekDepth(48, 7.68), 6);
+        // 機器人：框 48，頭頂 7.68 → 下沉 16.32
+        Assert.Equal(16.32, WorkbenchSpriteRules.PeekDepth(48, 7.68), 6);
     }
 
     [Fact]
     public void PeekDepth_Orb_IsFromTheVisibleTop()
     {
-        // 光球：框 86.4，頭頂 23.04 → 下沉 47.36
-        Assert.Equal(47.36, WorkbenchSpriteRules.PeekDepth(86.4, 23.04), 6);
+        // 光球：框 86.4，頭頂 23.04 → 下沉 39.36
+        Assert.Equal(39.36, WorkbenchSpriteRules.PeekDepth(86.4, 23.04), 6);
     }
 
     [Fact]
