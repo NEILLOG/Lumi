@@ -108,10 +108,12 @@
         <!-- 歡迎區：對話沒有任何訊息（且不在載入中）時顯示（RWD：narrow 隱藏副標、veryshort 整個隱藏） -->
         <Border x:Name="WelcomeHost">
         <StackPanel x:Name="WelcomePanel" IsVisible="{Binding ShowWelcome}" HorizontalAlignment="Center" Spacing="12">
-          <Border Width="64" Height="64" HorizontalAlignment="Center" CornerRadius="{StaticResource LumiRadiusPanel}"
-                  Background="{DynamicResource LumiAccentSoftBrush}">
+          <Border x:Name="WelcomeIcon" IsVisible="{Binding ShowWelcomeIcon}" Width="64" Height="64" HorizontalAlignment="Center"
+                  CornerRadius="{StaticResource LumiRadiusPanel}" Background="{DynamicResource LumiAccentSoftBrush}">
             <ctl:LumiIcon Data="{StaticResource LumiIconSparkle}" Size="32" Foreground="{DynamicResource LumiAccentBrush}" />
           </Border>
+          <!-- 工作台小精靈（M27）：取代方塊；大小是角色框，內容由 WorkbenchSpritePresenter 放入，光暈溢出不佔版面 -->
+          <Panel x:Name="WelcomeSpriteSlot" IsVisible="{Binding IsWorkbenchSpriteEnabled}" HorizontalAlignment="Center" />
           <TextBlock x:Name="WelcomeTitle" Text="{x:Static res:Strings.Workbench_WelcomeTitle}" HorizontalAlignment="Center" TextAlignment="Center"
                      TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeTitle}" FontWeight="Bold" />
           <TextBlock x:Name="WelcomeSubtitle" Text="{x:Static res:Strings.Workbench_WelcomeSubtitle}" Classes="muted"

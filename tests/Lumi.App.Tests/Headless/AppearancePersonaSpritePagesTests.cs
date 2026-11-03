@@ -487,6 +487,18 @@ public class AppearancePersonaSpritePagesTests
         Assert.False(BadgeShown(orb));
     }
 
+    /// <summary>狀態預覽清單的選取項不能把整頁捲下去（M27 加了設定項之後，一開頁就捲到中間）。</summary>
+    [AvaloniaFact]
+    public async Task SpritePage_OpensAtTheTop_EvenWhenTheStateListIsBelowTheFold()
+    {
+        using var pack = new CorgiPack();
+        using var rig = new Rig(SpriteIndex, host: await HostWithCorgi(pack, broken: false));
+        var scroll = rig.Window.FindByName<ScrollViewer>("SpriteScroll");
+
+        Assert.Equal(0, scroll.Offset.Y);
+        Assert.False(rig.Window.FindByName<ListBox>("SpriteStateList").AutoScrollToSelectedItem);
+    }
+
     [AvaloniaFact]
     public async Task SpritePage_FolderButtons_AreSecondary_AndThereIsNoPrimary()
     {

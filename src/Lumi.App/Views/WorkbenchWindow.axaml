@@ -5,6 +5,7 @@
         xmlns:res="using:Lumi.App.Resources"
         xmlns:views="using:Lumi.App.Views"
         xmlns:md="using:Lumi.App.Markdown"
+        xmlns:sprites="using:Lumi.App.Sprites"
         x:Name="Root"
         Icon="avares://Lumi.App/Assets/Icons/lumi-256.png"
         x:Class="Lumi.App.Views.WorkbenchWindow"
@@ -59,6 +60,9 @@
 
     <!-- 工具列：新對話、歷史對話、模型膠囊（CapsuleButton）、「…」選單 -->
     <views:ChatToolbar x:Name="Toolbar" Grid.Row="1" />
+
+    <!-- 工作台小精靈（M27）：蓋在標題列與工具列上，腳踩分隔線；不佔版面，只有角色本體接滑鼠（其他地方仍可拖曳視窗） -->
+    <sprites:WorkbenchSpriteStage x:Name="SpriteStage" Grid.Row="0" Grid.RowSpan="2" />
 
     <!-- 歷史對話抽屜（內嵌，開啟時把訊息區往右推） -->
     <SplitView Grid.Row="2" IsPaneOpen="{Binding History.IsOpen}" PanePlacement="Left" OpenPaneLength="260"

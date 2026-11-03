@@ -771,6 +771,7 @@
                 <TextBlock Classes="section-title" Text="{x:Static res:Strings.SpriteSettings_Preview}" />
                 <TextBlock Classes="muted" Text="{x:Static res:Strings.SpriteSettings_PreviewNote}" TextWrapping="Wrap" />
                 <ListBox x:Name="SpriteStateList" Classes="rows" Margin="0,8,0,0" ItemsSource="{Binding States}" SelectedItem="{Binding PreviewState}"
+                         AutoScrollToSelectedItem="False"
                          AutomationProperties.Name="{x:Static res:Strings.SpriteSettings_Preview}">
                   <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:SpriteStateItem">

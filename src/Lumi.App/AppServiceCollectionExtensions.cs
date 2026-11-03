@@ -151,6 +151,7 @@ public static class AppServiceCollectionExtensions
             sp.GetRequiredService<IScheduledRunService>(), () => sp.GetRequiredService<IScheduledRunViewer>(), sp.GetRequiredService<ISettingsWindowService>(),
             sp.GetRequiredService<IConfirmService>(), sp.GetRequiredService<IUiDispatcher>(), sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ScheduledRunOptions>(), sp.GetRequiredService<ILogger<ScheduledRunsViewModel>>()));
+        services.AddTransient<WorkbenchSpritePresenter>();
         services.AddTransient<WorkbenchWindow>();
         return services;
     }

@@ -162,10 +162,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
         _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
         _isTopmost = catalog.Current.Behavior.WorkbenchTopmost;
+        _isWorkbenchSpriteEnabled = catalog.Current.Behavior.WorkbenchSprite;
         catalog.Changed += (_, settings) => dispatcher.Post(() =>
         {
             ShowTokenUsage = settings.Display.ShowTokenUsage;
             IsTopmost = settings.Behavior.WorkbenchTopmost;
+            IsWorkbenchSpriteEnabled = settings.Behavior.WorkbenchSprite;
             OnModelSettingsChanged();
         });
         status.Changed += (_, _) => dispatcher.Post(OnConnectionStatusChanged);
@@ -178,6 +180,17 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// 避免啟動時載入前閃一下。
     /// </summary>
     public bool ShowWelcome => !IsLoadingMessages && Messages.Count == 0 && ViewingRun is null;
+
+    /// <summary>送出這則對話的第一則訊息，訊息即將出現（歡迎區還在）。工作台角色在這裡決定要瞬移（plan/27 D6）。</summary>
+    internal event Action? FirstMessageSending;
+
+    /// <summary>在工作台顯示小精靈（M27，設定 › 小精靈）。開啟時歡迎區的方塊換成角色。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowWelcomeIcon))]
+    private bool _isWorkbenchSpriteEnabled;
+
+    /// <summary>歡迎區顯示 ✦ 方塊（沒開工作台小精靈時）。</summary>
+    public bool ShowWelcomeIcon => !IsWorkbenchSpriteEnabled;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowWelcome))]
@@ -403,7 +416,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _modes?.WorkbenchWillSend();   // 在工作台送出＝切換到工作台模式（小精靈隱藏）
         InputText = "";
         if (Messages.Count == 0)
+        {
             Title = ConversationService.MakeTitle(text);   // 與 ConversationService 存進資料庫的標題相同
+            FirstMessageSending?.Invoke();
+        }
         // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
         Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips()), _time.GetUtcNow()));
         await DismissVisibleHintsAsync();   // 送出新訊息：目前的提示收起（記為 Dismissed）
@@ -859,7 +875,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         {
             // 別處（小精靈）送出的：同一則對話，使用者的訊息也要出現在這裡
             if (Messages.Count == 0)
+            {
                 Title = ConversationService.MakeTitle(text);
+                FirstMessageSending?.Invoke();
+            }
             Messages.Add(MessageViewModel.User(text, createdAt: _time.GetUtcNow()));
         }
 

@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Lumi.App.Services;
+using Lumi.App.Sprites;
 using Lumi.App.ViewModels;
 using Lumi.App.Views.Responsive;
 using Lumi.Core.Models;
@@ -16,8 +17,9 @@ public partial class WorkbenchWindow : Window
     private readonly WorkbenchWindowMemory? _memory;
 
     /// <param name="settings">有值時記住視窗的位置與大小（M9 9D）；測試不傳就維持預設置中。</param>
+    /// <param name="sprite">工作台小精靈（M27）；測試不傳就沒有角色。</param>
     public WorkbenchWindow(WorkbenchViewModel viewModel, IAppModeCoordinator? modes = null, IModelCatalog? settings = null,
-        TimeProvider? time = null, ILogger<WorkbenchWindow>? logger = null)
+        TimeProvider? time = null, ILogger<WorkbenchWindow>? logger = null, WorkbenchSpritePresenter? sprite = null)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -34,6 +36,11 @@ public partial class WorkbenchWindow : Window
             modelFlyout.Closed += (_, _) => _ = viewModel.ModelSwitcher.DismissPendingSwitchAsync();
         viewModel.RetrySwitcher.Selected += () => Conversation.RetryOtherModelButton.Flyout?.Hide();
         Opened += OnOpened;
+        if (sprite is not null)
+        {
+            sprite.Attach(new WorkbenchSpriteViews(this, SpriteStage, Conversation.WelcomeSpriteSlot, Toolbar, TitleBar.SpriteModeButton, viewModel));
+            Closed += (_, _) => sprite.Dispose();
+        }
 
         // 工作台模式下關閉視窗＝結束程式；小精靈模式下只是關掉工作台（改成隱藏，之後還能從小精靈或托盤再開）
         Closing += (_, e) =>
