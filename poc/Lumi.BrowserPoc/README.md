@@ -1,6 +1,6 @@
 # Lumi 瀏覽器 POC（M18）
 
-驗證 Playwright 驅動 Edge／Chrome 的關鍵假設（`plan/18-browser.md`）。**不在 `Lumi.sln` 內。** 它會在暫存資料夾建一個全新的瀏覽器設定檔，不會碰你平常的瀏覽器資料，跑完就刪除。
+驗證 Playwright 驅動 Edge／Chrome 的關鍵假設。**不在 `Lumi.sln` 內。** 它會在暫存資料夾建一個全新的瀏覽器設定檔，不會碰你平常的瀏覽器資料，跑完就刪除。
 
 ## 執行
 

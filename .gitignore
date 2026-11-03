@@ -5,6 +5,4 @@ obj/
 *.user
 .DS_Store
 
-# 公司內部系統規格：只存在本機，不公開
-outter_sys_spec/
 artifacts/
