@@ -29,17 +29,39 @@ public static class WorkbenchSpriteRules
     /// <summary>閒置多久才縮回去。</summary>
     public static readonly TimeSpan PeekDelay = TimeSpan.FromSeconds(10);
 
-    public static WorkbenchSpriteSlot ResolveSlot(bool enabled, bool showWelcome, bool loading, bool viewingRun, bool toolbarFits, WorkbenchSpriteSlot previous) =>
-        throw new NotImplementedException();   // TODO(27B)
+    public static WorkbenchSpriteSlot ResolveSlot(bool enabled, bool showWelcome, bool loading, bool viewingRun, bool toolbarFits, WorkbenchSpriteSlot previous)
+    {
+        // 關閉或正在看排程紀錄：不顯示（plan/27 第 8.3 節，由上而下）
+        if (!enabled || viewingRun)
+            return WorkbenchSpriteSlot.None;
+
+        // 載入訊息中維持原位置，避免閃動
+        if (loading)
+            return previous;
+
+        if (showWelcome)
+            return WorkbenchSpriteSlot.Welcome;
+
+        if (toolbarFits)
+            return WorkbenchSpriteSlot.Toolbar;
+
+        return WorkbenchSpriteSlot.None;
+    }
 
     /// <param name="modeButtonLeft">「小精靈模式」按鈕的左緣（視窗座標）。</param>
     /// <param name="boxWidth">角色框的寬度（不含光暈）。</param>
     /// <param name="capsuleColumnLeft">模型選單那一欄的左緣（視窗座標）。</param>
     /// <param name="capsuleColumnRight">模型選單那一欄的右緣（視窗座標）。</param>
-    public static WorkbenchSpritePlacement PlaceOnToolbar(double modeButtonLeft, double boxWidth, double capsuleColumnLeft, double capsuleColumnRight) =>
-        throw new NotImplementedException();   // TODO(27B)
+    public static WorkbenchSpritePlacement PlaceOnToolbar(double modeButtonLeft, double boxWidth, double capsuleColumnLeft, double capsuleColumnRight)
+    {
+        var boxRight = modeButtonLeft - Gap;
+        var boxLeft = boxRight - boxWidth;
+        var fits = boxLeft - Gap - capsuleColumnLeft >= MinCapsuleWidth && boxRight <= capsuleColumnRight;
+        var reserve = fits ? Math.Max(0, capsuleColumnRight - (boxLeft - Gap)) : 0;
+        return new WorkbenchSpritePlacement(fits, boxLeft, reserve);
+    }
 
     /// <summary>探頭的下沉量：<paramref name="outerHeight"/> 是 <c>SpriteOptions.Outer.Height</c>，<paramref name="headTop"/> 是 <c>ISpriteView.BubbleAnchor.Y</c>。不會是負值。</summary>
     public static double PeekDepth(double outerHeight, double headTop) =>
-        throw new NotImplementedException();   // TODO(27B)
+        Math.Max(0, outerHeight - (headTop + PeekShow));
 }
