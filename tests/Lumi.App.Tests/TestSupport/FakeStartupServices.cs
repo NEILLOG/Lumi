@@ -41,7 +41,7 @@ internal sealed class FakeUpdateService : IUpdateService
     public Exception? SkipFailure { get; set; }
 
     public static UpdateInfo Release(string version = "9.9.9", string notes = "## 新功能\n- 好用") =>
-        new(version, $"Lumi {version}", notes, new Uri($"https://github.com/NEILLOG/DesktopAgent/releases/tag/v{version}"), null);
+        new(version, $"Lumi {version}", notes, new Uri($"https://github.com/NEILLOG/Lumi/releases/tag/v{version}"), null);
 
     /// <summary>模擬啟動時檢查到新版。</summary>
     public void Announce(UpdateInfo? update)

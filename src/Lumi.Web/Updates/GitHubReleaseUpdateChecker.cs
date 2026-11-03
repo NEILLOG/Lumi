@@ -10,7 +10,7 @@ namespace Lumi.Web.Updates;
 /// </summary>
 internal sealed class GitHubReleaseUpdateChecker(IWebClient web) : IUpdateChecker
 {
-    public const string Repository = "NEILLOG/DesktopAgent";
+    public const string Repository = "NEILLOG/Lumi";
 
     /// <summary>發佈說明最多保留的字數：只是給人看的摘要，超過的部分請使用者到網頁看。</summary>
     internal const int MaxNotesLength = 6000;

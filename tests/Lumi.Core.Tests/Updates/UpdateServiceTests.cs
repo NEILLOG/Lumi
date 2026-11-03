@@ -23,7 +23,7 @@ public sealed class UpdateServiceTests
     }
 
     private static UpdateInfo Release(string version) =>
-        new(version, $"Lumi {version}", "修正問題", new Uri($"https://github.com/NEILLOG/DesktopAgent/releases/tag/v{version}"), null);
+        new(version, $"Lumi {version}", "修正問題", new Uri($"https://github.com/NEILLOG/Lumi/releases/tag/v{version}"), null);
 
     private static string Newer => NextVersion(1);
 

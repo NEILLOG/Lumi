@@ -43,7 +43,7 @@ public sealed class GitHubReleaseUpdateCheckerTests
 
         var info = await new GitHubReleaseUpdateChecker(web).GetLatestAsync(CancellationToken.None);
 
-        Assert.Equal("https://api.github.com/repos/NEILLOG/DesktopAgent/releases/latest", web.Request!.Url.AbsoluteUri);
+        Assert.Equal("https://api.github.com/repos/NEILLOG/Lumi/releases/latest", web.Request!.Url.AbsoluteUri);
         Assert.Equal("1.4.0", info!.Version);
         Assert.Equal("Lumi 1.4.0", info.Title);
         Assert.Equal("## 新功能\n- 開機後自動啟動\n- 可以釘選在最上層", info.Notes);
@@ -55,7 +55,7 @@ public sealed class GitHubReleaseUpdateCheckerTests
     {
         var info = await new GitHubReleaseUpdateChecker(new FakeWeb(200, Release)).GetLatestAsync(CancellationToken.None);
 
-        Assert.Equal("https://github.com/NEILLOG/DesktopAgent/releases/tag/v1.4.0", info!.PageUrl.AbsoluteUri);
+        Assert.Equal("https://github.com/NEILLOG/Lumi/releases/tag/v1.4.0", info!.PageUrl.AbsoluteUri);
     }
 
     [Fact]

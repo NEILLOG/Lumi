@@ -242,7 +242,7 @@ public sealed class StartupAndUpdateViewModelTests
 
         await notice.DownloadCommand.ExecuteAsync(null);
 
-        Assert.Equal(["https://github.com/NEILLOG/DesktopAgent/releases/tag/v9.9.9"], launcher.Opened.Select(u => u.AbsoluteUri));
+        Assert.Equal(["https://github.com/NEILLOG/Lumi/releases/tag/v9.9.9"], launcher.Opened.Select(u => u.AbsoluteUri));
         Assert.False(notice.HasMessage);
     }
 
@@ -254,7 +254,7 @@ public sealed class StartupAndUpdateViewModelTests
         await notice.DownloadCommand.ExecuteAsync(null);
 
         Assert.True(notice.HasMessage);
-        Assert.Contains("https://github.com/NEILLOG/DesktopAgent/releases/tag/v9.9.9", notice.Message);
+        Assert.Contains("https://github.com/NEILLOG/Lumi/releases/tag/v9.9.9", notice.Message);
     }
 
     [Fact]
