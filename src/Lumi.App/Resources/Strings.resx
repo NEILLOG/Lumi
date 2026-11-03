@@ -803,6 +803,9 @@
   <data name="SpriteSettings_Topmost" xml:space="preserve"><value>顯示位置</value></data>
   <data name="SpriteSettings_TopmostToggle" xml:space="preserve"><value>永遠顯示在其他視窗上方</value></data>
   <data name="SpriteSettings_TopmostNote" xml:space="preserve"><value>關閉後，小精靈會像一般視窗一樣，被其他視窗蓋住。</value></data>
+  <data name="SpriteSettings_Workbench" xml:space="preserve"><value>在工作台顯示小精靈</value></data>
+  <data name="SpriteSettings_WorkbenchToggle" xml:space="preserve"><value>顯示</value></data>
+  <data name="SpriteSettings_WorkbenchNote" xml:space="preserve"><value>在新對話的歡迎區與工具列旁陪你，不影響任何功能。尺寸固定，不受上面的尺寸設定影響。</value></data>
   <data name="Startup_Title" xml:space="preserve"><value>啟動與更新</value></data>
   <data name="Startup_LaunchAtLogin" xml:space="preserve"><value>開機後自動啟動 Lumi</value></data>
   <data name="Startup_LaunchAtLoginNote" xml:space="preserve"><value>登入電腦後自動開啟 Lumi，並回到上次使用的模式（工作台或小精靈）。</value></data>

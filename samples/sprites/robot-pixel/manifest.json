@@ -17,6 +17,7 @@
   },
   "voice": "語氣簡潔、帶點機械感，偶爾用「嗶」開頭。",
   "rendering": "pixelated",
+  "pixelGrid": 48,
   "animations": {
     "idle": {
       "source": "idle.png",

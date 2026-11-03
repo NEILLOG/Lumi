@@ -792,6 +792,9 @@ public static class Strings
     public static string SpriteSettings_Topmost => Get(nameof(SpriteSettings_Topmost));
     public static string SpriteSettings_TopmostToggle => Get(nameof(SpriteSettings_TopmostToggle));
     public static string SpriteSettings_TopmostNote => Get(nameof(SpriteSettings_TopmostNote));
+    public static string SpriteSettings_Workbench => Get(nameof(SpriteSettings_Workbench));
+    public static string SpriteSettings_WorkbenchToggle => Get(nameof(SpriteSettings_WorkbenchToggle));
+    public static string SpriteSettings_WorkbenchNote => Get(nameof(SpriteSettings_WorkbenchNote));
     public static string Startup_Title => Get(nameof(Startup_Title));
     public static string Startup_LaunchAtLogin => Get(nameof(Startup_LaunchAtLogin));
     public static string Startup_LaunchAtLoginNote => Get(nameof(Startup_LaunchAtLoginNote));
