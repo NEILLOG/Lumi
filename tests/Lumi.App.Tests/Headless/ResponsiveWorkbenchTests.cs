@@ -249,6 +249,39 @@ public class ResponsiveWorkbenchTests
     }
 
     [AvaloniaTheory]
+    [InlineData(1200)]
+    [InlineData(700)]
+    [InlineData(520)]
+    public void TheCapsule_SitsRightAfterHistory_WithTheColumnSpacing_AtEveryWidth(double width)
+    {
+        var rig = new Rig(width, 650);
+        var history = BoundsIn(rig.Toolbar.HistoryButton, rig.Window);
+        var capsule = BoundsIn(rig.Toolbar.CapsuleButton, rig.Window);
+
+        Assert.Equal(history.Right + 12, capsule.Left, 0.5);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public void SetCapsuleReserve_ShortensALongModelName_AndZeroRestoresTheMargin()
+    {
+        var rig = new Rig(1200, 650, "provider/" + new string('x', 200));
+        var toolbar = rig.Toolbar;
+
+        toolbar.SetCapsuleReserve(300);
+        rig.Window.UpdateLayout();
+        var column = toolbar.CapsuleColumnIn(rig.Window)!.Value;
+        var capsule = BoundsIn(toolbar.CapsuleButton, rig.Window);
+        Assert.Equal(new Thickness(0, 0, 300, 0), toolbar.CapsuleButton.Margin);
+        Assert.True(capsule.Right <= column.Right - 300 + 0.5, $"capsule right {capsule.Right} > column right {column.Right} - 300");
+
+        toolbar.SetCapsuleReserve(0);
+        rig.Window.UpdateLayout();
+        Assert.Equal(new Thickness(0), toolbar.CapsuleButton.Margin);
+        rig.Window.Close();
+    }
+
+    [AvaloniaTheory]
     [InlineData(1200, 64, 64)]
     [InlineData(900, 24, 24)]
     [InlineData(620, 24, 24)]

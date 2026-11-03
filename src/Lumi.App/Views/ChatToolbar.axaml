@@ -36,14 +36,8 @@
     <Style Selector="FlyoutPresenter.usage-flyout">
       <Setter Property="Padding" Value="0" />
     </Style>
-    <!-- 模型膠囊：圓角膠囊形的 secondary，文字過長時省略，不推走其他按鈕 -->
+    <!-- 模型選單：一般圓角（10，同新對話、歷史對話）的 secondary，文字過長時省略，不推走其他按鈕 -->
     <Style Selector="Button.capsule">
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="FocusAdorner">
-        <FocusAdornerTemplate>
-          <Border BorderThickness="2" CornerRadius="16" BorderBrush="{DynamicResource LumiAccentBrush}" IsHitTestVisible="False" />
-        </FocusAdornerTemplate>
-      </Setter>
       <Setter Property="MinWidth" Value="120" />
       <Setter Property="MaxWidth" Value="360" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -78,7 +72,7 @@
           Background="{DynamicResource LumiChromeBrush}"
           BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+      <StackPanel x:Name="ToolbarLeftButtons" Grid.Column="0" Orientation="Horizontal" Spacing="8">
         <Button x:Name="NewConversationButton" Classes="secondary toolbar collapsible" Command="{Binding NewConversationCommand}"
                 ToolTip.Tip="{x:Static res:Strings.Workbench_NewConversation}"
                 AutomationProperties.Name="{x:Static res:Strings.Workbench_NewConversation}">
@@ -97,8 +91,8 @@
         </Button>
       </StackPanel>
 
-      <!-- 模型切換膠囊：狀態點、「供應商 · model ID」、下拉箭頭。回應中停用，Tooltip 說明原因（不佔版面） -->
-      <Button x:Name="CapsuleButton" Grid.Column="1" Classes="secondary toolbar capsule" HorizontalAlignment="Center"
+      <!-- 模型切換按鈕：接在歷史對話之後（靠左，間距就是 Grid 的 ColumnSpacing 12）。狀態點、「供應商 · model ID」、下拉箭頭。回應中停用，Tooltip 說明原因（不佔版面） -->
+      <Button x:Name="CapsuleButton" Grid.Column="1" Classes="secondary toolbar capsule" HorizontalAlignment="Left"
               IsEnabled="{Binding CanSwitchModel}"
               ToolTip.Tip="{Binding ModelCapsuleTip}" ToolTip.ShowOnDisabled="True"
               AutomationProperties.Name="{Binding ModelSwitcher.CapsuleText}">
@@ -135,7 +129,7 @@
       </Button>
 
       <!-- 右側：用量圓環（點開面板看詳情）、「⋯」對話動作（重新命名、匯出、刪除）。設定在第一列的齒輪，管理連線與模型在模型選單底部 -->
-      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+      <StackPanel x:Name="ToolbarRightButtons" Grid.Column="2" Orientation="Horizontal" Spacing="8">
         <Button x:Name="UsageButton" Classes="tertiary toolbar iconOnly usage" Classes.danger="{Binding Usage.IsNearLimit}"
                 ToolTip.Tip="{Binding Usage.RingTooltip}"
                 AutomationProperties.Name="{Binding Usage.RingAutomationName}">

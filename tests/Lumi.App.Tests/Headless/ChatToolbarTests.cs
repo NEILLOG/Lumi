@@ -76,6 +76,34 @@ public class ChatToolbarTests
     }
 
     [AvaloniaFact]
+    public void NewHistoryAndCapsule_ShareOneCornerRadius_Of10()
+    {
+        var rig = new Rig();
+        var toolbar = rig.Toolbar;
+
+        Assert.Equal(toolbar.NewConversationButton.CornerRadius, toolbar.HistoryButton.CornerRadius);
+        Assert.Equal(toolbar.HistoryButton.CornerRadius, toolbar.CapsuleButton.CornerRadius);
+        Assert.Equal(new CornerRadius(10), toolbar.CapsuleButton.CornerRadius);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public void CapsuleColumnIn_IsBetweenHistoryAndUsage_InsetByTheColumnSpacing()
+    {
+        var rig = new Rig();
+        var toolbar = rig.Toolbar;
+        rig.Window.UpdateLayout();
+
+        var column = toolbar.CapsuleColumnIn(rig.Window);
+        Assert.NotNull(column);
+        var historyRight = ((Visual)toolbar.HistoryButton).TranslatePoint(new Point(toolbar.HistoryButton.Bounds.Width, 0), rig.Window)!.Value.X;
+        var usageLeft = ((Visual)toolbar.UsageButton).TranslatePoint(default, rig.Window)!.Value.X;
+        Assert.Equal(historyRight + 12, column!.Value.Left, 0.5);
+        Assert.Equal(usageLeft - 12, column.Value.Right, 0.5);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
     public void TheOldStandaloneSettingsButton_IsGone()
     {
         var rig = new Rig();
