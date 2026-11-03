@@ -759,6 +759,9 @@
                 <ctl:FormField Label="{x:Static res:Strings.SpriteSettings_Topmost}" Hint="{x:Static res:Strings.SpriteSettings_TopmostNote}">
                   <CheckBox x:Name="SpriteTopmostBox" IsChecked="{Binding AlwaysOnTop}" Content="{x:Static res:Strings.SpriteSettings_TopmostToggle}" />
                 </ctl:FormField>
+                <ctl:FormField Label="{x:Static res:Strings.SpriteSettings_Workbench}" Hint="{x:Static res:Strings.SpriteSettings_WorkbenchNote}">
+                  <CheckBox x:Name="SpriteWorkbenchBox" IsChecked="{Binding ShowInWorkbench}" Content="{x:Static res:Strings.SpriteSettings_WorkbenchToggle}" />
+                </ctl:FormField>
               </StackPanel>
 
               <Border Classes="divider" />

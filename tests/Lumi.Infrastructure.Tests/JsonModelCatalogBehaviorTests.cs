@@ -33,6 +33,17 @@ public sealed class JsonModelCatalogBehaviorTests : IDisposable
         Assert.True(behavior.SpriteTopmost);       // 小精靈本來就浮在桌面上
         Assert.True(behavior.CheckForUpdates);
         Assert.Equal("", behavior.SkippedVersion);
+        Assert.False(behavior.WorkbenchSprite);    // 工作台裡的小精靈（M27）預設關
+    }
+
+    [Fact]
+    public async Task WorkbenchSprite_IsSavedAndReloaded()
+    {
+        var catalog = NewCatalog();
+
+        await catalog.SetBehaviorAsync(catalog.Current.Behavior with { WorkbenchSprite = true });
+
+        Assert.True(NewCatalog().Current.Behavior.WorkbenchSprite);
     }
 
     [Fact]
@@ -91,6 +102,18 @@ public sealed class JsonModelCatalogBehaviorTests : IDisposable
 
         Assert.Equal(BehaviorSettings.Default, current.Behavior);
         Assert.Equal(ThemePreference.Dark, current.Theme);
+    }
+
+    [Fact]
+    public void AnOldFile_WithoutWorkbenchSprite_ReadsAsOff()
+    {
+        File.WriteAllText(SettingsPath, "{ \"version\": 1, \"connections\": [], \"models\": [], \"theme\": \"Dark\", \"behavior\": { \"workbenchTopmost\": true, \"spriteTopmost\": false } }");
+
+        var behavior = NewCatalog().Current.Behavior;
+
+        Assert.False(behavior.WorkbenchSprite);
+        Assert.True(behavior.WorkbenchTopmost);
+        Assert.False(behavior.SpriteTopmost);
     }
 
     [Fact]

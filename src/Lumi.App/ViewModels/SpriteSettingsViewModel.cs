@@ -86,6 +86,7 @@ public partial class SpriteSettingsViewModel : ObservableObject
     private SpriteSizeOption _selectedSize;
     private bool _voiceEnabled;
     private bool _alwaysOnTop;
+    private bool _showInWorkbench;
 
     public SpriteSettingsViewModel(IModelCatalog catalog, ISpriteCatalog sprites, IUiDispatcher dispatcher, IFolderOpener? folders = null)
     {
@@ -102,6 +103,7 @@ public partial class SpriteSettingsViewModel : ObservableObject
         _selectedSize = SpriteSizeOption.All.First(o => o.Size == saved.Size);
         _voiceEnabled = saved.VoiceEnabled;
         _alwaysOnTop = catalog.Current.Behavior.SpriteTopmost;
+        _showInWorkbench = catalog.Current.Behavior.WorkbenchSprite;
         RebuildStates();
         RefreshIssues();
 
@@ -112,6 +114,11 @@ public partial class SpriteSettingsViewModel : ObservableObject
             {
                 _alwaysOnTop = settings.Behavior.SpriteTopmost;
                 OnPropertyChanged(nameof(AlwaysOnTop));
+            }
+            if (settings.Behavior.WorkbenchSprite != _showInWorkbench)
+            {
+                _showInWorkbench = settings.Behavior.WorkbenchSprite;
+                OnPropertyChanged(nameof(ShowInWorkbench));
             }
         });
         if (_library is not null)
@@ -228,6 +235,35 @@ public partial class SpriteSettingsViewModel : ObservableObject
             Error = ex is InvalidOperationException ? ex.Message : Strings.SpriteSettings_SaveFailed;
             _alwaysOnTop = _catalog.Current.Behavior.SpriteTopmost;
             OnPropertyChanged(nameof(AlwaysOnTop));
+        }
+    }
+
+    /// <summary>在工作台顯示小精靈（M27，預設關）。純裝飾，關掉就和沒有這功能一樣。</summary>
+    public bool ShowInWorkbench
+    {
+        get => _showInWorkbench;
+        set
+        {
+            if (value == _showInWorkbench)
+                return;
+            _showInWorkbench = value;
+            OnPropertyChanged();
+            _ = ApplyShowInWorkbenchAsync(value);
+        }
+    }
+
+    private async Task ApplyShowInWorkbenchAsync(bool value)
+    {
+        Error = null;
+        try
+        {
+            await _catalog.SetBehaviorAsync(_catalog.Current.Behavior with { WorkbenchSprite = value });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            Error = ex is InvalidOperationException ? ex.Message : Strings.SpriteSettings_SaveFailed;
+            _showInWorkbench = _catalog.Current.Behavior.WorkbenchSprite;
+            OnPropertyChanged(nameof(ShowInWorkbench));
         }
     }
 
