@@ -160,6 +160,56 @@ public sealed class SpriteSettingsViewModelTests
         Assert.Equal(SpriteSize.Medium, host.Sprite.SelectedSize.Size);   // 存不起來，畫面回到實際的值
     }
 
+    // ---- 工作台開關（M27，預設關） ----
+
+    [Fact]
+    public void ShowInWorkbench_DefaultsToOff()
+    {
+        using var host = new SettingsHost();
+
+        Assert.False(host.Sprite.ShowInWorkbench);
+    }
+
+    [Fact]
+    public async Task ShowInWorkbench_IsSavedImmediately_AndSurvivesReload()
+    {
+        using var host = new SettingsHost();
+
+        host.Sprite.ShowInWorkbench = true;
+        await SettingsHost.WaitUntil(() => host.Catalog.Current.Behavior.WorkbenchSprite);
+
+        Assert.True(host.Sprite.ShowInWorkbench);
+        Assert.Null(host.Sprite.Error);
+
+        host.Sprite.ShowInWorkbench = false;
+        await SettingsHost.WaitUntil(() => !host.Catalog.Current.Behavior.WorkbenchSprite);
+    }
+
+    [Fact]
+    public async Task ShowInWorkbench_ChangesMadeElsewhere_AreShownAndNotified()
+    {
+        using var host = new SettingsHost();
+        var notified = new List<string?>();
+        host.Sprite.PropertyChanged += (_, e) => notified.Add(e.PropertyName);
+
+        await host.Catalog.SetBehaviorAsync(host.Catalog.Current.Behavior with { WorkbenchSprite = true });
+
+        Assert.True(host.Sprite.ShowInWorkbench);
+        Assert.Contains(nameof(SpriteSettingsViewModel.ShowInWorkbench), notified);
+    }
+
+    [Fact]
+    public async Task ShowInWorkbench_AFailedSave_ShowsAnError_AndGoesBackToTheEffectiveValue()
+    {
+        var newer = $$"""{ "version": {{Lumi.Infrastructure.Settings.JsonModelCatalog.CurrentVersion + 1}}, "connections": [], "models": [], "theme": "system" }""";
+        using var host = new SettingsHost(newer);
+
+        host.Sprite.ShowInWorkbench = true;
+        await SettingsHost.WaitUntil(() => host.Sprite.Error is not null);
+
+        Assert.False(host.Sprite.ShowInWorkbench);   // 存不起來，畫面回到實際的值
+    }
+
     // ---- 設定視窗的分類 ----
 
     [Fact]

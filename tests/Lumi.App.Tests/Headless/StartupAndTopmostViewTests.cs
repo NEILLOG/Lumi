@@ -288,4 +288,24 @@ public sealed class StartupAndTopmostViewTests
         Assert.False(host.Catalog.Current.Behavior.SpriteTopmost);
         window.Close();
     }
+
+    [AvaloniaFact]
+    public async Task TheSpritePage_HasTheWorkbenchSwitch_OffByDefault()
+    {
+        using var host = new SettingsHost(new AvaloniaUiDispatcher());
+        var window = new SettingsWindow(host.Settings) { Width = 1040, Height = 760 };
+        window.Show();
+        host.Settings.CategoryIndex = (int)SettingsCategory.Sprite;
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+
+        var box = window.FindByName<CheckBox>("SpriteWorkbenchBox");
+        Assert.True(box.IsEffectivelyVisible);
+        Assert.Equal(false, box.IsChecked);
+
+        box.IsChecked = true;
+        await SettingsHost.WaitUntil(() => host.Catalog.Current.Behavior.WorkbenchSprite);
+        Assert.True(host.Catalog.Current.Behavior.WorkbenchSprite);
+        window.Close();
+    }
 }
