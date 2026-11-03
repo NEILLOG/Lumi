@@ -43,7 +43,7 @@ public partial class WorkbenchViewModel : IScheduledRunViewer
         }
 
         await _scheduledRuns.MarkReadAsync(runId);
-        var view = new ScheduledRunViewModel(run, _scheduledRuns, _store, _dispatcher, _approvals, _clipboard, _time, _runLogger, _confirm, _toolCatalog);
+        var view = new ScheduledRunViewModel(run, _scheduledRuns, _store, _dispatcher, _approvals, _clipboard, _time, _runLogger, _confirm, _toolCatalog, _attachments);
         await view.LoadAsync();
         view.Subscribe();   // 先讀存檔的內容，再接收之後的事件
         SetViewingRun(view);

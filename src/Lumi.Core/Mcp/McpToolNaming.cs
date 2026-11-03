@@ -34,6 +34,9 @@ public static partial class McpToolNaming
         return name[..(MaxLength - HashLength - 1)] + "_" + hash;
     }
 
+    /// <summary>這個工具名稱是不是 MCP 工具（內建工具的名稱不會用這個前綴）。</summary>
+    public static bool IsMcpTool(string toolName) => toolName.StartsWith("mcp__", StringComparison.Ordinal);
+
     public static bool IsValidKey(string? key) => key is not null && ValidKey().IsMatch(key);
 
     /// <summary>

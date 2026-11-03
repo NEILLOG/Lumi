@@ -29,13 +29,14 @@ public partial class ImageViewerWindow : Window
 
     public ImageViewerWindow() : this(null) { }
 
-    public ImageViewerWindow(string? path)
+    /// <param name="displayName">標題要顯示的名稱；沒給時用路徑的檔名。</param>
+    public ImageViewerWindow(string? path, string? displayName = null)
     {
         InitializeComponent();
         _content = Picture;
         if (path is not null)
         {
-            Title = System.IO.Path.GetFileName(path);
+            Title = displayName ?? System.IO.Path.GetFileName(path);
             NameText.Text = Title;
             _bitmap = TryLoad(path);
         }

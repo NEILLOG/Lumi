@@ -23,9 +23,9 @@ public partial class ImageAttachmentView : UserControl
     /// <summary>點「放大檢視」或縮圖：用 Lumi 的看圖視窗開啟。</summary>
     private void ViewLarger_Click(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not ImageAttachmentViewModel { ShowsImage: true, FilePath: { } path })
+        if (DataContext is not ImageAttachmentViewModel { ShowsImage: true, FilePath: { } path } vm)
             return;
-        var viewer = new ImageViewerWindow(path);
+        var viewer = new ImageViewerWindow(path, vm.FileName);
         if (TopLevel.GetTopLevel(this) is Window owner)
             viewer.Show(owner);
         else

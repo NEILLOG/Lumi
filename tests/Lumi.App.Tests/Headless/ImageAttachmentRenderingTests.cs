@@ -143,6 +143,31 @@ public class ImageAttachmentRenderingTests
     }
 
     [AvaloniaFact]
+    public void Mcp_image_decodes_and_shows_its_readable_name_instead_of_the_hash()
+    {
+        var path = Path.Combine(Path.GetTempPath(), new string('a', 64) + ".png");
+        File.WriteAllBytes(path, Convert.FromBase64String(OnePixelPng));
+        try
+        {
+            var (view, window) = Show(ImageAttachmentViewModel.ForFile("c1", path, exists: true, fileName: "MCP 圖片 1.png"));
+
+            var thumbnail = view.FindByName<Button>("Thumbnail");
+            Assert.NotNull(thumbnail.GetVisualDescendants().OfType<Image>().Single().Source);
+            Assert.Equal("MCP 圖片 1.png", ToolTip.GetTip(thumbnail));
+
+            thumbnail.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            var viewer = Assert.IsType<ImageViewerWindow>(Assert.Single(window.OwnedWindows));
+            Assert.Equal("MCP 圖片 1.png", viewer.Title);
+            viewer.Close();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [AvaloniaFact]
     public void Attachments_in_a_wide_message_sit_side_by_side_at_776()
     {
         var message = MessageViewModel.StreamingAssistant();

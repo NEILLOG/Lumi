@@ -31,14 +31,16 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
     private bool _disposed;
 
     private readonly IConfirmService? _confirm;
+    private readonly IAttachmentStore? _attachments;
     private readonly IToolCatalog? _toolCatalog;
 
     public ScheduledRunViewModel(
         ScheduledRun run, IScheduledRunService service, IConversationStore store, IUiDispatcher dispatcher,
         IToolApprovalResponder approvals, IClipboardService clipboard, TimeProvider time, ILogger<ScheduledRunViewModel> logger,
-        IConfirmService? confirm = null, IToolCatalog? toolCatalog = null)
+        IConfirmService? confirm = null, IToolCatalog? toolCatalog = null, IAttachmentStore? attachments = null)
     {
         _confirm = confirm;
+        _attachments = attachments;
         _toolCatalog = toolCatalog;
         _run = run;
         _service = service;
@@ -285,7 +287,7 @@ public partial class ScheduledRunViewModel : ObservableObject, IDisposable
 
     private ToolCardViewModel CreateCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson)
     {
-        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time, _confirm)
+        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time, _confirm, _attachments)
         {
             IsScheduledRun = true,
         };

@@ -27,7 +27,7 @@ public class WorkbenchReplyAttachmentTests
         var session = new FakeChatSession { ConversationId = conversation.Id };
         var vm = new WorkbenchViewModel(null!, store, new FakeModelCatalog(), new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
             new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
-            NullLogger<WorkbenchViewModel>.Instance, session: session);
+            NullLogger<WorkbenchViewModel>.Instance, session: session, attachments: new FakeAttachmentStore());
         return new Rig(vm, session, store, conversation.Id);
     }
 
@@ -98,6 +98,24 @@ public class WorkbenchReplyAttachmentTests
         Assert.True(waiting.HasReplyAttachments);
         Assert.True(waiting.ShowTypingDots);
         Assert.False(waiting.ShowTypingIndicator);
+    }
+
+    [Fact]
+    public void McpToolImage_AttachesToTheAnswerBubble()
+    {
+        var rig = CreateRig();
+        var image = new ImageBlock("a.png", "image/png", "MCP 圖片 1.png");
+
+        rig.Session.StartRun();
+        rig.Session.Emit(Started("m1", "mcp__computer__get_app_state"));
+        rig.Session.Emit(new ToolCallCompleted("m1", new ToolResultBlock("m1", "結果", false, "取得畫面", null, "完成", 0, ToolApproval.AllowedOnce, [image])));
+        rig.Session.Emit(new TextDelta("畫面上是 Finder。"));
+        rig.Session.Emit(Text("畫面上是 Finder。"));
+        rig.Session.FinishRun(new ChatRunResult(rig.ConversationId, null, false, false));
+
+        var attachment = Assert.IsType<ImageAttachmentViewModel>(Assert.Single(rig.Vm.Messages[^1].ReplyAttachments));
+        Assert.Equal("/attachments/a.png", attachment.FilePath);
+        Assert.Equal("MCP 圖片 1.png", attachment.FileName);
     }
 
     private static Completed Empty() =>

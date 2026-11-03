@@ -62,6 +62,29 @@ public sealed class CompositionRootTests : IDisposable
         return builder.Build();
     }
 
+    /// <summary>畫面也要拿到附件儲存：沒接上時 MCP 圖片會全部變成「檔案已移動或刪除」。</summary>
+    [SkippableFact]
+    public async Task Workbench_ShowsAnMcpImage_FromTheAttachmentFolder()
+    {
+        Skip.IfNot(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
+        using var host = BuildHost();
+        var services = host.Services;
+        var store = services.GetRequiredService<IConversationStore>();
+        var fileName = await services.GetRequiredService<IAttachmentStore>().SaveAsync(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, "image/png");
+        var conversation = await store.CreateAsync("MCP 圖片");
+        var now = DateTimeOffset.UtcNow;
+        await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new ToolUseBlock("m1", "mcp__computer__get_app_state", "{}")], now));
+        await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Tool,
+            [new ToolResultBlock("m1", "結果", false, "取得畫面", null, "完成", 0, ToolApproval.AllowedOnce, [new ImageBlock(fileName, "image/png", "MCP 圖片 1.png")])], now));
+        await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new TextBlock("畫面上是 Finder。")], now));
+
+        var workbench = services.GetRequiredService<WorkbenchViewModel>();
+        await workbench.OpenConversationAsync(conversation);
+
+        var image = Assert.IsType<ImageAttachmentViewModel>(Assert.Single(workbench.Messages[^1].ReplyAttachments));
+        Assert.True(image.ShowsImage);
+    }
+
     [SkippableFact]
     public async Task AllServicesResolve_AndFirstRunStartsEmpty()
     {

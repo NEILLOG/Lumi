@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Reminders;
 using Lumi.Core.Speech;
@@ -36,6 +37,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private readonly IScheduledRunService? _scheduledRuns;
     private readonly IConfirmService? _confirm;
     private readonly IToolCatalog? _toolCatalog;
+    private readonly IAttachmentStore? _attachments;
     private readonly IScheduledRunStore? _runStore;
     private readonly ILogger<ScheduledRunViewModel> _runLogger;
 
@@ -89,10 +91,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         IScheduledRunStore? runStore = null,
         ILogger<ScheduledRunViewModel>? runLogger = null,
         ScheduledRunsViewModel? scheduledRunsTab = null,
-        IToolCatalog? toolCatalog = null)
+        IToolCatalog? toolCatalog = null,
+        IAttachmentStore? attachments = null)
     {
         _confirm = confirm;
         _toolCatalog = toolCatalog;
+        _attachments = attachments;
         _store = store;
         _dispatcher = dispatcher;
         _scheduledRuns = scheduledRuns;
@@ -592,7 +596,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson)
     {
         // 卡片與工作台同生命週期（卡片只被訊息列表與 _cards 參照）；附件換掉時（完成、或產生中途換佔位）重新分配
-        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time);
+        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time, attachments: _attachments);
         card.PropertyChanged += OnCardPropertyChanged;
         return card;
     }

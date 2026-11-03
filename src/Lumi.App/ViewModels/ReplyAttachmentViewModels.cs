@@ -22,7 +22,7 @@ public sealed class TarotAttachmentViewModel(string callId, TarotSpreadModel spr
 }
 
 /// <summary>
-/// 圖片附件（<c>generate_image</c>、<c>edit_image</c>，一次呼叫一張）。產生中（<see cref="IsPending"/>）時只有尺寸，
+/// 圖片附件（<c>generate_image</c>、<c>edit_image</c> 一次呼叫一張；MCP 工具回傳的圖片一次最多兩張）。產生中（<see cref="IsPending"/>）時只有尺寸，
 /// 完成後換成檔案；檔案被移走或刪除時 <see cref="Exists"/> 為 false。
 /// </summary>
 public sealed partial class ImageAttachmentViewModel : ReplyAttachmentViewModel
@@ -30,18 +30,19 @@ public sealed partial class ImageAttachmentViewModel : ReplyAttachmentViewModel
     /// <summary>縮圖的最大寬、高（ui-spec 3.1）。</summary>
     public const double MaxThumbnail = 320;
 
-    private ImageAttachmentViewModel(string callId, string? filePath, bool exists, bool isPending, int pixelWidth, int pixelHeight) : base(callId)
+    private ImageAttachmentViewModel(string callId, string? filePath, bool exists, bool isPending, int pixelWidth, int pixelHeight, string? fileName = null) : base(callId)
     {
         FilePath = filePath;
+        FileName = fileName ?? (filePath is null ? "" : Path.GetFileName(filePath));
         Exists = exists;
         _isPending = isPending;
         PixelWidth = pixelWidth;
         PixelHeight = pixelHeight;
     }
 
-    /// <summary>完成的圖片；<paramref name="exists"/> 是檢查當下檔案在不在。</summary>
-    public static ImageAttachmentViewModel ForFile(string callId, string filePath, bool exists, int pixelWidth = 1024, int pixelHeight = 1024) =>
-        new(callId, filePath, exists, isPending: false, pixelWidth, pixelHeight);
+    /// <summary>完成的圖片；<paramref name="exists"/> 是檢查當下檔案在不在；<paramref name="fileName"/> 是給人看的名稱（附件資料夾的檔名是雜湊），沒給時用路徑的檔名。</summary>
+    public static ImageAttachmentViewModel ForFile(string callId, string filePath, bool exists, int pixelWidth = 1024, int pixelHeight = 1024, string? fileName = null) =>
+        new(callId, filePath, exists, isPending: false, pixelWidth, pixelHeight, fileName);
 
     /// <summary>產生中的佔位：尺寸取自參數（例如 1536×1024），還沒有檔案。<paramref name="startedAt"/> 是開始產生（允許之後）的時間，秒數由它算。</summary>
     public static ImageAttachmentViewModel Pending(string callId, int pixelWidth, int pixelHeight, DateTimeOffset? startedAt = null) =>
@@ -53,7 +54,7 @@ public sealed partial class ImageAttachmentViewModel : ReplyAttachmentViewModel
     public string? FilePath { get; }
 
     /// <summary>檔名（縮圖的 Tooltip、遺失佔位顯示）。</summary>
-    public string FileName => FilePath is null ? "" : Path.GetFileName(FilePath);
+    public string FileName { get; }
 
     public bool Exists { get; }
 

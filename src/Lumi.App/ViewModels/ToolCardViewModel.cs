@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
+using Lumi.Core.Context;
+using Lumi.Core.Mcp;
 using Lumi.Core.Tools;
 using Lumi.Tools;
 using Lumi.Tarot;
@@ -35,6 +37,7 @@ public partial class ToolCardViewModel : ObservableObject
     private readonly IToolApprovalResponder _responder;
     private readonly IClipboardService _clipboard;
     private readonly IConfirmService? _confirm;
+    private readonly IAttachmentStore? _attachments;
     private readonly string _argumentsJson;
     private readonly TimeProvider _time;
 
@@ -53,9 +56,10 @@ public partial class ToolCardViewModel : ObservableObject
     /// <param name="confirm">
     /// 破壞性操作的「以後都允許」要先確認（M24 2.2）。沒有傳就不提供這個按鈕（安全的預設）。
     /// </param>
+    /// <param name="attachments">把結果區塊裡的附件檔名換成路徑（MCP 工具回傳的圖片）。</param>
     public ToolCardViewModel(
         string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson,
-        IToolApprovalResponder responder, IClipboardService clipboard, TimeProvider time, IConfirmService? confirm = null)
+        IToolApprovalResponder responder, IClipboardService clipboard, TimeProvider time, IConfirmService? confirm = null, IAttachmentStore? attachments = null)
     {
         CallId = callId;
         ToolName = toolName;
@@ -69,6 +73,7 @@ public partial class ToolCardViewModel : ObservableObject
         _responder = responder;
         _clipboard = clipboard;
         _confirm = confirm;
+        _attachments = attachments;
         _time = time;
         // 產生類工具：Running 就先顯示佔位（ApprovalRequired 到了會移除，允許後從那時開始計時）
         SyncPendingAttachment();
@@ -147,7 +152,7 @@ public partial class ToolCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ResultDisplay), nameof(HasMoreResult), nameof(HasResult))]
     private string _resultText = "";
 
-    /// <summary>工具產生的圖片（22F）：只給畫面顯示，點了用系統的看圖程式開啟；檔案不在了就標成遺失。</summary>
+    /// <summary>工具產生的圖片（22F）與 MCP 工具回傳的圖片：點了用系統的看圖程式開啟；檔案不在了就標成遺失。</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasImages))]
     private IReadOnlyList<ToolCardImage> _images = [];
@@ -446,7 +451,7 @@ public partial class ToolCardViewModel : ObservableObject
         ResultText = result.Content;
         DurationMs = result.DurationMs;
         Approval = result.Approval;
-        Images = (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))).ToList();
+        Images = [.. (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))), .. McpImages(result)];
         TarotSpread = ToolName == TarotToolNames.Draw && !result.IsError && TarotSpreadParser.TryParse(result.Content, out var spread) ? spread : null;
         ReplyAttachments = BuildAttachments();
         ScheduleSummary = IsCreateSchedule && result is { IsError: false, Approval: not ToolApproval.Denied } ? CreatedSummary(result.Content) : null;
@@ -454,6 +459,21 @@ public partial class ToolCardViewModel : ObservableObject
         State = result.Approval == ToolApproval.Denied ? ToolCardState.Denied
             : result.IsError ? ToolCardState.Failed
             : ToolCardState.Succeeded;
+    }
+
+    /// <summary>
+    /// MCP 工具回傳的圖片：結果區塊只記附件檔名，路徑在這裡才換，所以資料夾搬過也找得到。
+    /// 內建工具的 <see cref="ToolResultBlock.Images"/>（網頁截圖）只給模型看，不顯示（M18）。
+    /// </summary>
+    private IEnumerable<ToolCardImage> McpImages(ToolResultBlock result)
+    {
+        if (!McpToolNaming.IsMcpTool(ToolName))
+            yield break;
+        foreach (var image in result.Images ?? [])
+        {
+            var path = _attachments?.GetPath(image.FileName);
+            yield return new ToolCardImage(path ?? image.DisplayName, image.DisplayName, path is not null && File.Exists(path));
+        }
     }
 
     /// <summary>完成後的附件：牌陣一個、每張圖片一個（尺寸取自參數，沒填時當正方形）。</summary>
@@ -464,7 +484,7 @@ public partial class ToolCardViewModel : ObservableObject
             attachments.Add(new TarotAttachmentViewModel(CallId, spread));
         var (width, height) = ImageSizeArgument();
         foreach (var image in Images)
-            attachments.Add(ImageAttachmentViewModel.ForFile(CallId, image.FilePath, image.Exists, width, height));
+            attachments.Add(ImageAttachmentViewModel.ForFile(CallId, image.FilePath, image.Exists, width, height, image.FileName));
         return attachments;
     }
 
