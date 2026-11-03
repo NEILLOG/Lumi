@@ -145,7 +145,7 @@ public class ImageAttachmentRenderingTests
     [AvaloniaFact]
     public void Mcp_image_decodes_and_shows_its_readable_name_instead_of_the_hash()
     {
-        var path = Path.Combine(Path.GetTempPath(), new string('a', 64) + ".png");
+        var path = Path.Combine(Path.GetTempPath(), "lumi-mcp-" + Guid.NewGuid().ToString("N") + ".png");
         File.WriteAllBytes(path, Convert.FromBase64String(OnePixelPng));
         try
         {

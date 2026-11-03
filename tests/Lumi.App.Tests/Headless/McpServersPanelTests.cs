@@ -2,6 +2,7 @@ using Lumi.App.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using Avalonia.Threading;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.Views;
@@ -23,6 +24,7 @@ public class McpServersPanelTests
         var host = new SettingsHost();
         foreach (var server in servers)
             await host.Catalog.SaveMcpServerAsync(server, null);
+        Dispatcher.UIThread.RunJobs();   // 存檔事件丟回 UI 執行緒的清單更新
         var window = new SettingsWindow(host.Settings);
         window.Show();
         host.Settings.CategoryIndex = (int)SettingsCategory.Tools;

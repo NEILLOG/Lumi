@@ -1,3 +1,4 @@
+using Lumi.App.Tests.Headless;
 using Lumi.App.Services;
 using Lumi.App.ViewModels;
 using Lumi.Core.Chat;
@@ -25,7 +26,7 @@ internal sealed class SettingsHost : IDisposable
     {
     }
 
-    /// <summary>用指定的 UI 派送器（例如真的 Avalonia 的），讓目錄變動的事件在 UI 執行緒上更新畫面；預設是同步執行的假派送器。</summary>
+    /// <summary>用指定的 UI 派送器；預設在 UI 執行緒建立時丟回 UI 執行緒（<see cref="CapturedUiDispatcher"/>），其他情況用同步執行的假派送器。</summary>
     public SettingsHost(IUiDispatcher dispatcher)
         : this(null, new Lumi.Sprites.Abstractions.SpriteCatalog([new Lumi.Sprites.Orb.OrbSpriteFactory()]), null, dispatcher)
     {
@@ -45,7 +46,9 @@ internal sealed class SettingsHost : IDisposable
             Secrets, NullLogger<JsonModelCatalog>.Instance);
         if (settingsFileContent is null)
             SeedLegacyClaudeDefault(Catalog);   // 產品第一次啟動已經是空的；這裡的測試環境維持舊的 Claude 預設，既有的設定頁測試照常
-        var dispatcher = uiDispatcher ?? new SyncUiDispatcher();
+        // 開著真視窗的測試（在 UI 執行緒建立）要和正式程式一樣把更新丟回 UI 執行緒：存檔後的事件在背景執行緒發出，直接更新綁定的集合時，
+        // 會和 UI 執行緒爭用 Avalonia 弱事件共用的靜態清單（WeakHashList.s_listPool 沒有鎖），偶爾在別的測試丟 NullReferenceException
+        var dispatcher = uiDispatcher ?? (TestApp.IsOnUiThread ? new CapturedUiDispatcher(SynchronizationContext.Current!) : new SyncUiDispatcher());
         Connections = new ConnectionsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         Models = new ModelsViewModel(Catalog, Tester, Status, Confirm, dispatcher);
         ImageGeneration = new ImageGenerationViewModel(Catalog, Tester, Status, Confirm, dispatcher);

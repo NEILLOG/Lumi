@@ -21,8 +21,14 @@ public static class TestAppBuilder
 
 public sealed class TestApp : Application
 {
+    private static int s_uiThreadId;
+
+    /// <summary>目前是不是在 headless 的 UI 執行緒上。給一般測試也能安全判斷：背景執行緒不能碰 <c>Dispatcher.UIThread</c>。</summary>
+    internal static bool IsOnUiThread => Volatile.Read(ref s_uiThreadId) == Environment.CurrentManagedThreadId;
+
     public override void Initialize()
     {
+        Volatile.Write(ref s_uiThreadId, Environment.CurrentManagedThreadId);
         Styles.Add(new FluentTheme());
         Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Tokens.axaml") });
         Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://Lumi.App/")) { Source = new Uri("avares://Lumi.App/Themes/Typography.axaml") });
