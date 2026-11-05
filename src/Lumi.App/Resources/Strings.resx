@@ -895,6 +895,7 @@
   <data name="Home_ModelTitle" xml:space="preserve"><value>目前模型</value></data>
   <data name="Home_Switch" xml:space="preserve"><value>切換</value></data>
   <data name="Home_Manage" xml:space="preserve"><value>管理</value></data>
+  <data name="Home_UserGuide" xml:space="preserve"><value>使用說明</value></data>
   <data name="Home_ModelShared" xml:space="preserve"><value>工作台與小精靈共用這個模型</value></data>
   <data name="Home_MemoryItemsLabel" xml:space="preserve"><value>記住的事</value></data>
   <data name="Home_MemoryItemsFormat" xml:space="preserve"><value>{0} / {1} 則</value></data>

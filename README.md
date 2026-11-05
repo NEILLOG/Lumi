@@ -14,7 +14,7 @@
 
 <img src="docs/images/hero.gif" width="760" alt="Lumi 從小精靈切換到工作台">
 
-[**⬇ 下載 Windows／macOS 版**](https://github.com/NEILLOG/Lumi/releases/latest) · [功能一覽](#-亮點) · [打造你的小精靈](#-打造你自己的小精靈) · [從原始碼建置](#-技術棧與建置)
+[**⬇ 下載 Windows／macOS 版**](https://github.com/NEILLOG/Lumi/releases/latest) · [使用教學](docs/guide/README.md) · [功能一覽](#-亮點) · [打造你的小精靈](#-打造你自己的小精靈) · [從原始碼建置](#-技術棧與建置)
 
 </div>
 
@@ -173,8 +173,10 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 1. 到 [Releases](https://github.com/NEILLOG/Lumi/releases/latest) 下載
    - **Windows**：`Lumi-x.y.z-win-x64.zip`，解壓後執行 `Lumi.exe`
    - **macOS（Apple Silicon）**：`Lumi-x.y.z-osx-arm64.zip`，解壓後打開 `Lumi.app`
-2. 打開 **設定 › 模型**，貼上你的 API 金鑰
+2. 打開 **設定 › AI 連線**，新增連線、貼上你的 API 金鑰，再在連線底下新增模型
 3. 開始聊，或按右上角切換成小精靈 ✨
+
+第一次用、或想知道某個功能怎麼設定，請看 **[使用教學](docs/guide/README.md)**：從[開始使用](docs/guide/getting-started.md)到[常見問題與錯誤訊息](docs/guide/troubleshooting.md)都有。也可以直接問 Lumi，它會查這份說明回答你。
 
 <!-- TODO macOS 尚未簽章與公證：第一次開啟若被擋，請在 Finder 按右鍵 › 打開。簽章完成後移除這行 -->
 > macOS 版目前尚未簽章，第一次開啟若被系統擋下，請在 Finder 對 `Lumi.app` 按右鍵 › 打開。

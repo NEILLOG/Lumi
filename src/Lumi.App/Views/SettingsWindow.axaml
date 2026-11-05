@@ -436,7 +436,18 @@
         <views:SettingsPageHeader x:Name="HomeHeader" Grid.Row="0"
                                   Eyebrow="{x:Static res:Strings.Settings_CategoryHome}"
                                   Title="{x:Static res:Strings.Settings_HeaderHomeTitle}"
-                                  Description="{x:Static res:Strings.Settings_HeaderHomeDescription}" />
+                                  Description="{x:Static res:Strings.Settings_HeaderHomeDescription}">
+          <views:SettingsPageHeader.Actions>
+            <!-- 首頁沒有主要動作；這裡只放開啟線上使用說明的次要連結（M28） -->
+            <Button x:Name="UserGuideButton" Classes="tertiary" Command="{Binding Home.OpenUserGuideCommand}"
+                    AutomationProperties.Name="{x:Static res:Strings.Home_UserGuide}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="{x:Static res:Strings.Home_UserGuide}" VerticalAlignment="Center" />
+                <ctl:LumiIcon Data="{StaticResource LumiIconExternalLink}" Size="14" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </views:SettingsPageHeader.Actions>
+        </views:SettingsPageHeader>
         <views:HomePanel x:Name="HomePanel" Grid.Row="1" Margin="0,24,0,0" />
       </Grid>
 

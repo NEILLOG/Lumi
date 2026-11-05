@@ -11,8 +11,6 @@ public sealed record AppHelpArgs(
 /// <summary>查 Lumi 自己的使用說明（<c>docs/guide</c> 內嵌在組件裡）。</summary>
 public sealed class AppHelpTool : ToolBase<AppHelpArgs>
 {
-    private const string GuideUrlPrefix = "https://github.com/NEILLOG/Lumi/blob/v";
-
     public override ToolDescriptor Descriptor { get; } = new(
         "app_help", "查使用說明",
         "查 Lumi 自己的使用說明。使用者問到 Lumi 的功能、操作、設定或錯誤訊息時先呼叫。不帶參數取得目錄，再用 topic 讀取整篇。",
@@ -42,7 +40,7 @@ public sealed class AppHelpTool : ToolBase<AppHelpArgs>
         }
 
         var text = UserGuide.StripImages(found.Body).TrimEnd()
-            + $"\n\n線上版：{GuideUrlPrefix}{AppVersion.Current}/docs/guide/{found.Id}.md";
+            + $"\n\n線上版：{UserGuideLinks.For(found.Id)}";
         return Task.FromResult(ToolResult.Ok(text, found.Title));
     }
 }

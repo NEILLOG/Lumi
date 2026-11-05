@@ -69,7 +69,7 @@ internal sealed class SettingsHost : IDisposable
             new Lumi.Core.Reminders.ReminderOptions(), NullLogger<Lumi.Core.Reminders.ReminderService>.Instance);
         Reminders = new RemindersViewModel(ReminderService, Confirm, dispatcher, TimeProvider.System);
         Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
-        Home = new HomeViewModel(Catalog, Status, dispatcher, Store, McpSource, Tester, Clock, new MemoryOptions());
+        Home = new HomeViewModel(Catalog, Status, dispatcher, Store, McpSource, Tester, Clock, new MemoryOptions(), urlLauncher: UrlLauncher);
         Usage = new UsageSettingsViewModel(new InMemoryUsageStore(), new InMemoryUsageHintLog(), Catalog, new InMemoryConversationStore(), new FakeSavePicker(), TimeProvider.System);
         Settings = new SettingsViewModel(Connections, Models, ImageGeneration, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Usage, Catalog, Confirm, WindowService)
         {

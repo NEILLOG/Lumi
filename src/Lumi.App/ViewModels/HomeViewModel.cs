@@ -14,6 +14,7 @@ using Lumi.Core.Models;
 using Lumi.Core.Reminders;
 using Lumi.Core.Usage;
 using Lumi.Core.Web;
+using Lumi.Tools;
 
 namespace Lumi.App.ViewModels;
 
@@ -94,6 +95,7 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     private readonly TimeProvider _time;
     private readonly MemoryOptions _memoryOptions;
     private readonly IUsageStore? _usage;
+    private readonly IUrlLauncher? _urlLauncher;
     private readonly EventHandler<AppSettings> _onCatalogChanged;
     private readonly EventHandler _onStatusChanged;
     private readonly EventHandler _onMcpChanged;
@@ -124,9 +126,10 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
 
     /// <param name="memoryOptions">記憶的上限（筆數、總字數）；沒有時用預設值。</param>
     /// <param name="usage">用量紀錄（費用與預算）；沒有時「本月用量」卡片維持只顯示 tokens。</param>
+    /// <param name="urlLauncher">頁首「使用說明」用預設瀏覽器開啟；沒有（測試）時什麼也不做。</param>
     public HomeViewModel(IModelCatalog catalog, ConnectionStatusCache status, IUiDispatcher dispatcher,
         IConversationStore conversations, IMcpToolSource mcp, IConnectionTester tester, TimeProvider time,
-        MemoryOptions? memoryOptions = null, IUsageStore? usage = null)
+        MemoryOptions? memoryOptions = null, IUsageStore? usage = null, IUrlLauncher? urlLauncher = null)
     {
         _catalog = catalog;
         _status = status;
@@ -137,7 +140,7 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         _time = time;
         _memoryOptions = memoryOptions ?? new MemoryOptions();
         _usage = usage;
-
+        _urlLauncher = urlLauncher;
 
         _onCatalogChanged = (_, _) => _dispatcher.Post(OnExternalChange);
         _onStatusChanged = (_, _) => _dispatcher.Post(OnExternalChange);
@@ -230,6 +233,10 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         get => _attentionSpeech;
         private set => SetProperty(ref _attentionSpeech, value);
     }
+
+    /// <summary>用預設瀏覽器開啟目前版本的使用說明目錄（GitHub）。</summary>
+    [RelayCommand]
+    private Task OpenUserGuideAsync() => _urlLauncher?.OpenAsync(UserGuideLinks.For()) ?? Task.CompletedTask;
 
     /// <summary>就地測試工作台預設模型的連線（用已儲存的金鑰），結果寫進 <see cref="ConnectionStatusCache"/>。測試中停用。</summary>
     [RelayCommand(CanExecute = nameof(CanTestConnection))]

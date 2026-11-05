@@ -884,6 +884,7 @@ public static class Strings
     public static string Home_ModelTitle => Get(nameof(Home_ModelTitle));
     public static string Home_Switch => Get(nameof(Home_Switch));
     public static string Home_Manage => Get(nameof(Home_Manage));
+    public static string Home_UserGuide => Get(nameof(Home_UserGuide));
     public static string Home_ModelShared => Get(nameof(Home_ModelShared));
     public static string Home_MemoryItemsLabel => Get(nameof(Home_MemoryItemsLabel));
     public static string Home_MemoryItemsFormat => Get(nameof(Home_MemoryItemsFormat));

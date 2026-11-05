@@ -505,6 +505,15 @@ public sealed class HomeViewModelTests : IDisposable
         Assert.Equal(Strings.Home_ActionsEmpty, _host.Home.NoRecentActionsText);
     }
 
+    [Fact]
+    public async Task OpenUserGuide_OpensGuideIndexForCurrentVersion()
+    {
+        await _host.Home.OpenUserGuideCommand.ExecuteAsync(null);
+
+        var url = Assert.Single(_host.UrlLauncher.Opened);
+        Assert.Equal($"https://github.com/NEILLOG/Lumi/blob/v{Lumi.Core.Updates.AppVersion.Current}/docs/guide/README.md", url.AbsoluteUri);
+    }
+
     /// <summary>可以記錄 <see cref="RestartAsync"/> 呼叫的假 MCP 來源（<see cref="FakeMcpToolSource"/> 不記錄）。</summary>
     private sealed class RecordingMcpSource : IMcpToolSource
     {
