@@ -102,7 +102,8 @@
   </UserControl.Styles>
 
   <!-- 訊息流：歡迎區、一次性提示、訊息（使用者／助理／工具段落）、錯誤列。ScrollViewer 名稱 MessageScroller 保留給測試與自動捲動 -->
-  <ScrollViewer x:Name="MessageScroller">
+  <!-- BringIntoViewOnFocusChange 關閉：使用者文字可選取、會留住焦點，視窗失焦再啟用或滑鼠點擊時不該把訊息區捲回那段文字；鍵盤導覽改由 code-behind 處理 -->
+  <ScrollViewer x:Name="MessageScroller" BringIntoViewOnFocusChange="False">
     <Border x:Name="ConversationPage" Classes="conversation-page">
       <StackPanel x:Name="ConversationStack" Classes="conversation-stack">
         <!-- 歡迎區：對話沒有任何訊息（且不在載入中）時顯示（RWD：narrow 隱藏副標、veryshort 整個隱藏） -->
