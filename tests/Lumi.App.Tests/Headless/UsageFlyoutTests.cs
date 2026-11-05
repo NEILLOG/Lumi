@@ -28,20 +28,22 @@ public class UsageFlyoutTests
     private sealed class Rig
     {
         public FakeModelCatalog Catalog { get; } = new();
+        public FakeSettingsWindowService Settings { get; } = new();
         public WorkbenchViewModel Vm { get; }
         public WorkbenchWindow Window { get; }
         public ChatToolbar Toolbar { get; }
 
-        public Rig(SequenceChatProvider? provider = null, InMemoryUsageStore? usage = null, decimal? budgetUsd = null)
+        public Rig(SequenceChatProvider? provider = null, InMemoryUsageStore? usage = null, decimal? budgetUsd = null,
+            InMemoryConversationStore? store = null)
         {
             provider ??= new SequenceChatProvider(SequenceChatProvider.Answer("好"));
-            var store = new InMemoryConversationStore();
+            store ??= new InMemoryConversationStore();
             if (budgetUsd is { } limit)
                 Catalog.Current = Catalog.Current with { Usage = new UsageSettings(MonthlyBudgetUsd: limit) };
             var time = new FakeTimeProvider();
             var service = new ConversationService(provider, store, Catalog);
             var monitor = usage is null ? null : new BudgetMonitor(usage, store, Catalog, time);
-            Vm = new WorkbenchViewModel(service, store, Catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
+            Vm = new WorkbenchViewModel(service, store, Catalog, new FakeApiKeyPrompt(false), Settings,
                 new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), time,
                 NullLogger<WorkbenchViewModel>.Instance, tester: new FakeConnectionTester(), usageStore: usage, budgetMonitor: monitor);
             Window = new WorkbenchWindow(Vm);
@@ -55,6 +57,22 @@ public class UsageFlyoutTests
         public FlyoutBase Flyout => Button.Flyout!;
 
         public UsageFlyout Panel => (UsageFlyout)((Flyout)Button.Flyout!).Content!;
+
+        /// <summary>面板裡以名稱找按鈕（只看有 AutomationProperties.Name 的）。</summary>
+        public Button PanelButton(string automationName) =>
+            Panel.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == automationName);
+
+        /// <summary>
+        /// 走 Button 真實的點擊路徑（protected 的 OnClick：先發 Click，再執行 Command），
+        /// 之後把 Dispatcher 上排隊的工作跑完（面板延後一拍才關）。
+        /// </summary>
+        public void Click(Button button)
+        {
+            typeof(Button).GetMethod("OnClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(button, null);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Window.UpdateLayout();
+        }
 
         public void Open()
         {
@@ -265,5 +283,115 @@ public class UsageFlyoutTests
         Assert.False(bar.IsEffectivelyVisible);
         rig.Flyout.Hide();
         rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public void ClickingOpenUsagePage_OpensTheSettingsWindowAtTheUsagePage_AndClosesThePanel()
+    {
+        var rig = new Rig(usage: new InMemoryUsageStore());
+        rig.Open();
+        Assert.True(rig.Flyout.IsOpen);
+        var button = rig.PanelButton(Strings.Usage_OpenUsagePage);
+        Assert.True(button.IsEffectivelyVisible);
+
+        rig.Click(button);
+
+        var shown = Assert.Single(rig.Settings.Shown);
+        Assert.Equal(SettingsSection.Usage, shown.Section);
+        Assert.False(rig.Flyout.IsOpen);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task ClickingNewConversationInTheReminder_RunsTheCommand_AndClosesThePanel()
+    {
+        // 舊對話有訊息：「開新對話」才會真的建立新的一則
+        var store = await SeedAsync();
+        var rig = new Rig(store: store);
+        await rig.Vm.InitializeAsync();
+        await MakeDangerAsync(rig);
+        Assert.NotEmpty(rig.Vm.Messages);
+        rig.Open();
+        var button = rig.Panel.FindByName<Button>("NewConversationInFlyout");
+        Assert.True(button.IsEffectivelyVisible);
+
+        rig.Click(button);
+        await SettingsHost.WaitUntil(() => rig.Vm.Messages.Count == 0);   // 切到空白的新對話
+
+        Assert.False(rig.Flyout.IsOpen);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task ClickingCompactAndContinueInTheReminder_RunsTheCommand_AndClosesThePanel()
+    {
+        var store = await SeedAsync();
+        var provider = new SequenceChatProvider(SequenceChatProvider.Answer("摘要內容"));
+        var rig = new Rig(provider, store: store);
+        await rig.Vm.InitializeAsync();
+        await MakeDangerAsync(rig);
+        rig.Open();
+        var button = rig.Panel.FindByName<Button>("CompactAndContinueInFlyout");
+        Assert.True(button.IsEffectivelyVisible);
+        Assert.True(button.IsEffectivelyEnabled);
+
+        rig.Click(button);
+        await SettingsHost.WaitUntil(() => rig.Vm.Messages.OfType<CompactionDividerViewModel>().Any());
+
+        Assert.False(rig.Flyout.IsOpen);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task ClickingKeepGoing_OnlyClosesThePanel()
+    {
+        var store = await SeedAsync();
+        var rig = new Rig(store: store);
+        await rig.Vm.InitializeAsync();
+        await MakeDangerAsync(rig);
+        rig.Open();
+
+        rig.Click(rig.Panel.FindByName<Button>("KeepGoingInFlyout"));
+
+        Assert.False(rig.Flyout.IsOpen);
+        Assert.Empty(rig.Settings.Shown);
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
+    public void AfterOpeningTheSettingsWindow_ClosingThePanelStillReturnsFocusToTheButton()
+    {
+        // 現況：面板關閉後無條件把焦點還給用量按鈕。（真實環境裡設定視窗是另一個 OS 視窗，
+        // Control.Focus 只改這個視窗內的焦點，不會把視窗帶回前景；這裡只確認焦點行為沒變。）
+        var rig = new Rig(usage: new InMemoryUsageStore());
+        rig.Open();
+
+        rig.Click(rig.PanelButton(Strings.Usage_OpenUsagePage));
+
+        Assert.Single(rig.Settings.Shown);
+        Assert.True(rig.Button.IsFocused);
+        rig.Window.Close();
+    }
+
+    /// <summary>三輪的舊對話；最後一則回應的用量是 28 of 30（快滿）。</summary>
+    private static async Task<InMemoryConversationStore> SeedAsync()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("舊對話");
+        for (var i = 0; i < 3; i++)
+        {
+            await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new Lumi.Core.Chat.TextBlock($"問{i}")], DateTimeOffset.UtcNow));
+            await store.AppendMessageAsync(conversation.Id, new ChatMessage(ChatMessage.NewId(), ChatRole.Assistant, [new Lumi.Core.Chat.TextBlock($"答{i}")],
+                DateTimeOffset.UtcNow, Usage: i == 2 ? new TokenUsage(20, 8, 0, 0) : null));
+        }
+        return store;
+    }
+
+    private static Task MakeDangerAsync(Rig rig)
+    {
+        rig.Catalog.Current = rig.Catalog.Current with { Models = [FakeModelCatalog.Model with { ContextWindow = 30 }] };
+        rig.Catalog.Raise();
+        Assert.Equal(UsageLevel.Danger, rig.Vm.Usage.Level);
+        return Task.CompletedTask;
     }
 }

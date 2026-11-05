@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Lumi.App.ViewModels;
 
 namespace Lumi.App.Views;
@@ -23,7 +24,10 @@ public partial class UsageFlyout : UserControl
     /// <summary>面板要求關閉（Esc、開新對話、繼續這則）。</summary>
     public event EventHandler? Dismissed;
 
-    private void OnDismissClick(object? sender, RoutedEventArgs e) => Dismissed?.Invoke(this, EventArgs.Empty);
+    // 延後一拍：Button 先發 Click、之後才執行 Command。若在 Click 裡同步關掉面板，DataContext 變成 null、
+    // Command 綁定跟著失效，命令就不會執行。等 Button 用完綁定再關。
+    private void OnDismissClick(object? sender, RoutedEventArgs e) =>
+        Dispatcher.UIThread.Post(() => Dismissed?.Invoke(this, EventArgs.Empty));
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
