@@ -10,7 +10,7 @@
 2. **這個服務給你的 Token**。Token 是一組專屬密碼，讓服務知道是你在使用。
 3. **一支能收音的麥克風**，並且允許 Lumi 使用它（見下方「麥克風權限」）。
 
-Lumi 會用固定的方式呼叫服務，給自己架服務的人參考：用 POST 送出 multipart 表單，錄音檔是 WAV（16 kHz、單聲道、16-bit），另外附上 `mode`（固定 `normal`）、`language`、`return_format`（固定 `json`）、`source_pgm`（固定 `Lumi`）、`file_name`，以及目前對話的代號 `session_id`；Token 放在 `Authorization: Bearer` 標頭。回應要是帶有 `text` 欄位的 JSON，或純文字。Lumi 不會送 `model` 欄位。
+Lumi 會用固定的方式呼叫服務，給自己架服務的人參考：用 POST 送出 multipart 表單，錄音檔是 WAV（16 kHz、單聲道、16-bit），另外附上 `mode`（固定 `normal`）、`return_format`（固定 `json`）、`source_pgm`（固定 `Lumi`）、`file_name`；有設定語言時才附上 `language`，有對話代號時才附上 `session_id`；Token 放在 `Authorization: Bearer` 標頭。回應要是帶有 `text` 欄位的 JSON，或純文字。Lumi 不會送 `model` 欄位。
 
 ## 怎麼設定語音服務？
 
@@ -60,7 +60,7 @@ Token 儲存後，畫面只會顯示「已設定 · 結尾 xxxx」，不會再�
 
 ## 麥克風權限
 
-系統沒有允許 Lumi 使用麥克風時，Lumi 會提示沒有收到聲音或找不到麥克風。
+系統沒有允許 Lumi 使用麥克風時，Lumi 會提示麥克風權限已關閉；找不到麥克風時，則會提示找不到可用的麥克風。
 
 - **Windows**：打開系統設定的「隱私權與安全性」，進入「麥克風」，允許桌面應用程式存取麥克風。
 - **macOS**：打開「系統設定」，進入「隱私權與安全性」，點「麥克風」，允許 Lumi。
