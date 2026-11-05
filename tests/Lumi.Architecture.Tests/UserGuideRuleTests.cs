@@ -190,7 +190,7 @@ public partial class UserGuideRuleTests
         Assert.Empty(offenders);
     }
 
-    [Fact(Skip = "等文件完成")]
+    [Fact]
     public void EverySettingsCategory_IsMentioned()
     {
         // 對應表要涵蓋全部列舉值，新增分類時漏掉會在這裡失敗
@@ -204,7 +204,7 @@ public partial class UserGuideRuleTests
         Assert.Empty(missing);
     }
 
-    [Fact(Skip = "等文件完成")]
+    [Fact]
     public void EveryBuiltInToolGroup_IsMentioned()
     {
         var text = string.Concat(Guides().Select(f => File.ReadAllText(f)));
@@ -213,7 +213,7 @@ public partial class UserGuideRuleTests
         Assert.Empty(missing);
     }
 
-    [Fact(Skip = "等文件完成")]
+    [Fact]
     public void EveryBuiltInTool_IsListed()
     {
         var (tools, failures) = ParseBuiltInTools();
