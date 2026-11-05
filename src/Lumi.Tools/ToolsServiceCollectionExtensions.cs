@@ -31,6 +31,7 @@ public static class ToolsServiceCollectionExtensions
 
         services.AddLumiTool<GetCurrentTimeTool>();
         services.AddLumiTool<CalculateTool>();
+        services.AddLumiTool<AppHelpTool>();
         services.AddLumiTool<ListDirTool>();
         services.AddLumiTool<ReadFileTool>();
         services.AddLumiTool<SearchTool>();

@@ -12,4 +12,9 @@
     <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 使用說明（app_help）：docs/guide 的文件打包進組件，README.md 是公開教學的入口，不打包 -->
+    <EmbeddedResource Include="..\..\docs\guide\*.md" Exclude="..\..\docs\guide\README.md" LogicalName="Lumi.Guide.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>
