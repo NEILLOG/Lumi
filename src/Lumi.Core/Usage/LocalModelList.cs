@@ -21,7 +21,6 @@ public static class LocalModelList
         "gemma", "codegemma",
         "phi",
         "mistral", "mixtral",
-        "deepseek",
         "glm", "chatglm",
         "yi", "internlm", "baichuan", "minicpm",
         "granite", "nemotron", "olmo", "smollm", "solar", "falcon", "starcoder", "openchat", "wizardlm",

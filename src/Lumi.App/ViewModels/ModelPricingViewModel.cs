@@ -19,6 +19,7 @@ public partial class ModelPricingViewModel : ObservableObject
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
     private readonly IPriceTableSource _prices;
+    private readonly Func<CancellationToken, Task>? _onTableUpdated;
     private string _modelId = "";
     private ConnectionSettings? _connection;
     private PriceMatch? _match;
@@ -28,9 +29,11 @@ public partial class ModelPricingViewModel : ObservableObject
     private bool _localOverride;   // 使用者取消了自動勾選：同一個 model ID 不再自動勾
     private bool _undecided;       // 載入時存檔的單價完全沒決定過（可以依名單自動判斷）
 
-    public ModelPricingViewModel(IPriceTableSource prices)
+    /// <param name="onTableUpdated">價目表更新成功後要接著做的事（例如依新價目表調高既有模型的上下文上限）；失敗不影響更新結果。</param>
+    public ModelPricingViewModel(IPriceTableSource prices, Func<CancellationToken, Task>? onTableUpdated = null)
     {
         _prices = prices;
+        _onTableUpdated = onTableUpdated;
     }
 
     /// <summary>比對到只有候選（近似或前綴相符）時的清單，最多 3 筆。</summary>
@@ -200,6 +203,12 @@ public partial class ModelPricingViewModel : ObservableObject
         NotifyState();
         return entry;
     }
+
+    /// <summary>
+    /// 目前比對到的完全相符或正規化相符條目（沒有、標了「不計費」、只有候選時是 null）。
+    /// 新增模型換連線時，上下文上限與最大輸出要照它重新帶入（<see cref="Rematch"/> 只在 model ID 改變時才回傳條目）。
+    /// </summary>
+    public PriceEntry? MatchedEntry => !IsFree && _match?.Kind is PriceMatchKind.Exact or PriceMatchKind.Normalized ? _match.Entry : null;
 
     /// <summary>目前表單上的單價（存檔用）。本機一律免費；欄位都空白時來源是 <see cref="PriceSource.None"/>。</summary>
     public ModelPricing ToPricing()
@@ -397,6 +406,7 @@ public partial class ModelPricingViewModel : ObservableObject
                 UpdateStatusText = string.Format(CultureInfo.CurrentCulture, Strings.Pricing_UpdatedFormat,
                     result.SnapshotDate.ToString("yyyy-MM-dd", Inv));
                 MatchPrice(modelChanged: false, loading: false);
+                await RunTableUpdatedAsync(ct);
             }
             else
             {
@@ -412,6 +422,21 @@ public partial class ModelPricingViewModel : ObservableObject
         {
             IsUpdating = false;
             NotifyState();
+        }
+    }
+
+    /// <summary>價目表更新後的後續工作；出錯不算價目表更新失敗（價目表已經換好了），略過。</summary>
+    private async Task RunTableUpdatedAsync(CancellationToken ct)
+    {
+        if (_onTableUpdated is null)
+            return;
+        try
+        {
+            await _onTableUpdated(ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // 設定檔寫入失敗等：下次啟動會再跑一次
         }
     }
 

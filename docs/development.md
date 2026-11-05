@@ -8,7 +8,7 @@
 
 | 要做的事 | 檔案 | 說明 |
 |---|---|---|
-| **增減地端模型名單** | [`src/Lumi.Core/Usage/LocalModelList.cs`](../src/Lumi.Core/Usage/LocalModelList.cs)（`Keywords` 陣列） | model ID 符合名單（qwen、llama、gemma、gpt-oss…）就視為地端，在模型設定自動勾選「不計費」，費用算 0。公司 AI Gateway 後面新增了開源模型家族，或有雲端服務被誤判成地端（例如 mistral、deepseek、glm 的雲端版），改這裡。 |
+| **增減地端模型名單** | [`src/Lumi.Core/Usage/LocalModelList.cs`](../src/Lumi.Core/Usage/LocalModelList.cs)（`Keywords` 陣列） | model ID 符合名單（qwen、llama、gemma、gpt-oss…）就視為地端，在模型設定自動勾選「不計費」，費用算 0。公司 AI Gateway 後面新增了開源模型家族，或有雲端服務被誤判成地端（例如 mistral、glm 的雲端版），改這裡。 |
 | **LiteLLM 價目表（模型單價）** | [`src/Lumi.Web/Pricing/litellm-model-prices.json`](../src/Lumi.Web/Pricing/litellm-model-prices.json)＋同資料夾的 `litellm-model-prices.date.txt` | 打包進 App 的內嵌快照（約 3 MB），App 啟動後不會自己上網查。使用者在設定按「更新價目表」才會下載新版存到使用者資料夾（`model-prices.json`），之後優先讀那份。發新版前想更新內建快照：重新下載 [LiteLLM 的 `model_prices_and_context_window.json`](https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json) 覆蓋這個檔案，並把今天的日期寫進 `.date.txt`。 |
 
 ## 專案結構

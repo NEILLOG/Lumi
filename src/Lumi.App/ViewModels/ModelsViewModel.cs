@@ -41,7 +41,8 @@ public partial class ModelsViewModel : ObservableObject
         _tester = tester;
         _status = status;
         _confirm = confirm;
-        Pricing = prices is null ? null : new ModelPricingViewModel(prices);
+        // 更新價目表成功後，順便依新價目表調高既有模型的上下文上限（目錄存檔只會重建清單，不動編輯中的表單）
+        Pricing = prices is null ? null : new ModelPricingViewModel(prices, ct => ModelContextAutoFill.RunAsync(catalog, prices, ct));
         if (Pricing is not null)
             Pricing.PropertyChanged += (_, _) => NotifyPricingChanged();
         Refresh();
@@ -259,20 +260,25 @@ public partial class ModelsViewModel : ObservableObject
         // 新增時換連線：預設值跟著格式走（Anthropic／OpenAI 相容差很多）
         if (_isNew)
             ApplyDefaultsFor(value.Id);
-        RematchPricing();
+        RematchPricing(connectionChanged: true);
         _ = LoadAvailableModelsAsync(forceRefresh: false);
     }
 
     /// <summary>
     /// 模型 ID 或連線改變：重新比對單價。新增模型比對到完全相符或正規化相符時，上下文上限與最大輸出一起帶入（有值才覆蓋）；
-    /// 編輯既有模型時不動這兩欄。
+    /// 編輯既有模型時不動這兩欄。<paramref name="connectionChanged"/>：換連線時預設值已被重設，
+    /// model ID 沒變也要照目前比對到的條目再帶入一次。
     /// </summary>
-    private void RematchPricing()
+    private void RematchPricing(bool connectionChanged = false)
     {
         if (Pricing is null || _loading)
             return;
         var entry = Pricing.Rematch(ModelId, CurrentConnection());
-        if (entry is null || !_isNew)
+        if (!_isNew)
+            return;
+        if (entry is null && connectionChanged)
+            entry = Pricing.MatchedEntry;
+        if (entry is null)
             return;
         if (entry.MaxInputTokens is { } context)
             ContextWindow = context;

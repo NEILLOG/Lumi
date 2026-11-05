@@ -472,13 +472,24 @@ public sealed class ModelsViewModelPricingTests
 {
     private sealed class FakePrices : IPriceTableSource
     {
+        public Func<PriceTableUpdateResult>? NextResult { get; set; }
+
         public PriceTable Current { get; } = new(
         [
             new PriceEntry("claude-sonnet-4-5", "anthropic", 3m, 15m, 0.3m, 3.75m, 200_000, 32_000),
             new PriceEntry("azure/gpt-4o", "azure", 2.5m, 10m, null, null, null, null),
+            new PriceEntry("acme-flash", "openai", 0.3m, 0.6m, null, null, 1_000_000, 393_216),
         ], new DateOnly(2026, 10, 15));
 
-        public Task<PriceTableUpdateResult> UpdateAsync(CancellationToken ct) => Task.FromResult(new PriceTableUpdateResult(false, Current.SnapshotDate));
+        public Task<PriceTableUpdateResult> UpdateAsync(CancellationToken ct) =>
+            Task.FromResult(NextResult?.Invoke() ?? new PriceTableUpdateResult(false, Current.SnapshotDate));
+    }
+
+    private static async Task<string> AddGatewayAsync(SettingsHost host)
+    {
+        var connection = new ConnectionSettings(ConnectionSettings.NewId(), "Gateway", ProviderFormat.OpenAICompatible, "https://gateway.corp.example/v1");
+        await host.Catalog.SaveConnectionAsync(connection, null);
+        return connection.Id;
     }
 
     private static ModelsViewModel NewModels(SettingsHost host, IPriceTableSource? prices) =>
@@ -496,6 +507,95 @@ public sealed class ModelsViewModelPricingTests
         Assert.Equal(200_000m, vm.ContextWindow);
         Assert.Equal(32_000m, vm.MaxOutputTokens);
         Assert.Equal(PriceSource.Suggested, vm.Pricing!.ToPricing().Source);
+    }
+
+    [Fact]
+    public async Task NewModel_TypeIdFirst_ThenSwitchConnection_StillFollowsTheMatch()
+    {
+        using var host = new SettingsHost();
+        var gateway = await AddGatewayAsync(host);
+        var vm = NewModels(host, new FakePrices());
+        await vm.StartNewAsync(null);   // 預設選第一個連線（Anthropic）
+        vm.ModelId = "acme-flash";
+
+        // 換連線會先把預設值重設成 OpenAI 相容的 128K／4096；model ID 沒變，仍要照價目表帶入
+        vm.SelectedConnection = vm.Connections.Single(c => c.Id == gateway);
+
+        Assert.Equal(1_000_000m, vm.ContextWindow);
+        Assert.Equal(393_216m, vm.MaxOutputTokens);
+    }
+
+    [Fact]
+    public async Task NewModel_SelectConnectionFirst_ThenTypeId_GivesTheSameResult()
+    {
+        using var host = new SettingsHost();
+        var gateway = await AddGatewayAsync(host);
+        var vm = NewModels(host, new FakePrices());
+        await vm.StartNewAsync(null);
+        vm.SelectedConnection = vm.Connections.Single(c => c.Id == gateway);
+
+        vm.ModelId = "acme-flash";
+
+        Assert.Equal(1_000_000m, vm.ContextWindow);
+        Assert.Equal(393_216m, vm.MaxOutputTokens);
+    }
+
+    [Fact]
+    public async Task NewModel_SwitchingConnection_WithNoMatch_UsesTheFormatDefaults()
+    {
+        using var host = new SettingsHost();
+        var gateway = await AddGatewayAsync(host);
+        var vm = NewModels(host, new FakePrices());
+        await vm.StartNewAsync(null);
+        vm.ModelId = "qqqqqqqq";
+
+        vm.SelectedConnection = vm.Connections.Single(c => c.Id == gateway);
+
+        Assert.Equal(128_000m, vm.ContextWindow);
+        Assert.Equal(4_096m, vm.MaxOutputTokens);
+    }
+
+    [Fact]
+    public async Task EditExisting_SwitchingConnection_DoesNotChangeContextOrMaxOutput()
+    {
+        using var host = new SettingsHost();
+        var gateway = await AddGatewayAsync(host);
+        var model = new ModelSettings(ModelSettings.NewId(), gateway, "acme-flash", "Flash", 4096, 50_000, false);
+        await host.Catalog.SaveModelAsync(model);
+        var vm = NewModels(host, new FakePrices());
+        await vm.SelectAsync(vm.Items.Single(i => i.Id == model.Id));
+
+        vm.SelectedConnection = vm.Connections.Single(c => c.Id == host.Catalog.Current.Connections[0].Id);
+
+        Assert.Equal(50_000m, vm.ContextWindow);
+        Assert.Equal(4096m, vm.MaxOutputTokens);
+    }
+
+    [Fact]
+    public async Task UpdateTable_RaisesExistingModels_WithoutDisturbingTheEditingForm()
+    {
+        using var host = new SettingsHost();
+        var gateway = await AddGatewayAsync(host);
+        var edited = new ModelSettings(ModelSettings.NewId(), gateway, "qqqqqqqq", "Edited", 4096, 50_000, false);
+        var stale = new ModelSettings(ModelSettings.NewId(), gateway, "acme-flash", "Flash", 4096, 128_000, false);
+        await host.Catalog.SaveModelAsync(edited);
+        await host.Catalog.SaveModelAsync(stale);
+        var prices = new FakePrices();
+        prices.NextResult = () => new PriceTableUpdateResult(true, prices.Current.SnapshotDate);
+        var vm = NewModels(host, prices);
+        await vm.SelectAsync(vm.Items.Single(i => i.Id == edited.Id));
+        vm.DisplayName = "尚未儲存的名稱";
+        vm.ContextWindow = 60_000;
+
+        await vm.Pricing!.UpdateTableCommand.ExecuteAsync(null);
+
+        Assert.Equal(1_000_000, host.Catalog.Current.Models.Single(m => m.Id == stale.Id).ContextWindow);
+        Assert.Equal(4096, host.Catalog.Current.Models.Single(m => m.Id == stale.Id).MaxOutputTokens);
+        Assert.Equal("尚未儲存的名稱", vm.DisplayName);   // 編輯中的表單保留使用者尚未儲存的修改
+        Assert.Equal(60_000m, vm.ContextWindow);
+        Assert.True(vm.IsDirty);
+        Assert.Equal(edited.Id, vm.SelectedItem?.Id);
+        Assert.Empty(host.Confirm.Asked);   // 沒有跳出放棄變更的確認
     }
 
     [Fact]

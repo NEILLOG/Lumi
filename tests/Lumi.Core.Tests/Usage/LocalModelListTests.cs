@@ -22,8 +22,6 @@ public sealed class LocalModelListTests
     [InlineData("phi-3-mini")]
     [InlineData("mistral-7b-instruct")]
     [InlineData("mixtral-8x7b")]
-    [InlineData("deepseek-r1:14b")]
-    [InlineData("DeepSeek-V3")]
     [InlineData("gpt-oss-20b")]
     [InlineData("openai/gpt-oss-120b")]
     [InlineData("hf.co/bartowski/Qwen2.5-7B-GGUF")]
@@ -43,6 +41,8 @@ public sealed class LocalModelListTests
     [InlineData("text-embedding-3-small")]
     [InlineData("gpt-image-1")]
     [InlineData("whisper-1")]
+    [InlineData("deepseek-flash")]          // DeepSeek 視為雲端服務
+    [InlineData("DeepSeek-V3")]
     [InlineData("phishing-detector")]       // 詞要完全相同，或關鍵字後接數字：phishing 不算 phi
     [InlineData("yield-model")]             // yield 不算 yi
     [InlineData("gpt-ossify")]

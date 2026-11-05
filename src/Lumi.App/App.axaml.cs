@@ -153,7 +153,10 @@ public partial class App : Application
     }
 
     /// <summary>啟動後在背景檢查有沒有新版；結果透過 <see cref="IUpdateService.AvailableChanged"/> 通知工作台的提醒。失敗只記 log。</summary>
-    /// <summary>升級後第一次啟動：既有模型比對價目表、帶入單價（只做一次；失敗只記 log）。</summary>
+    /// <summary>
+    /// 啟動後在背景比對價目表：帶入既有模型的單價（升級後只做一次），再依價目表調高既有模型的上下文上限（每次啟動，冪等）。
+    /// 兩件事依序進行以免同時寫設定檔；各自失敗只記 log，不影響另一件。
+    /// </summary>
     private static void StartPricingAutoFill(IServiceProvider services)
     {
         _ = Task.Run(async () =>
@@ -166,6 +169,16 @@ public partial class App : Application
             catch (Exception ex)
             {
                 services.GetService<ILogger<App>>()?.LogWarning(ex, "既有模型自動帶入單價失敗");
+            }
+
+            try
+            {
+                await ModelContextAutoFill.RunAsync(services.GetRequiredService<IModelCatalog>(), services.GetRequiredService<Lumi.Core.Usage.IPriceTableSource>(),
+                    CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                services.GetService<ILogger<App>>()?.LogWarning(ex, "既有模型自動更新上下文上限失敗");
             }
         });
     }
