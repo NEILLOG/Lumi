@@ -136,7 +136,7 @@ public partial class ToolCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsRunning), nameof(IsAwaiting), nameof(IsSucceeded), nameof(IsFailed), nameof(IsDenied),
         nameof(IsForcedOpen), nameof(IsOpen), nameof(CanToggle), nameof(StatusText), nameof(Title),
         nameof(ShowDetailsCard), nameof(ShowRegularCard), nameof(ShowGenericConfirm), nameof(ShowScheduleConfirm),
-        nameof(ShowAwaitingNote), nameof(AwaitingNote))]
+        nameof(ShowSkillConfirm), nameof(ShowAwaitingNote), nameof(AwaitingNote))]
     private ToolCardState _state = ToolCardState.Running;
 
     [ObservableProperty]
@@ -212,7 +212,8 @@ public partial class ToolCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(PreviewDetail), nameof(HasPreviewDetail), nameof(ShowAllowForConversation), nameof(IsDestructive), nameof(PermissionNote),
         nameof(Warnings), nameof(HasWarnings), nameof(ShowGenericConfirm), nameof(ShowScheduleConfirm), nameof(ShowAwaitingNote),
         nameof(AwaitingNote), nameof(ScheduleName), nameof(ScheduleWhen), nameof(SchedulePrompt), nameof(ScheduleModel), nameof(ScheduleScope),
-        nameof(WriteSuggested), nameof(NetworkSuggested))]
+        nameof(WriteSuggested), nameof(NetworkSuggested), nameof(ShowSkillConfirm), nameof(SkillName), nameof(SkillDescription), nameof(SkillBody),
+        nameof(ShowReplaceWarning), nameof(ReplaceWarningText))]
     private ToolApprovalRequest? _request;
 
     // ---- 建立排程的確認區（M24 4.4，草圖 ScheduleCreate）：授權勾選，預設照 Lumi 的建議 ----
@@ -374,8 +375,24 @@ public partial class ToolCardViewModel : ObservableObject
     /// <summary>等待確認、而且請求帶著排程內容：換成排程確認區。</summary>
     public bool ShowScheduleConfirm => IsAwaiting && Request?.Schedule is not null;
 
-    /// <summary>一般的確認區（沒有排程內容）。</summary>
-    public bool ShowGenericConfirm => IsAwaiting && Request?.Schedule is null;
+    /// <summary>等待確認、而且請求帶著技能內容（<c>save_skill</c>，M29 5.7）：換成技能確認區。</summary>
+    public bool ShowSkillConfirm => IsAwaiting && Request?.Skill is not null;
+
+    /// <summary>一般的確認區（沒有排程內容，也不是技能確認）。</summary>
+    public bool ShowGenericConfirm => IsAwaiting && Request?.Schedule is null && Request?.Skill is null;
+
+    // ---- 技能確認區（M29 5.7、D8）：唯讀顯示，不能編輯，所以只有「儲存」（允許一次）與「不要」（拒絕） ----
+
+    public string SkillName => Request?.Skill?.Name ?? "";
+
+    public string SkillDescription => Request?.Skill?.Description ?? "";
+
+    public string SkillBody => Request?.Skill?.Body ?? "";
+
+    /// <summary>已經有同名的技能，存了會取代它（<see cref="SkillProposal.ReplacesExisting"/>）。</summary>
+    public bool ShowReplaceWarning => Request?.Skill?.ReplacesExisting == true;
+
+    public string ReplaceWarningText => string.Format(CultureInfo.CurrentCulture, Strings.Skills_ConfirmReplaceWarningFormat, SkillName);
 
     public string ScheduleName => Request?.Schedule?.Name ?? "";
 
