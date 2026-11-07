@@ -153,6 +153,40 @@
           </StackPanel>
           </StackPanel>
 
+          <!-- 技能確認（M29 5.7、D8）：要存成技能的內容，唯讀可選取；取代現有技能時警告。按鈕只有「儲存」（等同允許一次）與「不要」（等同拒絕），沒有「本次對話都允許」、不能編輯 -->
+          <StackPanel IsVisible="{Binding ShowSkillConfirm}" Spacing="12">
+            <TextBlock Text="{x:Static res:Strings.Skills_ConfirmTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Skills_FieldName}" Classes="cardlabel" />
+              <ctl:EmojiTextBlock Text="{Binding SkillName}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Skills_FieldDescription}" Classes="cardlabel" />
+              <ctl:EmojiTextBlock Text="{Binding SkillDescription}" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Skills_FieldBody}" Classes="cardlabel" />
+              <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock Text="{Binding SkillBody}" TextWrapping="Wrap" />
+              </ScrollViewer>
+            </StackPanel>
+            <!-- 取代警告：Warning 色、淡底＋三角圖示，和確認區的網址警告同一樣式 -->
+            <Border IsVisible="{Binding ShowReplaceWarning}" Background="{DynamicResource LumiWarningBackgroundBrush}"
+                    BorderBrush="{DynamicResource LumiWarningBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource LumiRadiusInput}" Padding="12,8">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiWarningTextBrush}"
+                              VerticalAlignment="Top" />
+                <TextBlock Grid.Column="1" Text="{Binding ReplaceWarningText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+              </Grid>
+            </Border>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button x:Name="SaveSkillButton" Classes="primary confirm" Content="{x:Static res:Strings.Skills_ConfirmSave}"
+                      Command="{Binding AllowOnceCommand}" />
+              <Button x:Name="SaveSkillDenyButton" Classes="tertiary confirm" Content="{x:Static res:Strings.Skills_ConfirmDeny}"
+                      Command="{Binding DenyCommand}" />
+            </StackPanel>
+          </StackPanel>
+
           <!-- 建立排程的確認（M24 4.4，草圖 ScheduleCreate）：欄位、執行時不再詢問的動作、建立／拒絕。卡片內不再巢狀卡片 -->
           <StackPanel IsVisible="{Binding ShowScheduleConfirm}" Spacing="12">
             <StackPanel Spacing="4">

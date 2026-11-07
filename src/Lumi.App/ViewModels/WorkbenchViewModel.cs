@@ -9,6 +9,7 @@ using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Reminders;
+using Lumi.Core.Skills;
 using Lumi.Core.Speech;
 using Lumi.Core.Tools;
 using Lumi.Core.Usage;
@@ -40,6 +41,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private readonly IAttachmentStore? _attachments;
     private readonly IScheduledRunStore? _runStore;
     private readonly ILogger<ScheduledRunViewModel> _runLogger;
+    private readonly ISkillStore? _skills;
 
     private readonly IChatSession _session;
     private readonly IAppModeCoordinator? _modes;
@@ -92,8 +94,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         ILogger<ScheduledRunViewModel>? runLogger = null,
         ScheduledRunsViewModel? scheduledRunsTab = null,
         IToolCatalog? toolCatalog = null,
-        IAttachmentStore? attachments = null)
+        IAttachmentStore? attachments = null,
+        ISkillStore? skills = null)
     {
+        _skills = skills;
         _confirm = confirm;
         _toolCatalog = toolCatalog;
         _attachments = attachments;
@@ -175,6 +179,14 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             OnModelSettingsChanged();
         });
         status.Changed += (_, _) => dispatcher.Post(OnConnectionStatusChanged);
+
+        // 技能按鈕：建構時載入一次，技能資料夾有變動（新增、停用、改名、匯入）再載入
+        SkillChoices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasSkills));
+        if (skills is not null)
+        {
+            skills.Changed += (_, _) => _ = ReloadSkillsAsync();
+            _ = ReloadSkillsAsync();
+        }
     }
 
     public ObservableCollection<MessageViewModel> Messages { get; } = [];
@@ -699,6 +711,61 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// <summary>要求把焦點移到輸入框（語音轉寫放進輸入框之後）。由 ChatComposer 處理。</summary>
     public event EventHandler? FocusInputRequested;
 
+    /// <summary>技能插入之後：把焦點移到輸入框並把游標放到文字最後。由 ChatComposer 處理。</summary>
+    public event EventHandler? FocusInputAtEndRequested;
+
+    // ---- 輸入框的「技能」按鈕（M29 E1、5.7）----
+
+    /// <summary>選單列出的技能：只含啟用中、讀得進來的（<see cref="SkillInfo.IsUsable"/>），依名稱排序。</summary>
+    public ObservableCollection<SkillChoice> SkillChoices { get; } = [];
+
+    /// <summary>有可用的技能才顯示「技能」按鈕。</summary>
+    public bool HasSkills => SkillChoices.Count > 0;
+
+    /// <summary>每次載入都遞增；比較舊的結果回到 UI 執行緒時丟掉，避免後來的清單被蓋回去。</summary>
+    private int _skillLoadVersion;
+
+    private async Task ReloadSkillsAsync()
+    {
+        if (_skills is null)
+            return;
+        var version = Interlocked.Increment(ref _skillLoadVersion);
+        try
+        {
+            var list = await _skills.ListAsync(CancellationToken.None);
+            var choices = list
+                .Where(skill => skill.IsUsable)
+                .OrderBy(skill => skill.Name, StringComparer.Ordinal)
+                .Select(skill => new SkillChoice(skill.Name, skill.Description))
+                .ToList();
+            _dispatcher.Post(() =>
+            {
+                if (version != Volatile.Read(ref _skillLoadVersion))
+                    return;
+                SkillChoices.Clear();
+                foreach (var choice in choices)
+                    SkillChoices.Add(choice);
+            });
+        }
+        catch (Exception ex)
+        {
+            // 讀不到技能清單就只是沒有技能按鈕，不影響輸入與送出
+            _logger.LogWarning(ex, "讀取技能清單時失敗");
+        }
+    }
+
+    /// <summary>選單選了一項：在輸入框開頭插入「請用「名稱」技能：」；開頭已經是同一句就不重複插入（M29 E1）。</summary>
+    [RelayCommand]
+    private void InsertSkill(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || IsViewOnly)
+            return;
+        var prefix = string.Format(CultureInfo.CurrentCulture, Strings.Skills_ComposerInsertFormat, name);
+        if (!InputText.StartsWith(prefix, StringComparison.Ordinal))
+            InputText = prefix + InputText;
+        FocusInputAtEndRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     [RelayCommand(CanExecute = nameof(CanStartVoice))]
     private Task StartVoiceAsync() => Voice.StartAsync(VoiceOrigin.Workbench);
 
@@ -1090,3 +1157,6 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private static string FormatScaled(double value, string suffix) =>
         (value < 10 ? value.ToString("0.#", CultureInfo.InvariantCulture) : value.ToString("0", CultureInfo.InvariantCulture)) + suffix;
 }
+
+/// <summary>輸入框「技能」選單的一項：名稱（插入用）與描述（ToolTip）。</summary>
+public sealed record SkillChoice(string Name, string Description);

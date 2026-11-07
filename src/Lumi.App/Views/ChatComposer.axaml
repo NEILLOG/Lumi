@@ -207,6 +207,18 @@
                 <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Context_AddFolder}" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
+            <!-- 技能（M29 E1、5.7）：有啟用中的技能才顯示；點開列出技能名稱（ToolTip 是描述），選了插入「請用「名稱」技能：」。選單項目在開啟時由 code-behind 放入 -->
+            <Button x:Name="SkillButton" Classes="tertiary composer-tool collapsible" IsVisible="{Binding HasSkills}" IsEnabled="{Binding !IsViewOnly}"
+                    ToolTip.Tip="{x:Static res:Strings.Skills_ComposerButton}" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="{x:Static res:Strings.Skills_ComposerButton}">
+              <Button.Flyout>
+                <MenuFlyout Placement="TopEdgeAlignedLeft" Opening="OnSkillMenuOpening" />
+              </Button.Flyout>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconBookOpen}" Size="16" />
+                <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.Skills_ComposerButton}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
             <!-- 語音輸入：停用時（沒設定、回應中、已在錄音…）Tooltip 寫出原因（ShowOnDisabled） -->
             <Button x:Name="MicButton" Classes="tertiary composer-tool collapsible" Command="{Binding StartVoiceCommand}"
                     ToolTip.Tip="{Binding MicTip}" ToolTip.ShowOnDisabled="True"
