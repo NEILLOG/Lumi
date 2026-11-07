@@ -440,12 +440,24 @@
         <views:MemoryPanel x:Name="MemoryPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Memory}" />
       </Grid>
 
-      <!-- ===== 技能（M29）：頁首（新增技能，唯一的 Primary）→ 面板。TODO(29C)：頁首動作與 SkillsPanel ===== -->
+      <!-- ===== 技能（M29）：頁首（新增技能，唯一的 Primary）→ 面板（次要動作、用量、匯入預覽、新增表單、清單）。面板自己捲動 ===== -->
       <Grid x:Name="SkillsPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowSkills}" Margin="32">
         <views:SettingsPageHeader x:Name="SkillsHeader" Grid.Row="0"
                                   Eyebrow="{x:Static res:Strings.Settings_CategorySkills}"
                                   Title="{x:Static res:Strings.Skills_HeaderTitle}"
-                                  Description="{x:Static res:Strings.Skills_HeaderDescription}" />
+                                  Description="{x:Static res:Strings.Skills_HeaderDescription}">
+          <views:SettingsPageHeader.Actions>
+            <Button x:Name="NewSkillButton" Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                    Command="{Binding Skills.NewCommand}" AutomationProperties.Name="{x:Static res:Strings.Skills_Add}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ctl:LumiIcon Data="{StaticResource LumiIconPlus}" Size="16" />
+                <TextBlock Text="{x:Static res:Strings.Skills_Add}" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </views:SettingsPageHeader.Actions>
+        </views:SettingsPageHeader>
+
+        <views:SkillsPanel x:Name="SkillsPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Skills}" />
       </Grid>
 
       <!-- ===== 設定首頁：常用設定的連結（沒有主要動作） ===== -->

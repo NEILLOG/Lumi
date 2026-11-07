@@ -30,7 +30,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly ISettingsWindowService? _windows;
 
     public SettingsViewModel(ConnectionsViewModel connections, ModelsViewModel models, ImageGenerationViewModel imageGeneration, PersonaViewModel persona, MemoryViewModel memory,
-        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, UsageSettingsViewModel usage, IModelCatalog catalog, IConfirmService confirm,
+        ToolsViewModel tools, McpServersViewModel mcpServers, GeneralViewModel general, SpriteSettingsViewModel sprite, SpeechViewModel speech, NetworkViewModel network, BrowserSettingsViewModel browser, RemindersViewModel reminders, DataPrivacyViewModel privacy, HomeViewModel home, UsageSettingsViewModel usage, SkillsViewModel skills, IModelCatalog catalog, IConfirmService confirm,
         ISettingsWindowService? windows = null)
     {
         Connections = connections;
@@ -49,6 +49,7 @@ public partial class SettingsViewModel : ObservableObject
         Privacy = privacy;
         Home = home;
         Usage = usage;
+        Skills = skills;
         usage.OpenPricing = () => _ = NavigateAsync(new SettingsNavigation(SettingsSection.Models));   // 用量頁的「單價設定 ›」
         home.Attach(reminders, memory, tools, general, sprite);
         home.NavigateRequested += navigation => _ = NavigateAsync(navigation);   // 待處理與首頁卡片要求切頁
@@ -97,6 +98,9 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>「用量與費用」分類（M23 23G）：顯示時由畫面呼叫 <see cref="UsageSettingsViewModel.LoadAsync"/>。</summary>
     public UsageSettingsViewModel Usage { get; }
 
+    /// <summary>「技能」分類（M29）：顯示時由畫面呼叫 <see cref="SkillsViewModel.LoadAsync"/>。</summary>
+    public SkillsViewModel Skills { get; }
+
     /// <summary>「資料與隱私」分類（M20）。</summary>
     public DataPrivacyViewModel Privacy { get; }
 
@@ -117,11 +121,13 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool ShowMcpTab => ToolsTabIndex == 1;
 
-    /// <summary>切到「用量與費用」就重新讀本月的用量（每次顯示都是最新的）。</summary>
+    /// <summary>切到「用量與費用」就重新讀本月的用量；切到「技能」就重新掃描技能資料夾（每次顯示都是最新的）。</summary>
     partial void OnCategoryIndexChanged(int value)
     {
         if (value == (int)SettingsCategory.Usage)
             _ = Usage.LoadAsync();
+        else if (value == (int)SettingsCategory.Skills)
+            _ = Skills.LoadAsync();
     }
 
     public bool ShowHome => CategoryIndex == (int)SettingsCategory.Home;

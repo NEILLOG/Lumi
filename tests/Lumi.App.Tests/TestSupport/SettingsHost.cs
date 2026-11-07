@@ -4,6 +4,7 @@ using Lumi.App.ViewModels;
 using Lumi.Core.Chat;
 using Lumi.Core.Memory;
 using Lumi.Core.Models;
+using Lumi.Core.Skills;
 using Lumi.Infrastructure.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -71,7 +72,9 @@ internal sealed class SettingsHost : IDisposable
         Privacy = new DataPrivacyViewModel(DataLocations, folders ?? new FakeFolderOpener(), Clipboard);
         Home = new HomeViewModel(Catalog, Status, dispatcher, Store, McpSource, Tester, Clock, new MemoryOptions(), urlLauncher: UrlLauncher);
         Usage = new UsageSettingsViewModel(new InMemoryUsageStore(), new InMemoryUsageHintLog(), Catalog, new InMemoryConversationStore(), new FakeSavePicker(), TimeProvider.System);
-        Settings = new SettingsViewModel(Connections, Models, ImageGeneration, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Usage, Catalog, Confirm, WindowService)
+        SkillStore = new InMemorySkillStore(Catalog);
+        Skills = new SkillsViewModel(SkillStore, Catalog, Confirm, dispatcher, FilePicker, folders ?? SkillFolders);
+        Settings = new SettingsViewModel(Connections, Models, ImageGeneration, Persona, Memory, Tools, McpServers, General, Sprite, Speech, Network, Browser, Reminders, Privacy, Home, Usage, Skills, Catalog, Confirm, WindowService)
         {
             // 產品預設落在「設定首頁」；既有的頁面測試都從 AI 連線開始，要測首頁的測試自己改回 Home
             CategoryIndex = (int)SettingsCategory.Connections,
@@ -101,6 +104,12 @@ internal sealed class SettingsHost : IDisposable
     public DataPrivacyViewModel Privacy { get; }
     public HomeViewModel Home { get; }
     public UsageSettingsViewModel Usage { get; }
+    /// <summary>技能的記憶體版本（<see cref="InMemorySkillStore"/>，讀寫啟用狀態走 <see cref="Catalog"/>）。</summary>
+    public InMemorySkillStore SkillStore { get; }
+    public SkillsViewModel Skills { get; }
+    public FakeFilePicker FilePicker { get; } = new();
+    /// <summary>沒有傳入 <c>folders</c> 時，技能頁用的打開資料夾替身。</summary>
+    public FakeFolderOpener SkillFolders { get; } = new();
     public FakeHomeStore Store { get; } = new();
     public FakeTimeProvider Clock { get; } = new();
     public FakeSettingsWindowService WindowService { get; } = new();
@@ -133,6 +142,7 @@ internal sealed class SettingsHost : IDisposable
     public void Dispose()
     {
         Memory.Dispose();
+        Skills.Dispose();
         if (Directory.Exists(_directory))
             Directory.Delete(_directory, recursive: true);
     }
