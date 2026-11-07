@@ -9,6 +9,7 @@ using Lumi.Core.Memory;
 using Lumi.Core.Models;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
+using Lumi.Core.Skills;
 using Lumi.Core.Tools;
 using Lumi.Core.Usage;
 using Lumi.Core.Web;
@@ -53,6 +54,9 @@ public sealed class ConversationService
     private const string MemoryOffMessage = "長期記憶已在設定裡關閉，不能新增、修改或刪除記憶。";
     private const string UnavailableMessage = "這個工具目前無法使用。";
 
+    /// <summary>技能工具的名稱（M29）：只有這則對話的工具快照含它時，system 才列技能清單（E2）。</summary>
+    private const string ReadSkillToolName = "read_skill";
+
     private readonly IChatProvider _provider;
     private readonly IUsageRecorder _usage;
     private readonly IConversationStore _store;
@@ -71,6 +75,7 @@ public sealed class ConversationService
     private readonly IMemoryStore? _memoryStore;
     private readonly IToolCatalog _toolCatalog;
     private readonly IAttachmentStore? _attachments;
+    private readonly ISkillStore _skills;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -99,7 +104,8 @@ public sealed class ConversationService
         IMemoryStore? memoryStore = null,
         IToolCatalog? toolCatalog = null,
         IAttachmentStore? attachments = null,
-        IUsageRecorder? usageRecorder = null)
+        IUsageRecorder? usageRecorder = null,
+        ISkillStore? skills = null)
     {
         _provider = provider;
         _usage = usageRecorder ?? new NullUsageRecorder();
@@ -119,6 +125,7 @@ public sealed class ConversationService
         _memoryStore = memoryStore;
         _toolCatalog = toolCatalog ?? new ToolCatalog(registry, catalog);
         _attachments = attachments;
+        _skills = skills ?? new InMemorySkillStore();
     }
 
     /// <summary>
@@ -318,7 +325,8 @@ public sealed class ConversationService
 
             // 每次呼叫供應商前重組：兩次請求之間設定或記憶可能被改了（同一輪模型剛存的記憶，下一次呼叫就帶上）
             var memory = await LoadMemoryAsync(ct).ConfigureAwait(false);
-            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory, options?.Run, _catalog.Current.Memory.RecentConversations));
+            var skills = await LoadSkillsAsync(offered, ct).ConfigureAwait(false);
+            var prompt = _composer.Compose(new PromptContext(mode, _catalog.Current.Persona, memory, options?.Run, _catalog.Current.Memory.RecentConversations, skills));
 
             // system 在一則對話內固定：第一次送出時記下來，之後都送它。記憶、人設、記憶開關在中途改變時，
             // 不改 system，而是把最新的完整內容附在這一則訊息後面（SystemPromptUpdate）——thinking 簽章綁定 system，改了會 400
@@ -776,6 +784,29 @@ public sealed class ConversationService
             return null;
         var today = DateOnly.FromDateTime(_time.GetLocalNow().DateTime);
         return new MemoryPromptContext(await _memoryStore.ListActiveAsync(today, ct).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// 技能清單（第 8 層，M29）：只有這則對話的工具快照含 <c>read_skill</c> 才讀；舊對話、模型關閉使用工具、工具頁關掉 <c>read_skill</c> 時回 null。
+    /// 讀取失敗（非取消）記 log 後回 null，不能讓對話失敗。
+    /// </summary>
+    private async Task<IReadOnlyList<SkillInfo>?> LoadSkillsAsync(IReadOnlyList<ToolDefinition> offered, CancellationToken ct)
+    {
+        if (!offered.Any(d => d.Name == ReadSkillToolName))
+            return null;
+        try
+        {
+            return await _skills.ListAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "讀取技能清單失敗，這則訊息不帶技能清單");
+            return null;
+        }
     }
 
     /// <summary>

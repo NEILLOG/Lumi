@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Lumi.Core.Chat;
 using Lumi.Core.Memory;
 using Lumi.Core.Models;
+using Lumi.Core.Skills;
 
 namespace Lumi.Core.Prompts;
 
@@ -149,4 +150,33 @@ public sealed partial class MemoryPromptLayer : IPromptLayer
 
     [GeneratedRegex("<(/?)(lumi_memory)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex TagPattern();
+}
+
+/// <summary>
+/// 第 8 層：技能清單（M29）。system 層，所以工作台與小精靈送出的內容相同。<see cref="PromptContext.Skills"/> 為 null（這則對話不能用技能）
+/// 或沒有可用的技能，整層不出現。只列 <see cref="SkillInfo.IsUsable"/> 的技能，依名稱排序；名稱與描述先壓成單行、再跳脫結構標籤，
+/// 同樣的技能永遠產生逐字相同的文字，快取才會命中。
+/// </summary>
+public sealed class SkillsPromptLayer : IPromptLayer
+{
+    public int Order => 8;
+    public PromptPlacement Placement => PromptPlacement.System;
+
+    public string? Render(PromptContext context)
+    {
+        if (context.Skills is not { } skills)
+            return null;
+        var usable = skills.Where(s => s.IsUsable).OrderBy(s => s.Name, StringComparer.Ordinal).ToList();
+        if (usable.Count == 0)
+            return null;
+
+        var text = new StringBuilder("## 技能\n").Append(PromptText.Get("skills")).Append("\n<lumi_skills>");
+        foreach (var skill in usable)
+        {
+            var name = SkillRules.EscapeTags(SkillRules.NormalizeName(skill.Name));
+            var description = SkillRules.EscapeTags(SkillRules.NormalizeDescription(skill.Description));
+            text.Append("\n- ").Append(name).Append('：').Append(description);
+        }
+        return text.Append("\n</lumi_skills>").ToString();
+    }
 }
