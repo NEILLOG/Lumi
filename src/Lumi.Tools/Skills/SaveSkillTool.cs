@@ -58,11 +58,11 @@ public sealed class SaveSkillTool(ISkillStore skills) : ToolBase<SaveSkillArgs>
             switch (result.Outcome)
             {
                 case SkillSaveOutcome.Saved:
-                    return ToolResult.Ok($"已存成技能「{name}」，之後開新對話就會用到。", $"已儲存「{name}」");
+                    return ToolResult.Ok($"已存成技能「{name}」，之後遇到相符的要求就會用到。", $"已儲存「{name}」");
 
                 case SkillSaveOutcome.SavedDisabled:
                     return ToolResult.Ok(
-                        $"已存成技能「{name}」，之後開新對話就會用到。{result.Message}", $"已儲存「{name}」（先停用）");
+                        $"已存成技能「{name}」，之後遇到相符的要求就會用到。{result.Message}", $"已儲存「{name}」（先停用）");
 
                 default:
                     return ToolResult.Error(result.Message ?? "無法儲存這個技能。", "無法儲存技能");

@@ -121,7 +121,7 @@ public sealed class SaveSkillToolTests
         var result = await Tool(store).ExecuteAsync(Json("週報", "每週五", "步驟"), Context(), default);
 
         Assert.False(result.IsError);
-        Assert.Equal("已存成技能「週報」，之後開新對話就會用到。", result.Content);
+        Assert.Equal("已存成技能「週報」，之後遇到相符的要求就會用到。", result.Content);
         Assert.Equal("已儲存「週報」", result.Summary);
         var listed = await store.ListAsync(default);
         Assert.Contains(listed, s => s.Name == "週報" && s.Description == "每週五" && s.Enabled);
