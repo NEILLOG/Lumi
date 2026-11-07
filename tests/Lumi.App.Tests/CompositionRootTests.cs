@@ -113,7 +113,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.App.Services.ToolApprovalService>(services.GetRequiredService<IToolApprovalResponder>());
         Assert.Same(services.GetRequiredService<Lumi.App.Services.ToolApprovalService>(), services.GetRequiredService<IToolApprovalResponder>());
         // 檔案工具（需要使用者加入範圍）與寫入類檔案工具預設開（M10 移除示範工具後，只剩正式工具）
-        Assert.Equal(["add_note", "app_help", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "create_scheduled_prompt", "download_file", "edit_image", "generate_image", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_conversation", "read_document", "read_file", "read_notes", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
+        Assert.Equal(["add_note", "app_help", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "create_scheduled_prompt", "download_file", "edit_image", "generate_image", "get_current_time", "http_request", "http_send", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_conversation", "read_document", "read_file", "read_notes", "read_skill", "rss_read", "save_skill", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
         // 長期記憶（M14）：SQLite 版取代 Core 預設的記憶體版；第 5 層、清理服務都要能解析
         Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMemoryStore>(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>());
@@ -165,7 +165,7 @@ public sealed class CompositionRootTests : IDisposable
         Assert.IsType<Lumi.Infrastructure.Settings.SettingsNoteFolderProvider>(services.GetRequiredService<Lumi.Core.Notes.INoteFolderProvider>());
         Assert.Equal("NoteStore", services.GetRequiredService<Lumi.Core.Notes.INoteStore>().GetType().Name);   // 內部類別，只比對名稱
         // M5：四個 prompt 層、M14 的第 5 層（記憶）、M24 的第 6 層（排程說明）都組進去了
-        Assert.Equal([1, 2, 3, 4, 5, 6, 7], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
+        Assert.Equal([1, 2, 3, 4, 5, 6, 7, 8], services.GetServices<Lumi.Core.Prompts.IPromptLayer>().Select(l => l.Order).Order());
         Assert.IsType<Lumi.Core.Prompts.PromptComposer>(services.GetRequiredService<Lumi.Core.Prompts.IPromptComposer>());
         // M24：排程執行器是同一個執行個體，權限確認經過分流服務
         var scheduledRuns = services.GetRequiredService<Lumi.Core.Reminders.ScheduledRunService>();

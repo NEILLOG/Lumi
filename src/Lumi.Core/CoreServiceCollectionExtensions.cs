@@ -2,10 +2,10 @@ using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Mcp;
 using Lumi.Core.Memory;
-using Lumi.Core.Skills;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Reminders;
+using Lumi.Core.Skills;
 using Lumi.Core.Tools;
 using Lumi.Core.Updates;
 using Lumi.Core.Usage;
@@ -54,6 +54,7 @@ public static class CoreServiceCollectionExtensions
         services.AddLumiPromptLayer<MemoryPromptLayer>();   // 第 5 層：長期記憶（M14）
         services.AddLumiPromptLayer<ScheduledRunPromptLayer>();   // 第 6 層：排程自動執行的說明（M24，只在排程執行時出現）
         services.AddLumiPromptLayer<RecentConversationsPromptLayer>();   // 第 7 層：近況清單的使用規則（M26）
+        services.AddLumiPromptLayer<SkillsPromptLayer>();   // 第 8 層：技能清單（M29，有可用的技能才出現）
 
         // 長期記憶（M14）：預設是記憶體版（測試與沒有資料庫時）；Lumi.Infrastructure 取代成 SQLite 版
         services.TryAddSingleton(new MemoryOptions());

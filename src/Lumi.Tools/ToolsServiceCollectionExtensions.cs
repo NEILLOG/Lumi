@@ -7,6 +7,7 @@ using Lumi.Tools.Images;
 using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
 using Lumi.Tools.Reminders;
+using Lumi.Tools.Skills;
 using Lumi.Tools.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -32,6 +33,10 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<GetCurrentTimeTool>();
         services.AddLumiTool<CalculateTool>();
         services.AddLumiTool<AppHelpTool>();
+
+        // 技能（M29）：ISkillStore 由 Core 預設註冊（App 換成 FileSkillStore）；read_skill 只在對話快照含它時 system 才列清單
+        services.AddLumiTool<ReadSkillTool>();
+        services.AddLumiTool<SaveSkillTool>();
         services.AddLumiTool<ListDirTool>();
         services.AddLumiTool<ReadFileTool>();
         services.AddLumiTool<SearchTool>();

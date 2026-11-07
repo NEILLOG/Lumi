@@ -1,5 +1,6 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Documents;
+using Lumi.Core.Skills;
 using Lumi.Core.Tools;
 using Lumi.Tools.Tests.Browser;
 using Lumi.Tools.Tests.Files;
@@ -24,6 +25,7 @@ public sealed class ToolGroupTests
         services.AddFakeBrowserServices();
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
+        services.AddSingleton<ISkillStore>(new InMemorySkillStore());   // 技能工具（M29）需要儲存
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
@@ -56,12 +58,12 @@ public sealed class ToolGroupTests
     }
 
     [Fact]
-    public void Only_memory_save_and_two_browser_tools_opt_out_of_always_allow()
+    public void Only_memory_save_save_skill_and_browser_tools_opt_out_of_always_allow()
     {
         // memory_save（永久性的提示注入）、browser_upload（把本機檔案送到網站）、browser_wait_for_user（打開視窗等使用者，永遠允許沒有意義）
-        // create_scheduled_prompt（建立排程要每次確認，M24）
+        // create_scheduled_prompt（建立排程要每次確認，M24）、save_skill（永久寫入指示，和 memory_save 同理，M29）
         var names = BuiltinDescriptors().Where(d => !d.CanAlwaysAllow).Select(d => d.Name).Order(StringComparer.Ordinal).ToList();
 
-        Assert.Equal(["browser_upload", "browser_wait_for_user", "create_scheduled_prompt", "memory_save"], names);
+        Assert.Equal(["browser_upload", "browser_wait_for_user", "create_scheduled_prompt", "memory_save", "save_skill"], names);
     }
 }
