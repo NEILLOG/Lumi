@@ -33,6 +33,7 @@ public sealed class DataLocationProvider(
         new("logs", Strings.Privacy_LocLogs, Strings.Privacy_LocLogsDesc, LumiPaths.LogDirectory, IsFile: false),
         new("browser", Strings.Privacy_LocBrowser, Strings.Privacy_LocBrowserDesc, Path.Combine(LumiPaths.DataDirectory, "browser"), IsFile: false),
         new("sprites", Strings.Privacy_LocSprites, Strings.Privacy_LocSpritesDesc, Path.Combine(LumiPaths.DataDirectory, "sprites"), IsFile: false),
+        new("skills", Strings.Privacy_LocSkills, Strings.Privacy_LocSkillsDesc, Path.Combine(LumiPaths.DataDirectory, "skills"), IsFile: false),
         new("notes", Strings.Privacy_LocNotes, Strings.Privacy_LocNotesDesc, notes.Folder, IsFile: false),
     ];
 

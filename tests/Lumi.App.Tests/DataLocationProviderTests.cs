@@ -14,7 +14,7 @@ namespace Lumi.App.Tests;
 public sealed class DataLocationProviderTests : IDisposable
 {
     private static readonly string[] ExpectedIds =
-        ["data", "database", "attachments", "settings", "secrets", "logs", "browser", "sprites", "notes"];
+        ["data", "database", "attachments", "settings", "secrets", "logs", "browser", "sprites", "skills", "notes"];
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "lumi-locations-" + Guid.NewGuid().ToString("N"));
 
@@ -42,7 +42,7 @@ public sealed class DataLocationProviderTests : IDisposable
     }
 
     [Fact]
-    public void GetLocations_ReturnsNineEntries_InTheDisplayOrder()
+    public void GetLocations_ReturnsTenEntries_InTheDisplayOrder()
     {
         var provider = NewProvider(out _, out _, out _, out _, Sub("notes"));
 
@@ -65,6 +65,7 @@ public sealed class DataLocationProviderTests : IDisposable
         Assert.Equal(LumiPaths.LogDirectory, byId["logs"].Path);
         Assert.Equal(Path.Combine(LumiPaths.DataDirectory, "browser"), byId["browser"].Path);
         Assert.Equal(Path.Combine(LumiPaths.DataDirectory, "sprites"), byId["sprites"].Path);
+        Assert.Equal(Path.Combine(LumiPaths.DataDirectory, "skills"), byId["skills"].Path);
         Assert.Equal(Sub("notes"), byId["notes"].Path);
     }
 
@@ -77,7 +78,7 @@ public sealed class DataLocationProviderTests : IDisposable
 
         Assert.True(byId["database"].IsFile);
         Assert.True(byId["settings"].IsFile);
-        foreach (var id in new[] { "data", "attachments", "logs", "browser", "sprites", "notes" })
+        foreach (var id in new[] { "data", "attachments", "logs", "browser", "sprites", "skills", "notes" })
             Assert.False(byId[id].IsFile, id);
     }
 

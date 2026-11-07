@@ -27,7 +27,7 @@ internal sealed class SettingsRig : IDisposable
         "connections-list", "connections-form", "connections-advanced", "connections-errors", "connections-key-stored",
         "connections-test-ok", "connections-test-fail",
         "models-form", "models-advanced", "image-generation",
-        "persona", "persona-dirty", "memory", "memory-new", "memory-editing", "general", "sprite", "sprite-issues",
+        "persona", "persona-dirty", "memory", "memory-new", "memory-editing", "skills", "skills-new", "skills-empty", "general", "sprite", "sprite-issues",
         "speech", "speech-token-stored", "speech-test-ok", "speech-test-fail",
     ];
 
@@ -133,6 +133,20 @@ internal sealed class SettingsRig : IDisposable
                     Host.Memory.NewCommand.Execute(null);
                 if (state == "memory-editing")
                     Host.Memory.Groups[0].Items[0].EditCommand.Execute(null);
+                break;
+            case "skills":
+            case "skills-new":
+            case "skills-empty":
+                if (state != "skills-empty")
+                {
+                    Host.SkillStore.Add(new Lumi.Core.Skills.SkillDraft("週報", "每週五整理本週工作，照公司格式寫週報", "1. 整理本週的工作\n2. 寫成週報"));
+                    Host.SkillStore.Add(new Lumi.Core.Skills.SkillDraft("會議紀錄", "會議結束後整理重點與待辦事項", "1. 列出決議\n2. 列出待辦與負責人"));
+                    Host.SkillStore.Add(new Lumi.Core.Skills.SkillDraft("壞掉的", "這個技能讀不進來", "內文"), problem: "找不到說明");
+                }
+                Settle();
+                settings.CategoryIndex = (int)SettingsCategory.Skills;
+                if (state == "skills-new")
+                    Host.Skills.NewCommand.Execute(null);
                 break;
             case "tools":
                 settings.CategoryIndex = (int)SettingsCategory.Tools;

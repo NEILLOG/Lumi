@@ -1,0 +1,273 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.SkillsPanel"
+             x:DataType="vm:SkillsViewModel">
+
+  <!--
+    技能面板（M29 5.7、包 29C）：頁首與「新增技能」在 SettingsWindow。這裡是次要動作（匯入、打開資料夾）與用量 → 訊息 → 匯入預覽或新增表單（清單上方）
+    → 清單（開關、名稱、描述、標籤、編輯、刪除；編輯表單接在那一列裡）→ 空狀態。表單與匯入預覽都只有一份，同時只會顯示一個。
+    窄視窗（Window.narrow）時每列的動作按鈕移到內容下方（規則在下面的 Styles）。版面仿照記憶面板（MemoryPanel）。
+  -->
+  <UserControl.Styles>
+    <!-- 清單的一列：分隔線分開，不是卡片 -->
+    <Style Selector="Border.skill-row">
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="Padding" Value="0,12" />
+    </Style>
+    <!-- 表單與匯入預覽：Surface Alt 底、1px 邊框、卡片圓角（容器，不是卡片） -->
+    <Style Selector="Border.skill-form">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+    <!-- Warning 淡底：讀不進來的標籤與接近上限，文字一定寫出來（不只靠顏色） -->
+    <Style Selector="Border.warn-badge">
+      <Setter Property="Background" Value="{DynamicResource LumiWarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiWarningBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.warn-badge TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <Style Selector="TextBlock.usage">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- 區段標題（表單標題、匯入預覽的小節）：項目標題（14／700）緊鄰內容 -->
+    <Style Selector="TextBlock.group-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.item-title">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.item-text">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeBody}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- RWD：窄視窗時動作按鈕移到內容下方（第 2 列，靠左） -->
+    <Style Selector="StackPanel.skill-actions">
+      <Setter Property="(Grid.Row)" Value="0" />
+      <Setter Property="(Grid.Column)" Value="2" />
+    </Style>
+    <Style Selector="Window.narrow StackPanel.skill-actions">
+      <Setter Property="(Grid.Row)" Value="1" />
+      <Setter Property="(Grid.Column)" Value="1" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- 表單（新增與編輯共用）：欄位用 FormField，標籤在上、說明在下、錯誤有文字 -->
+    <DataTemplate x:Key="SkillFormTemplate" x:DataType="vm:SkillFormViewModel">
+      <Border Classes="skill-form">
+        <StackPanel>
+          <TextBlock Classes="group-title" Text="{Binding Title}" />
+          <StackPanel Spacing="16" Margin="0,16,0,0">
+            <ctl:FormField Label="{x:Static res:Strings.Skills_FieldName}" Requirement="Required">
+              <TextBox Text="{Binding Name}" AutomationProperties.Name="{x:Static res:Strings.Skills_FieldName}" />
+            </ctl:FormField>
+
+            <ctl:FormField Label="{x:Static res:Strings.Skills_FieldDescription}" Requirement="Required"
+                           Hint="{x:Static res:Strings.Skills_FieldDescriptionHint}">
+              <TextBox Text="{Binding Description}" TextWrapping="Wrap"
+                       AutomationProperties.Name="{x:Static res:Strings.Skills_FieldDescription}" />
+            </ctl:FormField>
+
+            <ctl:FormField Label="{x:Static res:Strings.Skills_FieldBody}" Requirement="Required">
+              <TextBox Text="{Binding Body}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="160" MaxHeight="320"
+                       ScrollViewer.VerticalScrollBarVisibility="Auto"
+                       AutomationProperties.Name="{x:Static res:Strings.Skills_FieldBody}" />
+            </ctl:FormField>
+
+            <TextBlock Classes="error" Text="{Binding FormError}" IsVisible="{Binding HasFormError}" />
+
+            <!-- 動作列：不能儲存的原因在左；取消（secondary）、儲存（primary，這一區唯一的 Primary）在右 -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <TextBlock Grid.Column="0" Classes="muted" Text="{Binding SaveBlockedReason}" TextWrapping="Wrap" VerticalAlignment="Center"
+                         IsVisible="{Binding SaveBlockedReason, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Skills_Cancel}" Command="{Binding CancelCommand}" />
+                <Button Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                        Content="{x:Static res:Strings.Skills_Save}" Command="{Binding SaveCommand}" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- 匯入預覽：名稱、描述、步驟全文（可捲動）、會複製的檔案、略過的檔案與原因、警告；不能安裝時只顯示原因與「取消」 -->
+    <DataTemplate x:Key="SkillImportTemplate" x:DataType="vm:SkillImportViewModel">
+      <Border Classes="skill-form">
+        <StackPanel>
+          <TextBlock Classes="group-title" Text="{x:Static res:Strings.Skills_ImportTitle}" />
+          <StackPanel Spacing="16" Margin="0,16,0,0">
+            <StackPanel Spacing="8" IsVisible="{Binding HasProblem}">
+              <TextBlock Classes="error" Text="{Binding Problem}" />
+            </StackPanel>
+
+            <StackPanel Spacing="16" IsVisible="{Binding !HasProblem}">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="item-title" Text="{Binding Name}" />
+                <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" />
+              </StackPanel>
+
+              <ScrollViewer MaxHeight="320">
+                <TextBlock Classes="item-text" Text="{Binding Body}" TextWrapping="Wrap" />
+              </ScrollViewer>
+
+              <StackPanel Spacing="4">
+                <TextBlock Classes="group-title" Text="{x:Static res:Strings.Skills_ImportFiles}" />
+                <TextBlock Classes="muted" Text="{x:Static res:Strings.Skills_ImportNoFiles}" IsVisible="{Binding !HasFiles}" />
+                <ItemsControl ItemsSource="{Binding Files}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String"><TextBlock Classes="muted" Text="{Binding}" TextWrapping="Wrap" /></DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <StackPanel Spacing="4" IsVisible="{Binding HasSkipped}">
+                <TextBlock Classes="group-title" Text="{x:Static res:Strings.Skills_ImportSkipped}" />
+                <ItemsControl ItemsSource="{Binding Skipped}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SkippedFileRow">
+                      <StackPanel Spacing="0" Margin="0,0,0,4">
+                        <TextBlock Classes="item-text" Text="{Binding Path}" />
+                        <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <ItemsControl ItemsSource="{Binding Warnings}" IsVisible="{Binding HasWarnings}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String"><TextBlock Classes="warning" Text="{Binding}" Margin="0,0,0,4" /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+
+            <TextBlock Classes="error" Text="{Binding Error}" IsVisible="{Binding HasError}" />
+
+            <!-- 動作列：取消（secondary）在右邊；能安裝時安裝（primary，這一區唯一的 Primary）在取消左邊 -->
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+              <Button Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      Content="{x:Static res:Strings.Skills_Cancel}" Command="{Binding CancelCommand}" />
+              <Button Classes="primary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                      Content="{Binding InstallText}" Command="{Binding InstallCommand}"
+                      IsVisible="{Binding CanInstall}" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- 標籤：讀不進來（Warning）與已略過部分檔案（Caption） -->
+    <DataTemplate x:Key="SkillTagTemplate" x:DataType="vm:SkillTag">
+      <Grid>
+        <Border Classes="badge" Margin="0,0,8,4" IsVisible="{Binding !IsWarning}">
+          <TextBlock Text="{Binding Text}" />
+        </Border>
+        <Border Classes="warn-badge" Margin="0,0,8,4" IsVisible="{Binding IsWarning}">
+          <TextBlock Text="{Binding Text}" />
+        </Border>
+      </Grid>
+    </DataTemplate>
+
+    <!-- 清單的一列：開關（讀不進來的沒有）→ 名稱、描述（最多兩行）、標籤 → 編輯、刪除；編輯中的表單接在最下面 -->
+    <DataTemplate x:Key="SkillRowTemplate" x:DataType="vm:SkillItemViewModel">
+      <Border Classes="skill-row">
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="0">
+          <!-- 啟用開關：和記憶頁的開關一樣是 CheckBox，文字「啟用」寫在旁邊；讀不進來的列沒有 -->
+          <CheckBox Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" Content="{x:Static res:Strings.Skills_EnableToggle}"
+                    IsVisible="{Binding CanToggle}" IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+
+          <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+            <TextBlock Classes="item-title" Text="{Binding Name}" />
+            <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                       IsVisible="{Binding HasDescription}" />
+            <ItemsControl ItemsSource="{Binding Tags}" IsVisible="{Binding HasTags}" ItemTemplate="{StaticResource SkillTagTemplate}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            </ItemsControl>
+          </StackPanel>
+
+          <StackPanel Classes="skill-actions" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="tertiary" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Content="{x:Static res:Strings.Skills_Edit}" Command="{Binding EditCommand}" />
+            <Button Classes="danger" MinHeight="{StaticResource LumiControlHeight}" Padding="12,8"
+                    Content="{x:Static res:Strings.Skills_Delete}" Command="{Binding DeleteCommand}" />
+          </StackPanel>
+
+          <ContentControl Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0"
+                          Content="{Binding EditForm}" ContentTemplate="{StaticResource SkillFormTemplate}"
+                          IsVisible="{Binding EditForm, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </Grid>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ctl:FractionWidthLimiter MaxPixels="640" HorizontalAlignment="Stretch">
+      <StackPanel>
+
+        <!-- 次要動作一列：匯入（選資料夾或 zip 檔）、打開技能資料夾；右邊是用量 -->
+        <Grid x:Name="SkillsToolbar" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+          <Button x:Name="SkillsImportButton" Grid.Column="0" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  Content="{x:Static res:Strings.Skills_Import}" AutomationProperties.Name="{x:Static res:Strings.Skills_Import}">
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="{x:Static res:Strings.Skills_ImportChooseFolder}" Command="{Binding ImportFolderCommand}" />
+                <MenuItem Header="{x:Static res:Strings.Skills_ImportChooseZip}" Command="{Binding ImportZipCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <Button x:Name="SkillsOpenFolderButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
+                  Content="{x:Static res:Strings.Skills_OpenFolder}" Command="{Binding OpenFolderCommand}" />
+          <TextBlock x:Name="SkillsUsageText" Grid.Column="2" Classes="usage" Text="{Binding UsageText}"
+                     HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Right" />
+        </Grid>
+
+        <!-- 頁面訊息：達到上限、操作失敗（文字寫出來） -->
+        <TextBlock x:Name="SkillsMessage" Classes="muted" Classes.error="{Binding MessageIsError}" Margin="0,16,0,0"
+                   IsVisible="{Binding HasMessage}" Text="{Binding Message}" TextWrapping="Wrap" />
+
+        <!-- 匯入預覽（掛在清單上方，沒有匯入時不佔位） -->
+        <ContentControl x:Name="SkillsImportPreview" Margin="0,16,0,0" Content="{Binding ImportPreview}"
+                        ContentTemplate="{StaticResource SkillImportTemplate}"
+                        IsVisible="{Binding ImportPreview, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+        <!-- 新增表單：掛在清單上方（沒有開啟時不佔位） -->
+        <ContentControl x:Name="SkillsNewForm" Margin="0,16,0,0" Content="{Binding NewForm}"
+                        ContentTemplate="{StaticResource SkillFormTemplate}"
+                        IsVisible="{Binding NewForm, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+        <!-- 空狀態：沒有任何技能時，說明是什麼、怎麼開始 -->
+        <TextBlock x:Name="SkillsEmptyText" Classes="muted" Margin="0,16,0,0" Text="{Binding EmptyText}"
+                   TextWrapping="Wrap" FontSize="{DynamicResource LumiFontSizeBody}" IsVisible="{Binding IsEmpty}" />
+
+        <!-- 清單 -->
+        <ItemsControl x:Name="SkillsList" Margin="0,8,0,0" ItemsSource="{Binding Items}" ItemTemplate="{StaticResource SkillRowTemplate}" />
+      </StackPanel>
+    </ctl:FractionWidthLimiter>
+  </ScrollViewer>
+</UserControl>
