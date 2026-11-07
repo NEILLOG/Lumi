@@ -5,10 +5,12 @@ using Lumi.Core.Context;
 using Lumi.Core.Models;
 using Lumi.Core.Notes;
 using Lumi.Core.Reminders;
+using Lumi.Core.Skills;
 using Lumi.Core.Usage;
 using Lumi.Infrastructure.Attachments;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
+using Lumi.Infrastructure.Skills;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -49,6 +51,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IUsageRecorder, UsageRecorder>();
         services.AddSingleton<BudgetMonitor>();
         services.Replace(ServiceDescriptor.Singleton<IUsageHintLog>(sp => ActivatorUtilities.CreateInstance<SqliteUsageHintLog>(sp)));   // 使用習慣提示的紀錄；取代 Core 預設的 NullUsageHintLog
+
+        // 技能（M29）：檔案存在使用者資料夾的 skills/；取代 Core 預設的記憶體版
+        services.AddOptions<SkillStoreOptions>();
+        services.AddSingleton(sp => ActivatorUtilities.CreateInstance<FileSkillStore>(sp,
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SkillStoreOptions>>().Value.ResolveDirectory()));
+        services.Replace(ServiceDescriptor.Singleton<ISkillStore>(sp => sp.GetRequiredService<FileSkillStore>()));
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();

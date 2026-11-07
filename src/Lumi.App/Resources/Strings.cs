@@ -1225,10 +1225,6 @@ public static class Strings
     public static string Skills_ImportFiles => Get(nameof(Skills_ImportFiles));
     public static string Skills_ImportSkipped => Get(nameof(Skills_ImportSkipped));
     public static string Skills_ImportNoFiles => Get(nameof(Skills_ImportNoFiles));
-    public static string Skills_ImportScriptsWarning => Get(nameof(Skills_ImportScriptsWarning));
-    public static string Skills_ImportFieldsWarning => Get(nameof(Skills_ImportFieldsWarning));
-    public static string Skills_ImportReplaceWarningFormat => Get(nameof(Skills_ImportReplaceWarningFormat));
-    public static string Skills_ImportOneAtATime => Get(nameof(Skills_ImportOneAtATime));
     public static string Skills_ImportNoSkill => Get(nameof(Skills_ImportNoSkill));
     public static string Skills_ConfirmTitle => Get(nameof(Skills_ConfirmTitle));
     public static string Skills_ConfirmReplaceWarningFormat => Get(nameof(Skills_ConfirmReplaceWarningFormat));

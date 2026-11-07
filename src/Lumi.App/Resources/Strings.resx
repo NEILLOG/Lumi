@@ -1230,10 +1230,6 @@
   <data name="Skills_ImportFiles" xml:space="preserve"><value>會複製的檔案</value></data>
   <data name="Skills_ImportSkipped" xml:space="preserve"><value>略過的檔案</value></data>
   <data name="Skills_ImportNoFiles" xml:space="preserve"><value>沒有附帶檔案</value></data>
-  <data name="Skills_ImportScriptsWarning" xml:space="preserve"><value>這個技能附帶腳本或程式，Lumi 不會執行，也不會複製；技能可能無法完整運作。</value></data>
-  <data name="Skills_ImportFieldsWarning" xml:space="preserve"><value>這個技能要求的工具權限或模型設定不會生效，工具照常需要你確認。</value></data>
-  <data name="Skills_ImportReplaceWarningFormat" xml:space="preserve"><value>已經有名為「{0}」的技能，安裝後會取代它。</value></data>
-  <data name="Skills_ImportOneAtATime" xml:space="preserve"><value>這裡面有好幾個技能，請一次匯入一個。</value></data>
   <data name="Skills_ImportNoSkill" xml:space="preserve"><value>找不到 SKILL.md，這可能不是技能。</value></data>
   <data name="Skills_ConfirmTitle" xml:space="preserve"><value>要把這套做法存成技能嗎？</value></data>
   <data name="Skills_ConfirmReplaceWarningFormat" xml:space="preserve"><value>會取代現有的技能「{0}」。</value></data>

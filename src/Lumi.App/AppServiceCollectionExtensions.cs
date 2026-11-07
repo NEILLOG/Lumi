@@ -45,6 +45,7 @@ public static class AppServiceCollectionExtensions
         services.AddTransient<McpServersViewModel>();   // MCP 伺服器（M16 16F）
         services.AddTransient<ToolsViewModel>();    // 工具清單（M15 15D）
         services.AddTransient<MemoryViewModel>();   // 記憶（M14 14D）
+        services.AddTransient<SkillsViewModel>();   // 技能（M29）
         services.AddTransient<RemindersViewModel>();   // 設定頁「提醒排程」（M20）
         services.AddTransient<DataPrivacyViewModel>();
         // 用量與費用（M23）：價目表（內建快照＋使用者資料夾的更新版）、設定頁、預算提醒、圖片縮小

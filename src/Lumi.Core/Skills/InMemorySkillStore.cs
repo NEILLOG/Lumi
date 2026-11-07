@@ -40,9 +40,10 @@ public sealed class InMemorySkillStore : ISkillStore
         lock (_lock)
         {
             _skills[draft.Name] = new Entry(draft, files ?? new Dictionary<string, string>(), problem, hasIgnoredFiles);
-            if (!enabled)
-                _disabled.Add(draft.Name);
         }
+        // 有 catalog 時停用狀態寫進設定（之後用 SetSkillEnabledAsync 才改得回來）；catalog 不支援時才記在這裡
+        if (!enabled)
+            DisableAsync(draft.Name, CancellationToken.None).GetAwaiter().GetResult();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 

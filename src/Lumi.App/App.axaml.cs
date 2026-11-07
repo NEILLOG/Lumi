@@ -121,6 +121,7 @@ public partial class App : Application
             services.GetRequiredService<SpriteConversationController>().Attach();
             services.GetRequiredService<BudgetAlertCoordinator>();   // 回應結束後檢查預算（M23）
             StartPricingAutoFill(services);
+            CleanupSkillImports(services);
             var modes = services.GetRequiredService<IAppModeCoordinator>();
             services.GetRequiredService<TrayService>().Attach(
                 this, showSprite: modes.ShowSprite, openWorkbench: () => modes.OpenWorkbench(), exit: modes.Exit);
@@ -157,6 +158,19 @@ public partial class App : Application
     /// 啟動後在背景比對價目表：帶入既有模型的單價（升級後只做一次），再依價目表調高既有模型的上下文上限（每次啟動，冪等）。
     /// 兩件事依序進行以免同時寫設定檔；各自失敗只記 log，不影響另一件。
     /// </summary>
+    /// <summary>清掉上次沒裝完的技能匯入暫存區（M29）；失敗只記 log。</summary>
+    private static void CleanupSkillImports(IServiceProvider services)
+    {
+        try
+        {
+            services.GetRequiredService<Lumi.Infrastructure.Skills.FileSkillStore>().CleanupStaleImports();
+        }
+        catch (Exception ex)
+        {
+            services.GetService<ILogger<App>>()?.LogWarning(ex, "清理技能匯入暫存區失敗");
+        }
+    }
+
     private static void StartPricingAutoFill(IServiceProvider services)
     {
         _ = Task.Run(async () =>
