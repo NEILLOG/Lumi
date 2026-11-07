@@ -1199,4 +1199,48 @@
   <data name="Tarot_MajorArcanaFormat" xml:space="preserve"><value>大阿爾克那 {0}</value></data>
   <data name="Tarot_MinorArcanaFormat" xml:space="preserve"><value>小阿爾克那 {0}</value></data>
   <data name="Tarot_MinorArcana" xml:space="preserve"><value>小阿爾克那</value></data>
+  <data name="Settings_CategorySkills" xml:space="preserve"><value>技能</value></data>
+  <data name="Settings_CategorySkillsSub" xml:space="preserve"><value>教 Lumi 做事的方法</value></data>
+  <data name="Skills_HeaderTitle" xml:space="preserve"><value>教 Lumi 做事的方法</value></data>
+  <data name="Skills_HeaderDescription" xml:space="preserve"><value>存好的技能，Lumi 遇到相符的要求時會自己拿出來用。</value></data>
+  <data name="Skills_Add" xml:space="preserve"><value>新增技能</value></data>
+  <data name="Skills_Import" xml:space="preserve"><value>匯入…</value></data>
+  <data name="Skills_OpenFolder" xml:space="preserve"><value>打開技能資料夾</value></data>
+  <data name="Skills_UsageFormat" xml:space="preserve"><value>已啟用 {0}／{1} · 清單約佔 {2} tokens</value></data>
+  <data name="Skills_Empty" xml:space="preserve"><value>技能是一套做事方法。在對話裡做完一件事後，跟 Lumi 說「把剛才的流程存成技能」，或按「新增技能」自己寫。</value></data>
+  <data name="Skills_FieldName" xml:space="preserve"><value>名稱</value></data>
+  <data name="Skills_FieldDescription" xml:space="preserve"><value>什麼時候用</value></data>
+  <data name="Skills_FieldDescriptionHint" xml:space="preserve"><value>一兩句話就好，例如「每週五整理本週工作、寫週報時使用」</value></data>
+  <data name="Skills_FieldBody" xml:space="preserve"><value>步驟</value></data>
+  <data name="Skills_Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Skills_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Skills_Edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="Skills_Delete" xml:space="preserve"><value>刪除</value></data>
+  <data name="Skills_DeleteConfirmFormat" xml:space="preserve"><value>要刪除技能「{0}」嗎？附帶的檔案會一起刪除，無法復原。</value></data>
+  <data name="Skills_EnableToggle" xml:space="preserve"><value>啟用</value></data>
+  <data name="Skills_TagIgnoredFiles" xml:space="preserve"><value>已略過部分檔案</value></data>
+  <data name="Skills_TagProblemFormat" xml:space="preserve"><value>讀不進來：{0}</value></data>
+  <data name="Skills_LimitReached" xml:space="preserve"><value>已經有 {0} 個啟用中的技能，這個技能先存成停用。要用的話，請先停用其他技能。</value></data>
+  <data name="Skills_EnableLimitFormat" xml:space="preserve"><value>最多只能啟用 {0} 個技能，請先停用其他技能。</value></data>
+  <data name="Skills_ImportTitle" xml:space="preserve"><value>匯入技能</value></data>
+  <data name="Skills_ImportChooseFolder" xml:space="preserve"><value>選資料夾</value></data>
+  <data name="Skills_ImportChooseZip" xml:space="preserve"><value>選 zip 檔</value></data>
+  <data name="Skills_ImportInstall" xml:space="preserve"><value>安裝</value></data>
+  <data name="Skills_ImportReplace" xml:space="preserve"><value>取代並安裝</value></data>
+  <data name="Skills_ImportFiles" xml:space="preserve"><value>會複製的檔案</value></data>
+  <data name="Skills_ImportSkipped" xml:space="preserve"><value>略過的檔案</value></data>
+  <data name="Skills_ImportNoFiles" xml:space="preserve"><value>沒有附帶檔案</value></data>
+  <data name="Skills_ImportScriptsWarning" xml:space="preserve"><value>這個技能附帶腳本或程式，Lumi 不會執行，也不會複製；技能可能無法完整運作。</value></data>
+  <data name="Skills_ImportFieldsWarning" xml:space="preserve"><value>這個技能要求的工具權限或模型設定不會生效，工具照常需要你確認。</value></data>
+  <data name="Skills_ImportReplaceWarningFormat" xml:space="preserve"><value>已經有名為「{0}」的技能，安裝後會取代它。</value></data>
+  <data name="Skills_ImportOneAtATime" xml:space="preserve"><value>這裡面有好幾個技能，請一次匯入一個。</value></data>
+  <data name="Skills_ImportNoSkill" xml:space="preserve"><value>找不到 SKILL.md，這可能不是技能。</value></data>
+  <data name="Skills_ConfirmTitle" xml:space="preserve"><value>要把這套做法存成技能嗎？</value></data>
+  <data name="Skills_ConfirmReplaceWarningFormat" xml:space="preserve"><value>會取代現有的技能「{0}」。</value></data>
+  <data name="Skills_ConfirmSave" xml:space="preserve"><value>儲存</value></data>
+  <data name="Skills_ConfirmDeny" xml:space="preserve"><value>不要</value></data>
+  <data name="Skills_ComposerButton" xml:space="preserve"><value>技能</value></data>
+  <data name="Skills_ComposerInsertFormat" xml:space="preserve"><value>請用「{0}」技能：</value></data>
+  <data name="Privacy_LocSkills" xml:space="preserve"><value>技能</value></data>
+  <data name="Privacy_LocSkillsDesc" xml:space="preserve"><value>你存的技能，一個技能一個資料夾。</value></data>
 </root>

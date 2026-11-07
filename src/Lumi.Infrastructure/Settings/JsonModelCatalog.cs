@@ -7,6 +7,7 @@ using Lumi.Core.Models;
 using Lumi.Core.Mcp;
 using Lumi.Core.Notes;
 using Lumi.Core.Secrets;
+using Lumi.Core.Skills;
 using Lumi.Core.Speech;
 using Lumi.Core.Usage;
 using Lumi.Core.Web;
@@ -266,6 +267,12 @@ public sealed class JsonModelCatalog : IModelCatalog
     public Task SetUsageAsync(UsageSettings settings, CancellationToken ct = default) =>
         MutateAsync(s => s with { Usage = settings.Normalize() }, ct);
 
+    public Task SetSkillEnabledAsync(string name, bool enabled, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Skills = s.Skills.WithEnabled(name, enabled) }, ct);
+
+    public Task RenameSkillAsync(string oldName, string newName, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Skills = s.Skills.WithRenamed(oldName, newName) }, ct);
+
     public async Task SetSpeechAsync(SpeechSettings settings, SecretValue? newToken, CancellationToken ct = default)
     {
         var normalized = settings.Normalize();
@@ -402,6 +409,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             Display = settings.Display.Normalize(),
             Behavior = settings.Behavior.Normalize(),
             Usage = settings.Usage.Normalize(),
+            Skills = settings.Skills.Normalize(),
             ImageGeneration = ImageGenerationFor(settings.ImageGeneration, connectionIds),
         };
     }
@@ -504,6 +512,7 @@ public sealed class JsonModelCatalog : IModelCatalog
             ImageGeneration = ReadImageGeneration(file.ImageGeneration),   // 22F 加的欄位，格式錯誤時當作未設定
             Behavior = ReadBehavior(file.Behavior),                        // 視窗置頂與更新檢查，缺少或格式錯誤時用預設
             Usage = ReadUsage(file.Usage),                                 // M23 加的欄位，缺少或格式錯誤時用預設（不設預算）
+            Skills = ReadSkills(file.Skills),                              // M29 加的欄位，缺少或格式錯誤時用預設（全部啟用）
         });
 
         // 舊版的 Claude 預設只清一次：清過寫回檔案，之後的啟動找不到它就什麼都不做
@@ -776,6 +785,22 @@ public sealed class JsonModelCatalog : IModelCatalog
         }
     }
 
+    /// <summary>技能設定（M29）：格式錯了就當作預設（全部啟用），不能因此把整個設定檔當成損毀。</summary>
+    private SkillSettings ReadSkills(JsonElement? element)
+    {
+        if (element is not JsonElement el || el.ValueKind != JsonValueKind.Object)
+            return SkillSettings.Default;
+        try
+        {
+            return el.Deserialize<SkillSettings>(JsonOptions)?.Normalize() ?? SkillSettings.Default;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "技能設定格式錯誤，改用預設值");
+            return SkillSettings.Default;
+        }
+    }
+
     private BrowserSettings ReadBrowser(JsonElement? element)
     {
         if (element is not JsonElement el)
@@ -837,7 +862,8 @@ public sealed class JsonModelCatalog : IModelCatalog
             JsonSerializer.SerializeToElement(settings.Display.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.ImageGeneration.Normalize(), JsonOptions),
             JsonSerializer.SerializeToElement(settings.Behavior.Normalize(), JsonOptions),
-            JsonSerializer.SerializeToElement(settings.Usage.Normalize(), JsonOptions)),
+            JsonSerializer.SerializeToElement(settings.Usage.Normalize(), JsonOptions),
+            JsonSerializer.SerializeToElement(settings.Skills.Normalize(), JsonOptions)),
         JsonOptions);
 
     private static List<T> Upsert<T>(IReadOnlyList<T> items, T item, Func<T, string> id)
@@ -900,5 +926,6 @@ public sealed class JsonModelCatalog : IModelCatalog
         JsonElement? Display = null,
         JsonElement? ImageGeneration = null,
         JsonElement? Behavior = null,
-        JsonElement? Usage = null);
+        JsonElement? Usage = null,
+        JsonElement? Skills = null);
 }

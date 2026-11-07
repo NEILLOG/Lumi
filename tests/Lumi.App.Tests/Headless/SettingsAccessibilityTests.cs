@@ -362,6 +362,7 @@ public class SettingsAccessibilityTests
         Down(SettingsCategory.Usage);     // AI 連線之後是「用量與費用」
         Down(SettingsCategory.Persona);
         Down(SettingsCategory.Memory);   // 人格與主動性之後是「記憶」
+        Down(SettingsCategory.Skills);
         Down(SettingsCategory.Reminders);
         Down(SettingsCategory.Tools);
         Down(SettingsCategory.General);

@@ -128,13 +128,13 @@ public class SettingsWindowShellTests
     }
 
     [AvaloniaFact]
-    public void Menu_ListsTheTwelveCategories_WithPlainNamesAndSubtitles()
+    public void Menu_ListsTheThirteenCategories_WithPlainNamesAndSubtitles()
     {
         using var host = new SettingsHost();
         var window = Show(host);
 
         var list = window.FindByName<ListBox>("CategoryList");
-        Assert.Equal(12, list.ItemCount);
+        Assert.Equal(13, list.ItemCount);
         var expected = new[]
         {
             ("CategoryHome", "設定首頁", "目前的設定一覽"),
@@ -142,6 +142,7 @@ public class SettingsWindowShellTests
             ("CategoryUsage", "用量與費用", "花了多少、預算"),
             ("CategoryPersona", "人格與主動性", "回答風格與主動程度"),
             ("CategoryMemory", "記憶", "Lumi 記得的事"),
+            ("CategorySkills", "技能", "教 Lumi 做事的方法"),
             ("CategoryReminders", "提醒排程", "查看與刪除提醒、計時器"),
             ("CategoryTools", "工具", "能用的工具與確認方式"),
             ("CategoryGeneral", "外觀與操作", "主題、色票與明暗"),
@@ -204,14 +205,14 @@ public class SettingsWindowShellTests
     }
 
     [AvaloniaFact]
-    public void TheMenu_HasTwelveCategories_HomeFirst_PrivacyLast_AndNothingIsComingSoon()
+    public void TheMenu_HasThirteenCategories_HomeFirst_PrivacyLast_AndNothingIsComingSoon()
     {
         using var host = new SettingsHost();
         var window = Show(host);
         var list = window.FindByName<ListBox>("CategoryList");
 
-        Assert.Equal(12, list.ItemCount);
-        string[] names = ["CategoryHome", "CategoryConnections", "CategoryUsage", "CategoryPersona", "CategoryMemory", "CategoryReminders", "CategoryTools",
+        Assert.Equal(13, list.ItemCount);
+        string[] names = ["CategoryHome", "CategoryConnections", "CategoryUsage", "CategoryPersona", "CategoryMemory", "CategorySkills", "CategoryReminders", "CategoryTools",
             "CategoryGeneral", "CategorySprite", "CategorySpeech", "CategoryNetwork", "CategoryPrivacy"];
         Assert.Equal(names, list.Items.OfType<ListBoxItem>().Select(i => i.Name).ToArray());
         Assert.Null(window.FindControl<ListBox>("ComingSoonList"));

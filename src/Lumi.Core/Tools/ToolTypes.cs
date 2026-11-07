@@ -52,8 +52,9 @@ public sealed record ToolDescriptor(
 /// 顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。
 /// <paramref name="Url"/>：這次會連到的網址；有值時對話迴圈會套用網址來源規則（M17 D4）。
 /// <paramref name="Schedule"/>：建立排程的確認內容（M24），有值時確認區換成排程確認卡。
+/// <paramref name="Skill"/>：儲存技能的確認內容（M29），有值時確認區換成技能確認卡。
 /// </summary>
-public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null, ScheduleProposal? Schedule = null)
+public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null, ScheduleProposal? Schedule = null, SkillProposal? Skill = null)
 {
     public static readonly ToolPreview None = new(null, null);
 }

@@ -241,6 +241,15 @@
                   </StackPanel>
                 </Grid>
               </ListBoxItem>
+              <ListBoxItem x:Name="CategorySkills" AutomationProperties.Name="{x:Static res:Strings.Settings_CategorySkills}">
+                <Grid ColumnDefinitions="Auto,*">
+                  <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBookOpen}" Size="18" Margin="0,0,12,0" />
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="menu-main" Text="{x:Static res:Strings.Settings_CategorySkills}" />
+                    <TextBlock Classes="menu-caption" Text="{x:Static res:Strings.Settings_CategorySkillsSub}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Grid>
+              </ListBoxItem>
               <ListBoxItem x:Name="CategoryReminders" AutomationProperties.Name="{x:Static res:Strings.Settings_CategoryReminders}">
                 <Grid ColumnDefinitions="Auto,*">
                   <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconBell}" Size="18" Margin="0,0,12,0" />
@@ -429,6 +438,14 @@
         </views:SettingsPageHeader>
 
         <views:MemoryPanel x:Name="MemoryPanel" Grid.Row="1" Margin="0,24,0,0" DataContext="{Binding Memory}" />
+      </Grid>
+
+      <!-- ===== 技能（M29）：頁首（新增技能，唯一的 Primary）→ 面板。TODO(29C)：頁首動作與 SkillsPanel ===== -->
+      <Grid x:Name="SkillsPage" Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding ShowSkills}" Margin="32">
+        <views:SettingsPageHeader x:Name="SkillsHeader" Grid.Row="0"
+                                  Eyebrow="{x:Static res:Strings.Settings_CategorySkills}"
+                                  Title="{x:Static res:Strings.Skills_HeaderTitle}"
+                                  Description="{x:Static res:Strings.Skills_HeaderDescription}" />
       </Grid>
 
       <!-- ===== 設定首頁：常用設定的連結（沒有主要動作） ===== -->

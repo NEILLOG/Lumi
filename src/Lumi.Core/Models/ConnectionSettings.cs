@@ -1,5 +1,6 @@
 using Lumi.Core.Browser;
 using Lumi.Core.Mcp;
+using Lumi.Core.Skills;
 using Lumi.Core.Speech;
 using Lumi.Core.Usage;
 using Lumi.Core.Web;
@@ -111,6 +112,9 @@ public sealed record AppSettings(
 
     /// <summary>用量與費用（M23）：每月預算、被關掉的提示。舊檔沒有時用預設值（不設預算、提示都開）。</summary>
     public UsageSettings Usage { get; init; } = UsageSettings.Default;
+
+    /// <summary>技能（M29）：停用的技能名稱。舊檔沒有時是空清單（全部啟用）。</summary>
+    public SkillSettings Skills { get; init; } = SkillSettings.Default;
 }
 
 /// <summary>一次請求要用的完整資訊。</summary>

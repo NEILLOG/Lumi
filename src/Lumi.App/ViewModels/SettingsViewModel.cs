@@ -13,16 +13,17 @@ public enum SettingsCategory
     Usage = 2,
     Persona = 3,
     Memory = 4,
-    Reminders = 5,
-    Tools = 6,
-    General = 7,
-    Sprite = 8,
-    Speech = 9,
-    Network = 10,
-    Privacy = 11,
+    Skills = 5,
+    Reminders = 6,
+    Tools = 7,
+    General = 8,
+    Sprite = 9,
+    Speech = 10,
+    Network = 11,
+    Privacy = 12,
 }
 
-/// <summary>設定視窗：左側分類（設定首頁、AI 連線、用量與費用、人格與主動性、記憶、提醒排程、工具、外觀與操作、小精靈、語音、網路、資料與隱私），「AI 連線」是一頁：連線與模型合在一份清單（<see cref="AiSettingsViewModel"/>）。</summary>
+/// <summary>設定視窗：左側分類（設定首頁、AI 連線、用量與費用、人格與主動性、記憶、技能、提醒排程、工具、外觀與操作、小精靈、語音、網路、資料與隱私），「AI 連線」是一頁：連線與模型合在一份清單（<see cref="AiSettingsViewModel"/>）。</summary>
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly IConfirmService _confirm;
@@ -105,7 +106,7 @@ public partial class SettingsViewModel : ObservableObject
     public bool HasLoadProblem => LoadProblem is not null;
 
     /// <summary>左側分類，值是 <see cref="SettingsCategory"/>（預設 0＝設定首頁）。</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowHome), nameof(ShowConnectionsAndModels), nameof(ShowUsage), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowReminders), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech), nameof(ShowNetwork), nameof(ShowPrivacy))]
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowHome), nameof(ShowConnectionsAndModels), nameof(ShowUsage), nameof(ShowPersona), nameof(ShowMemory), nameof(ShowSkills), nameof(ShowReminders), nameof(ShowTools), nameof(ShowGeneral), nameof(ShowSprite), nameof(ShowSpeech), nameof(ShowNetwork), nameof(ShowPrivacy))]
     private int _categoryIndex;
 
     /// <summary>「工具」內的分段：0 = 工具清單、1 = MCP 伺服器（M16）。</summary>
@@ -132,6 +133,8 @@ public partial class SettingsViewModel : ObservableObject
     public bool ShowPersona => CategoryIndex == (int)SettingsCategory.Persona;
 
     public bool ShowMemory => CategoryIndex == (int)SettingsCategory.Memory;
+
+    public bool ShowSkills => CategoryIndex == (int)SettingsCategory.Skills;
 
     public bool ShowReminders => CategoryIndex == (int)SettingsCategory.Reminders;
 
@@ -184,6 +187,9 @@ public partial class SettingsViewModel : ObservableObject
                 break;
             case SettingsSection.Memory:
                 CategoryIndex = (int)SettingsCategory.Memory;
+                break;
+            case SettingsSection.Skills:
+                CategoryIndex = (int)SettingsCategory.Skills;
                 break;
             case SettingsSection.Reminders:
                 CategoryIndex = (int)SettingsCategory.Reminders;

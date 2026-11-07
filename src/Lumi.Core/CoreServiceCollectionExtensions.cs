@@ -2,6 +2,7 @@ using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Mcp;
 using Lumi.Core.Memory;
+using Lumi.Core.Skills;
 using Lumi.Core.Network;
 using Lumi.Core.Prompts;
 using Lumi.Core.Reminders;
@@ -57,6 +58,7 @@ public static class CoreServiceCollectionExtensions
         // 長期記憶（M14）：預設是記憶體版（測試與沒有資料庫時）；Lumi.Infrastructure 取代成 SQLite 版
         services.TryAddSingleton(new MemoryOptions());
         services.TryAddSingleton<IMemoryStore, InMemoryMemoryStore>();
+        services.TryAddSingleton<ISkillStore, InMemorySkillStore>();   // M29：App 換成 FileSkillStore
         services.TryAddSingleton<Lumi.Core.Browser.IBrowserSessions, Lumi.Core.Browser.NullBrowserSessions>();   // 沒有瀏覽器時的預設；Lumi.Browser 的 AddLumiBrowser 會取代（M18）
         services.TryAddSingleton<IMcpToolSource, EmptyMcpToolSource>();   // 沒有 MCP 時的預設；Lumi.Mcp 的 AddLumiMcp 會取代（M16）
 

@@ -29,6 +29,7 @@ public partial class UserGuideRuleTests
         [SettingsCategory.Usage] = () => Strings.Settings_CategoryUsage,
         [SettingsCategory.Persona] = () => Strings.Settings_CategoryPersona,
         [SettingsCategory.Memory] = () => Strings.Settings_CategoryMemory,
+        [SettingsCategory.Skills] = () => Strings.Settings_CategorySkills,
         [SettingsCategory.Reminders] = () => Strings.Settings_CategoryReminders,
         [SettingsCategory.Tools] = () => Strings.Tools_MenuTitle,
         [SettingsCategory.General] = () => Strings.Settings_CategoryGeneral,

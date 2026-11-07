@@ -31,6 +31,9 @@ public sealed record ToolApprovalRequest(
 
     /// <summary>建立排程的確認內容（M24）；不是建立排程的工具時是 null。</summary>
     public ScheduleProposal? Schedule => Preview.Schedule;
+
+    /// <summary>儲存技能的確認內容（M29）；不是 <c>save_skill</c> 時是 null。</summary>
+    public SkillProposal? Skill => Preview.Skill;
 }
 
 /// <summary>
@@ -46,6 +49,13 @@ public sealed record ScheduleProposal(
     IReadOnlyList<string> ScopeNames,
     bool SuggestedWrite,
     bool SuggestedNetwork);
+
+/// <summary>
+/// 儲存技能時確認卡要顯示的內容（M29 5.6），由 <c>save_skill</c> 的 <c>Describe</c> 產生，放在 <see cref="ToolPreview.Skill"/>。
+/// 都是正規化後、通過 <see cref="Skills.SkillRules"/> 檢查的值；<paramref name="ReplacesExisting"/>＝已經有同名的技能，存了會取代它。
+/// 第一版確認卡不能編輯（D8）。
+/// </summary>
+public sealed record SkillProposal(string Name, string Description, string Body, bool ReplacesExisting);
 
 /// <summary>
 /// 向使用者請求同意。對話迴圈在 <see cref="RequestAsync"/> 暫停，直到使用者選擇或被取消；
