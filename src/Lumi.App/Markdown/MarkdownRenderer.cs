@@ -33,6 +33,7 @@ public sealed class MarkdownRenderer
     {
         MdParagraph p => CreateText(p.Inlines),
         MdHeading h => CreateText(h.Inlines, $"md-h{h.Level}"),
+        MdCodeBlock c when IsMermaid(c) => CreateMermaidBlock(c),
         MdCodeBlock c => CreateCodeBlock(c),
         MdQuote q => CreateQuote(q, depth),
         MdList l => CreateList(l, depth),
@@ -192,7 +193,39 @@ public sealed class MarkdownRenderer
     private Control CreateCodeBlock(MdCodeBlock block)
     {
         var language = new TextBlock { Text = block.Language ?? "", VerticalAlignment = VerticalAlignment.Center, Classes = { "md-codelang" } };
+        var copy = CreateCopyButton(block.Code);
 
+        var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        Grid.SetColumn(language, 0);
+        Grid.SetColumn(copy, 1);
+        headerGrid.Children.Add(language);
+        headerGrid.Children.Add(copy);
+        var header = new Border { Classes = { "md-codeheader" }, Child = headerGrid };
+
+        var stack = new StackPanel();
+        stack.Children.Add(header);
+        stack.Children.Add(CreateCodeScroller(block.Code));
+        return new Border { Classes = { "md-codeblock" }, Child = stack };
+    }
+
+    /// <summary>語言標成 mermaid 的程式碼區塊畫成圖（見 <see cref="MermaidBlock"/>）。</summary>
+    private static bool IsMermaid(MdCodeBlock block) => string.Equals(block.Language, "mermaid", StringComparison.OrdinalIgnoreCase);
+
+    private Control CreateMermaidBlock(MdCodeBlock block) =>
+        new MermaidBlock(block.Code, _services, CreateCodeScroller(block.Code), CreateCopyButton(block.Code));
+
+    /// <summary>水平捲動的程式碼區（不換行）。</summary>
+    private static ScrollViewer CreateCodeScroller(string code) => new()
+    {
+        Content = new EmojiTextBlock { Text = code, TextWrapping = TextWrapping.NoWrap, Classes = { "md-codetext" } },
+        HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+        VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+        Padding = new Thickness(16, 12, 16, 12),
+    };
+
+    /// <summary>標題列右側的「複製」：複製後短暫變成打勾圖示加「已複製」。</summary>
+    private Button CreateCopyButton(string code)
+    {
         var icon = new LumiIcon { Size = 14 };
         icon.Bind(LumiIcon.DataProperty, new DynamicResourceExtension("LumiIconCopy"));
         var label = new TextBlock { Text = Strings.Workbench_Copy, VerticalAlignment = VerticalAlignment.Center };
@@ -214,32 +247,12 @@ public sealed class MarkdownRenderer
 
         copy.Click += async (_, _) =>
         {
-            await _services.CopyText(block.Code);
+            await _services.CopyText(code);
             ShowCopied(true);
             await Task.Delay(1500);
             Dispatcher.UIThread.Post(() => ShowCopied(false));
         };
-
-        var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        Grid.SetColumn(language, 0);
-        Grid.SetColumn(copy, 1);
-        headerGrid.Children.Add(language);
-        headerGrid.Children.Add(copy);
-        var header = new Border { Classes = { "md-codeheader" }, Child = headerGrid };
-
-        var code = new EmojiTextBlock { Text = block.Code, TextWrapping = TextWrapping.NoWrap, Classes = { "md-codetext" } };
-        var scroller = new ScrollViewer
-        {
-            Content = code,
-            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-            Padding = new Thickness(16, 12, 16, 12),
-        };
-
-        var stack = new StackPanel();
-        stack.Children.Add(header);
-        stack.Children.Add(scroller);
-        return new Border { Classes = { "md-codeblock" }, Child = stack };
+        return copy;
     }
 
     // ---- 表格 ----

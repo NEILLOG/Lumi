@@ -117,6 +117,7 @@ public partial class App : Application
         {
             // 先載入角色資料夾：上次選用的是素材型角色時，小精靈一開始就是它（不會先閃一下光球）
             await services.GetRequiredService<IReloadableSpriteCatalog>().ReloadAsync();
+            Markdown.MarkdownDiagrams.Renderer = services.GetService<Lumi.Core.Diagrams.IDiagramRenderer>();   // 回覆裡的 Mermaid 流程圖
             await services.GetRequiredService<WorkbenchViewModel>().InitializeAsync();
             services.GetRequiredService<SpriteConversationController>().Attach();
             services.GetRequiredService<BudgetAlertCoordinator>();   // 回應結束後檢查預算（M23）

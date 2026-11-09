@@ -15,6 +15,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
+  <!-- 畫流程圖用的 mermaid.js（MIT，授權在 Assets/mermaid.LICENSE.txt），在無頭瀏覽器裡離線執行 -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\mermaid.min.js" LogicalName="Lumi.Browser.mermaid.min.js" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
   </ItemGroup>

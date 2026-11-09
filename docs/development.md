@@ -88,5 +88,6 @@ dotnet run -c Release
 ## 第三方資料
 
 - 模型價目表：[LiteLLM](https://github.com/BerriAI/litellm) 的 `model_prices_and_context_window.json`（MIT 授權），快照放在 `src/Lumi.Web/Pricing/`，用來自動帶入模型單價與上下文上限；快照日期見同資料夾的 `litellm-model-prices.date.txt`。
+- 流程圖：[Mermaid](https://github.com/mermaid-js/mermaid) 11.4.1 的 `mermaid.min.js`（MIT 授權，`src/Lumi.Browser/Assets/`），內嵌在 `Lumi.Browser`，由 `MermaidRenderer` 用電腦上的 Edge／Chrome 無頭、離線執行。要升級就從 npm 下載新版的 `dist/mermaid.min.js` 與 `LICENSE` 覆蓋，並跑 `LUMI_BROWSER_TESTS=1 dotnet test tests/Lumi.Browser.Tests --filter MermaidRenderer`。
 - 塔羅牌：`external/TarotMcp`，自家的塔羅牌核心庫，含牌義資料與牌面圖片（git submodule，取得原始碼時要一併拉下）。授權尚未決定。
 

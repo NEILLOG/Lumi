@@ -19,6 +19,7 @@ public static class BrowserServiceCollectionExtensions
         services.AddSingleton<PlaywrightBrowserSessions>();
         services.Replace(ServiceDescriptor.Singleton<IBrowserSessions>(sp => sp.GetRequiredService<PlaywrightBrowserSessions>()));   // 取代 Core 的 NullBrowserSessions
         services.AddHostedService<BrowserHostedService>();
+        services.AddSingleton<Lumi.Core.Diagrams.IDiagramRenderer, MermaidRenderer>();   // 回覆裡的 Mermaid 流程圖畫成圖片（離線）
         return services;
     }
 }

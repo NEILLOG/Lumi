@@ -1250,4 +1250,10 @@ public static class Strings
     public static string Tools_OptInNote => Get(nameof(Tools_OptInNote));
     public static string Message_ExpandUserText => Get(nameof(Message_ExpandUserText));
     public static string Message_CollapseUserText => Get(nameof(Message_CollapseUserText));
+    public static string Diagram_Rendering => Get(nameof(Diagram_Rendering));
+    public static string Diagram_ShowCode => Get(nameof(Diagram_ShowCode));
+    public static string Diagram_ShowDiagram => Get(nameof(Diagram_ShowDiagram));
+    public static string Diagram_ViewLarger => Get(nameof(Diagram_ViewLarger));
+    public static string Diagram_ViewerTitle => Get(nameof(Diagram_ViewerTitle));
+    public static string Diagram_FailedFormat => Get(nameof(Diagram_FailedFormat));
 }

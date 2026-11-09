@@ -340,5 +340,14 @@ public sealed class MarkdownView : Decorator, ITextSelectionScope
         {
             if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
                 await clipboard.SetTextAsync(text);
+        },
+        MarkdownDiagrams.Renderer,
+        (content, size) =>
+        {
+            var viewer = new Views.ImageViewerWindow(content, size, Lumi.App.Resources.Strings.Diagram_ViewerTitle, null);
+            if (TopLevel.GetTopLevel(this) is Window owner)
+                viewer.Show(owner);
+            else
+                viewer.Show();
         });
 }

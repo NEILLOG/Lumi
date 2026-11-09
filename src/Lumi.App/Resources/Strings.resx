@@ -1255,4 +1255,10 @@
   <data name="Tools_OptInNote" xml:space="preserve"><value>預設關閉。關閉後立即生效，已經開著的對話也不能再用。</value></data>
   <data name="Message_ExpandUserText" xml:space="preserve"><value>顯示全部</value></data>
   <data name="Message_CollapseUserText" xml:space="preserve"><value>收合</value></data>
+  <data name="Diagram_Rendering" xml:space="preserve"><value>正在畫流程圖…</value></data>
+  <data name="Diagram_ShowCode" xml:space="preserve"><value>原始碼</value></data>
+  <data name="Diagram_ShowDiagram" xml:space="preserve"><value>流程圖</value></data>
+  <data name="Diagram_ViewLarger" xml:space="preserve"><value>點一下放大檢視</value></data>
+  <data name="Diagram_ViewerTitle" xml:space="preserve"><value>流程圖</value></data>
+  <data name="Diagram_FailedFormat" xml:space="preserve"><value>無法畫出流程圖，以下是原始碼。{0}</value></data>
 </root>

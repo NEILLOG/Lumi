@@ -206,4 +206,4 @@ dotnet run --project src/Lumi.App
 
 ## 授權
 
-本專案以 [MIT 授權](LICENSE)釋出。第三方資料與字型各依其授權：模型價目表來自 [LiteLLM](https://github.com/BerriAI/litellm)（MIT），字型授權見 [`src/Lumi.App/Assets/Fonts/LICENSES/`](src/Lumi.App/Assets/Fonts/LICENSES/)。塔羅牌核心庫 [TarotMcp](https://github.com/NEILLOG/TarotMcp) 是獨立的 repo，不在此授權範圍內，授權尚未決定。
+本專案以 [MIT 授權](LICENSE)釋出。第三方資料與字型各依其授權：模型價目表來自 [LiteLLM](https://github.com/BerriAI/litellm)（MIT），流程圖用內嵌的 [Mermaid](https://github.com/mermaid-js/mermaid)（MIT，見 [`src/Lumi.Browser/Assets/mermaid.LICENSE.txt`](src/Lumi.Browser/Assets/mermaid.LICENSE.txt)），字型授權見 [`src/Lumi.App/Assets/Fonts/LICENSES/`](src/Lumi.App/Assets/Fonts/LICENSES/)。塔羅牌核心庫 [TarotMcp](https://github.com/NEILLOG/TarotMcp) 是獨立的 repo，不在此授權範圍內，授權尚未決定。

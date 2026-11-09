@@ -48,6 +48,12 @@
     <Setter Property="FontFamily" Value="{DynamicResource LumiMonoFont}" />
     <Setter Property="FontSize" Value="13" />
   </Style>
+  <!-- 流程圖區塊（Mermaid）的狀態列：「正在畫流程圖…」或畫不出來的原因；一般字型、比程式碼淡一點 -->
+  <Style Selector="TextBlock.md-diagram-status">
+    <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
+    <Setter Property="Opacity" Value="0.75" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
   <Style Selector="Button.md-copy">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource LumiCodeTextBrush}" />
