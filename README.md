@@ -112,6 +112,7 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 
 ### 🔌 接上 MCP，能力無限延伸
 支援多個 MCP 伺服器（本機指令或遠端 HTTP），直接**貼上 Claude Desktop／Claude Code 的設定 JSON** 就能匯入。MCP 的工具跟內建工具一樣列在工具清單、一樣先確認，回傳的截圖也會直接顯示在回覆裡。
+熟悉指令的人還可以開啟**執行指令**（預設關閉），讓 Lumi 執行 PowerShell、cmd 或 bash，例如安裝 npm 套件、查詢電腦狀態；每次都會先讓你看完整指令（[怎麼用](docs/guide/commands.md)）。
 
 </td>
 </tr>
