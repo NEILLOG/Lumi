@@ -34,6 +34,9 @@ public sealed record ToolApprovalRequest(
 
     /// <summary>儲存技能的確認內容（M29）；不是 <c>save_skill</c> 時是 null。</summary>
     public SkillProposal? Skill => Preview.Skill;
+
+    /// <summary>執行指令的確認內容（M31）；不是 <c>run_command</c> 時是 null。</summary>
+    public Commands.CommandProposal? Command => Preview.Command;
 }
 
 /// <summary>

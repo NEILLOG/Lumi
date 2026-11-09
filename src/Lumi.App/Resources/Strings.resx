@@ -1239,4 +1239,18 @@
   <data name="Skills_ComposerInsertFormat" xml:space="preserve"><value>請用「{0}」技能：</value></data>
   <data name="Privacy_LocSkills" xml:space="preserve"><value>技能</value></data>
   <data name="Privacy_LocSkillsDesc" xml:space="preserve"><value>你存的技能，一個技能一個資料夾。</value></data>
+  <data name="Command_ConfirmTitle" xml:space="preserve"><value>要執行這段指令嗎？</value></data>
+  <data name="Command_FieldDescription" xml:space="preserve"><value>Lumi 的說明</value></data>
+  <data name="Command_DescriptionNote" xml:space="preserve"><value>這是 Lumi 自己寫的說明，請以下面的指令為準。</value></data>
+  <data name="Command_FieldCommand" xml:space="preserve"><value>指令（{0}）</value></data>
+  <data name="Command_FieldLocation" xml:space="preserve"><value>執行位置</value></data>
+  <data name="Command_ScratchSuffix" xml:space="preserve"><value>（這則對話的暫存資料夾）</value></data>
+  <data name="Command_NotSandbox" xml:space="preserve"><value>這不是沙盒：指令能做到你自己在終端機能做的任何事。</value></data>
+  <data name="Command_RiskDeletes" xml:space="preserve"><value>會刪除檔案或資料夾，刪除的東西不會進資源回收筒</value></data>
+  <data name="Command_RiskInstalls" xml:space="preserve"><value>會安裝套件。套件安裝時可以執行它自己的程式，只安裝你信任的套件</value></data>
+  <data name="Command_RiskNetwork" xml:space="preserve"><value>會連上網路，可能下載或送出資料</value></data>
+  <data name="Command_RiskSystem" xml:space="preserve"><value>會變更系統設定、排程或結束其他程式</value></data>
+  <data name="Command_RiskSkills" xml:space="preserve"><value>指令會動到 Lumi 的技能資料夾。技能請到設定的「技能」頁匯入</value></data>
+  <data name="Tools_OptInConfirmButton" xml:space="preserve"><value>我了解，開啟</value></data>
+  <data name="Tools_OptInNote" xml:space="preserve"><value>預設關閉。關閉後立即生效，已經開著的對話也不能再用。</value></data>
 </root>

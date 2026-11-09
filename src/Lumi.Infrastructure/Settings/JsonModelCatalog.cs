@@ -724,11 +724,12 @@ public sealed class JsonModelCatalog : IModelCatalog
             throw new ArgumentException(error, nameof(server));
     }
 
-    /// <summary>刪除伺服器時，把它的工具從停用、永遠允許與權限覆寫裡一併移除（名稱以 <c>mcp__{key}__</c> 開頭）。</summary>
+    /// <summary>刪除伺服器時，把它的工具從停用、永遠允許、開啟清單與權限覆寫裡一併移除（名稱以 <c>mcp__{key}__</c> 開頭）。</summary>
     private static ToolSettings RemoveToolsWithPrefix(ToolSettings tools, string prefix) => tools with
     {
         Disabled = tools.Disabled.Where(n => !n.StartsWith(prefix, StringComparison.Ordinal)).ToList(),
         AlwaysAllow = tools.AlwaysAllow.Where(n => !n.StartsWith(prefix, StringComparison.Ordinal)).ToList(),
+        Enabled = tools.Enabled.Where(n => !n.StartsWith(prefix, StringComparison.Ordinal)).ToList(),
         PermissionOverrides = tools.PermissionOverrides
             .Where(p => !p.Key.StartsWith(prefix, StringComparison.Ordinal))
             .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal),

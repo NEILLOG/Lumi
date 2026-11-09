@@ -4,8 +4,9 @@ namespace Lumi.Core.Models;
 
 /// <summary>
 /// 工具清單頁的設定（M15）。<paramref name="Disabled"/>＝使用者關閉的工具名稱（新對話才生效）；
-/// <paramref name="AlwaysAllow"/>＝設為「永遠允許」的工具名稱（立即生效，只對 Write／Network 有效）。
-/// 兩份清單都以序數排序、去重，這樣設定檔的內容穩定。
+/// <paramref name="AlwaysAllow"/>＝設為「永遠允許」的工具名稱（立即生效，只對 Write／Network 有效）；
+/// <paramref name="Enabled"/>＝使用者開啟的「預設關閉」工具名稱（<see cref="ToolDescriptor.OptInWarning"/>，M31）。
+/// 清單都以序數排序、去重，這樣設定檔的內容穩定。
 /// </summary>
 public sealed record ToolSettings
 {
@@ -15,6 +16,9 @@ public sealed record ToolSettings
 
     public IReadOnlyList<string> AlwaysAllow { get; init; } = [];
 
+    /// <summary>使用者開啟的預設關閉工具（M31 D13）。不在這裡的預設關閉工具一律算關閉，<see cref="Disabled"/> 對它們沒有作用。</summary>
+    public IReadOnlyList<string> Enabled { get; init; } = [];
+
     /// <summary>使用者調整過權限等級的工具（只對 MCP 工具有效，M16 D3）。鍵是工具名稱。</summary>
     public IReadOnlyDictionary<string, ToolPermission> PermissionOverrides { get; init; } = new Dictionary<string, ToolPermission>();
 
@@ -22,6 +26,7 @@ public sealed record ToolSettings
     {
         Disabled = Clean(Disabled),
         AlwaysAllow = Clean(AlwaysAllow),
+        Enabled = Clean(Enabled),
         PermissionOverrides = (PermissionOverrides ?? new Dictionary<string, ToolPermission>())
             .Where(p => !string.IsNullOrWhiteSpace(p.Key) && Enum.IsDefined(p.Value))
             .OrderBy(p => p.Key.Trim(), StringComparer.Ordinal)

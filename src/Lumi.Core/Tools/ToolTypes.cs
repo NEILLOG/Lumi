@@ -33,6 +33,8 @@ public static class ToolModesExtensions
 /// <param name="CanAlwaysAllow">false＝不能設「永遠允許」（<c>memory_save</c>）；Destructive 一律不行，不必另外設。</param>
 /// <param name="AlwaysAsk">true＝一定詢問，不看設定的「永遠允許」與「本次對話都允許」，確認區也不提供「本次對話都允許」（M24：建立排程）。</param>
 /// <param name="RequiresMemory">長期記憶的工具（M14）：記憶在設定裡關閉時，工具不能執行（回說明、不詢問權限）；定義仍照送（2026-10-25：工具清單改變會讓 thinking 簽章失效）。只依使用者的設定、不依模式。</param>
+/// <param name="OptInWarning">有值＝預設關閉的工具（M31 D13）：使用者在工具清單頁開啟時要先確認這段文字；設定關掉後立即生效，已經開著的對話也不能再用（D14）。</param>
+/// <param name="WarnsAfterExternalContent">true＝這則對話讀過網頁、MCP 等外部內容時，確認卡加上警告（M31 D12）。</param>
 public sealed record ToolDescriptor(
     string Name,
     string DisplayName,
@@ -46,15 +48,26 @@ public sealed record ToolDescriptor(
     string? Summary = null,
     bool CanDisable = true,
     bool CanAlwaysAllow = true,
-    bool AlwaysAsk = false);
+    bool AlwaysAsk = false,
+    string? OptInWarning = null,
+    bool WarnsAfterExternalContent = false);
 
 /// <summary>
 /// 顯示用：卡片標題的「對象」，以及確認區顯示的影響說明（路徑、增減行數…）。
 /// <paramref name="Url"/>：這次會連到的網址；有值時對話迴圈會套用網址來源規則（M17 D4）。
 /// <paramref name="Schedule"/>：建立排程的確認內容（M24），有值時確認區換成排程確認卡。
 /// <paramref name="Skill"/>：儲存技能的確認內容（M29），有值時確認區換成技能確認卡。
+/// <paramref name="Command"/>：執行指令的確認內容（M31），有值時確認區換成指令確認卡。
+/// <paramref name="Rejection"/>：有值＝不詢問、不執行，直接把這段錯誤回給模型（M31 D11：被擋掉的指令）。
 /// </summary>
-public sealed record ToolPreview(string? Target, string? Detail, Uri? Url = null, ScheduleProposal? Schedule = null, SkillProposal? Skill = null)
+public sealed record ToolPreview(
+    string? Target,
+    string? Detail,
+    Uri? Url = null,
+    ScheduleProposal? Schedule = null,
+    SkillProposal? Skill = null,
+    Commands.CommandProposal? Command = null,
+    string? Rejection = null)
 {
     public static readonly ToolPreview None = new(null, null);
 }

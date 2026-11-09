@@ -1234,4 +1234,18 @@ public static class Strings
     public static string Skills_ComposerInsertFormat => Get(nameof(Skills_ComposerInsertFormat));
     public static string Privacy_LocSkills => Get(nameof(Privacy_LocSkills));
     public static string Privacy_LocSkillsDesc => Get(nameof(Privacy_LocSkillsDesc));
+    public static string Command_ConfirmTitle => Get(nameof(Command_ConfirmTitle));
+    public static string Command_FieldDescription => Get(nameof(Command_FieldDescription));
+    public static string Command_DescriptionNote => Get(nameof(Command_DescriptionNote));
+    public static string Command_FieldCommand => Get(nameof(Command_FieldCommand));
+    public static string Command_FieldLocation => Get(nameof(Command_FieldLocation));
+    public static string Command_ScratchSuffix => Get(nameof(Command_ScratchSuffix));
+    public static string Command_NotSandbox => Get(nameof(Command_NotSandbox));
+    public static string Command_RiskDeletes => Get(nameof(Command_RiskDeletes));
+    public static string Command_RiskInstalls => Get(nameof(Command_RiskInstalls));
+    public static string Command_RiskNetwork => Get(nameof(Command_RiskNetwork));
+    public static string Command_RiskSystem => Get(nameof(Command_RiskSystem));
+    public static string Command_RiskSkills => Get(nameof(Command_RiskSkills));
+    public static string Tools_OptInConfirmButton => Get(nameof(Tools_OptInConfirmButton));
+    public static string Tools_OptInNote => Get(nameof(Tools_OptInNote));
 }
