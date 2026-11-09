@@ -449,7 +449,8 @@ public partial class HistoryViewModel : ObservableObject
         item is { IsSprite: true } ? ClearConversationAsync(item.Id) : Task.CompletedTask;
 
     /// <summary>
-    /// 清除小精靈對話的內容：確認後刪掉全部訊息與整理紀錄，保留對話與 id（標題不變），再通知工作台重新載入。
+    /// 清除小精靈對話的內容：確認後刪掉全部訊息與整理紀錄，保留對話與 id，標題還原成預設的「與小精靈的對話」
+    /// （第一則訊息會把標題改成那句話，不還原的話清單上會一直留著上次的內容），再通知工作台重新載入。
     /// 工作台第二列「⋯」的「清除內容」走同一條路。回應中不能清除（和刪除相同）。
     /// </summary>
     public async Task ClearConversationAsync(string id)
@@ -469,6 +470,7 @@ public partial class HistoryViewModel : ObservableObject
             _logger.LogError(ex, "清除小精靈對話的內容失敗");
             return;
         }
+        await SaveTitleAsync(id, Strings.Sprite_ConversationTitle, Items.FirstOrDefault(i => i.Id == id));
         await _host.ConversationClearedAsync(id);
     }
 

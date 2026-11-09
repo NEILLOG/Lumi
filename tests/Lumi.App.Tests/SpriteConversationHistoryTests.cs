@@ -157,9 +157,26 @@ public class SpriteConversationHistoryTests
 
         Assert.Equal([(Strings.Confirm_ClearSpriteConversation, Strings.Confirm_Clear)], rig.Confirm.Asked);
         Assert.Empty(await rig.Store.GetMessagesAsync(sprite.Id));
-        Assert.Equal(sprite.Title, (await rig.Store.GetConversationAsync(sprite.Id))?.Title);
+        Assert.Equal(Strings.Sprite_ConversationTitle, (await rig.Store.GetConversationAsync(sprite.Id))?.Title);
         Assert.Equal(sprite.Id, await rig.Sprite.GetIdAsync());
         Assert.Equal([sprite.Id], rig.Host.Cleared);
+    }
+
+    [Fact]
+    public async Task Clear_ResetsTheTitle_SoTheListNoLongerShowsTheLastConversation()
+    {
+        // 第一則訊息會把小精靈對話的標題改成那句話；清除後清單不能還留著它
+        var rig = CreateRig();
+        var sprite = await SeedSpriteAsync(rig);
+        await rig.Store.RenameAsync(sprite.Id, "明天台北會下雨嗎");
+        await rig.Vm.RefreshAsync(null);
+        var item = rig.Vm.Items[0];
+        Assert.Equal("明天台北會下雨嗎", item.Title);
+
+        await rig.Vm.ClearSpriteConversationCommand.ExecuteAsync(item);
+
+        Assert.Equal(Strings.Sprite_ConversationTitle, (await rig.Store.GetConversationAsync(sprite.Id))?.Title);
+        Assert.Equal(Strings.Sprite_ConversationTitle, rig.Vm.Items.Single(i => i.Id == sprite.Id).Title);
     }
 
     [Fact]
