@@ -58,6 +58,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - name: 執行 Windows 的指令測試
+        # M31：PowerShell 與 cmd 的引號、編碼、結束程序樹只能在 Windows 測到；test job 跑在 macOS，這些測試在那裡會略過
+        run: dotnet test tests/Lumi.Platform.Tests -c Release --nologo --filter Command
       - name: 發佈 Windows x64
         shell: pwsh
         run: |
