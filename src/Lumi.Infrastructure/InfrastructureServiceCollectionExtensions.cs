@@ -57,6 +57,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton(sp => ActivatorUtilities.CreateInstance<FileSkillStore>(sp,
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SkillStoreOptions>>().Value.ResolveDirectory()));
         services.Replace(ServiceDescriptor.Singleton<ISkillStore>(sp => sp.GetRequiredService<FileSkillStore>()));
+        // 執行指令的擋掉清單（M31）：要知道技能資料夾在哪裡，才能提醒「指令會動到技能資料夾」
+        services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(sp => new Lumi.Core.Commands.CommandGuard(
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SkillStoreOptions>>().Value.ResolveDirectory()));
 
         // 圖片附件：檔案存在使用者資料夾的 attachments/
         services.AddOptions<AttachmentOptions>();

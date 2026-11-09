@@ -122,13 +122,15 @@ public sealed class ToolTests : IDisposable
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddSingleton<ISkillStore>(new InMemorySkillStore());   // 技能工具（M29）需要儲存
+        services.AddSingleton<Lumi.Core.Commands.ICommandRunner>(new Commands.FakeCommandRunner());   // 執行指令（M31）
+        services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(new Commands.FakeCommandGuard());
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
         Assert.Equal(["add_note", "app_help", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "create_scheduled_prompt", "download_file", "edit_image", "generate_image", "get_current_time", "http_request", "http_send", "list_dir",
-                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_conversation", "read_document", "read_file", "read_notes", "read_skill", "rss_read", "save_skill", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
+                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "overwrite_file", "read_conversation", "read_document", "read_file", "read_notes", "read_skill", "rss_read", "run_command", "save_skill", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
             registry.GetAll().Select(t => t.Descriptor.Name));
         Assert.Equal(["add_note", "app_help", "calculate", "cancel_reminder", "conversation_search", "create_reminder", "get_current_time", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "net_check", "read_document", "read_file",
                 "read_notes", "read_skill", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links"],
@@ -205,6 +207,8 @@ public sealed class ToolTests : IDisposable
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddSingleton<ISkillStore>(new InMemorySkillStore());   // 技能工具（M29）需要儲存
+        services.AddSingleton<Lumi.Core.Commands.ICommandRunner>(new Commands.FakeCommandRunner());   // 執行指令（M31）
+        services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(new Commands.FakeCommandGuard());
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
@@ -237,6 +241,8 @@ public sealed class ToolTests : IDisposable
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddSingleton<ISkillStore>(new InMemorySkillStore());   // 技能工具（M29）需要儲存
+        services.AddSingleton<Lumi.Core.Commands.ICommandRunner>(new Commands.FakeCommandRunner());   // 執行指令（M31）
+        services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(new Commands.FakeCommandGuard());
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 
@@ -255,6 +261,8 @@ public sealed class ToolTests : IDisposable
         ReminderRig.RegisterFor(services);
         MemoryRegistration.RegisterFor(services);
         services.AddSingleton<ISkillStore>(new InMemorySkillStore());   // 技能工具（M29）需要儲存
+        services.AddSingleton<Lumi.Core.Commands.ICommandRunner>(new Commands.FakeCommandRunner());   // 執行指令（M31）
+        services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(new Commands.FakeCommandGuard());
         services.AddLumiTools();
         using var provider = services.BuildServiceProvider();
 

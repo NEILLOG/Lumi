@@ -21,6 +21,7 @@ public static class PlatformServiceCollectionExtensions
 
         services.AddSingleton<ILaunchAtLogin, Shell.LaunchAtLogin>();   // 開機後自動啟動（登錄檔 Run／LaunchAgent）
         services.AddSingleton<IShellEnvironment, Shell.ShellEnvironment>();   // 啟動 MCP 本機伺服器用的環境變數（M16）
+        services.AddSingleton<Lumi.Core.Commands.ICommandRunner, Commands.CommandRunner>();   // 執行指令（M31）
 
         var overlay = services.AddOptions<OverlayOptions>();
         if (configureOverlay is not null)

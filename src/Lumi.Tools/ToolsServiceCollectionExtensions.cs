@@ -3,6 +3,7 @@ using Lumi.Core.Images;
 using Lumi.Core.Notes;
 using Lumi.Core.Tools;
 using Lumi.Tools.Browser;
+using Lumi.Tools.Commands;
 using Lumi.Tools.Images;
 using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
@@ -37,6 +38,7 @@ public static class ToolsServiceCollectionExtensions
         // 技能（M29）：ISkillStore 由 Core 預設註冊（App 換成 FileSkillStore）；read_skill 只在對話快照含它時 system 才列清單
         services.AddLumiTool<ReadSkillTool>();
         services.AddLumiTool<SaveSkillTool>();
+        services.AddLumiTool<RunCommandTool>();   // 執行指令（M31）：預設關閉；ICommandRunner 在 Platform、ICommandGuard 在 Infrastructure 註冊
         services.AddLumiTool<ListDirTool>();
         services.AddLumiTool<ReadFileTool>();
         services.AddLumiTool<SearchTool>();
