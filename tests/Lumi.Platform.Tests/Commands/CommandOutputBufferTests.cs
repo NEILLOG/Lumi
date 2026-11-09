@@ -65,4 +65,22 @@ public class CommandOutputBufferTests
 
         Assert.Equal("b", buffer.LatestLine);
     }
+
+    [Fact]
+    public void Huge_output_keeps_head_and_tail_with_bounded_memory()
+    {
+        // 模擬印出一個大檔案：一行一個編號，總長遠超過原始緩衝的上限
+        var buffer = new CommandOutputBuffer();
+        for (var i = 0; i < 200_000; i++)
+            buffer.Append($"line{i}\n");
+
+        var (text, truncated) = buffer.Build();
+
+        Assert.True(truncated);
+        Assert.StartsWith("line0\n", text);
+        Assert.EndsWith("line199999\n", text);
+        Assert.Contains("中間省略", text);
+        Assert.True(text.Length < CommandOutputBuffer.HeadChars + CommandOutputBuffer.TailChars + 100);
+        Assert.Equal("line199999", buffer.LatestLine);
+    }
 }
