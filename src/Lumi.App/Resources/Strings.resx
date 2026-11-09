@@ -1253,4 +1253,6 @@
   <data name="Command_RiskSkills" xml:space="preserve"><value>指令會動到 Lumi 的技能資料夾。技能請到設定的「技能」頁匯入</value></data>
   <data name="Tools_OptInConfirmButton" xml:space="preserve"><value>我了解，開啟</value></data>
   <data name="Tools_OptInNote" xml:space="preserve"><value>預設關閉。關閉後立即生效，已經開著的對話也不能再用。</value></data>
+  <data name="Message_ExpandUserText" xml:space="preserve"><value>顯示全部</value></data>
+  <data name="Message_CollapseUserText" xml:space="preserve"><value>收合</value></data>
 </root>

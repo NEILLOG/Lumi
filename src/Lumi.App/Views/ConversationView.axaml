@@ -200,8 +200,13 @@
                   </ItemsControl>
                   <Border HorizontalAlignment="Right" Padding="16,12" CornerRadius="{StaticResource LumiRadiusCard}"
                           Background="{DynamicResource LumiUserBubbleBrush}">
-                    <ctl:EmojiTextBlock Text="{Binding Text}" TextWrapping="Wrap"
-                                        Foreground="{DynamicResource LumiUserBubbleTextBrush}" />
+                    <!-- 長的 prompt 預設收合成前幾行（MaxLines=0 是不限制），下方「顯示全部／收合」切換 -->
+                    <StackPanel Spacing="4">
+                      <ctl:EmojiTextBlock Text="{Binding Text}" TextWrapping="Wrap" MaxLines="{Binding UserTextMaxLines}" TextTrimming="CharacterEllipsis"
+                                          Foreground="{DynamicResource LumiUserBubbleTextBrush}" />
+                      <Button x:Name="UserTextToggle" Classes="tertiary small" IsVisible="{Binding IsLongUserText}" HorizontalAlignment="Right"
+                              Content="{Binding UserTextToggleText}" Command="{Binding ToggleUserTextCommand}" />
+                    </StackPanel>
                   </Border>
                 </StackPanel>
                 </ctl:FractionWidthLimiter>

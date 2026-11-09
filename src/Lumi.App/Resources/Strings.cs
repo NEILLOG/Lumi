@@ -1248,4 +1248,6 @@ public static class Strings
     public static string Command_RiskSkills => Get(nameof(Command_RiskSkills));
     public static string Tools_OptInConfirmButton => Get(nameof(Tools_OptInConfirmButton));
     public static string Tools_OptInNote => Get(nameof(Tools_OptInNote));
+    public static string Message_ExpandUserText => Get(nameof(Message_ExpandUserText));
+    public static string Message_CollapseUserText => Get(nameof(Message_CollapseUserText));
 }

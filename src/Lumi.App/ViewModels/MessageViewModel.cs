@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
@@ -40,8 +41,47 @@ public partial class MessageViewModel : ObservableObject
     public virtual bool IsAssistant => !IsUser;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasText), nameof(CanCopy), nameof(ShowTypingIndicator), nameof(ShowTypingDots), nameof(ShowActions), nameof(ShowBubble))]
+    [NotifyPropertyChangedFor(nameof(HasText), nameof(CanCopy), nameof(ShowTypingIndicator), nameof(ShowTypingDots), nameof(ShowActions), nameof(ShowBubble),
+        nameof(IsLongUserText), nameof(UserTextMaxLines))]
     private string _text = "";
+
+    /// <summary>收合時顯示的行數。</summary>
+    public const int CollapsedUserLines = 6;
+
+    /// <summary>超過這麼多行（換行字元）就收合。</summary>
+    public const int CollapseLineThreshold = 8;
+
+    /// <summary>超過這麼多字就收合（一段很長、沒有換行的文字也會佔很多行）。</summary>
+    public const int CollapseCharThreshold = 600;
+
+    /// <summary>
+    /// 使用者的長訊息（貼上的長 prompt）：預設只顯示前 <see cref="CollapsedUserLines"/> 行，按「顯示全部」展開，
+    /// 避免長對話讓整個捲軸變得很長。助理的回答不收合。
+    /// </summary>
+    public bool IsLongUserText => IsUser && (Text.Length > CollapseCharThreshold || CountLines(Text) > CollapseLineThreshold);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UserTextMaxLines), nameof(UserTextToggleText))]
+    private bool _isUserTextExpanded;
+
+    /// <summary>氣泡的 MaxLines：0 是不限制。</summary>
+    public int UserTextMaxLines => IsLongUserText && !IsUserTextExpanded ? CollapsedUserLines : 0;
+
+    public string UserTextToggleText => IsUserTextExpanded ? Strings.Message_CollapseUserText : Strings.Message_ExpandUserText;
+
+    [RelayCommand]
+    private void ToggleUserText() => IsUserTextExpanded = !IsUserTextExpanded;
+
+    private static int CountLines(string text)
+    {
+        var lines = 1;
+        foreach (var c in text)
+        {
+            if (c == '\n')
+                lines++;
+        }
+        return lines;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasThinking), nameof(ShowBubble))]
