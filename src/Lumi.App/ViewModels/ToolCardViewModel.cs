@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
+using Lumi.Core.Commands;
 using Lumi.Core.Context;
 using Lumi.Core.Mcp;
 using Lumi.Core.Tools;
@@ -136,7 +137,7 @@ public partial class ToolCardViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsRunning), nameof(IsAwaiting), nameof(IsSucceeded), nameof(IsFailed), nameof(IsDenied),
         nameof(IsForcedOpen), nameof(IsOpen), nameof(CanToggle), nameof(StatusText), nameof(Title),
         nameof(ShowDetailsCard), nameof(ShowRegularCard), nameof(ShowGenericConfirm), nameof(ShowScheduleConfirm),
-        nameof(ShowSkillConfirm), nameof(ShowAwaitingNote), nameof(AwaitingNote))]
+        nameof(ShowSkillConfirm), nameof(ShowCommandConfirm), nameof(ShowAwaitingNote), nameof(AwaitingNote))]
     private ToolCardState _state = ToolCardState.Running;
 
     [ObservableProperty]
@@ -213,7 +214,9 @@ public partial class ToolCardViewModel : ObservableObject
         nameof(Warnings), nameof(HasWarnings), nameof(ShowGenericConfirm), nameof(ShowScheduleConfirm), nameof(ShowAwaitingNote),
         nameof(AwaitingNote), nameof(ScheduleName), nameof(ScheduleWhen), nameof(SchedulePrompt), nameof(ScheduleModel), nameof(ScheduleScope),
         nameof(WriteSuggested), nameof(NetworkSuggested), nameof(ShowSkillConfirm), nameof(SkillName), nameof(SkillDescription), nameof(SkillBody),
-        nameof(ShowReplaceWarning), nameof(ReplaceWarningText))]
+        nameof(ShowReplaceWarning), nameof(ReplaceWarningText), nameof(ShowCommandConfirm),
+        nameof(CommandText), nameof(CommandFieldLabel), nameof(CommandDescription), nameof(CommandLocation), nameof(CommandRiskTexts),
+        nameof(HasCommandRisks))]
     private ToolApprovalRequest? _request;
 
     // ---- 建立排程的確認區（M24 4.4，草圖 ScheduleCreate）：授權勾選，預設照 Lumi 的建議 ----
@@ -378,8 +381,43 @@ public partial class ToolCardViewModel : ObservableObject
     /// <summary>等待確認、而且請求帶著技能內容（<c>save_skill</c>，M29 5.7）：換成技能確認區。</summary>
     public bool ShowSkillConfirm => IsAwaiting && Request?.Skill is not null;
 
-    /// <summary>一般的確認區（沒有排程內容，也不是技能確認）。</summary>
-    public bool ShowGenericConfirm => IsAwaiting && Request?.Schedule is null && Request?.Skill is null;
+    /// <summary>等待確認、而且請求帶著指令內容（<c>run_command</c>，M31 設計 6）：換成指令確認區。</summary>
+    public bool ShowCommandConfirm => IsAwaiting && Request?.Command is not null;
+
+    /// <summary>一般的確認區（沒有排程內容，也不是技能確認，也不是指令確認）。</summary>
+    public bool ShowGenericConfirm => IsAwaiting && Request?.Schedule is null && Request?.Skill is null && Request?.Command is null;
+
+    // ---- 指令確認區（M31 設計 6）：唯讀顯示，只有「允許執行」（允許一次）與「拒絕」，沒有「本次對話都允許」 ----
+
+    public string CommandText => Request?.Command?.Command ?? "";
+
+    public string CommandFieldLabel => string.Format(CultureInfo.CurrentCulture, Strings.Command_FieldCommand, Request?.Command?.ShellName ?? "");
+
+    public string CommandDescription => Request?.Command?.Description ?? "";
+
+    /// <summary>執行位置的完整路徑；是這則對話的暫存資料夾時後面加註記。</summary>
+    public string CommandLocation => Request?.Command is { } command
+        ? command.IsScratchDirectory
+            ? command.WorkingDirectory + Strings.Command_ScratchSuffix
+            : command.WorkingDirectory
+        : "";
+
+    /// <summary>風險提示，依 <see cref="CommandRisk"/> 的列舉順序排列（每個風險一列）。</summary>
+    public IReadOnlyList<string> CommandRiskTexts => Request?.Command is { } command
+        ? [.. command.Risks.OrderBy(risk => risk).Select(CommandRiskText)]
+        : [];
+
+    public bool HasCommandRisks => CommandRiskTexts.Count > 0;
+
+    private static string CommandRiskText(CommandRisk risk) => risk switch
+    {
+        CommandRisk.Deletes => Strings.Command_RiskDeletes,
+        CommandRisk.InstallsPackages => Strings.Command_RiskInstalls,
+        CommandRisk.Network => Strings.Command_RiskNetwork,
+        CommandRisk.ChangesSystem => Strings.Command_RiskSystem,
+        CommandRisk.TouchesSkills => Strings.Command_RiskSkills,
+        _ => risk.ToString(),
+    };
 
     // ---- 技能確認區（M29 5.7、D8）：唯讀顯示，不能編輯，所以只有「儲存」（允許一次）與「不要」（拒絕） ----
 

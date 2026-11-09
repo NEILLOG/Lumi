@@ -90,6 +90,9 @@
             </WrapPanel>
             <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap"
                        IsVisible="{Binding HasSummary}" />
+            <!-- 預設關閉的工具（M31 D13）：說明它是預設關閉，以及關閉後立即生效 -->
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.Tools_OptInNote}" TextWrapping="Wrap"
+                       IsVisible="{Binding IsOptIn}" />
             <!-- MCP 工具：伺服器的標示只是建議（不可信），寫在說明下方 -->
             <TextBlock Classes="muted" Text="{Binding HintText}" TextWrapping="Wrap"
                        IsVisible="{Binding HintText, Converter={x:Static ObjectConverters.IsNotNull}}" />

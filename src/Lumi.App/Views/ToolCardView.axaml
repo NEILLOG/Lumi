@@ -187,6 +187,79 @@
             </StackPanel>
           </StackPanel>
 
+          <!-- 指令確認（M31 設計 6）：唯讀可選取的完整指令；只有「允許執行」（允許一次）與「拒絕」，沒有「本次對話都允許」 -->
+          <StackPanel IsVisible="{Binding ShowCommandConfirm}" Spacing="12">
+            <!-- 1. 標題 -->
+            <TextBlock Text="{x:Static res:Strings.Command_ConfirmTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <!-- 2. Lumi 的說明（不是指令本身，所以下面用小字提醒以指令為準） -->
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Command_FieldDescription}" Classes="cardlabel" />
+              <ctl:EmojiTextBlock Text="{Binding CommandDescription}" TextWrapping="Wrap" />
+              <TextBlock Text="{x:Static res:Strings.Command_DescriptionNote}" Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
+            <!-- 3. 指令（完整、不收合，超過高度可捲動） -->
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding CommandFieldLabel}" Classes="cardlabel" />
+              <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock Text="{Binding CommandText}" TextWrapping="Wrap" FontFamily="{StaticResource LumiMonoFont}" />
+              </ScrollViewer>
+            </StackPanel>
+            <!-- 4. 執行位置 -->
+            <StackPanel Spacing="4">
+              <TextBlock Text="{x:Static res:Strings.Command_FieldLocation}" Classes="cardlabel" />
+              <SelectableTextBlock Text="{Binding CommandLocation}" TextWrapping="Wrap" />
+            </StackPanel>
+            <!-- 5. 風險提示：每個風險一列，樣式同確認區的警告（淡底＋三角圖示）；沒有風險時整塊不佔位置 -->
+            <ItemsControl x:Name="CommandRisks" IsVisible="{Binding HasCommandRisks}" ItemsSource="{Binding CommandRiskTexts}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Background="{DynamicResource LumiWarningBackgroundBrush}" BorderBrush="{DynamicResource LumiWarningBorderBrush}"
+                          BorderThickness="1" CornerRadius="{StaticResource LumiRadiusInput}" Padding="12,8">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                      <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiWarningTextBrush}"
+                                    VerticalAlignment="Top" />
+                      <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <!-- 6. 外部內容、網址等警告：沿用 ApprovalWarnings 的樣板 -->
+            <ItemsControl x:Name="CommandWarnings" IsVisible="{Binding HasWarnings}" ItemsSource="{Binding Warnings}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Border Background="{DynamicResource LumiWarningBackgroundBrush}" BorderBrush="{DynamicResource LumiWarningBorderBrush}"
+                          BorderThickness="1" CornerRadius="{StaticResource LumiRadiusInput}" Padding="12,8">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                      <ctl:LumiIcon Data="{StaticResource LumiIconAlertTriangle}" Size="16" Foreground="{DynamicResource LumiWarningTextBrush}"
+                                    VerticalAlignment="Top" />
+                      <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" Foreground="{DynamicResource LumiWarningTextBrush}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <!-- 7. 紅字：這不是沙盒 -->
+            <TextBlock Text="{x:Static res:Strings.Command_NotSandbox}" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}" />
+            <!-- 8. 按鈕：允許執行（danger）＝允許一次，拒絕（secondary）；沒有「本次對話都允許」 -->
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button x:Name="CommandAllowButton" Classes="danger confirm" Content="{x:Static res:Strings.Tool_AllowExecute}"
+                      Command="{Binding AllowOnceCommand}" />
+              <Button x:Name="CommandDenyButton" Classes="secondary confirm" Content="{x:Static res:Strings.Tool_Deny}"
+                      Command="{Binding DenyCommand}" />
+            </StackPanel>
+          </StackPanel>
+
           <!-- 建立排程的確認（M24 4.4，草圖 ScheduleCreate）：欄位、執行時不再詢問的動作、建立／拒絕。卡片內不再巢狀卡片 -->
           <StackPanel IsVisible="{Binding ShowScheduleConfirm}" Spacing="12">
             <StackPanel Spacing="4">

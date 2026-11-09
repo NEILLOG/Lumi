@@ -458,6 +458,102 @@ public sealed class ToolsViewModelTests
         Assert.False(vm.CanResetToDefaults);
     }
 
+    // ---- M31 設計 7：預設關閉的工具（執行指令） ----
+
+    private const string OptInName = "run_command";
+    private const string OptInWarning = "測試用的開啟確認";
+
+    private ToolsViewModel OptInViewModel() => new(
+        new FakeToolCatalog(FakeCatalogTool.Make(OptInName, "執行指令", ToolPermission.Write, ToolGroups.Commands, optInWarning: OptInWarning)),
+        _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
+
+    private static ToolItemViewModel OptInItem(ToolsViewModel vm) => vm.Groups.SelectMany(g => g.Items).Single(i => i.Name == OptInName);
+
+    [Fact]
+    public void Opt_in_tool_starts_off()
+    {
+        var vm = OptInViewModel();
+
+        Assert.False(OptInItem(vm).IsEnabled);
+        Assert.True(OptInItem(vm).IsOptIn);
+        Assert.False(Item("write_file").IsOptIn);
+    }
+
+    [Fact]
+    public void Enabling_opt_in_tool_asks_and_cancel_reverts()
+    {
+        var vm = OptInViewModel();
+        _confirm.Answer = false;
+
+        OptInItem(vm).IsEnabled = true;
+
+        var asked = Assert.Single(_confirm.Asked);
+        Assert.Equal(OptInWarning, asked.Message);
+        Assert.Equal(Strings.Tools_OptInConfirmButton, asked.ConfirmText);
+        Assert.Empty(_catalog.ToolSaves);
+        Assert.False(OptInItem(vm).IsEnabled);
+    }
+
+    [Fact]
+    public void Enabling_opt_in_tool_writes_Enabled()
+    {
+        var vm = OptInViewModel();
+
+        OptInItem(vm).IsEnabled = true;
+
+        Assert.Equal([OptInName], Saved.Enabled);
+        Assert.Empty(Saved.Disabled);
+        Assert.True(OptInItem(vm).IsEnabled);
+    }
+
+    [Fact]
+    public void Disabling_opt_in_tool_removes_from_Enabled_without_asking()
+    {
+        var vm = OptInViewModel();
+        OptInItem(vm).IsEnabled = true;
+        Assert.Single(_confirm.Asked);
+
+        OptInItem(vm).IsEnabled = false;
+
+        Assert.Empty(Saved.Enabled);
+        Assert.Empty(Saved.Disabled);
+        Assert.False(OptInItem(vm).IsEnabled);
+        Assert.Single(_confirm.Asked);
+    }
+
+    [Fact]
+    public void Group_toggle_also_asks()
+    {
+        var vm = OptInViewModel();
+        _confirm.Answer = false;
+
+        vm.Groups.Single(g => g.Id == ToolGroups.Commands).IsAllEnabled = true;
+
+        Assert.Single(_confirm.Asked);
+        Assert.Empty(_catalog.ToolSaves);
+        Assert.False(OptInItem(vm).IsEnabled);
+
+        _confirm.Answer = true;
+        vm.Groups.Single(g => g.Id == ToolGroups.Commands).IsAllEnabled = true;
+
+        Assert.Equal([OptInName], Saved.Enabled);
+        Assert.True(OptInItem(vm).IsEnabled);
+    }
+
+    [Fact]
+    public void Reset_clears_Enabled()
+    {
+        var vm = OptInViewModel();
+        OptInItem(vm).IsEnabled = true;
+        Assert.True(vm.CanResetToDefaults);
+
+        vm.ResetToDefaultsCommand.Execute(null);
+
+        Assert.Empty(Saved.Enabled);
+        Assert.False(OptInItem(vm).IsEnabled);
+        Assert.False(vm.CanResetToDefaults);
+    }
+
     /// <summary>寫入工具設定時丟出 IOException 的目錄；讀取的成員回固定的設定。其餘成員這個測試用不到。</summary>
     private sealed class SaveFailingCatalog : IModelCatalog
     {
