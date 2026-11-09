@@ -53,7 +53,7 @@ internal sealed class FakeCatalogTool : ITool
 
     public static FakeCatalogTool Make(string name, string displayName, ToolPermission permission = ToolPermission.ReadOnly,
         string group = ToolGroups.General, string? summary = "測試用的說明。", bool canDisable = true, bool canAlwaysAllow = true,
-        ToolModes modes = ToolModes.Both) =>
+        ToolModes modes = ToolModes.Both, string? optInWarning = null) =>
         new(new ToolDescriptor(name, displayName, "測試用工具。", permission, modes, TimeSpan.FromSeconds(5),
-            Group: group, Summary: summary, CanDisable: canDisable, CanAlwaysAllow: canAlwaysAllow));
+            Group: group, Summary: summary, CanDisable: canDisable, CanAlwaysAllow: canAlwaysAllow, OptInWarning: optInWarning));
 }

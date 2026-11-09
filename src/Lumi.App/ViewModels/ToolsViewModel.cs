@@ -70,6 +70,8 @@ public sealed class ToolItemViewModel
             _ => null,
         };
         CanToggle = descriptor.CanDisable;
+        // 預設關閉的工具（M31 D13）：列上要多顯示一行說明，開關的狀態來自 Enabled 清單（見 Rebuild）
+        IsOptIn = descriptor.OptInWarning is not null;
         ConfirmKind = descriptor.Permission == ToolPermission.ReadOnly ? ToolConfirmKind.NotNeeded
             : IToolCatalog.CanAlwaysAllow(descriptor) ? ToolConfirmKind.Choosable
             : ToolConfirmKind.AlwaysAsk;
@@ -125,6 +127,9 @@ public sealed class ToolItemViewModel
 
     /// <summary>false＝設定頁不能關（<c>show_details</c>）。</summary>
     public bool CanToggle { get; }
+
+    /// <summary>預設關閉的工具（<see cref="ToolDescriptor.OptInWarning"/> 有值）：開啟前要確認，列上顯示「預設關閉」的說明。</summary>
+    public bool IsOptIn { get; }
 
     /// <summary>不能關的原因；可以關時是 null。</summary>
     public string? LockedNote => CanToggle ? null : Strings.Tools_CannotDisable;
@@ -309,7 +314,7 @@ public sealed partial class ToolsViewModel : ObservableObject
         {
             // 集合要看內容（數量），不能比參考：ToolSettings 是 record，預設值的集合和設定檔讀出來的不是同一個物件
             var tools = _catalog.Current.Tools;
-            return tools.Disabled.Count > 0 || tools.AlwaysAllow.Count > 0 || tools.PermissionOverrides.Count > 0;
+            return tools.Disabled.Count > 0 || tools.Enabled.Count > 0 || tools.AlwaysAllow.Count > 0 || tools.PermissionOverrides.Count > 0;
         }
     }
 
@@ -323,6 +328,7 @@ public sealed partial class ToolsViewModel : ObservableObject
     {
         var settings = _catalog.Current;
         var disabled = settings.Tools.Disabled.ToHashSet(StringComparer.Ordinal);
+        var enabledOptIn = settings.Tools.Enabled.ToHashSet(StringComparer.Ordinal);
         var alwaysAllow = settings.Tools.AlwaysAllow.ToHashSet(StringComparer.Ordinal);
 
         var statuses = _mcp.GetStatuses().ToDictionary(s => s.ServerId, StringComparer.Ordinal);
@@ -333,8 +339,10 @@ public sealed partial class ToolsViewModel : ObservableObject
             var items = group.Tools.Select(tool =>
             {
                 var descriptor = tool.Descriptor;
-                // 不能關的工具一律啟用，不管設定檔寫了什麼；MCP 工具沒有列在設定裡時也是啟用（M16 D6）
-                var enabled = !descriptor.CanDisable || !disabled.Contains(descriptor.Name);
+                // 預設關閉的工具只看 Enabled（M31 D13）；不能關的工具一律啟用，不管設定檔寫了什麼；MCP 工具沒有列在設定裡時也是啟用（M16 D6）
+                var enabled = descriptor.OptInWarning is not null
+                    ? enabledOptIn.Contains(descriptor.Name)
+                    : !descriptor.CanDisable || !disabled.Contains(descriptor.Name);
                 return new ToolItemViewModel(tool, enabled, alwaysAllow.Contains(descriptor.Name),
                     (item, value) => SetEnabledAsync([item.Name], value),
                     SetAlwaysAllowAsync,
@@ -412,16 +420,52 @@ public sealed partial class ToolsViewModel : ObservableObject
         return tools with { PermissionOverrides = overrides, AlwaysAllow = alwaysAllow };
     }
 
-    private Task SetEnabledAsync(IEnumerable<string> names, bool enabled) =>
-        ChangeAsync(tools => WithEnabled(tools, names, enabled));
+    /// <summary>
+    /// 開關工具或群組（M31 D13、設計 7）。要開啟的名稱裡有預設關閉、目前又沒開的工具，就逐一先確認；
+    /// 任何一個取消，整次變更都不存，畫面重新載入。關閉不需確認，立即生效。
+    /// </summary>
+    private async Task SetEnabledAsync(IEnumerable<string> names, bool enabled)
+    {
+        var nameList = names.ToList();
+        var optIn = OptInWarnings();
+        if (enabled)
+        {
+            var current = _catalog.Current.Tools.Enabled;
+            foreach (var name in nameList)
+            {
+                if (!optIn.TryGetValue(name, out var warning) || current.Contains(name))
+                    continue;
+                if (!await _confirm.ConfirmDestructiveAsync(warning, Strings.Tools_OptInConfirmButton))
+                {
+                    Rebuild();
+                    return;
+                }
+            }
+        }
+        await ChangeAsync(tools => WithEnabled(tools, nameList, enabled, optIn.Keys.ToHashSet(StringComparer.Ordinal)));
+    }
 
-    private static ToolSettings WithEnabled(ToolSettings tools, IEnumerable<string> names, bool enabled)
+    /// <summary>預設關閉的工具：工具名稱對應到開啟前的確認文字（<see cref="ToolDescriptor.OptInWarning"/>）。</summary>
+    private Dictionary<string, string> OptInWarnings() =>
+        _tools.ListGroups()
+            .SelectMany(g => g.Tools)
+            .Where(t => t.Descriptor.OptInWarning is not null)
+            .ToDictionary(t => t.Descriptor.Name, t => t.Descriptor.OptInWarning!, StringComparer.Ordinal);
+
+    /// <param name="optIn">預設關閉的工具名稱：開啟寫進 <see cref="ToolSettings.Enabled"/>、關閉從那裡移除（不寫進 Disabled）。</param>
+    private static ToolSettings WithEnabled(ToolSettings tools, IEnumerable<string> names, bool enabled, IReadOnlySet<string> optIn)
     {
         var changed = names.ToHashSet(StringComparer.Ordinal);
+        var changedOptIn = changed.Where(optIn.Contains).ToHashSet(StringComparer.Ordinal);
+        var changedPlain = changed.Where(n => !optIn.Contains(n)).ToHashSet(StringComparer.Ordinal);
+
         var disabled = enabled
-            ? tools.Disabled.Where(n => !changed.Contains(n)).ToList()
-            : tools.Disabled.Concat(changed).ToList();
-        return tools with { Disabled = disabled };
+            ? tools.Disabled.Where(n => !changedPlain.Contains(n)).ToList()
+            : tools.Disabled.Concat(changedPlain).ToList();
+        var enabledNames = enabled
+            ? tools.Enabled.Concat(changedOptIn).ToList()
+            : tools.Enabled.Where(n => !changedOptIn.Contains(n)).ToList();
+        return tools with { Disabled = disabled, Enabled = enabledNames };
     }
 
     /// <summary>「永遠允許」：開啟前先確認；取消就重新載入，選項會回到「每次詢問」。關閉不需確認。</summary>
