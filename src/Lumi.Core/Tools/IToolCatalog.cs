@@ -9,7 +9,7 @@ public sealed record ToolCatalogGroup(ToolGroupInfo Group, IReadOnlyList<ITool> 
 /// </summary>
 public interface IToolCatalog
 {
-    /// <summary>新對話第一次送出時要凍結的工具：已啟用的（<c>CanDisable=false</c> 的一律算啟用），依名稱排序。</summary>
+    /// <summary>新對話第一次送出時要凍結的工具：已啟用的（<c>CanDisable=false</c> 的一律算啟用；預設關閉的工具 <see cref="ToolDescriptor.OptInWarning"/> 只有在 <see cref="ToolSettings.Enabled"/> 才算），依名稱排序。</summary>
     Task<IReadOnlyList<ITool>> GetEnabledForNewConversationAsync(CancellationToken ct);
 
     /// <summary>全部內建工具（含已關閉），依名稱排序。舊對話補快照用（M15 D3）。</summary>
