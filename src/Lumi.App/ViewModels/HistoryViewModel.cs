@@ -348,6 +348,14 @@ public partial class HistoryViewModel : ObservableObject
     public Task<bool> RenameConversationAsync(string id, string title) =>
         SaveTitleAsync(id, title, Items.FirstOrDefault(i => i.Id == id));
 
+    /// <summary>別處已經存好的新標題（背景產生的標題）：只更新清單列與快取，不寫資料庫、不通知工作台。清單裡沒有這則就不做事。</summary>
+    public void ApplyTitle(string id, string title)
+    {
+        Items.FirstOrDefault(i => i.Id == id && !i.IsEditing)?.SetTitle(title);
+        if (_byId.TryGetValue(id, out var conversation))
+            _byId[id] = conversation with { Title = title };
+    }
+
     /// <summary>寫入新標題，成功後更新清單列、快取與工作台標題。失敗記 log 並回 false。</summary>
     private async Task<bool> SaveTitleAsync(string id, string title, ConversationListItem? item)
     {

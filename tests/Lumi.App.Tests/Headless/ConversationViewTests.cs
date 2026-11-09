@@ -98,7 +98,8 @@ public class ConversationViewTests
         var row = (StackPanel)header.GetVisualParent()!;
         Assert.Equal(HorizontalAlignment.Right, row.HorizontalAlignment);
 
-        var bubble = view.GetVisualDescendants().OfType<Border>().First(b => b.IsEffectivelyVisible && b.Child is EmojiTextBlock { Text: "嗨" });
+        var bubble = view.GetVisualDescendants().OfType<Border>()
+            .First(b => b.IsEffectivelyVisible && b.Child is StackPanel panel && panel.Children.OfType<EmojiTextBlock>().Any(t => t.Text == "嗨"));
         Assert.Equal(new CornerRadius(14), bubble.CornerRadius);
         Assert.Equal(new Thickness(16, 12), bubble.Padding);
         Assert.Equal(HorizontalAlignment.Right, bubble.HorizontalAlignment);

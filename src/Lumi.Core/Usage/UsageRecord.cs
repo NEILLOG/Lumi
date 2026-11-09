@@ -3,7 +3,8 @@ using Lumi.Core.Models;
 
 namespace Lumi.Core.Usage;
 
-public enum UsagePurpose { Chat, Compaction }
+/// <summary>一次呼叫的用途。<see cref="Title"/>＝自動產生對話標題。</summary>
+public enum UsagePurpose { Chat, Compaction, Title }
 
 /// <summary>一次 API 呼叫的用量與費用（<c>request_usage</c> 一列）。</summary>
 /// <param name="Estimated">沒有供應商回報的 usage，以估算值計入。</param>

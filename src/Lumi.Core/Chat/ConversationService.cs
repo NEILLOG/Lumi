@@ -77,6 +77,7 @@ public sealed class ConversationService
     private readonly IToolCatalog _toolCatalog;
     private readonly IAttachmentStore? _attachments;
     private readonly ISkillStore _skills;
+    private readonly IConversationTitler _titler;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -106,7 +107,8 @@ public sealed class ConversationService
         IToolCatalog? toolCatalog = null,
         IAttachmentStore? attachments = null,
         IUsageRecorder? usageRecorder = null,
-        ISkillStore? skills = null)
+        ISkillStore? skills = null,
+        IConversationTitler? titler = null)
     {
         _provider = provider;
         _usage = usageRecorder ?? new NullUsageRecorder();
@@ -127,6 +129,7 @@ public sealed class ConversationService
         _toolCatalog = toolCatalog ?? new ToolCatalog(registry, catalog);
         _attachments = attachments;
         _skills = skills ?? new InMemorySkillStore();
+        _titler = titler ?? new NullConversationTitler();
     }
 
     /// <summary>
@@ -166,7 +169,13 @@ public sealed class ConversationService
                 await _contextStore.MarkEmbeddedAsync(conversationId, attachments.ItemIds, userMessage.Id, CancellationToken.None).ConfigureAwait(false);
             }
             if (existing.Count == 0)
-                await _store.RenameAsync(conversationId, MakeTitle(userText), ct).ConfigureAwait(false);
+            {
+                // 先用原文當標題；一般對話再在背景請模型取一個容易辨識的（排程自己有名稱，不產生）。不等它，不影響回應
+                var title = MakeTitle(userText);
+                await _store.RenameAsync(conversationId, title, ct).ConfigureAwait(false);
+                if (options?.Run is null)
+                    _ = Task.Run(() => _titler.GenerateAsync(conversationId, userText, title, mode, CancellationToken.None), CancellationToken.None);
+            }
 
             await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct, options).ConfigureAwait(false))
                 yield return chatEvent;

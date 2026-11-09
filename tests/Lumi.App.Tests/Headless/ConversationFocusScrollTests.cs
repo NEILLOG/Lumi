@@ -51,9 +51,13 @@ public class ConversationFocusScrollTests
             Window.UpdateLayout();
         }
 
-        // 300 行的長提問，把使用者文字撐得比視窗還高
-        public Task SendLongPromptAsync() =>
-            SendAsync(UserTextMarker + string.Concat(Enumerable.Range(1, 300).Select(i => $"\n第 {i} 行內容")));
+        // 300 行的長提問，把使用者文字撐得比視窗還高。長訊息預設收合，這裡先展開，才測得到文字比視窗高的情況
+        public async Task SendLongPromptAsync()
+        {
+            await SendAsync(UserTextMarker + string.Concat(Enumerable.Range(1, 300).Select(i => $"\n第 {i} 行內容")));
+            Vm.Messages.First(m => m.IsUser).IsUserTextExpanded = true;
+            Window.UpdateLayout();
+        }
 
         public EmojiTextBlock UserText =>
             Window.GetVisualDescendants().OfType<EmojiTextBlock>().First(t => t.Text?.StartsWith(UserTextMarker) == true);
@@ -86,6 +90,22 @@ public class ConversationFocusScrollTests
                 .Select(t => t.GetProperty(name, flags)).First(p => p is not null)!;
             (property.GetValue(impl) as Action)?.Invoke();
         }
+    }
+
+    [AvaloniaFact]
+    public async Task LongPrompt_IsCollapsedByDefault_AndTheButtonExpandsIt()
+    {
+        var rig = new Rig();
+        await rig.SendAsync(UserTextMarker + string.Concat(Enumerable.Range(1, 300).Select(i => $"\n第 {i} 行內容")));
+        var collapsed = rig.UserText.Bounds.Height;
+        Assert.True(collapsed < rig.Scroller.Viewport.Height, $"收合後仍有 {collapsed} 高");
+
+        var toggle = rig.Window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "UserTextToggle" && b.IsEffectivelyVisible);
+        toggle.Command!.Execute(toggle.CommandParameter);
+        rig.Window.UpdateLayout();
+
+        Assert.True(rig.UserText.Bounds.Height > rig.Scroller.Viewport.Height);
+        rig.Window.Close();
     }
 
     [AvaloniaFact]

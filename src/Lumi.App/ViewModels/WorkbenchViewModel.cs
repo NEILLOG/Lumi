@@ -95,7 +95,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         ScheduledRunsViewModel? scheduledRunsTab = null,
         IToolCatalog? toolCatalog = null,
         IAttachmentStore? attachments = null,
-        ISkillStore? skills = null)
+        ISkillStore? skills = null,
+        IConversationTitler? titler = null)
     {
         _skills = skills;
         _confirm = confirm;
@@ -159,6 +160,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _session.RunStarted += OnRunStarted;
         _session.EventReceived += OnEventReceived;
         _session.RunFinished += OnRunFinished;
+        if (titler is not null)
+            titler.TitleGenerated += (_, generated) => _dispatcher.Post(() => OnTitleGenerated(generated));
         _session.ModeChanged += (_, mode) =>
         {
             if (mode == ChatMode.Sprite)
@@ -530,6 +533,14 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         else
             await CreateNewConversationAsync();
         InputText = "";
+    }
+
+    /// <summary>背景產生的標題已經存好：開著這則就換掉頂端的標題，清單那一列也一起換。</summary>
+    private void OnTitleGenerated(ConversationTitleGenerated generated)
+    {
+        if (generated.ConversationId == CurrentConversationId)
+            Title = generated.Title;
+        History.ApplyTitle(generated.ConversationId, generated.Title);
     }
 
     void IHistoryHost.TitleChanged(string conversationId, string title)

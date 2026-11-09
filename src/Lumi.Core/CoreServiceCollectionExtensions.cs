@@ -19,6 +19,7 @@ public static class CoreServiceCollectionExtensions
     /// <summary>需要另外註冊 <see cref="IChatProvider"/>、<see cref="IConversationStore"/>、<see cref="Models.IModelCatalog"/>。</summary>
     public static IServiceCollection AddLumiCore(this IServiceCollection services)
     {
+        services.AddSingleton<IConversationTitler, ConversationTitler>();   // 第一則訊息送出後在背景產生容易辨識的標題
         services.AddSingleton<ConversationService>();
         services.AddSingleton<SpriteConversationService>();   // 小精靈專屬對話的 id 與建立（M22）
         services.AddSingleton<IChatSession, ChatSession>();   // 工作台與小精靈共用的目前對話與回應流程

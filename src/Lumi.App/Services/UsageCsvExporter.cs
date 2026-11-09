@@ -29,6 +29,7 @@ public static class UsageCsvExporter
 
     public const string PurposeChat = "對話";
     public const string PurposeCompaction = "整理";
+    public const string PurposeTitle = "標題";
     public const string ModeWorkbench = "工作台";
     public const string ModeSprite = "小精靈";
     public const string EstimatedYes = "是";
@@ -67,7 +68,7 @@ public static class UsageCsvExporter
         [
             LocalTime(record.CreatedAt, zone),
             title,
-            record.Purpose == UsagePurpose.Compaction ? PurposeCompaction : PurposeChat,
+            record.Purpose switch { UsagePurpose.Compaction => PurposeCompaction, UsagePurpose.Title => PurposeTitle, _ => PurposeChat },
             record.Mode == ChatMode.Sprite ? ModeSprite : ModeWorkbench,
             record.ConnectionName,
             record.ModelId,

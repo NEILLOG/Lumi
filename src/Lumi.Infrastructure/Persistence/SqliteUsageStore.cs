@@ -152,6 +152,7 @@ internal sealed class SqliteUsageStore(SqliteConversationStore database) : IUsag
     {
         UsagePurpose.Chat => "chat",
         UsagePurpose.Compaction => "compaction",
+        UsagePurpose.Title => "title",
         _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, null),
     };
 
@@ -159,6 +160,7 @@ internal sealed class SqliteUsageStore(SqliteConversationStore database) : IUsag
     {
         "chat" => UsagePurpose.Chat,
         "compaction" => UsagePurpose.Compaction,
+        "title" => UsagePurpose.Title,
         _ => throw new InvalidDataException($"未知的用量用途：{text}"),
     };
 
