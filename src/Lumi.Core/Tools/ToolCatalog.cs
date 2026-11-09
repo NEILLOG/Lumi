@@ -18,9 +18,13 @@ public sealed class ToolCatalog(IToolRegistry registry, IModelCatalog settings, 
         await _mcp.WaitForStartupAsync(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false);
 
         var disabled = settings.Current.Tools.Disabled.ToHashSet(StringComparer.Ordinal);
+        // 預設關閉的工具（M31 D13）：只有使用者在 Enabled 開啟才納入；Disabled 對它們沒有作用
+        var enabledOptIn = settings.Current.Tools.Enabled.ToHashSet(StringComparer.Ordinal);
         return registry.GetAll()
             .Concat(_mcp.GetTools().Where(t => t.IsLive).Cast<ITool>())
-            .Where(t => !t.Descriptor.CanDisable || !disabled.Contains(t.Descriptor.Name))
+            .Where(t => t.Descriptor.OptInWarning is null
+                ? !t.Descriptor.CanDisable || !disabled.Contains(t.Descriptor.Name)
+                : enabledOptIn.Contains(t.Descriptor.Name))
             .OrderBy(t => t.Descriptor.Name, StringComparer.Ordinal)
             .ToList();
     }

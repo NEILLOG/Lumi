@@ -53,6 +53,7 @@ public sealed class ConversationService
     private const string WrongModeMessage = "這個工具在目前模式不能使用。";
     private const string MemoryOffMessage = "長期記憶已在設定裡關閉，不能新增、修改或刪除記憶。";
     private const string UnavailableMessage = "這個工具目前無法使用。";
+    private const string OptInOffMessage = "這個工具已經在設定關閉，不能使用。";
 
     /// <summary>技能工具的名稱（M29）：只有這則對話的工具快照含它時，system 才列技能清單（E2）。</summary>
     private const string ReadSkillToolName = "read_skill";
@@ -400,6 +401,9 @@ public sealed class ConversationService
 
             // ---- 依序處理每個工具呼叫（Q4：不平行，每個各自走權限確認）----
             var results = new List<ToolResultBlock>();
+            // 這一輪已經處理過的工具名稱（不論成功、失敗、被擋或被拒）：外部內容警告用（M31 設計 3）。
+            // 「沒有這個工具」與「找不到」的呼叫不算：沒有執行任何東西，也沒有讀到外部內容
+            var executedNames = new List<string>();
             var stopped = false;
             foreach (var use in uses)
             {
@@ -426,6 +430,17 @@ public sealed class ConversationService
 
                 var descriptor = tool.Descriptor;
                 var preview = tool.Preview(use.InputJson, context);
+                executedNames.Add(use.Name);
+
+                // 預設關閉的工具（M31 D14）：設定關掉後立即生效，已經開著的對話也不能再用；不詢問、不執行
+                if (!stopped && descriptor.OptInWarning is not null && !_catalog.Current.Tools.Enabled.Contains(descriptor.Name, StringComparer.Ordinal))
+                {
+                    var optInOff = new ToolResultBlock(use.Id, OptInOffMessage, true, descriptor.DisplayName, preview.Target, "已關閉", 0, ToolApproval.NotRequired);
+                    yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
+                    yield return new ToolCallCompleted(use.Id, optInOff);
+                    results.Add(optInOff);
+                    continue;
+                }
 
                 if (!stopped && descriptor.RequiresMemory && !memoryEnabled)
                 {
@@ -444,6 +459,16 @@ public sealed class ConversationService
                     yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
                     yield return new ToolCallCompleted(use.Id, wrongMode);
                     results.Add(wrongMode);
+                    continue;
+                }
+
+                // 工具自己擋掉的（M31 D11，例如被擋的指令）：不詢問、不執行，直接把原因回給模型
+                if (!stopped && preview.Rejection is { } rejection)
+                {
+                    var rejected = new ToolResultBlock(use.Id, rejection, true, descriptor.DisplayName, preview.Target, "已擋下", 0, ToolApproval.NotRequired);
+                    yield return new ToolCallStarted(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview.Target, use.InputJson);
+                    yield return new ToolCallCompleted(use.Id, rejected);
+                    results.Add(rejected);
                     continue;
                 }
 
@@ -483,9 +508,17 @@ public sealed class ConversationService
                     }
                     else
                     {
+                        // 外部內容警告（M31 D12）放在網址警告之後；這則對話讀過網頁或外部工具的內容時才加
+                        var externalWarning = descriptor.WarnsAfterExternalContent
+                            && ExternalContentProvenance.Seen(history, executedNames, name => _toolCatalog.Find(name)?.Descriptor.Group.StartsWith("mcp:", StringComparison.Ordinal) == true);
+                        var warnings = new List<string>();
+                        if (mustAsk)
+                            warnings.Add(NetworkUrlPolicy.Warning(urlCheck, preview.Url!));
+                        if (externalWarning)
+                            warnings.Add(ExternalContentProvenance.Warning);
                         var approvalRequest = new ToolApprovalRequest(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview, use.InputJson)
                         {
-                            Warnings = mustAsk ? [NetworkUrlPolicy.Warning(urlCheck, preview.Url!)] : [],
+                            Warnings = warnings,
                             AllowRemember = urlCheck != UrlCheck.SearchEngine && !descriptor.AlwaysAsk,
                             ConversationId = conversationId,
                         };
@@ -829,8 +862,9 @@ public sealed class ConversationService
             return saved;
 
         var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+        // 舊對話補「全部」工具時排除預設關閉的工具（M31 D13）：它們不能因為舊對話而被補進去，要使用者在設定開啟的新對話才會有
         var tools = history.Any(m => m.Role == ChatRole.Assistant)
-            ? _toolCatalog.GetAll()
+            ? _toolCatalog.GetAll().Where(t => t.Descriptor.OptInWarning is null).ToList()
             : await _toolCatalog.GetEnabledForNewConversationAsync(ct).ConfigureAwait(false);
         var definitions = tools.Select(ToolDefinition.From).ToList();
         await _store.SetToolSnapshotAsync(conversationId, ToolSnapshotJson.Serialize(definitions), CancellationToken.None).ConfigureAwait(false);

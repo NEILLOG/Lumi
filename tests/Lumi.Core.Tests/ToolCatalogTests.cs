@@ -93,4 +93,41 @@ public class ToolCatalogTests
         Assert.False(IToolCatalog.CanAlwaysAllow(Desc("d", ToolPermission.Destructive)));
         Assert.False(IToolCatalog.CanAlwaysAllow(Desc("m", ToolPermission.Write, canAlwaysAllow: false)));
     }
+
+    [Fact]
+    public async Task OptIn_tool_is_excluded_by_default()
+    {
+        var registry = new ToolRegistry([new DescribedTool(Desc("opt") with { OptInWarning = "確認" }), new FakeTool("alpha")]);
+        var catalog = new ToolCatalog(registry, WithTools(ToolSettings.Default));
+
+        var enabled = await catalog.GetEnabledForNewConversationAsync(CancellationToken.None);
+
+        Assert.Equal(["alpha"], enabled.Select(t => t.Descriptor.Name));
+    }
+
+    [Fact]
+    public async Task OptIn_tool_is_included_when_enabled()
+    {
+        var registry = new ToolRegistry([new DescribedTool(Desc("opt") with { OptInWarning = "確認" }), new FakeTool("alpha")]);
+        var catalog = new ToolCatalog(registry, WithTools(new ToolSettings { Enabled = ["opt"] }));
+
+        var enabled = await catalog.GetEnabledForNewConversationAsync(CancellationToken.None);
+
+        Assert.Equal(["alpha", "opt"], enabled.Select(t => t.Descriptor.Name));
+    }
+
+    [Fact]
+    public async Task Disabled_list_does_not_enable_opt_in_tool()
+    {
+        var registry = new ToolRegistry([new DescribedTool(Desc("opt") with { OptInWarning = "確認" })]);
+
+        // Disabled 對預設關閉的工具沒有作用：只在 Disabled 裡不會開啟；Enabled 開啟時 Disabled 也不會把它關掉
+        var offOnly = await new ToolCatalog(registry, WithTools(new ToolSettings { Disabled = ["opt"] }))
+            .GetEnabledForNewConversationAsync(CancellationToken.None);
+        var enabledAndDisabled = await new ToolCatalog(registry, WithTools(new ToolSettings { Enabled = ["opt"], Disabled = ["opt"] }))
+            .GetEnabledForNewConversationAsync(CancellationToken.None);
+
+        Assert.Empty(offOnly);
+        Assert.Equal(["opt"], enabledAndDisabled.Select(t => t.Descriptor.Name));
+    }
 }
