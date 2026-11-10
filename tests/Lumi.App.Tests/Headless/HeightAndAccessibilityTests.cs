@@ -21,6 +21,21 @@ namespace Lumi.App.Tests.Headless;
 /// </summary>
 public class HeightAndAccessibilityTests
 {
+    // 正式程式一定有模式協調者；沒有的話「小精靈模式」按鈕會停用，就不在 Tab 鏈上（Tab 會跳過停用的控制項）
+    private sealed class StubModes : IAppModeCoordinator
+    {
+        public ChatMode ActiveMode => ChatMode.Workbench;
+        public bool IsSpriteTemporarilyHidden => false;
+        public void Start() { }
+        public bool EnterSpriteMode() => true;
+        public void OpenWorkbench(string? scrollToCallId = null) { }
+        public void WorkbenchWillSend() { }
+        public bool WorkbenchMayClose() => true;
+        public void ShowSprite() { }
+        public void HideSpriteTemporarily() { }
+        public void Exit() { }
+    }
+
     private sealed class Rig
     {
         public WorkbenchViewModel Vm { get; }
@@ -31,10 +46,11 @@ public class HeightAndAccessibilityTests
             var store = new InMemoryConversationStore();
             var catalog = new FakeModelCatalog();
             var service = new ConversationService(new SequenceChatProvider(SequenceChatProvider.Answer("這是回答。")), store, catalog);
+            var modes = new StubModes();
             Vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
                 new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
-                NullLogger<WorkbenchViewModel>.Instance);
-            Window = new WorkbenchWindow(Vm);
+                NullLogger<WorkbenchViewModel>.Instance, modes: modes);
+            Window = new WorkbenchWindow(Vm, modes);
             if (width is { } w) Window.Width = w;
             if (height is { } h) Window.Height = h;
             Window.Show();
@@ -293,9 +309,9 @@ public class HeightAndAccessibilityTests
     /// <summary>從標題列第一個控制項開始，一路按 Tab 會依序經過的控制項（回到起點或離開視窗為止）。</summary>
     private static List<InputElement> TabChain(WorkbenchWindow window)
     {
-        var start = window.FindByName<Button>("SpriteModeButton");
-        var chain = new List<InputElement> { start };
-        IInputElement current = start;
+        // 從視窗開頭按 Tab：第一個停靠點就是小精靈鈕（回應中停用時會跳過，所以不能直接從它開始）
+        var chain = new List<InputElement>();
+        IInputElement current = window;
         for (var i = 0; i < 100; i++)
         {
             var next = TestSupport.TabChain.GetNext(current, NavigationDirection.Next) as InputElement;
