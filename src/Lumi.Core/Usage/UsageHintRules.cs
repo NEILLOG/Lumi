@@ -159,13 +159,21 @@ public static class UsageHintRules
         return new UsageHintMatch(UsageHintIds.Images, [count.ToString(CultureInfo.InvariantCulture)]);
     }
 
-    /// <summary>第 6 條：這次請求的工具定義 ≥ 10K tokens（新對話的第一次回應）。7 天限制由畫面層查紀錄判斷。</summary>
+    /// <summary>
+    /// 第 6 條：這次請求的工具定義達到門檻（新對話的第一次回應）。門檻是模型上下文的 10%，至少 10K；
+    /// 查不到上下文大小時用 10K。7 天限制由畫面層查紀錄判斷。
+    /// </summary>
     private static UsageHintMatch? McpTools(HintInput input)
     {
-        if (!input.IsFirstResponseInConversation || input.LastToolDefinitionTokens < UsageHintThresholds.McpToolDefinitionTokens)
+        if (!input.IsFirstResponseInConversation || input.LastToolDefinitionTokens < McpToolsThreshold(input.ContextLimit))
             return null;
         return new UsageHintMatch(UsageHintIds.McpTools, [MoneyFormat.Tokens(input.LastToolDefinitionTokens)]);
     }
+
+    internal static int McpToolsThreshold(int contextLimit) =>
+        contextLimit > 0
+            ? Math.Max(UsageHintThresholds.McpToolDefinitionTokens, (int)Math.Ceiling(contextLimit * UsageHintThresholds.McpToolDefinitionContextRatio))
+            : UsageHintThresholds.McpToolDefinitionTokens;
 
     /// <summary>第 8 條：最後一則助理訊息本身是長的程式碼輸出，且整則對話中這樣的助理訊息有 ≥ 3 則。</summary>
     private static UsageHintMatch? LongOutput(HintInput input)

@@ -1040,7 +1040,7 @@
   <data name="Hint_StaleResumeFormat" xml:space="preserve"><value>上次是 {0}前。快取已經過期，下一句會把 {1} 的前文用全價重新送一次。</value></data>
   <data name="Hint_BigFileFormat" xml:space="preserve"><value>「{0}」（{1} tokens）在這則對話的前文裡，之後每一輪都會一起送出。用完了的話，可以整理對話或開新對話。</value></data>
   <data name="Hint_ImagesFormat" xml:space="preserve"><value>這則對話的前文裡有 {0} 張圖片，之後每一輪都會重新送出。看完了的話，可以整理對話或開新對話。</value></data>
-  <data name="Hint_McpToolsFormat" xml:space="preserve"><value>目前啟用的工具說明約 {0} tokens，每次請求都會送出。用不到的 MCP 伺服器可以先關掉。</value></data>
+  <data name="Hint_McpToolsFormat" xml:space="preserve"><value>目前啟用的工具說明約 {0} tokens，超過這個模型上下文上限的一成，每次請求都會送出。用不到的工具或 MCP 伺服器可以先關掉。</value></data>
   <data name="Hint_RegenerateFormat" xml:space="preserve"><value>已經重新產生 {0} 次了。補充你想要的方向（例如長度、格式、重點），通常比再試一次有效。</value></data>
   <data name="Hint_LongOutput" xml:space="preserve"><value>最近幾次回覆都很長，輸出是最貴的部分。改程式時可以請 Lumi 只給修改的地方。</value></data>
   <data name="Hint_RepeatPasteFormat" xml:space="preserve"><value>這段內容在第 {0} 回合已經貼過，前文裡就有，下次可以直接說「剛才那段」。</value></data>

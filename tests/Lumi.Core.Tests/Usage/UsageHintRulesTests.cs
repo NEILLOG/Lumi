@@ -269,20 +269,26 @@ public sealed class UsageHintRulesTests
 
     // ---- 第 6 條 mcp-tools ----
 
-    [Fact]
-    public void McpTools_TriggersAtExactly10KOnTheFirstResponse()
+    // FX-04：門檻是模型上下文的 10%，至少 10K；查不到上下文大小時用 10K
+
+    [Theory]
+    [InlineData(1_000_000, 100_000)]
+    [InlineData(200_000, 20_000)]
+    [InlineData(64_000, 10_000)]   // 10% 是 6.4K，低於下限
+    [InlineData(0, 10_000)]        // 查不到上下文大小
+    public void McpTools_TriggersAtTheThreshold_AndNotJustBelowIt(int contextLimit, int threshold)
     {
-        var input = Input(new History().Exchanges(1), toolTokens: 10_000, first: true);
+        var at = Input(new History().Exchanges(1), contextLimit: contextLimit, toolTokens: threshold, first: true);
+        var below = Input(new History().Exchanges(1), contextLimit: contextLimit, toolTokens: threshold - 1, first: true);
 
-        var match = Single(input, UsageHintIds.McpTools);
-
-        Assert.Equal(["10K"], match.Args);
+        Assert.Equal([MoneyFormat.Tokens(threshold)], Single(at, UsageHintIds.McpTools).Args);
+        Assert.DoesNotContain(UsageHintIds.McpTools, Rules(below));
     }
 
     [Fact]
-    public void McpTools_NotTriggeredJustBelow10K()
+    public void McpTools_29KOfToolsOnA1MModel_IsNotAHint()
     {
-        var input = Input(new History().Exchanges(1), toolTokens: 9_999, first: true);
+        var input = Input(new History().Exchanges(1), contextLimit: 1_000_000, toolTokens: 29_000, first: true);
 
         Assert.DoesNotContain(UsageHintIds.McpTools, Rules(input));
     }
@@ -444,7 +450,7 @@ public sealed class UsageHintRulesTests
     public void AfterResponse_ReturnsMatchesInPriorityOrder_AndNeverTheUserActionRules()
     {
         var history = new History().UserWith(File("big.md", 15_000)).Replies(20).User("再一句").Assistant();
-        var input = Input(history, contextUsed: 130_000, toolTokens: 12_000, first: true);
+        var input = Input(history, contextUsed: 130_000, toolTokens: 20_000, first: true);   // 200K 上下文的工具門檻是 20K
 
         Assert.Equal(
             [UsageHintIds.LongConversation, UsageHintIds.BigFile, UsageHintIds.McpTools],

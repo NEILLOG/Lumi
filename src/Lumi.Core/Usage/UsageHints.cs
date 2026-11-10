@@ -32,7 +32,10 @@ public static class UsageHintThresholds
     public const int ImagesCount = 3;
     public const int ImagesTokens = 5_000;
     public const int ImagesRequestsAfter = 10;
+    /// <summary>工具說明的提示門檻下限，也是查不到模型上下文大小時的門檻。</summary>
     public const int McpToolDefinitionTokens = 10_000;
+    /// <summary>工具說明佔模型上下文的比例達到這個值才提示（FX-04）：工具多是常態，1M 上下文的模型用固定的 10K 門檻沒有意義。</summary>
+    public const double McpToolDefinitionContextRatio = 0.10;
     public static readonly TimeSpan McpToolsInterval = TimeSpan.FromDays(7);
     public const int RegenerateCount = 3;
     public const int LongOutputTokens = 4_000;
