@@ -46,6 +46,7 @@ Lumi 第一次啟動時沒有任何連線與模型，要自己新增。「連線
 | Anthropic | Anthropic 原生 | `https://api.anthropic.com` | 需要（[申請金鑰](https://platform.claude.com/settings/keys)） |
 | OpenAI | OpenAI 相容 | `https://api.openai.com/v1` | 需要（[申請金鑰](https://platform.openai.com/api-keys)） |
 | DeepSeek | OpenAI 相容 | `https://api.deepseek.com` | 需要（[申請金鑰](https://platform.deepseek.com/api_keys)） |
+| Demon Route（開放權重模型，含無審查微調） | OpenAI 相容 | `https://api.demonroute.com/v1` | 需要（[申請金鑰](https://demonroute.com/login)） |
 | Ollama（本機模型，要先[安裝 Ollama](https://ollama.com/download)） | OpenAI 相容 | `http://localhost:11434/v1` | 可以留空 |
 
 - 新增連線時，「供應商格式」預設是「OpenAI 相容」，「Base URL」預設是 OpenAI 的位址。改選「Anthropic 原生」時，只要你還沒自己改過網址，「Base URL」會跟著換成 Anthropic 的位址。
