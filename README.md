@@ -187,7 +187,7 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 
 ## 🧩 技術棧與建置
 
-**.NET 10** · **Avalonia 11.3** · CommunityToolkit.Mvvm · Generic Host（DI）· SQLite · Markdig · Playwright · MCP C# SDK
+**.NET 10** · **Avalonia 12.1** · CommunityToolkit.Mvvm · Generic Host（DI）· SQLite · Markdig · Playwright · MCP C# SDK
 
 - 核心（`Lumi.Core`）不依賴任何 UI，對話迴圈、工具、Prompt 分層都在這裡；供應商、瀏覽器、MCP 等外部套件各自封裝在自己的專案
 - 工具統一實作 `ITool` 介面、以 DI 註冊，權限等級與可用模式由框架統一處理
