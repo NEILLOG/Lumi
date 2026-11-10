@@ -88,7 +88,8 @@ internal sealed class AssetSpriteView : ISpriteView
 
         var animation = _definition.Animations[frame.Key];
         var sheet = _store.Get(animation);
-        _control.Show(sheet?.Bitmap, SpriteSheetLayout.SourceRect(_definition.CellPixels, animation.Columns, frame.Index));
+        // 每一格是獨立的圖，來源範圍就是整張圖（見 SpriteSheetStore.CropCells）
+        _control.Show(sheet?.Cell(frame.Index), new Rect(_definition.CellPixels));
     }
 
     public bool HitTest(Point p)

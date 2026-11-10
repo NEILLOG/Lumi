@@ -4,10 +4,11 @@ using Avalonia.Platform;
 
 namespace Lumi.Sprites.Assets;
 
-/// <summary>解碼後的一張 sprite sheet：圖片（繪製用）加 alpha 遮罩（命中判斷用）。</summary>
-internal sealed class SheetImage(Bitmap bitmap, byte[] alpha, int width, int height)
+/// <summary>解碼後的一張 sprite sheet：每一格各自的圖（繪製用）加整張的 alpha 遮罩（命中判斷用）。</summary>
+internal sealed class SheetImage(Bitmap?[] cells, byte[] alpha, int width, int height)
 {
-    public Bitmap Bitmap { get; } = bitmap;
+    /// <summary>第 <paramref name="frame"/> 格的圖；超出範圍或切不出來回 null。</summary>
+    public Bitmap? Cell(int frame) => (uint)frame < (uint)cells.Length ? cells[frame] : null;
 
     public int Width { get; } = width;
 
@@ -75,13 +76,48 @@ internal sealed class SpriteSheetStore(AssetSpriteDefinition definition)
             var alpha = new byte[size.Width * size.Height];
             for (var i = 0; i < alpha.Length; i++)
                 alpha[i] = pixels[i * 4 + 3];
-            return new SheetImage(bitmap, alpha, size.Width, size.Height);
+            var cells = CropCells(animation, pixels, size.Width, size.Height, bitmap.Format ?? PixelFormat.Bgra8888, bitmap.AlphaFormat ?? AlphaFormat.Premul);
+            bitmap.Dispose();   // 之後只用每一格的圖，整張圖不用留著
+            return new SheetImage(cells, alpha, size.Width, size.Height);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or NotSupportedException)
         {
             Report(animation, null, $"{animation.Source} 解碼失敗（{ex.Message}）");
             return null;
         }
+    }
+
+    /// <summary>
+    /// 把整張圖切成每一格各自一張點陣圖。不能直接畫整張圖的子區域：Avalonia 12 的高品質縮放（Mitchell）會讀到鄰格的像素，
+    /// 角色的底邊（鄰格在下方、是透明的）就會變成半透明。獨立的格子圖，邊緣取樣會停在格子的邊界，和 v11 的結果一致。
+    /// </summary>
+    private static Bitmap?[] CropCells(AssetAnimation animation, byte[] pixels, int width, int height, PixelFormat format, AlphaFormat alphaFormat)
+    {
+        var cell = animation.CellPixels;
+        var cellW = (int)cell.Width;
+        var cellH = (int)cell.Height;
+        var cells = new Bitmap?[animation.Frames];
+        if (cellW <= 0 || cellH <= 0)
+            return cells;
+
+        for (var frame = 0; frame < animation.Frames; frame++)
+        {
+            var rect = SpriteSheetLayout.SourceRect(cell, animation.Columns, frame);
+            var left = (int)rect.X;
+            var top = (int)rect.Y;
+            if (left < 0 || top < 0 || left + cellW > width || top + cellH > height)
+                continue;   // 格子超出圖的範圍（標頭檢查過，正常不會發生）：這一格不畫
+
+            var bitmap = new WriteableBitmap(new PixelSize(cellW, cellH), new Vector(96, 96), format, alphaFormat);
+            using (var framebuffer = bitmap.Lock())
+            {
+                var rowBytes = cellW * 4;
+                for (var y = 0; y < cellH; y++)
+                    System.Runtime.InteropServices.Marshal.Copy(pixels, (top + y) * width * 4 + left * 4, framebuffer.Address + y * framebuffer.RowBytes, rowBytes);
+            }
+            cells[frame] = bitmap;
+        }
+        return cells;
     }
 
     /// <summary>
