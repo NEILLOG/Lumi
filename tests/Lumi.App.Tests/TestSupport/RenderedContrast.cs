@@ -27,7 +27,7 @@ public static class RenderedContrast
         foreach (var element in root.GetVisualDescendants().OfType<Control>())
         {
             var text = TextOf(element);
-            if (string.IsNullOrWhiteSpace(text) || !element.IsEffectivelyVisible || element.Name == "PART_Watermark")
+            if (string.IsNullOrWhiteSpace(text) || !element.IsEffectivelyVisible || element.Name == "PART_Placeholder")
                 continue;
             if (IsInsideDisabledInput(element))
                 continue;

@@ -250,7 +250,8 @@ public partial class SpriteWindow : Window
         SpriteHost.Width = _spriteOptions.Outer.Width;
         SpriteHost.Height = _spriteOptions.Outer.Height;
         BubbleArea.Height = _layout.BubbleBottom;
-        Bubble.MaxHeight = Math.Max(0, _layout.BubbleBottom - SpriteBubbleView.ShadowTop);   // 氣泡再高也不頂到視窗頂端（陰影會被切）
+        // 氣泡再高也不頂到視窗頂端（陰影會被切）。上限取整數：版面會把高度進位到整數像素，小數的上限會被超過
+        Bubble.MaxHeight = Math.Max(0, Math.Floor(_layout.BubbleBottom - SpriteBubbleView.ShadowTop));
         InputBar.Margin = new Thickness(_layout.InputBar.X, _layout.InputBar.Y, 0, 0);
         InputBar.Width = _layout.InputBar.Width;
         InputBar.Height = _layout.InputBar.Height;

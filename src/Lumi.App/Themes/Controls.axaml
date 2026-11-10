@@ -22,6 +22,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderStrongBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource LumiTextBrush}" />
     <Setter Property="CaretBrush" Value="{DynamicResource LumiTextBrush}" />
+    <Setter Property="PlaceholderForeground" Value="{DynamicResource LumiTextMutedBrush}" />
     <Setter Property="Template">
       <ControlTemplate TargetType="TextBox">
         <DataValidationErrors>
@@ -46,7 +47,7 @@
                                   VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                   Content="{TemplateBinding InnerLeftContent}" />
                 <DockPanel x:Name="PART_InnerDockPanel" Grid.Column="1" Margin="{TemplateBinding Padding}">
-                  <TextBlock Name="PART_FloatingWatermark"
+                  <TextBlock Name="PART_FloatingPlaceholder"
                              Foreground="{DynamicResource LumiAccentTextBrush}"
                              IsVisible="False"
                              Text="{TemplateBinding PlaceholderText}"
@@ -58,8 +59,8 @@
                                 AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
                                 BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
                     <Panel>
-                      <TextBlock Name="PART_Watermark"
-                                 Foreground="{DynamicResource LumiTextMutedBrush}"
+                      <TextBlock Name="PART_Placeholder"
+                                 Foreground="{TemplateBinding PlaceholderForeground}"
                                  Text="{TemplateBinding PlaceholderText}"
                                  TextAlignment="{TemplateBinding TextAlignment}"
                                  TextWrapping="{TemplateBinding TextWrapping}"
@@ -131,7 +132,7 @@
   <Style Selector="TextBox:focus /template/ Border#PART_FocusGlow">
     <Setter Property="IsVisible" Value="True" />
   </Style>
-  <Style Selector="TextBox:focus /template/ TextBlock#PART_Watermark, TextBox:pointerover /template/ TextBlock#PART_Watermark">
+  <Style Selector="TextBox:focus /template/ TextBlock#PART_Placeholder, TextBox:pointerover /template/ TextBlock#PART_Placeholder">
     <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
   <!-- 錯誤：Danger 邊框（class="error" 或資料驗證失敗）。一定要同時顯示錯誤文字，不能只靠顏色 -->
@@ -152,7 +153,7 @@
     <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
   </Style>
-  <Style Selector="TextBox:disabled /template/ TextBlock#PART_Watermark">
+  <Style Selector="TextBox:disabled /template/ TextBlock#PART_Placeholder">
     <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
   </Style>
   <!-- 嵌在別的控制項裡（可編輯 ComboBox）：沒有自己的外框、底色與光暈 -->
