@@ -30,6 +30,9 @@ public sealed class MarkdownTextBlock : EmojiTextBlock
 
     public event Action<Uri>? LinkClicked;
 
+    protected override string? WholeMarkdown =>
+        MarkdownCopy.GetInfo(this) is { Kind: not MarkdownCopyKind.Code } info ? MarkdownCopy.Inline(info.Spans, 0, int.MaxValue) : null;
+
     private static readonly Cursor HandCursor = new(StandardCursorType.Hand);
 
     /// <summary>點到連結了（按下與放開由外層的 <see cref="MarkdownView"/> 判斷，它負責跨段落選取）。</summary>

@@ -343,7 +343,23 @@ public class WorkbenchConversationsTests
         await rig.Vm.CopyCommand.ExecuteAsync(answer);
 
         Assert.Equal(["答案正文"], rig.Clipboard.Texts);   // 不含思考過程
+        Assert.Equal(["答案正文"], rig.Clipboard.Markdowns);   // 回答以 Markdown（加 HTML）複製
         Assert.True(answer.IsCopied);
+    }
+
+    [Fact]
+    public async Task Copy_OfUserMessage_PutsPlainTextOnly()
+    {
+        var rig = CreateRig(new ScriptedChatProvider(Reply("答")));
+        await rig.Vm.InitializeAsync();
+        rig.Vm.InputText = "我打的 **字**";
+        await rig.Vm.SendCommand.ExecuteAsync(null);
+        var question = rig.Vm.Messages.First(m => m.IsUser);
+
+        await rig.Vm.CopyCommand.ExecuteAsync(question);
+
+        Assert.Equal(["我打的 **字**"], rig.Clipboard.Texts);
+        Assert.Empty(rig.Clipboard.Markdowns);
     }
 
     [Fact]

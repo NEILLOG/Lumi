@@ -122,6 +122,44 @@ public sealed class MarkdownView : Decorator, ITextSelectionScope
     public string SelectedText =>
         string.Join("\n", TextBlocks().Select(b => b.SelectedText).Where(t => !string.IsNullOrEmpty(t)));
 
+    /// <summary>目前選取的範圍組回 Markdown（<see cref="MarkdownCopy.Write"/>）；沒有選取是空字串。</summary>
+    public string SelectedMarkdown
+    {
+        get
+        {
+            var parts = new List<MarkdownSelectionPart>();
+            foreach (var block in TextBlocks())
+            {
+                var (start, end) = (Math.Min(block.SelectionStart, block.SelectionEnd), Math.Max(block.SelectionStart, block.SelectionEnd));
+                if (start == end)
+                    continue;
+                if (MarkdownCopy.GetInfo(block) is not { } info)
+                    return SelectedText;   // 不是渲染器建的文字區塊（不該發生）：退回純文字
+                parts.Add(new MarkdownSelectionPart(info, start, end, block.SelectedText));
+            }
+            return MarkdownCopy.Write(parts);
+        }
+    }
+
+    /// <summary>把選取的範圍以 Markdown（加 HTML）放進剪貼簿；沒有選取回 false。</summary>
+    public async Task<bool> CopySelectionAsync()
+    {
+        var markdown = SelectedMarkdown;
+        if (markdown.Length == 0)
+            return false;
+        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+            return true;
+        try
+        {
+            await MarkdownClipboard.SetAsync(clipboard, markdown);
+        }
+        catch (Exception)
+        {
+            // 剪貼簿被其他程式佔用時放棄這次複製
+        }
+        return true;
+    }
+
     /// <summary>所有可選取的文字區塊，依文件順序（視覺樹深度優先＝段落、清單、表格逐列、程式碼的順序）。</summary>
     private List<SelectableTextBlock> TextBlocks() =>
         _panel.GetVisualDescendants().OfType<SelectableTextBlock>().Where(b => b.IsEffectivelyVisible).ToList();
@@ -211,24 +249,10 @@ public sealed class MarkdownView : Decorator, ITextSelectionScope
             return;   // 焦點在單一文字區塊裡（雙擊選字後）時，它自己會處理複製
 
         var copy = TopLevel.GetTopLevel(this)?.PlatformSettings?.HotkeyConfiguration.Copy;
-        if (copy is not null && copy.Any(g => g.Matches(e)) && SelectedText is { Length: > 0 } text)
+        if (copy is not null && copy.Any(g => g.Matches(e)) && SelectedText.Length > 0)
         {
             e.Handled = true;
-            _ = CopyAsync(text);
-        }
-    }
-
-    private async Task CopyAsync(string text)
-    {
-        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
-            return;
-        try
-        {
-            await clipboard.SetTextAsync(text);
-        }
-        catch (Exception)
-        {
-            // 剪貼簿被其他程式佔用時放棄這次複製
+            _ = CopySelectionAsync();
         }
     }
 

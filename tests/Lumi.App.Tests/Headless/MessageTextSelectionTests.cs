@@ -158,9 +158,10 @@ public class MessageTextSelectionTests
         Assert.Equal("最後", last.SelectedText);
         Assert.Equal("段文字\n清單項目\n欄\n格子\n最後", view.SelectedText);
 
+        // 複製的是 Markdown：清單符號、表格、段落之間的空行都還原
         window.KeyPressQwerty(PhysicalKey.C, RawInputModifiers.Control);
         await Task.Delay(50);
-        Assert.Equal(view.SelectedText, await ClipboardText(window));
+        Assert.Equal("段文字\n\n- 清單項目\n\n| 欄 |\n| --- |\n| 格子 |\n\n最後", await ClipboardText(window));
     }
 
     [AvaloniaFact]
@@ -200,7 +201,7 @@ public class MessageTextSelectionTests
         copy.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         await Task.Delay(50);
 
-        Assert.Equal("文字\n第二", await ClipboardText(window));
+        Assert.Equal("文字\n\n第二", await ClipboardText(window));   // Markdown：段落之間空一行
     }
 
     [AvaloniaFact]

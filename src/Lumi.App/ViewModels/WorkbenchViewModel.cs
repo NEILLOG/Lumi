@@ -876,7 +876,11 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         if (message is null || !message.HasText)
             return;
 
-        await _clipboard.SetTextAsync(message.Text);
+        // 助理的回答是 Markdown：同時放 HTML，貼到 Word、Outlook 保留格式；使用者自己打的字照原樣
+        if (message.IsAssistant)
+            await _clipboard.SetMarkdownAsync(message.Text);
+        else
+            await _clipboard.SetTextAsync(message.Text);
         message.IsCopied = true;
         _ = ResetCopiedAsync(message);
     }

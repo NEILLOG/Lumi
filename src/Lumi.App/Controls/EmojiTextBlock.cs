@@ -1,8 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Lumi.App.Markdown;
 using Lumi.App.Resources;
 
 namespace Lumi.App.Controls;
@@ -10,7 +12,8 @@ namespace Lumi.App.Controls;
 /// <summary>
 /// 可綁定、可選取的文字：<see cref="Text"/> 變更時經過 <see cref="EmojiText.Apply"/>，
 /// 讓訊息列表直接用 binding，不用 code-behind。所有顯示對話內容的地方都應使用它。
-/// 右鍵選單的「複製」：外層有跨段落選取（<see cref="ITextSelectionScope"/>）就複製那段，否則有選取就複製選取的文字，沒有就複製整段。
+/// 右鍵選單的「複製」與 Ctrl/Cmd+C：外層有選取範圍（<see cref="ITextSelectionScope"/>）就交給它複製，否則有選取就複製選取的文字，沒有就複製整段
+/// （Markdown 段落的整段是 <see cref="WholeMarkdown"/>，連同格式複製）。
 /// 放在按鈕裡的文字要設 <c>IsHitTestVisible="False"</c>，讓點擊交給按鈕。
 /// </summary>
 public class EmojiTextBlock : SelectableTextBlock
@@ -43,6 +46,22 @@ public class EmojiTextBlock : SelectableTextBlock
         }
     }
 
+    /// <summary>整段的 Markdown（含行內格式）；不是 Markdown 段落時為 null，複製純文字。</summary>
+    protected virtual string? WholeMarkdown => null;
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        // 雙擊選字後焦點在這個文字區塊：Ctrl/Cmd+C 也交給外層，才會帶格式
+        var copy = TopLevel.GetTopLevel(this)?.PlatformSettings?.HotkeyConfiguration.Copy;
+        if (copy is not null && copy.Any(g => g.Matches(e)) && this.FindAncestorOfType<ITextSelectionScope>() is { } scope)
+        {
+            e.Handled = true;
+            _ = scope.CopySelectionAsync();
+            return;
+        }
+        base.OnKeyDown(e);
+    }
+
     /// <summary>整段純文字：用 <see cref="Text"/>；Markdown 段落是用 <see cref="Inlines"/> 組的，要從行內元素拼回來。</summary>
     private string PlainText()
     {
@@ -58,14 +77,19 @@ public class EmojiTextBlock : SelectableTextBlock
 
     private async void CopyTextOrSelection()
     {
-        var scoped = this.FindAncestorOfType<ITextSelectionScope>()?.SelectedText;
-        var text = !string.IsNullOrEmpty(scoped) ? scoped
-            : string.IsNullOrEmpty(SelectedText) ? PlainText() : SelectedText;
-        if (string.IsNullOrEmpty(text) || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
-            return;
         try
         {
-            await clipboard.SetTextAsync(text);
+            if (this.FindAncestorOfType<ITextSelectionScope>() is { } scope && await scope.CopySelectionAsync())
+                return;
+
+            var markdown = string.IsNullOrEmpty(SelectedText) ? WholeMarkdown : null;
+            var text = markdown ?? (string.IsNullOrEmpty(SelectedText) ? PlainText() : SelectedText);
+            if (string.IsNullOrEmpty(text) || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+                return;
+            if (markdown is not null)
+                await MarkdownClipboard.SetAsync(clipboard, markdown);
+            else
+                await clipboard.SetTextAsync(text);
         }
         catch (Exception)
         {
