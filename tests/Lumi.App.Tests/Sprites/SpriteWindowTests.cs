@@ -437,7 +437,7 @@ public class SpriteWindowTests
         Assert.True(rig.Window.Topmost);
         Assert.False(rig.Window.ShowInTaskbar);
         Assert.False(rig.Window.CanResize);
-        Assert.Equal(SystemDecorations.None, rig.Window.SystemDecorations);
+        Assert.Equal(WindowDecorations.None, rig.Window.WindowDecorations);
     }
 
     // ---- 開啟與指標（真的走過 Show） ----

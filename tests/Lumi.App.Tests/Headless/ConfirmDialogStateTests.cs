@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Lumi.App.Views;
-using Xunit.Abstractions;
 
 namespace Lumi.App.Tests.Headless;
 

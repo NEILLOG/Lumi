@@ -52,7 +52,7 @@ public class InputControlStyleTests
     [InlineData(true)]
     public void TextBox_UsesTokens(bool dark)
     {
-        var box = new TextBox { Text = "你好", Watermark = "提示" };
+        var box = new TextBox { Text = "你好", PlaceholderText = "提示" };
         var window = Host(Variant(dark), box);
 
         var surface = Token(window, "LumiSurfaceBrush");

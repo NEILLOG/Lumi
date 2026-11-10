@@ -32,7 +32,7 @@ internal sealed class SpriteSheetControl : Control
     internal double? RenderScalingOverride { get; set; }
 
     /// <summary>目前用來換算的縮放比。還沒掛上視窗時用 1；掛上之後跟著視窗（換到另一個螢幕時會變）。</summary>
-    public double RenderScaling => RenderScalingOverride ?? (this.GetVisualRoot() as TopLevel)?.RenderScaling ?? 1;
+    public double RenderScaling => RenderScalingOverride ?? TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
 
     /// <summary>目前這一格畫在 <c>Visual</c> 裡的範圍（命中判斷與繪製用同一個）。</summary>
     public Rect Destination => SpriteSheetLayout.Destination(new Size(Width, Height), _cell, _pixelGrid, RenderScaling);

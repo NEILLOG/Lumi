@@ -63,10 +63,10 @@ public sealed class CompositionRootTests : IDisposable
     }
 
     /// <summary>畫面也要拿到附件儲存：沒接上時 MCP 圖片會全部變成「檔案已移動或刪除」。</summary>
-    [SkippableFact]
+    [Fact]
     public async Task Workbench_ShowsAnMcpImage_FromTheAttachmentFolder()
     {
-        Skip.IfNot(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
+        Assert.SkipUnless(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
         using var host = BuildHost();
         var services = host.Services;
         var store = services.GetRequiredService<IConversationStore>();
@@ -85,10 +85,10 @@ public sealed class CompositionRootTests : IDisposable
         Assert.True(image.ShowsImage);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task AllServicesResolve_AndFirstRunStartsEmpty()
     {
-        Skip.IfNot(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
+        Assert.SkipUnless(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
         using var host = BuildHost();
         var services = host.Services;
 

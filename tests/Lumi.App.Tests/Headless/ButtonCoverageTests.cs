@@ -5,7 +5,6 @@ using Avalonia.VisualTree;
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.Views;
-using Xunit.Abstractions;
 
 namespace Lumi.App.Tests.Headless;
 

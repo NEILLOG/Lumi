@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input.Platform;
 using Lumi.App.Markdown;
 using Lumi.App.ViewModels;
 

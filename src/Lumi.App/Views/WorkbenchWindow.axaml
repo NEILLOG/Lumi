@@ -16,7 +16,6 @@
         MinWidth="500" MinHeight="420"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="PreferSystemChrome"
         ExtendClientAreaTitleBarHeightHint="40">
 
   <Window.Styles>

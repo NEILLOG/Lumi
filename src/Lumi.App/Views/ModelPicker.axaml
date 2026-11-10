@@ -33,7 +33,7 @@
   </UserControl.Styles>
   <!-- 模型切換選單的內容：搜尋、依連線分組的清單、管理連線與模型。頂端膠囊與錯誤列的「換模型重試」共用 -->
   <StackPanel Spacing="8">
-    <TextBox x:Name="SearchBox" Text="{Binding SearchText}" Watermark="{x:Static res:Strings.ModelPicker_Search}" />
+    <TextBox x:Name="SearchBox" Text="{Binding SearchText}" PlaceholderText="{x:Static res:Strings.ModelPicker_Search}" />
 
     <!-- 使用習慣提示（第 1 條）：對話中途換模型，選了之後先在這裡確認，之前不換。Warning 樣式，同用量面板的快滿提醒 -->
     <Border x:Name="SwitchConfirmBox" IsVisible="{Binding HasPendingSwitch}" CornerRadius="10" Padding="12" BorderThickness="1"

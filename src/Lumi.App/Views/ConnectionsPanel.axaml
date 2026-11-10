@@ -65,7 +65,7 @@
             </Grid>
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowKeyInput}">
               <TextBox x:Name="KeyBox" Grid.Column="0" Text="{Binding NewApiKey}" PasswordChar="•" RevealPassword="{Binding RevealKey}"
-                       Watermark="{x:Static res:Strings.Conn_KeyPlaceholder}" AutomationProperties.Name="{x:Static res:Strings.Conn_ApiKey}" />
+                       PlaceholderText="{x:Static res:Strings.Conn_KeyPlaceholder}" AutomationProperties.Name="{x:Static res:Strings.Conn_ApiKey}" />
               <ToggleButton x:Name="RevealKeyButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
                             Content="{x:Static res:Strings.Conn_KeyShow}" IsChecked="{Binding RevealKey}" />
             </Grid>

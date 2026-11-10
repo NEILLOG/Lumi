@@ -13,7 +13,6 @@ using Avalonia.VisualTree;
 using Lumi.App.Controls;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.Views;
-using Xunit.Abstractions;
 using State = Lumi.App.Tests.Headless.ButtonStateStyleTests.State;
 using TextBlock = Avalonia.Controls.TextBlock;
 

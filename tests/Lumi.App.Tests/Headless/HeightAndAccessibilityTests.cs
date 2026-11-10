@@ -298,7 +298,7 @@ public class HeightAndAccessibilityTests
         IInputElement current = start;
         for (var i = 0; i < 100; i++)
         {
-            var next = KeyboardNavigationHandler.GetNext(current, NavigationDirection.Next) as InputElement;
+            var next = TestSupport.TabChain.GetNext(current, NavigationDirection.Next) as InputElement;
             if (next is null || chain.Contains(next))
                 break;
             chain.Add(next);

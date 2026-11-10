@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- xUnit v3 的測試專案是可執行檔（Avalonia.Headless.XUnit 12 只支援 v3，M33） -->
+    <OutputType>Exe</OutputType>
+    <!-- xUnit1051 建議每個非同步呼叫都傳 TestContext.Current.CancellationToken；既有測試有四百多處，和升級無關，不逐一修改（M33 D3） -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
@@ -10,7 +14,7 @@
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 

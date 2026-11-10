@@ -39,7 +39,7 @@
                          Hint="{x:Static res:Strings.Network_PacUrlHint}" Error="{Binding PacUrlError}"
                          IsVisible="{Binding ShowPac}">
             <TextBox x:Name="NetworkPacUrlBox" Text="{Binding PacUrl}" Classes.error="{Binding PacUrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     Watermark="{x:Static res:Strings.Network_PacUrlWatermark}"
+                     PlaceholderText="{x:Static res:Strings.Network_PacUrlWatermark}"
                      AutomationProperties.Name="{x:Static res:Strings.Network_PacUrl}" />
           </ctl:FormField>
 
@@ -47,7 +47,7 @@
                          Hint="{x:Static res:Strings.Network_ManualProxyHint}" Error="{Binding ManualProxyError}"
                          IsVisible="{Binding ShowManual}">
             <TextBox x:Name="NetworkManualProxyBox" Text="{Binding ManualProxy}" Classes.error="{Binding ManualProxyError, Converter={x:Static ObjectConverters.IsNotNull}}"
-                     Watermark="{x:Static res:Strings.Network_ManualProxyWatermark}"
+                     PlaceholderText="{x:Static res:Strings.Network_ManualProxyWatermark}"
                      AutomationProperties.Name="{x:Static res:Strings.Network_ManualProxy}" />
           </ctl:FormField>
 
@@ -90,7 +90,7 @@
               </Grid>
               <Grid x:Name="NetworkPasswordInputRow" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding ShowPasswordInput}">
                 <TextBox x:Name="NetworkPasswordBox" Grid.Column="0" Text="{Binding NewPassword}" PasswordChar="•" RevealPassword="{Binding RevealPassword}"
-                         Watermark="{x:Static res:Strings.Network_PasswordPlaceholder}"
+                         PlaceholderText="{x:Static res:Strings.Network_PasswordPlaceholder}"
                          Classes.error="{Binding PasswordError, Converter={x:Static ObjectConverters.IsNotNull}}"
                          AutomationProperties.Name="{x:Static res:Strings.Network_Password}" />
                 <ToggleButton x:Name="NetworkRevealPasswordButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"

@@ -41,7 +41,7 @@ public class RemainingViewsStyleTests
     {
         view.DataContext = dataContext;
         new Window { Width = width, Height = 700, Content = view }.Show();
-        ((Window)view.GetVisualRoot()!).UpdateLayout();
+        ((Window)TopLevel.GetTopLevel(view)!).UpdateLayout();
         return view;
     }
 
@@ -392,7 +392,7 @@ public class RemainingViewsStyleTests
         return (view, vm);
     }
 
-    private static void Refresh(Control view) => ((Window)view.GetVisualRoot()!).UpdateLayout();
+    private static void Refresh(Control view) => ((Window)TopLevel.GetTopLevel(view)!).UpdateLayout();
 
     [AvaloniaFact]
     public void SpriteBubble_Approval_HasOnePrimary_AndDenyIsTertiary()
@@ -418,7 +418,7 @@ public class RemainingViewsStyleTests
         Assert.Contains("secondary", conversation.Classes);
         Assert.Contains("tertiary", optionDeny.Classes);
         Assert.Single(new[] { once, conversation, optionDeny }, b => b.Classes.Contains("primary"));
-        ((Window)view.GetVisualRoot()!).Close();
+        ((Window)TopLevel.GetTopLevel(view)!).Close();
     }
 
     [AvaloniaFact]
@@ -437,7 +437,7 @@ public class RemainingViewsStyleTests
         Assert.Contains("secondary", deny.Classes);
         Assert.DoesNotContain("tertiary", deny.Classes);
         Assert.Equal(Token(view, "LumiDangerBrush"), ColorOf(allow.Foreground));
-        ((Window)view.GetVisualRoot()!).Close();
+        ((Window)TopLevel.GetTopLevel(view)!).Close();
     }
 
     [AvaloniaFact]
@@ -451,6 +451,6 @@ public class RemainingViewsStyleTests
         Assert.Contains("primary", view.FindControl<Button>("RetryButton")!.Classes);
         Assert.Contains("secondary", view.FindControl<Button>("SettingsButton")!.Classes);
         AssertNoSymbolText(view);
-        ((Window)view.GetVisualRoot()!).Close();
+        ((Window)TopLevel.GetTopLevel(view)!).Close();
     }
 }

@@ -44,10 +44,10 @@ public sealed class NetworkProxyCompositionTests : IDisposable
         return builder.Build();
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Http_clients_go_through_the_configured_manual_proxy()
     {
-        Skip.IfNot(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
+        Assert.SkipUnless(OperatingSystem.IsMacOS() || OperatingSystem.IsWindows(), "Lumi.Platform 只支援 Windows 與 macOS");
         using var host = BuildHost();
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();

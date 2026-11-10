@@ -7,7 +7,7 @@
         Title="Lumi"
         Width="340" Height="300"
         CanResize="False"
-        SystemDecorations="None"
+        WindowDecorations="None"
         Background="Transparent"
         TransparencyLevelHint="Transparent"
         Topmost="True"
@@ -61,7 +61,7 @@
                          Foreground="{DynamicResource LumiTextOnSoftBrush}" VerticalAlignment="Center" />
             </Border>
             <!-- 輸入列自己畫外框：TextBox 用 embedded（沒有框線、底色與 Focus 光暈），MinHeight 0、Padding 0 維持原本的高度 -->
-            <TextBox x:Name="Input" Grid.Column="1" Classes="embedded" Watermark="{x:Static res:Strings.Sprite_InputPlaceholder}" VerticalAlignment="Center"
+            <TextBox x:Name="Input" Grid.Column="1" Classes="embedded" PlaceholderText="{x:Static res:Strings.Sprite_InputPlaceholder}" VerticalAlignment="Center"
                      Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
                      AcceptsReturn="False" />
           </Grid>

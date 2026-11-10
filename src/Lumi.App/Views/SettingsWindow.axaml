@@ -11,7 +11,6 @@
         Width="1040" Height="760" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="PreferSystemChrome"
         ExtendClientAreaTitleBarHeightHint="40">
 
   <Window.Styles>
@@ -394,7 +393,7 @@
                 <StackPanel Spacing="4">
                   <TextBox x:Name="PersonaCustomBox" Text="{Binding CustomPersona}" Classes.error="{Binding HasCustomError}"
                            AcceptsReturn="True" TextWrapping="Wrap" MinHeight="112" MaxHeight="256"
-                           Watermark="{x:Static res:Strings.Persona_CustomPlaceholder}"
+                           PlaceholderText="{x:Static res:Strings.Persona_CustomPlaceholder}"
                            AutomationProperties.Name="{x:Static res:Strings.Persona_Custom}"
                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
                   <TextBlock x:Name="PersonaCounter" Classes="muted" Text="{Binding CustomCounter}" HorizontalAlignment="Right" />
@@ -620,7 +619,7 @@
               <ctl:FormField x:Name="NotesFolderField" Label="{x:Static res:Strings.NotesFolder_Label}" Requirement="Optional"
                              Hint="{x:Static res:Strings.NotesFolder_Hint}" Error="{Binding NotesFolderError}">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <TextBox x:Name="NotesFolderBox" Grid.Column="0" Text="{Binding NotesFolderInput}" Watermark="{Binding NotesFolderDefault}"
+                  <TextBox x:Name="NotesFolderBox" Grid.Column="0" Text="{Binding NotesFolderInput}" PlaceholderText="{Binding NotesFolderDefault}"
                            Classes.error="{Binding NotesFolderError, Converter={x:Static ObjectConverters.IsNotNull}}"
                            AutomationProperties.Name="{x:Static res:Strings.NotesFolder_Label}" />
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
@@ -846,14 +845,14 @@
               <ctl:FormField x:Name="SpeechEndpointField" Label="{x:Static res:Strings.Speech_Endpoint}" Requirement="Required"
                              Hint="{x:Static res:Strings.Speech_EndpointHint}" Error="{Binding EndpointError}">
                 <TextBox x:Name="SpeechEndpointBox" Text="{Binding Endpoint}" Classes.error="{Binding EndpointError, Converter={x:Static ObjectConverters.IsNotNull}}"
-                         Watermark="{x:Static res:Strings.Speech_EndpointWatermark}"
+                         PlaceholderText="{x:Static res:Strings.Speech_EndpointWatermark}"
                          AutomationProperties.Name="{x:Static res:Strings.Speech_Endpoint}" />
               </ctl:FormField>
 
               <ctl:FormField x:Name="SpeechLanguageField" Label="{x:Static res:Strings.Speech_Language}" Requirement="Optional"
                              Hint="{x:Static res:Strings.Speech_LanguageHint}">
                 <StackPanel Spacing="8">
-                  <TextBox x:Name="SpeechLanguageBox" Text="{Binding Language}" Watermark="{x:Static res:Strings.Speech_LanguageWatermark}"
+                  <TextBox x:Name="SpeechLanguageBox" Text="{Binding Language}" PlaceholderText="{x:Static res:Strings.Speech_LanguageWatermark}"
                            AutomationProperties.Name="{x:Static res:Strings.Speech_Language}" />
                   <!-- 常用快選：tertiary，文字就是名稱；「留空」由服務端判斷 -->
                   <WrapPanel>
@@ -903,7 +902,7 @@
                              IsVisible="{Binding HostChanged}" />
                   <Grid x:Name="SpeechTokenInputRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding ShowTokenInput}">
                     <TextBox x:Name="SpeechTokenBox" Grid.Column="0" Text="{Binding NewToken}" PasswordChar="•" RevealPassword="{Binding RevealToken}"
-                             Watermark="{x:Static res:Strings.Speech_TokenPlaceholder}" AutomationProperties.Name="{x:Static res:Strings.Speech_Token}" />
+                             PlaceholderText="{x:Static res:Strings.Speech_TokenPlaceholder}" AutomationProperties.Name="{x:Static res:Strings.Speech_Token}" />
                     <ToggleButton x:Name="SpeechRevealTokenButton" Grid.Column="1" Classes="secondary" MinHeight="{StaticResource LumiControlHeight}" Padding="16,8"
                                   Content="{x:Static res:Strings.Speech_TokenShow}" IsChecked="{Binding RevealToken}" />
                   </Grid>

@@ -35,7 +35,7 @@ public sealed class SkiaImageDownscaler : IImageDownscaler
         if (source is null)
             return null;
 
-        using var resized = source.Resize(new SKImageInfo(width, height, source.ColorType, source.AlphaType), SKFilterQuality.High);
+        using var resized = source.Resize(new SKImageInfo(width, height, source.ColorType, source.AlphaType), new SKSamplingOptions(SKCubicResampler.Mitchell));
         if (resized is null)
             return null;
 

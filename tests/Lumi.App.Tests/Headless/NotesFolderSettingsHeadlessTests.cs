@@ -52,7 +52,7 @@ public class NotesFolderSettingsHeadlessTests
 
         var box = window.FindByName<TextBox>("NotesFolderBox");
         Assert.Equal("", box.Text);
-        Assert.Equal(NoteFolderRules.DefaultFolder, box.Watermark);
+        Assert.Equal(NoteFolderRules.DefaultFolder, box.PlaceholderText);
         Assert.Equal(Strings.NotesFolder_Label, box.GetValue(Avalonia.Automation.AutomationProperties.NameProperty));
 
         var choose = window.FindByName<Button>("NotesFolderChooseButton");

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
+using Avalonia.Media.Imaging;
 using Lumi.App.ViewModels;
 using Lumi.Core.Context;
 
@@ -21,7 +22,7 @@ public sealed class ClipboardImageService : IClipboardImageService
 
         // 剪貼簿給的是解碼後的點陣圖：統一編碼成 PNG（無損，貼上的通常是螢幕截圖）
         using var stream = new MemoryStream();
-        bitmap.Save(stream);
+        bitmap.Save(stream, new PngBitmapEncoderOptions());
         var data = stream.ToArray();
         return ImageFormats.Detect(data) is { } mediaType ? new ClipboardImage(data, mediaType) : null;
     }

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Input.Platform;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
@@ -52,7 +53,7 @@ public class EmojiTextBlock : SelectableTextBlock
     protected override void OnKeyDown(KeyEventArgs e)
     {
         // 雙擊選字後焦點在這個文字區塊：Ctrl/Cmd+C 也交給外層，才會帶格式
-        var copy = TopLevel.GetTopLevel(this)?.PlatformSettings?.HotkeyConfiguration.Copy;
+        var copy = this.GetPlatformSettings()?.HotkeyConfiguration.Copy;
         if (copy is not null && copy.Any(g => g.Matches(e)) && this.FindAncestorOfType<ITextSelectionScope>() is { } scope)
         {
             e.Handled = true;

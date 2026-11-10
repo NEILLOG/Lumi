@@ -115,7 +115,7 @@ public class ChatComposerTests
         Assert.Equal(160, input.MaxHeight);
         Assert.True(input.AcceptsReturn);
         Assert.Equal(TextWrapping.Wrap, input.TextWrapping);
-        Assert.Equal(Strings.Workbench_InputPlaceholder, input.Watermark);
+        Assert.Equal(Strings.Workbench_InputPlaceholder, input.PlaceholderText);
         Assert.Contains("composer", input.Classes);
         Assert.True(input.Bounds.Height >= 64);
 

@@ -12,7 +12,6 @@ using Lumi.App.Controls;
 using Lumi.App.Services;
 using Lumi.App.Tests.TestSupport;
 using Lumi.Core.Models;
-using Xunit.Abstractions;
 using TextBlock = Avalonia.Controls.TextBlock;
 
 namespace Lumi.App.Tests.Headless;

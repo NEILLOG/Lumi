@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -248,7 +249,7 @@ public sealed class MarkdownView : Decorator, ITextSelectionScope
         if (e.Handled)
             return;   // 焦點在單一文字區塊裡（雙擊選字後）時，它自己會處理複製
 
-        var copy = TopLevel.GetTopLevel(this)?.PlatformSettings?.HotkeyConfiguration.Copy;
+        var copy = this.GetPlatformSettings()?.HotkeyConfiguration.Copy;
         if (copy is not null && copy.Any(g => g.Matches(e)) && SelectedText.Length > 0)
         {
             e.Handled = true;
@@ -256,7 +257,7 @@ public sealed class MarkdownView : Decorator, ITextSelectionScope
         }
     }
 
-    protected override void OnLostFocus(RoutedEventArgs e)
+    protected override void OnLostFocus(FocusChangedEventArgs e)
     {
         base.OnLostFocus(e);
         if (!ReferenceEquals(e.Source, this))

@@ -26,7 +26,7 @@ public partial class ConversationView : UserControl
 
     // MessageScroller 已關閉焦點時自動捲動（避免視窗重新啟用、滑鼠點擊就跳到可選取的文字）；
     // 只有鍵盤（Tab、方向鍵）移動焦點時，才把取得焦點的控制項捲進可視範圍
-    private static void OnMessageGotFocus(object? sender, GotFocusEventArgs e)
+    private static void OnMessageGotFocus(object? sender, FocusChangedEventArgs e)
     {
         if (e.NavigationMethod is NavigationMethod.Tab or NavigationMethod.Directional)
             (e.Source as Control)?.BringIntoView();

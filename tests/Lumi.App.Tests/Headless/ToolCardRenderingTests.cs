@@ -45,7 +45,7 @@ public class ToolCardRenderingTests
     /// <summary>用真的滑鼠事件點擊（RaiseEvent(Click) 不會觸發 Command）。</summary>
     private static void Click(Button button)
     {
-        var window = (Window)button.GetVisualRoot()!;
+        var window = (Window)TopLevel.GetTopLevel(button)!;
         window.UpdateLayout();
         var center = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
         window.MouseDown(center, MouseButton.Left);

@@ -43,7 +43,7 @@ public class DetailsAndPersonaRenderingTests
 
     private static void Click(Button button)
     {
-        var window = (Window)button.GetVisualRoot()!;
+        var window = (Window)TopLevel.GetTopLevel(button)!;
         window.UpdateLayout();
         var center = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
         window.MouseDown(center, MouseButton.Left);
@@ -51,7 +51,7 @@ public class DetailsAndPersonaRenderingTests
     }
 
     /// <summary>隱藏頁面的內容還沒掛進視覺樹（<c>IsEffectivelyVisible</c> 對沒有父層的控制項是 true），所以要一起看有沒有視覺根。</summary>
-    private static bool IsShown(Control control) => control.GetVisualRoot() is not null && control.IsEffectivelyVisible;
+    private static bool IsShown(Control control) => TopLevel.GetTopLevel(control) is not null && control.IsEffectivelyVisible;
 
     private static ToolCardViewModel DetailsCard(FakeClipboardService? clipboard = null, bool complete = true)
     {

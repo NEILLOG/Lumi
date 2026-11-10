@@ -49,7 +49,7 @@
                   <TextBlock Name="PART_FloatingWatermark"
                              Foreground="{DynamicResource LumiAccentTextBrush}"
                              IsVisible="False"
-                             Text="{TemplateBinding Watermark}"
+                             Text="{TemplateBinding PlaceholderText}"
                              DockPanel.Dock="Top" />
                   <ScrollViewer Name="PART_ScrollViewer"
                                 HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
@@ -60,7 +60,7 @@
                     <Panel>
                       <TextBlock Name="PART_Watermark"
                                  Foreground="{DynamicResource LumiTextMutedBrush}"
-                                 Text="{TemplateBinding Watermark}"
+                                 Text="{TemplateBinding PlaceholderText}"
                                  TextAlignment="{TemplateBinding TextAlignment}"
                                  TextWrapping="{TemplateBinding TextWrapping}"
                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -250,7 +250,7 @@
                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                      Foreground="{TemplateBinding Foreground}"
                      Text="{TemplateBinding Text, Mode=TwoWay}"
-                     Watermark="{TemplateBinding PlaceholderText}"
+                     PlaceholderText="{TemplateBinding PlaceholderText}"
                      IsVisible="{TemplateBinding IsEditable}" />
             <Border x:Name="DropDownOverlay"
                     Grid.Column="1"

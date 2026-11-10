@@ -96,7 +96,7 @@
 
             <ctl:FormField Label="{x:Static res:Strings.Memory_ExpiresLabel}" Requirement="Optional"
                            Hint="{x:Static res:Strings.Memory_ExpiresHint}" Error="{Binding ExpiresError}">
-              <TextBox Text="{Binding Expires}" Watermark="{x:Static res:Strings.Memory_ExpiresWatermark}" Width="160" HorizontalAlignment="Left"
+              <TextBox Text="{Binding Expires}" PlaceholderText="{x:Static res:Strings.Memory_ExpiresWatermark}" Width="160" HorizontalAlignment="Left"
                        Classes.error="{Binding HasExpiresError}"
                        AutomationProperties.Name="{x:Static res:Strings.Memory_ExpiresLabel}" />
             </ctl:FormField>

@@ -57,7 +57,7 @@ public class SettingsAccessibilityTests
         IInputElement current = window;
         for (var i = 0; i < 120; i++)
         {
-            if (KeyboardNavigationHandler.GetNext(current, NavigationDirection.Next) is not InputElement next || chain.Contains(next))
+            if (TestSupport.TabChain.GetNext(current, NavigationDirection.Next) is not InputElement next || chain.Contains(next))
                 break;
             chain.Add(next);
             current = next;
@@ -327,11 +327,11 @@ public class SettingsAccessibilityTests
         var backward = new List<InputElement>();
         IInputElement current = forward[0];
         // 從第一個停靠點往前，要繞到最後一個（循環）
-        current = KeyboardNavigationHandler.GetNext(current, NavigationDirection.Previous)!;
+        current = TestSupport.TabChain.GetNext(current, NavigationDirection.Previous)!;
         for (var i = 0; i < forward.Count && !backward.Contains((InputElement)current); i++)
         {
             backward.Add((InputElement)current);
-            current = KeyboardNavigationHandler.GetNext(current, NavigationDirection.Previous)!;
+            current = TestSupport.TabChain.GetNext(current, NavigationDirection.Previous)!;
         }
         Assert.Equal(forward.Count, backward.Count);
         Assert.Equal(forward.AsEnumerable().Reverse().Select(Label), backward.Select(Label));

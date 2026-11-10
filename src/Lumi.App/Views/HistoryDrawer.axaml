@@ -61,7 +61,7 @@
     <Grid DockPanel.Dock="Top" Margin="8,8,8,0" ColumnDefinitions="*" RowDefinitions="Auto" IsVisible="{Binding IsChatsTab}">
       <TextBox x:Name="SearchBox"
                Text="{Binding SearchText, Mode=TwoWay}"
-               Watermark="{x:Static res:Strings.History_SearchPlaceholder}"
+               PlaceholderText="{x:Static res:Strings.History_SearchPlaceholder}"
                AutomationProperties.Name="{x:Static res:Strings.History_SearchName}"
                KeyDown="OnSearchKeyDown">
         <TextBox.InnerLeftContent>

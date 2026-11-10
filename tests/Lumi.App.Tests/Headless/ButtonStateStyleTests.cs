@@ -10,7 +10,6 @@ using Avalonia.VisualTree;
 using Lumi.App.Controls;
 using Lumi.App.Sprites;
 using Lumi.App.Views;
-using Xunit.Abstractions;
 using Rectangle = Avalonia.Controls.Shapes.Rectangle;
 using TextBlock = Avalonia.Controls.TextBlock;
 

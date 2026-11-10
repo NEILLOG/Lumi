@@ -178,7 +178,7 @@
         <!-- 上層：輸入框（Enter 送出、Shift+Enter 換行：code-behind）；最高 160，之後改捲動。收音時隱藏，由收音面板取代 -->
         <TextBox x:Name="InputBox" Classes="composer"
                  Text="{Binding InputText}"
-                 Watermark="{x:Static res:Strings.Workbench_InputPlaceholder}"
+                 PlaceholderText="{x:Static res:Strings.Workbench_InputPlaceholder}"
                  AcceptsReturn="True" TextWrapping="Wrap" IsEnabled="{Binding !IsViewOnly}"
                  IsVisible="{Binding !IsVoiceActive}"
                  MaxHeight="160"
