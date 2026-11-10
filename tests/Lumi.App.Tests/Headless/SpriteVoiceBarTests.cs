@@ -290,7 +290,9 @@ public class SpriteVoiceBarTests
         rig.Refresh();
 
         Assert.False(rig.Named<Border>("VoiceChip").IsVisible);
-        Assert.Equal(new Point(51, 18), rig.Named<TextBox>("Input").TranslatePoint(default, rig.Bar));
+        // 垂直位置跟著一行字的高度走（測試環境的假字型），只驗水平位置與垂直置中
+        var input = rig.Named<TextBox>("Input");
+        Assert.Equal(new Point(51, (rig.Bar.Bounds.Height - input.Bounds.Height) / 2), input.TranslatePoint(default, rig.Bar));
         rig.Window.Close();
     }
 }

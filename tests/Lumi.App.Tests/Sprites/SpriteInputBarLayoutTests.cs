@@ -49,8 +49,9 @@ public class SpriteInputBarLayoutTests
         Assert.Equal(new Size(300, 48), bar.Bounds.Size);
         Assert.Equal(new Size(36, 36), mic.Bounds.Size);
         Assert.Equal(new Point(7, 6), mic.TranslatePoint(default, bar));
-        Assert.Equal(new Size(198, 12), input.Bounds.Size);
-        Assert.Equal(new Point(51, 18), input.TranslatePoint(default, bar));
+        // 輸入框的高度是一行字的高度，跟著測試環境的假字型走（Avalonia 11 是 12、12 是 16），所以只驗寬度與垂直置中
+        Assert.Equal(198, input.Bounds.Width);
+        Assert.Equal(new Point(51, (48 - input.Bounds.Height) / 2), input.TranslatePoint(default, bar));
         Assert.Equal(new Size(36, 36), send.Bounds.Size);
         Assert.Equal(new Point(257, 6), send.TranslatePoint(default, bar));
     }

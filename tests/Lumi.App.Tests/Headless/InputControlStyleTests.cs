@@ -67,7 +67,7 @@ public class InputControlStyleTests
 
         box.Text = "";
         window.UpdateLayout();
-        var watermark = Part<TextBlock>(box, "PART_Watermark");
+        var watermark = Part<TextBlock>(box, "PART_Placeholder");
         Assert.True(watermark.IsVisible);
         Assert.Equal(Token(window, "LumiTextMutedBrush"), ColorOf(watermark.Foreground));
     }
