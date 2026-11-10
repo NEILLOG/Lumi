@@ -6,6 +6,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Lumi.App.Controls;
 using Lumi.App.Markdown;
 using Lumi.App.Resources;
@@ -213,6 +214,37 @@ public class MarkdownRenderingTests
 
         Assert.True(scroller.Offset.X > 0);
         Assert.Equal(before, button.TranslatePoint(default, block)!.Value);   // 複製鈕沒有跟著捲
+    }
+
+    [AvaloniaTheory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void CodeBlock_TheHorizontalScrollBar_DoesNotCoverTheLastLine(int lines)
+    {
+        // FX-03：自動隱藏的捲軸疊在內容上面，會蓋住最後一行
+        var code = string.Join("\n", Enumerable.Range(1, lines).Select(i => $"{i}:" + new string('x', 400)));
+        var (view, _, _) = Show($"```\n{code}\n```", width: 400);
+        var scroller = All<ScrollViewer>(view.RenderedBlocks[0]).Single();
+        var text = All<EmojiTextBlock>(scroller).Single(t => t.Classes.Contains("md-codetext"));
+        var bar = scroller.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ScrollBar>()
+            .Single(b => b.Orientation == Avalonia.Layout.Orientation.Horizontal);
+
+        Assert.False(scroller.AllowAutoHide);
+        Assert.True(bar.IsEffectivelyVisible);
+        var textBottom = text.TranslatePoint(new Point(0, text.Bounds.Height), scroller)!.Value.Y;
+        var barTop = bar.TranslatePoint(default, scroller)!.Value.Y;
+        Assert.True(textBottom <= barTop, $"最後一行的底 {textBottom} 超過捲軸的頂 {barTop}");
+    }
+
+    [AvaloniaFact]
+    public void WideTable_HasAHorizontalScrollBar_ThatDoesNotAutoHide()
+    {
+        var (view, _, _) = Show("| " + string.Join(" | ", Enumerable.Range(1, 12).Select(i => $"欄位{i}很長很長")) + " |\n|"
+            + string.Concat(Enumerable.Repeat("---|", 12)) + "\n| " + string.Join(" | ", Enumerable.Range(1, 12)) + " |", width: 400);
+
+        var scroller = All<ScrollViewer>(view.RenderedBlocks[0]).Single();
+        Assert.False(scroller.AllowAutoHide);   // FX-02：細線狀態很難對準
+        Assert.True(scroller.Extent.Width > scroller.Viewport.Width);
     }
 
     [AvaloniaFact]

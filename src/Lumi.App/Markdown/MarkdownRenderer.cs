@@ -242,7 +242,10 @@ public sealed class MarkdownRenderer
     private Control CreateMermaidBlock(MdCodeBlock block, CopyContext copy) =>
         new MermaidBlock(block.Code, _services, CreateCodeScroller(block, copy), CreateCopyButton(block.Code));
 
-    /// <summary>水平捲動的程式碼區（不換行）。</summary>
+    /// <summary>
+    /// 水平捲動的程式碼區（不換行）。捲軸不自動隱藏（FX-02、FX-03）：自動隱藏時捲軸疊在內容上面，會蓋住最後一行，
+    /// 細線狀態也很難點到；不自動隱藏時捲軸有自己的一列，只在內容比可視範圍寬時出現。
+    /// </summary>
     private static ScrollViewer CreateCodeScroller(MdCodeBlock block, CopyContext copy)
     {
         var text = new EmojiTextBlock { Text = block.Code, TextWrapping = TextWrapping.NoWrap, Classes = { "md-codetext" } };
@@ -252,6 +255,7 @@ public sealed class MarkdownRenderer
             Content = text,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            AllowAutoHide = false,
             Padding = new Thickness(16, 12, 16, 12),
         };
     }
@@ -332,6 +336,7 @@ public sealed class MarkdownRenderer
         {
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            AllowAutoHide = false,   // 寬表格的橫向捲軸固定顯示成可以點的寬度（FX-02）
             Content = new Border { Classes = { "md-table" }, Child = grid },
         };
     }

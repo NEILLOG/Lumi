@@ -93,6 +93,22 @@ public class ConversationFocusScrollTests
     }
 
     [AvaloniaFact]
+    public async Task ALongConversation_HasAScrollBarThatIsAlwaysFullWidth()
+    {
+        // FX-01：自動隱藏的捲軸平常只是一條細線，對話很長時幾乎點不到
+        var rig = new Rig();
+        await rig.SendLongPromptAsync();
+        var bar = rig.Scroller.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ScrollBar>()
+            .Single(b => b.Orientation == Avalonia.Layout.Orientation.Vertical);
+
+        Assert.False(rig.Scroller.AllowAutoHide);
+        Assert.True(bar.IsEffectivelyVisible);
+        Assert.False(bar.AllowAutoHide);
+        Assert.True(bar.Bounds.Width >= 12, $"捲軸寬 {bar.Bounds.Width}");
+        rig.Window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task LongPrompt_IsCollapsedByDefault_AndTheButtonExpandsIt()
     {
         var rig = new Rig();
