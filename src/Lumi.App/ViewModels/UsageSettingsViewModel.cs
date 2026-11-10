@@ -6,6 +6,8 @@ using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Core.Models;
 using Lumi.Core.Usage;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Lumi.App.ViewModels;
 
@@ -31,13 +33,15 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
     private readonly IFilePickerService _files;
     private readonly TimeProvider _time;
     private readonly Func<string, Task>? _openConversation;
+    private readonly ILogger<UsageSettingsViewModel> _logger;
     private int _loadGeneration;
 
     /// <summary>「單價設定 ›」要做的事（跳到 AI 連線頁）。由 <see cref="SettingsViewModel"/> 接上；沒接就什麼都不做。</summary>
     public Action? OpenPricing { get; set; }
 
     public UsageSettingsViewModel(IUsageStore usage, IUsageHintLog hints, IModelCatalog catalog, IConversationStore conversations,
-        IFilePickerService files, TimeProvider time, Func<string, Task>? openConversation = null, Action? openPricing = null)
+        IFilePickerService files, TimeProvider time, Func<string, Task>? openConversation = null, Action? openPricing = null,
+        ILogger<UsageSettingsViewModel>? logger = null)
     {
         _usage = usage;
         _hintLog = hints;
@@ -47,6 +51,7 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
         _time = time;
         _openConversation = openConversation;
         OpenPricing = openPricing;
+        _logger = logger ?? NullLogger<UsageSettingsViewModel>.Instance;
 
         EditBudgetCommand = new RelayCommand(BeginEditBudget);
         SaveBudgetCommand = new AsyncRelayCommand(SaveBudgetAsync);
@@ -79,17 +84,38 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
 
     // ===== 本月卡片 =====
 
+    /// <summary>讀不到用量時的說明；null 表示載入成功或還沒載入。有說明時不顯示金額與各段落，以免看起來像用量是 0。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLoadError), nameof(ShowSummary), nameof(ShowRange), nameof(ShowEmptyNote), nameof(ShowDaily),
+        nameof(ShowBudgetSummary), nameof(ShowSetBudgetLink), nameof(ShowProjection), nameof(ShowUnpriced))]
+    private string? _loadError;
+
+    public bool HasLoadError => LoadError is not null;
+
+    /// <summary>載入沒有失敗：顯示金額、每天、花最多的對話與提示。</summary>
+    public bool ShowSummary => !HasLoadError;
+
     /// <summary>大數字，例如 <c>NT$488</c>（有估算時前面加「≈」）。</summary>
     [ObservableProperty]
     private string _totalText = MoneyFormat.Twd(0);
 
     /// <summary>「10/1–10/29 · 約 US$15.25」；本月沒有紀錄時為 null。</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowRange))]
     private string? _rangeText;
+
+    public bool ShowRange => RangeText is not null && !HasLoadError;
+
+    /// <summary>「本月還沒有用量」的說明；讀取失敗時不顯示。</summary>
+    public bool ShowEmptyNote => IsEmpty && !HasLoadError;
+
+    /// <summary>每天長條：本月有紀錄、讀取沒有失敗。</summary>
+    public bool ShowDaily => !IsEmpty && !HasLoadError;
 
     /// <summary>本月沒有任何紀錄：卡片只剩 <see cref="TotalText"/> 與說明，其餘段落不顯示。</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowBudgetSummary), nameof(ShowSetBudgetLink), nameof(ShowBudgetEditor), nameof(ShowProjection))]
+    [NotifyPropertyChangedFor(nameof(ShowBudgetSummary), nameof(ShowSetBudgetLink), nameof(ShowBudgetEditor), nameof(ShowProjection),
+        nameof(ShowEmptyNote), nameof(ShowDaily))]
     private bool _isEmpty = true;
 
     /// <summary>有每月預算。</summary>
@@ -119,11 +145,14 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowProjection))]
     private string? _projectionText;
 
-    public bool ShowProjection => ProjectionText is not null && !IsEmpty;
+    public bool ShowProjection => ProjectionText is not null && !IsEmpty && !HasLoadError;
 
     /// <summary>「有 3 次請求的模型未設定單價，沒有計入。」；沒有時為 null。</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowUnpriced))]
     private string? _unpricedText;
+
+    public bool ShowUnpriced => UnpricedText is not null && !HasLoadError;
 
     // ===== 預算編輯（原地展開） =====
 
@@ -143,10 +172,10 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
     public bool HasBudgetError => BudgetError is not null;
 
     /// <summary>有預算、未在編輯：顯示金額與「編輯」。</summary>
-    public bool ShowBudgetSummary => HasBudget && !IsEditingBudget;
+    public bool ShowBudgetSummary => HasBudget && !IsEditingBudget && !HasLoadError;
 
     /// <summary>沒有預算、未在編輯：只顯示「設定每月預算」。本月還沒有用量時也要能先設定預算。</summary>
-    public bool ShowSetBudgetLink => !HasBudget && !IsEditingBudget;
+    public bool ShowSetBudgetLink => !HasBudget && !IsEditingBudget && !HasLoadError;
 
     /// <summary>編輯中：金額輸入、取消／儲存、不設預算。</summary>
     public bool ShowBudgetEditor => IsEditingBudget;
@@ -178,10 +207,32 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _exportMessageIsError;
 
-    /// <summary>頁面顯示時呼叫。較晚開始的載入讓較早的結果作廢。</summary>
-    public async Task LoadAsync()
+    /// <summary>
+    /// 頁面顯示時呼叫。較晚開始的載入讓較早的結果作廢。讀取失敗不往外丟（呼叫端不等待），
+    /// 寫進記錄並在 <see cref="LoadError"/> 說明，不留下看起來像 0 的數字。
+    /// </summary>
+    public Task LoadAsync() => LoadAsync(Strings.UsagePage_LoadFailed);
+
+    private async Task LoadAsync(string failureText)
     {
         var generation = ++_loadGeneration;
+        try
+        {
+            await LoadCoreAsync(generation);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "載入用量失敗");
+            if (generation != _loadGeneration)
+                return;
+            LoadError = failureText;
+            TopConversations = [];
+            Hints = [];
+        }
+    }
+
+    private async Task LoadCoreAsync(int generation)
+    {
         var now = _time.GetUtcNow();
         var zone = _time.LocalTimeZone;
         var (from, to) = MonthlyUsageSummary.MonthRange(now, zone);
@@ -203,6 +254,7 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
         if (hints is null)
             return;
 
+        LoadError = null;
         ApplySummary(summary, zone);
         TopConversations = top.Select(item => new UsageTopConversationItem(
             item.ConversationId,
@@ -321,20 +373,37 @@ public sealed partial class UsageSettingsViewModel : ObservableObject
         }
 
         var usage = _catalog.Current.Usage;
-        await _catalog.SetUsageAsync(usage with { MonthlyBudgetUsd = MoneyFormat.UsdFromTwd(twd) });
+        if (!await TrySaveUsageAsync(usage with { MonthlyBudgetUsd = MoneyFormat.UsdFromTwd(twd) }))
+            return;
         BudgetError = null;
         IsEditingBudget = false;
-        await LoadAsync();
+        await LoadAsync(Strings.UsagePage_BudgetSavedLoadFailed);
     }
 
     private async Task ClearBudgetAsync()
     {
         var usage = _catalog.Current.Usage;
-        if (usage.MonthlyBudgetUsd is not null)
-            await _catalog.SetUsageAsync(usage with { MonthlyBudgetUsd = null });
+        if (usage.MonthlyBudgetUsd is not null && !await TrySaveUsageAsync(usage with { MonthlyBudgetUsd = null }))
+            return;
         BudgetError = null;
         IsEditingBudget = false;
-        await LoadAsync();
+        await LoadAsync(Strings.UsagePage_BudgetSavedLoadFailed);
+    }
+
+    /// <summary>儲存預算。失敗時留在編輯中、在輸入框下說明，回 false；之後重新載入用量失敗則由 <see cref="LoadError"/> 說明（已儲存）。</summary>
+    private async Task<bool> TrySaveUsageAsync(UsageSettings settings)
+    {
+        try
+        {
+            await _catalog.SetUsageAsync(settings);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "儲存每月預算失敗");
+            BudgetError = Strings.UsagePage_BudgetSaveFailed;
+            return false;
+        }
     }
 
     private async Task OpenConversationAsync(string? conversationId)

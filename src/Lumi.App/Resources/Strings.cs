@@ -976,6 +976,9 @@ public static class Strings
     public static string UsagePage_Export => Get(nameof(UsagePage_Export));
     public static string UsagePage_ExportDoneFormat => Get(nameof(UsagePage_ExportDoneFormat));
     public static string UsagePage_ExportFailed => Get(nameof(UsagePage_ExportFailed));
+    public static string UsagePage_LoadFailed => Get(nameof(UsagePage_LoadFailed));
+    public static string UsagePage_BudgetSavedLoadFailed => Get(nameof(UsagePage_BudgetSavedLoadFailed));
+    public static string UsagePage_BudgetSaveFailed => Get(nameof(UsagePage_BudgetSaveFailed));
     public static string UsagePage_DeletedConversation => Get(nameof(UsagePage_DeletedConversation));
     public static string Pricing_Title => Get(nameof(Pricing_Title));
     public static string Pricing_SummaryFormat => Get(nameof(Pricing_SummaryFormat));

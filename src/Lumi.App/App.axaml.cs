@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -94,6 +95,10 @@ public partial class App : Application
             var hooks = services.GetRequiredService<UnhandledExceptionLogger>();
             hooks.Attach();
             Dispatcher.UIThread.UnhandledException += (_, e) => hooks.OnUiThreadException(e.Exception);
+
+            // 記下實際執行的版本與位置：新舊版共用同一個資料庫時，才查得出當時跑的是哪一份
+            var version = typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? AppVersion.Current;
+            services.GetService<ILogger<App>>()?.LogInformation("Lumi {Version} 啟動，執行檔 {Path}", version, Environment.ProcessPath);
         }
         catch (Exception ex)
         {

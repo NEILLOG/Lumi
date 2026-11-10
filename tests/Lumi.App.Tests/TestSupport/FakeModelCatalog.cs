@@ -149,8 +149,13 @@ internal sealed class FakeModelCatalog : IModelCatalog
     /// <summary>每次 <see cref="SetUsageAsync"/> 收到的值。</summary>
     public List<UsageSettings> UsageSaves { get; } = [];
 
+    /// <summary>有值時 <see cref="SetUsageAsync"/> 丟這個例外、不儲存。</summary>
+    public Exception? UsageSaveThrows { get; set; }
+
     public Task SetUsageAsync(UsageSettings settings, CancellationToken ct = default)
     {
+        if (UsageSaveThrows is { } error)
+            return Task.FromException(error);
         var normalized = settings.Normalize();
         UsageSaves.Add(normalized);
         Current = Current with { Usage = normalized };

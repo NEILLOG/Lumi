@@ -7,6 +7,9 @@ internal sealed class InMemoryUsageStore : IUsageStore
 {
     public List<UsageRecord> Records { get; } = [];
 
+    /// <summary>有值時 <see cref="ListAsync"/> 丟這個例外（模擬讀到不認得的資料等讀取失敗）。</summary>
+    public Exception? ListThrows { get; set; }
+
     public Task AddAsync(UsageRecord record, CancellationToken ct = default)
     {
         Records.Add(record);
@@ -14,7 +17,7 @@ internal sealed class InMemoryUsageStore : IUsageStore
     }
 
     public Task<IReadOnlyList<UsageRecord>> ListAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<UsageRecord>>(Records.Where(r => r.CreatedAt >= from && r.CreatedAt < to).OrderBy(r => r.CreatedAt).ToList());
+        ListThrows is { } error ? Task.FromException<IReadOnlyList<UsageRecord>>(error) : Task.FromResult<IReadOnlyList<UsageRecord>>(Records.Where(r => r.CreatedAt >= from && r.CreatedAt < to).OrderBy(r => r.CreatedAt).ToList());
 
     public Task<ConversationCost> GetConversationCostAsync(string conversationId, CancellationToken ct = default)
     {

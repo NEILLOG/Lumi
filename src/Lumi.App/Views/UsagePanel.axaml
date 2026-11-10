@@ -80,13 +80,16 @@
         <!-- ===== 1. 本月卡片 ===== -->
         <Border x:Name="UsageMonthCard" Classes="usage-card">
           <StackPanel Spacing="12">
-            <TextBlock Classes="usage-big" Text="{Binding TotalText}" />
+            <!-- 讀不到用量：只顯示說明，不顯示金額（不能讓人以為用量是 0） -->
+            <TextBlock x:Name="UsageLoadError" Classes="error" Text="{Binding LoadError}" TextWrapping="Wrap"
+                       IsVisible="{Binding HasLoadError}" />
 
-            <TextBlock Classes="muted" Text="{Binding RangeText}" TextWrapping="Wrap"
-                       IsVisible="{Binding RangeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Classes="usage-big" Text="{Binding TotalText}" IsVisible="{Binding ShowSummary}" />
+
+            <TextBlock Classes="muted" Text="{Binding RangeText}" TextWrapping="Wrap" IsVisible="{Binding ShowRange}" />
 
             <TextBlock Classes="muted" Text="{x:Static res:Strings.UsagePage_Empty}" TextWrapping="Wrap"
-                       IsVisible="{Binding IsEmpty}" />
+                       IsVisible="{Binding ShowEmptyNote}" />
 
             <!-- 有預算：金額與「編輯」，下面是進度條 -->
             <StackPanel Spacing="8" IsVisible="{Binding ShowBudgetSummary}">
@@ -126,7 +129,7 @@
 
             <!-- 未設定單價的請求：一行說明，右邊連到單價設定 -->
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"
-                  IsVisible="{Binding UnpricedText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                  IsVisible="{Binding ShowUnpriced}">
               <TextBlock Grid.Column="0" Classes="muted" Text="{Binding UnpricedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="tertiary" MinHeight="32" Padding="8,4" VerticalAlignment="Center"
                       Command="{Binding OpenPricingCommand}">
@@ -140,7 +143,7 @@
         </Border>
 
         <!-- ===== 2. 每天（本月沒有紀錄時不顯示） ===== -->
-        <StackPanel Spacing="8" IsVisible="{Binding !IsEmpty}">
+        <StackPanel Spacing="8" IsVisible="{Binding ShowDaily}">
           <TextBlock Classes="section-title" Text="{x:Static res:Strings.UsagePage_DailyTitle}" />
           <ctl:DailyCostBars Items="{Binding Daily}" />
         </StackPanel>

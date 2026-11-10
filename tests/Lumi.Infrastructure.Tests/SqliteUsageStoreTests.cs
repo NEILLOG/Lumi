@@ -57,6 +57,36 @@ public sealed class SqliteUsageStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task RoundTrip_TitlePurpose()
+    {
+        var (conversations, usage) = Open();
+        var conversation = await conversations.CreateAsync("對話");
+        var title = Record(October.AddHours(5), conversation.Id, 0.01m, purpose: UsagePurpose.Title);
+
+        await usage.AddAsync(title);
+
+        var read = Assert.Single(await usage.ListAsync(October, November));
+        Assert.Equal(UsagePurpose.Title, read.Purpose);
+        Assert.Equal(0.01m, await usage.SumCostAsync(October, November));
+    }
+
+    [Fact]
+    public async Task ListAsync_UnknownPurpose_Throws()
+    {
+        // 較新版本寫入的用途：不能略過（統計會少算），要讓呼叫端知道讀取失敗
+        var (conversations, usage) = Open();
+        await usage.AddAsync(Record(October.AddHours(5), null, 1m));
+        await using (var connection = await conversations.OpenAsync(CancellationToken.None))
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "UPDATE request_usage SET purpose = 'future';";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => usage.ListAsync(October, November));
+    }
+
+    [Fact]
     public async Task RoundTrip_NullConversationAndNullPriceAndCost()
     {
         var (_, usage) = Open();

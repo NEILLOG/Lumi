@@ -296,6 +296,111 @@ public class UsageSettingsViewModelTests
         Assert.Empty(rig.Catalog.UsageSaves);
     }
 
+    // ===== 讀取或儲存失敗 =====
+
+    [Fact]
+    public async Task TitleRecords_CountTowardsTheMonth()
+    {
+        var rig = new Rig();
+        rig.Records.Records.Add(UsageSamples.Record(UsageSamples.Day(10), 1m));
+        rig.Records.Records.Add(UsageSamples.Record(UsageSamples.Day(10), 0.25m, purpose: UsagePurpose.Title));
+
+        await rig.Vm.LoadAsync();
+
+        Assert.Null(rig.Vm.LoadError);
+        Assert.Equal(MoneyFormat.Twd(1.25m), rig.Vm.TotalText);
+    }
+
+    [Fact]
+    public async Task LoadFailure_ShowsTheErrorInsteadOfZero()
+    {
+        var rig = new Rig();
+        rig.SetBudgetUsd(25m);
+        rig.Records.ListThrows = new InvalidDataException("未知的用量用途：x");
+
+        await rig.Vm.LoadAsync();   // 不往外丟
+
+        var vm = rig.Vm;
+        Assert.Equal(Strings.UsagePage_LoadFailed, vm.LoadError);
+        Assert.True(vm.HasLoadError);
+        Assert.False(vm.ShowSummary);
+        Assert.False(vm.ShowEmptyNote);   // 不能說成「本月還沒有用量」
+        Assert.False(vm.ShowRange);
+        Assert.False(vm.ShowDaily);
+        Assert.False(vm.ShowBudgetSummary);
+        Assert.False(vm.ShowSetBudgetLink);
+        Assert.False(vm.ShowProjection);
+        Assert.False(vm.ShowUnpriced);
+        Assert.False(vm.HasTopConversations);
+        Assert.False(vm.ShowHints);
+    }
+
+    [Fact]
+    public async Task LoadFailure_ClearsAfterALaterSuccessfulLoad()
+    {
+        var rig = new Rig();
+        rig.Records.Records.Add(UsageSamples.Record(UsageSamples.Day(10), 1m));
+        rig.Records.ListThrows = new InvalidDataException("讀取失敗");
+        await rig.Vm.LoadAsync();
+
+        rig.Records.ListThrows = null;
+        await rig.Vm.LoadAsync();
+
+        Assert.Null(rig.Vm.LoadError);
+        Assert.True(rig.Vm.ShowSummary);
+        Assert.True(rig.Vm.ShowDaily);
+    }
+
+    [Fact]
+    public async Task SaveBudget_ThenReloadFails_KeepsTheBudgetAndSaysSo()
+    {
+        var rig = new Rig();
+        await rig.Vm.LoadAsync();
+        rig.Vm.EditBudgetCommand.Execute(null);
+        rig.Vm.BudgetInput = "800";
+        rig.Records.ListThrows = new InvalidDataException("未知的用量用途：x");
+
+        await rig.Vm.SaveBudgetCommand.ExecuteAsync(null);   // 不往外丟（原本會傳到 UI 執行緒讓程式結束）
+
+        Assert.Equal(25m, rig.Catalog.UsageSaves.Last().MonthlyBudgetUsd);
+        Assert.Null(rig.Vm.BudgetError);
+        Assert.False(rig.Vm.IsEditingBudget);
+        Assert.Equal(Strings.UsagePage_BudgetSavedLoadFailed, rig.Vm.LoadError);
+    }
+
+    [Fact]
+    public async Task ClearBudget_ThenReloadFails_KeepsTheChangeAndSaysSo()
+    {
+        var rig = new Rig();
+        rig.SetBudgetUsd(25m);
+        await rig.Vm.LoadAsync();
+        rig.Vm.EditBudgetCommand.Execute(null);
+        rig.Records.ListThrows = new InvalidDataException("未知的用量用途：x");
+
+        await rig.Vm.ClearBudgetCommand.ExecuteAsync(null);
+
+        Assert.Null(rig.Catalog.UsageSaves.Last().MonthlyBudgetUsd);
+        Assert.False(rig.Vm.IsEditingBudget);
+        Assert.Equal(Strings.UsagePage_BudgetSavedLoadFailed, rig.Vm.LoadError);
+    }
+
+    [Fact]
+    public async Task SaveBudget_SaveFails_StaysInTheEditorWithAnError()
+    {
+        var rig = new Rig();
+        await rig.Vm.LoadAsync();
+        rig.Vm.EditBudgetCommand.Execute(null);
+        rig.Vm.BudgetInput = "800";
+        rig.Catalog.UsageSaveThrows = new IOException("磁碟已滿");
+
+        await rig.Vm.SaveBudgetCommand.ExecuteAsync(null);
+
+        Assert.Equal(Strings.UsagePage_BudgetSaveFailed, rig.Vm.BudgetError);
+        Assert.True(rig.Vm.IsEditingBudget);
+        Assert.Null(rig.Vm.LoadError);
+        Assert.Empty(rig.Catalog.UsageSaves);
+    }
+
     [Fact]
     public async Task ClearBudget_RemovesTheBudgetAndOffersTheLink()
     {

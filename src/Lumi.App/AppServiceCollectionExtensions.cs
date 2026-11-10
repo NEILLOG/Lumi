@@ -61,7 +61,8 @@ public static class AppServiceCollectionExtensions
                 if (conversation is null || !await sp.GetRequiredService<ISettingsWindowService>().ReturnToWorkbench())
                     return;
                 await sp.GetRequiredService<WorkbenchViewModel>().OpenConversationAsync(conversation);
-            }));
+            },
+            logger: sp.GetRequiredService<ILogger<UsageSettingsViewModel>>()));
         services.AddSingleton<ISpriteNotice, SpriteNotice>();
         services.AddSingleton<UsageHintCoordinator>();   // 使用習慣提示（輸入框上方提示列、換模型確認區）
         services.AddSingleton<BudgetAlertCoordinator>(sp => new BudgetAlertCoordinator(

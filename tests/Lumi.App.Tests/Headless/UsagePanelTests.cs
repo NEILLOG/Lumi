@@ -120,6 +120,23 @@ public class UsagePanelTests
     }
 
     [AvaloniaFact]
+    public async Task LoadFailure_ShowsTheErrorAndNoZeroAmount()
+    {
+        var store = new InMemoryUsageStore { ListThrows = new InvalidDataException("未知的用量用途：x") };
+        var vm = new UsageSettingsViewModel(store, new InMemoryUsageHintLog(), new FakeModelCatalog(),
+            new InMemoryConversationStore(), new FakeSavePicker(), UsageSamples.October29());
+        await vm.LoadAsync();
+        var window = Host(vm);
+
+        Assert.True(Shown(window, Strings.UsagePage_LoadFailed));
+        Assert.False(Shown(window, "NT$0"));
+        Assert.False(Shown(window, Strings.UsagePage_Empty));
+        Assert.False(ButtonShown(window, Strings.UsagePage_SetBudget));
+        Assert.False(Shown(window, Strings.UsagePage_DailyTitle));
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public async Task WithBudget_ShowsAmountPercentEditButtonAndSections()
     {
         var (vm, _) = await RichAsync();
