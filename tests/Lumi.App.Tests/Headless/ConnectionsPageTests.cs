@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -632,7 +633,7 @@ public class ConnectionsPageTests
     }
 
     [AvaloniaFact]
-    public async Task AdvancedSection_IsCollapsedByDefault_HoldingFormatAndBaseUrl()
+    public async Task AdvancedSection_IsCollapsedByDefault_HoldingOnlyTheFormat_AndBaseUrlIsAlwaysShown()
     {
         using var rig = new Rig();
         await rig.Host.Connections.SelectAsync(rig.Host.Connections.Items[0]);
@@ -642,30 +643,30 @@ public class ConnectionsPageTests
         var expander = panel.FindByName<Expander>("AdvancedExpander");
         Assert.False(expander.IsExpanded);
         Assert.Equal("進階", expander.Header);
-        Assert.False(IsShown(panel, "FormatField"));   // 技術欄位預設收起
-        Assert.False(IsShown(panel, "BaseUrlField"));
+        Assert.False(IsShown(panel, "FormatField"));   // 供應商格式預設收起
         Assert.True(panel.FindByName<FormField>("NameField").IsEffectivelyVisible);
+        // FX-05：Base URL 常常不是預設值，不收在進階裡
+        Assert.True(panel.FindByName<FormField>("BaseUrlField").IsEffectivelyVisible);
+        Assert.Equal(Strings.Conn_BaseUrl, panel.FindByName<FormField>("BaseUrlField").Label);
+        Assert.DoesNotContain(expander.GetLogicalDescendants().OfType<FormField>(), f => f.Name == "BaseUrlField");
 
         expander.IsExpanded = true;
         rig.Settle();
         Assert.True(panel.FindByName<FormField>("FormatField").IsEffectivelyVisible);
-        Assert.True(panel.FindByName<FormField>("BaseUrlField").IsEffectivelyVisible);
         Assert.Equal(Strings.Conn_Format, panel.FindByName<FormField>("FormatField").Label);
-        Assert.Equal(Strings.Conn_BaseUrl, panel.FindByName<FormField>("BaseUrlField").Label);
     }
 
     [AvaloniaFact]
-    public async Task AdvancedSection_OpensItself_WhenItHoldsAnError()
+    public async Task BaseUrlError_IsShownRightAway_WithoutOpeningTheAdvancedSection()
     {
         using var rig = new Rig();
         await rig.Host.Connections.SelectAsync(rig.Host.Connections.Items[0]);
         rig.Settle();
         var expander = rig.Connections.FindByName<Expander>("AdvancedExpander");
-        Assert.False(expander.IsExpanded);
 
         rig.Host.Connections.BaseUrl = "不是網址";
         rig.Settle();
-        Assert.True(expander.IsExpanded);   // 錯誤不能藏在收合的區段裡
+        Assert.False(expander.IsExpanded);   // Base URL 不在進階裡，不用展開
         var field = rig.Connections.FindByName<FormField>("BaseUrlField");
         Assert.True(ErrorTextOf(field).IsEffectivelyVisible);
         Assert.Equal(Strings.Conn_UrlInvalid, ErrorTextOf(field).Text);

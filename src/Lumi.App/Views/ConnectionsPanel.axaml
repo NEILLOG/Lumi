@@ -52,6 +52,17 @@
                    AutomationProperties.Name="{x:Static res:Strings.Conn_Name}" />
         </ctl:FormField>
 
+        <!-- API 位置：常常不是預設值（公司代理、Azure、本機服務），不收在「進階」裡（FX-05） -->
+        <ctl:FormField x:Name="BaseUrlField" Label="{x:Static res:Strings.Conn_BaseUrl}" Hint="{x:Static res:Strings.Conn_BaseUrlHint}"
+                       Error="{Binding BaseUrlError}">
+          <StackPanel Spacing="4">
+            <TextBox x:Name="BaseUrlBox" Text="{Binding BaseUrl}" Classes.error="{Binding BaseUrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     AutomationProperties.Name="{x:Static res:Strings.Conn_BaseUrl}" />
+            <TextBlock x:Name="BaseUrlWarningText" Classes="warning" Text="{Binding BaseUrlWarning}"
+                       IsVisible="{Binding BaseUrlWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+        </ctl:FormField>
+
         <!-- 金鑰：已存的永遠不讀回來顯示，只顯示「已設定 · 結尾 xxxx」 -->
         <ctl:FormField x:Name="ApiKeyField" Label="{x:Static res:Strings.Conn_ApiKey}" Hint="{x:Static res:Strings.ApiKey_Note}">
           <StackPanel Spacing="8">
@@ -73,7 +84,7 @@
           </StackPanel>
         </ctl:FormField>
 
-        <!-- 進階（預設收合）：供應商格式、API 位置。有錯誤或警告時會自動展開（ConnectionsPanel.axaml.cs），不讓錯誤藏在收合的區段裡 -->
+        <!-- 進階（預設收合）：供應商格式 -->
         <Expander x:Name="AdvancedExpander" Classes="advanced" Header="{x:Static res:Strings.Settings_Advanced}" IsExpanded="False">
           <StackPanel Spacing="16" Margin="0,8,0,0">
             <ctl:FormField x:Name="FormatField" Label="{x:Static res:Strings.Conn_Format}" Hint="{x:Static res:Strings.Conn_FormatHint}">
@@ -87,15 +98,6 @@
               </ComboBox>
             </ctl:FormField>
 
-            <ctl:FormField x:Name="BaseUrlField" Label="{x:Static res:Strings.Conn_BaseUrl}" Hint="{x:Static res:Strings.Conn_BaseUrlHint}"
-                           Error="{Binding BaseUrlError}">
-              <StackPanel Spacing="4">
-                <TextBox x:Name="BaseUrlBox" Text="{Binding BaseUrl}" Classes.error="{Binding BaseUrlError, Converter={x:Static ObjectConverters.IsNotNull}}"
-                         AutomationProperties.Name="{x:Static res:Strings.Conn_BaseUrl}" />
-                <TextBlock x:Name="BaseUrlWarningText" Classes="warning" Text="{Binding BaseUrlWarning}"
-                           IsVisible="{Binding BaseUrlWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
-              </StackPanel>
-            </ctl:FormField>
           </StackPanel>
         </Expander>
       </StackPanel>
