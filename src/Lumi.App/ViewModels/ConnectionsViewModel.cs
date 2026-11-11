@@ -478,11 +478,10 @@ public partial class ConnectionsViewModel : ObservableObject
         {
             var result = await _tester.TestAsync(connection, key, cts.Token);
             TestSucceeded = result.Success;
-            TestResultText = result.Success
-                ? (result.ModelIds.Count > 0
-                    ? string.Format(CultureInfo.CurrentCulture, Strings.Conn_TestOk, result.ModelIds.Count)
-                    : Strings.Conn_TestOkNoList)
-                : result.Failure!.Message;
+            TestResultText = !result.Success ? result.Failure!.Message
+                : result.ModelListUnavailable ? Strings.Conn_TestOkNoModelList
+                : result.ModelIds.Count > 0 ? string.Format(CultureInfo.CurrentCulture, Strings.Conn_TestOk, result.ModelIds.Count)
+                : Strings.Conn_TestOkNoList;
             _status.Set(connection.Id, result);
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)

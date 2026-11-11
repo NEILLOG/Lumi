@@ -6,7 +6,10 @@ using Lumi.Core.Secrets;
 
 namespace Lumi.Providers.OpenAICompatible;
 
-/// <summary>列出模型：<c>GET {BaseUrl}/models</c>。取不到清單（404）時，設定頁仍然可以手動輸入模型 ID。</summary>
+/// <summary>
+/// 列出模型：<c>GET {BaseUrl}/models</c>。伺服器回 404／405 表示連得上、但沒有這個端點（例如只做圖片生成的服務），
+/// 算成功（<see cref="ConnectionTestResult.NoModelList"/>），模型 ID 手動輸入（FX-06）。網路不通、憑證、401／403、5xx 才算失敗。
+/// </summary>
 public sealed class OpenAICompatibleConnectionTester
 {
     private readonly HttpClient _httpClient;
@@ -30,14 +33,10 @@ public sealed class OpenAICompatibleConnectionTester
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key.Reveal());
 
             using var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+            if (response.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.MethodNotAllowed)
+                return ConnectionTestResult.NoModelList();
             if (!response.IsSuccessStatusCode)
-            {
-                var failure = OpenAIHttpErrors.FromResponse(response);
-                // 對「測試連線」來說，404 幾乎一定是網址不對；也可能是服務不提供模型清單
-                return ConnectionTestResult.Fail(response.StatusCode == System.Net.HttpStatusCode.NotFound
-                    ? failure with { Message = "找不到模型清單（/models）。請確認 Base URL（通常需要包含 /v1）；若服務本來就不提供清單，可以直接手動輸入模型 ID。" }
-                    : failure);
-            }
+                return ConnectionTestResult.Fail(OpenAIHttpErrors.FromResponse(response));
 
             await using var body = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(body, cancellationToken: ct).ConfigureAwait(false);

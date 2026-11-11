@@ -272,6 +272,23 @@ public sealed class ConnectionsViewModelTests
     }
 
     [Fact]
+    public async Task TestConnection_WithoutAModelList_IsShownAsReachable_AndTheStatusIsOk()
+    {
+        // FX-06：服務沒有 /models（例如圖片生成端點），不顯示成失敗
+        using var host = new SettingsHost();
+        host.Tester.Result = ConnectionTestResult.NoModelList();
+        var vm = host.Connections;
+        await vm.SelectAsync(vm.Items.Single());
+
+        await vm.TestCommand.ExecuteAsync(null);
+
+        Assert.True(vm.ShowTestOk);
+        Assert.False(vm.ShowTestFailure);
+        Assert.Equal(Strings.Conn_TestOkNoModelList, vm.TestResultText);
+        Assert.False(vm.Items.Single().IsFailed);
+    }
+
+    [Fact]
     public async Task TestConnection_Failure_ShowsReason_AndStatusDotGoesRed()
     {
         using var host = new SettingsHost();

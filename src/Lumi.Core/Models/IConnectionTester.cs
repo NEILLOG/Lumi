@@ -3,12 +3,19 @@ using Lumi.Core.Secrets;
 
 namespace Lumi.Core.Models;
 
-/// <summary>「測試連線」的結果：成功時帶可用的模型 ID；失敗時帶原因（Kind 分得出金鑰錯、網址錯、服務沒開）。</summary>
+/// <summary>
+/// 「測試連線」的結果：成功時帶可用的模型 ID；失敗時帶原因（Kind 分得出金鑰錯、網址錯、服務沒開）。
+/// <see cref="ModelListUnavailable"/>：連得上，但服務沒有模型清單的端點（例如只做圖片生成的服務），算成功，模型 ID 要手動輸入。
+/// </summary>
 public sealed record ConnectionTestResult(IReadOnlyList<string> ModelIds, ChatFailure? Failure)
 {
     public bool Success => Failure is null;
 
+    public bool ModelListUnavailable { get; init; }
+
     public static ConnectionTestResult Ok(IReadOnlyList<string> modelIds) => new(modelIds, null);
+
+    public static ConnectionTestResult NoModelList() => new([], null) { ModelListUnavailable = true };
 
     public static ConnectionTestResult Fail(ChatFailure failure) => new([], failure);
 }

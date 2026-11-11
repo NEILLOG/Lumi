@@ -84,16 +84,32 @@ public class ConnectionTesterTests
         Assert.Equal(kind, result.Failure!.Kind);
     }
 
-    [Fact]
-    public async Task OpenAI_NotFound_SuggestsCheckingBaseUrlOrTypingModelManually()
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.MethodNotAllowed)]
+    public async Task OpenAI_NoModelsEndpoint_IsReachable_NotAFailure(HttpStatusCode status)
     {
-        var handler = FakeAnthropicHttpHandler.ForError(HttpStatusCode.NotFound, Fixtures.OpenAIHttpError("404"));
+        // FX-06：例如只做圖片生成的服務沒有 /models；連得上就算成功，模型 ID 手動輸入
+        var handler = FakeAnthropicHttpHandler.ForError(status, Fixtures.OpenAIHttpError("404"));
 
         var result = await OpenAiTester(handler).TestAsync(OpenAi, null, default);
 
-        Assert.Equal(ChatFailureKind.ModelNotFound, result.Failure!.Kind);
-        Assert.Contains("Base URL", result.Failure.Message);
-        Assert.Contains("手動輸入", result.Failure.Message);
+        Assert.True(result.Success);
+        Assert.True(result.ModelListUnavailable);
+        Assert.Empty(result.ModelIds);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    public async Task OpenAI_OtherHttpErrors_AreStillFailures(HttpStatusCode status)
+    {
+        var handler = FakeAnthropicHttpHandler.ForError(status, Fixtures.OpenAIHttpError("503"));
+
+        var result = await OpenAiTester(handler).TestAsync(OpenAi, null, default);
+
+        Assert.False(result.Success);
+        Assert.False(result.ModelListUnavailable);
     }
 
     [Fact]

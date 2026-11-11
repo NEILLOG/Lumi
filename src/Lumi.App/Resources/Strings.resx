@@ -75,6 +75,7 @@
   <data name="Conn_TestCancel" xml:space="preserve"><value>取消</value></data>
   <data name="Conn_TestOk" xml:space="preserve"><value>成功 · 可用模型 {0} 個</value></data>
   <data name="Conn_TestOkNoList" xml:space="preserve"><value>成功，但伺服器沒有回傳模型清單</value></data>
+  <data name="Conn_TestOkNoModelList" xml:space="preserve"><value>連得上，但這個服務沒有提供模型清單。新增模型時直接輸入模型 ID 即可；如果這是一般的對話服務，請確認 Base URL 有沒有包含 /v1。</value></data>
   <data name="Conn_Save" xml:space="preserve"><value>儲存</value></data>
   <data name="Conn_Delete" xml:space="preserve"><value>刪除</value></data>
   <data name="Conn_ModelCount" xml:space="preserve"><value>{0} 個模型</value></data>

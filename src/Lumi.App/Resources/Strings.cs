@@ -72,6 +72,7 @@ public static class Strings
     public static string Conn_TestCancel => Get(nameof(Conn_TestCancel));
     public static string Conn_TestOk => Get(nameof(Conn_TestOk));
     public static string Conn_TestOkNoList => Get(nameof(Conn_TestOkNoList));
+    public static string Conn_TestOkNoModelList => Get(nameof(Conn_TestOkNoModelList));
     public static string Conn_Save => Get(nameof(Conn_Save));
     public static string Conn_Delete => Get(nameof(Conn_Delete));
     public static string Conn_ModelCount => Get(nameof(Conn_ModelCount));
