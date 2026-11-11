@@ -25,6 +25,8 @@ public sealed class ToolCatalog(IToolRegistry registry, IModelCatalog settings, 
             .Where(t => t.Descriptor.OptInWarning is null
                 ? !t.Descriptor.CanDisable || !disabled.Contains(t.Descriptor.Name)
                 : enabledOptIn.Contains(t.Descriptor.Name))
+            // 這台電腦用不了的工具：新對話不帶定義；已經在快照裡的不在這裡處理（呼叫時由工具回錯誤）
+            .Where(t => AvailabilityOf(t) == ToolAvailabilityKind.Available)
             .OrderBy(t => t.Descriptor.Name, StringComparer.Ordinal)
             .ToList();
     }
@@ -39,9 +41,11 @@ public sealed class ToolCatalog(IToolRegistry registry, IModelCatalog settings, 
     {
         // 找不到群組的內建工具放進「一般」
         var general = ToolGroups.Find(ToolGroups.General)!;
+        // 內建群組裡全部工具都是「不在這台電腦上」的，整組不列；只有部分或「不可用」的照常列出，讓清單頁顯示原因
         var builtIn = GetAll()
             .GroupBy(t => ToolGroups.Find(t.Descriptor.Group) ?? general)
-            .Select(g => new ToolCatalogGroup(g.Key, g.ToList()));
+            .Select(g => new ToolCatalogGroup(g.Key, g.ToList()))
+            .Where(g => !(g.Tools.Count > 0 && g.Tools.All(t => AvailabilityOf(t) == ToolAvailabilityKind.NotOnThisPlatform)));
 
         // 每個已啟用的伺服器一組（即使沒有工具，畫面要顯示「還沒有取得過…」）；依名稱排序，排在內建之後
         var servers = settings.Current.McpServers
@@ -58,6 +62,10 @@ public sealed class ToolCatalog(IToolRegistry registry, IModelCatalog settings, 
             .Select(g => g with { Tools = g.Tools.OrderBy(t => t.Descriptor.DisplayName, StringComparer.Ordinal).ToList() })
             .ToList();
     }
+
+    /// <summary>實作 <see cref="IConditionalTool"/> 的工具看自己的查詢結果；其他工具一律可用。</summary>
+    private static ToolAvailabilityKind AvailabilityOf(ITool tool) =>
+        tool is IConditionalTool conditional ? conditional.CheckAvailability().Kind : ToolAvailabilityKind.Available;
 
     /// <summary>MCP 工具的群組代號（<see cref="ToolDescriptor.Group"/>）。</summary>
     private static string McpToolGroup(string serverId) => "mcp:" + serverId;
