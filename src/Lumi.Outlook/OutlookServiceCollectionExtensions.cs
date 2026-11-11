@@ -1,4 +1,6 @@
+using Lumi.Core.Outlook;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Lumi.Outlook;
 
@@ -10,7 +12,8 @@ public static class OutlookServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddLumiOutlook(this IServiceCollection services)
     {
-        // TODO(30B)：Windows 上把 IOutlookClient 換成 OutlookClient
+        if (OperatingSystem.IsWindows())
+            services.Replace(ServiceDescriptor.Singleton<IOutlookClient, OutlookClient>());   // 取代 Core 的 NullOutlookClient
         return services;
     }
 }
