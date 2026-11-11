@@ -4,6 +4,7 @@ using Avalonia.Media.Fonts;
 using Lumi.App.Services;
 using Lumi.App.Views;
 using Lumi.Browser;
+using Lumi.Outlook;
 using Lumi.Core;
 using Lumi.Documents;
 using Lumi.Infrastructure;
@@ -78,6 +79,7 @@ internal static class Program
         builder.Services.AddLumiTarot();   // 塔羅牌（M25）
         builder.Services.AddLumiMcp();   // MCP 伺服器（M16）
         builder.Services.AddLumiBrowser(o => o.ProfileRoot = Path.Combine(LumiPaths.DataDirectory, "browser"));   // 瀏覽器自動化（M18）
+        builder.Services.AddLumiOutlook();   // classic Outlook（只有 Windows 會換成真的實作）
         builder.Services.AddLumiApp();
         // 開發用開關：Lumi:Developer:ShowSpriteHud（小精靈殼的診斷 HUD 與開發選單）
         builder.Services.AddSingleton(new DeveloperOptions

@@ -170,6 +170,10 @@
 - 代表：Windows 只能用 PowerShell 與 cmd，macOS 只能用 bash。
 - 處理：請 Lumi 改用這台電腦能用的 shell。
 
+## Outlook
+
+Outlook 工具的錯誤訊息（例如「請先開啟 Outlook 再試一次。」）見[Outlook 信件與行事曆](outlook.md)。
+
 ## 檔案與文件
 
 ### 「這份文件有密碼保護，無法讀取。」

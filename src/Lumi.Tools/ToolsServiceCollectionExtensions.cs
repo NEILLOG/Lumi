@@ -89,6 +89,18 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<GenerateImageTool>();
         services.AddLumiTool<EditImageTool>();
 
+        // Outlook 工具：IOutlookClient 由 Lumi.Outlook 的 AddLumiOutlook 在 Windows 註冊（其他平台用 Core 的 NullOutlookClient，整組不顯示）
+        services.TryAddSingleton<Lumi.Core.Outlook.IOutlookClient, Lumi.Core.Outlook.NullOutlookClient>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMailSearchTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMailReadTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookCalendarListTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMailSaveAttachmentTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMailDraftTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookCalendarSaveTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMeetingDraftTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMailSendToSelfTool>();
+        services.AddLumiTool<Lumi.Tools.Outlook.OutlookMailSendTool>();
+
         // 瀏覽器工具（M18）：IBrowserSessions 由 Lumi.Browser 的 AddLumiBrowser 註冊（沒註冊時用 Core 的 NullBrowserSessions）
         services.AddLumiTool<BrowserOpenTool>();
         services.AddLumiTool<BrowserSnapshotTool>();

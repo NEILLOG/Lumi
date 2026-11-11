@@ -63,9 +63,9 @@ public sealed class ToolGroupTests
     public void Only_memory_save_save_skill_and_browser_tools_opt_out_of_always_allow()
     {
         // memory_save（永久性的提示注入）、browser_upload（把本機檔案送到網站）、browser_wait_for_user（打開視窗等使用者，永遠允許沒有意義）
-        // create_scheduled_prompt（建立排程要每次確認，M24）、save_skill（永久寫入指示，和 memory_save 同理，M29）、run_command（執行指令每次都問，M31）
+        // create_scheduled_prompt（建立排程要每次確認，M24）、save_skill（永久寫入指示，和 memory_save 同理，M29）、run_command（執行指令每次都問，M31）、outlook_mail_send（寄出信件每次都問）
         var names = BuiltinDescriptors().Where(d => !d.CanAlwaysAllow).Select(d => d.Name).Order(StringComparer.Ordinal).ToList();
 
-        Assert.Equal(["browser_upload", "browser_wait_for_user", "create_scheduled_prompt", "memory_save", "run_command", "save_skill"], names);
+        Assert.Equal(["browser_upload", "browser_wait_for_user", "create_scheduled_prompt", "memory_save", "outlook_mail_send", "run_command", "save_skill"], names);
     }
 }

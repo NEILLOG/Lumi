@@ -114,6 +114,8 @@ Lumi 換個方向——它是一個**有樣子、有反應**的桌面角色。�
 支援多個 MCP 伺服器（本機指令或遠端 HTTP），直接**貼上 Claude Desktop／Claude Code 的設定 JSON** 就能匯入。MCP 的工具跟內建工具一樣列在工具清單、一樣先確認，回傳的截圖也會直接顯示在回覆裡。
 熟悉指令的人還可以開啟**執行指令**（預設關閉），讓 Lumi 執行 PowerShell、cmd 或 bash，例如安裝 npm 套件、查詢電腦狀態；每次都會先讓你看完整指令（[怎麼用](docs/guide/commands.md)）。
 
+在 Windows 上還可以開啟 **Outlook 工具**（預設關閉，需要 classic Outlook）：找信、讀信、查行程、寫草稿，或把摘要寄到你自己的信箱（[怎麼用](docs/guide/outlook.md)）。
+
 </td>
 </tr>
 </table>
@@ -206,4 +208,4 @@ dotnet run --project src/Lumi.App
 
 ## 授權
 
-本專案以 [MIT 授權](LICENSE)釋出。第三方資料與字型各依其授權：模型價目表來自 [LiteLLM](https://github.com/BerriAI/litellm)（MIT），流程圖用內嵌的 [Mermaid](https://github.com/mermaid-js/mermaid)（MIT，見 [`src/Lumi.Browser/Assets/mermaid.LICENSE.txt`](src/Lumi.Browser/Assets/mermaid.LICENSE.txt)），字型授權見 [`src/Lumi.App/Assets/Fonts/LICENSES/`](src/Lumi.App/Assets/Fonts/LICENSES/)。塔羅牌核心庫 [TarotMcp](https://github.com/NEILLOG/TarotMcp) 是獨立的 repo，不在此授權範圍內，授權尚未決定。
+本專案以 [MIT 授權](LICENSE)釋出。第三方資料與字型各依其授權：模型價目表來自 [LiteLLM](https://github.com/BerriAI/litellm)（MIT），流程圖用內嵌的 [Mermaid](https://github.com/mermaid-js/mermaid)（MIT，見 [`src/Lumi.Browser/Assets/mermaid.LICENSE.txt`](src/Lumi.Browser/Assets/mermaid.LICENSE.txt)），Outlook 工具用到的 `Microsoft.Office.Interop.Outlook` 只在建置時參考（型別嵌入，不隨程式發佈這個 DLL），字型授權見 [`src/Lumi.App/Assets/Fonts/LICENSES/`](src/Lumi.App/Assets/Fonts/LICENSES/)。塔羅牌核心庫 [TarotMcp](https://github.com/NEILLOG/TarotMcp) 是獨立的 repo，不在此授權範圍內，授權尚未決定。

@@ -9,7 +9,7 @@ public sealed class AppHelpToolTests
     private static readonly string[] GuideIds =
     [
         "browser", "chat", "commands", "connections", "files", "getting-started", "images", "mcp", "memory", "network",
-        "personalize", "privacy", "reminders", "skills", "sprite", "tarot", "tools", "troubleshooting", "usage-cost", "voice",
+        "outlook", "personalize", "privacy", "reminders", "skills", "sprite", "tarot", "tools", "troubleshooting", "usage-cost", "voice",
     ];
 
     private readonly ToolContext _context = new("c1", ChatMode.Workbench, TimeProvider.System, EmptyFileScope.Instance);
