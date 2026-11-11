@@ -58,6 +58,7 @@ public class BrowserLibraryRuleTests
     [InlineData("Lumi.Documents")]
     [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.Web")]
+    [InlineData("Lumi.Outlook")]
     [InlineData("Lumi.App")]
     public void Other_assemblies_do_not_reference_playwright(string name)
     {

@@ -42,6 +42,7 @@ public partial class ToolRuleTests
     [InlineData("Lumi.App")]
     [InlineData("Lumi.Web")]
     [InlineData("Lumi.Browser")]
+    [InlineData("Lumi.Outlook")]
     public void Other_assemblies_implement_no_tools(string name)
     {
         Assert.Empty(ConcreteTools(Assembly.Load(name)).Select(t => t.FullName));

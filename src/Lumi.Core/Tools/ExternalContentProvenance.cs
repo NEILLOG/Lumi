@@ -11,7 +11,7 @@ namespace Lumi.Core.Tools;
 public static class ExternalContentProvenance
 {
     /// <summary>確認卡上的警告文字（和 M17 的網址警告並列，網址警告在前）。</summary>
-    public const string Warning = "這則對話讀過網頁或外部工具的內容。如果這段指令不是你要求的，請按「拒絕」。";
+    public const string Warning = "這則對話讀過網頁、信件或外部工具的內容。如果這個操作不是你要求的，請按「拒絕」。";
 
     /// <summary>
     /// 這則對話有沒有用過外部工具。來源是歷史裡助理訊息的工具呼叫名稱，加上這一輪已經執行過的工具名稱
@@ -36,9 +36,10 @@ public static class ExternalContentProvenance
         return executedThisRound.Any(name => IsExternal(name, isMcpTool));
     }
 
-    /// <summary>這個工具會讀取外部內容：網頁、RSS、HTTP、下載、瀏覽器，或 MCP 工具。</summary>
+    /// <summary>這個工具會讀取外部內容：網頁、RSS、HTTP、下載、瀏覽器、Outlook 的信件與行程，或 MCP 工具。</summary>
     public static bool IsExternal(string toolName, Func<string, bool> isMcpTool) =>
         toolName is "web_fetch" or "web_crawl" or "web_links" or "rss_read" or "http_request" or "http_send" or "download_file"
+        or "outlook_mail_search" or "outlook_mail_read" or "outlook_calendar_list"
         || toolName.StartsWith("browser_", StringComparison.Ordinal)
         || isMcpTool(toolName);
 }

@@ -59,6 +59,7 @@ public class TarotLibraryRuleTests
     [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.Web")]
     [InlineData("Lumi.Browser")]
+    [InlineData("Lumi.Outlook")]
     [InlineData("Lumi.App")]
     public void Other_assemblies_do_not_reference_TarotMcp_core(string name)
     {

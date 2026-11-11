@@ -35,6 +35,7 @@ public class DependencyRuleTests
     [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.Web")]
     [InlineData("Lumi.Browser")]
+    [InlineData("Lumi.Outlook")]
     [InlineData("Lumi.Tarot")]
     public void Library_ReferencesOnlyCoreAmongLumiProjects(string name)
     {
@@ -55,6 +56,7 @@ public class DependencyRuleTests
     [InlineData("Lumi.Mcp")]
     [InlineData("Lumi.Web")]
     [InlineData("Lumi.Browser")]
+    [InlineData("Lumi.Outlook")]
     [InlineData("Lumi.Tarot")]
     public void Library_DoesNotReferenceAvalonia(string name)
     {

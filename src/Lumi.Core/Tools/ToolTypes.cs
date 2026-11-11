@@ -59,6 +59,7 @@ public sealed record ToolDescriptor(
 /// <paramref name="Skill"/>：儲存技能的確認內容（M29），有值時確認區換成技能確認卡。
 /// <paramref name="Command"/>：執行指令的確認內容（M31），有值時確認區換成指令確認卡。
 /// <paramref name="Rejection"/>：有值＝不詢問、不執行，直接把這段錯誤回給模型（M31 D11：被擋掉的指令）。
+/// <paramref name="Warnings"/>：工具自己要加在確認區的警告（例如收件人不在自己的網域），接在網址與外部內容警告之後。
 /// </summary>
 public sealed record ToolPreview(
     string? Target,
@@ -67,7 +68,8 @@ public sealed record ToolPreview(
     ScheduleProposal? Schedule = null,
     SkillProposal? Skill = null,
     Commands.CommandProposal? Command = null,
-    string? Rejection = null)
+    string? Rejection = null,
+    IReadOnlyList<string>? Warnings = null)
 {
     public static readonly ToolPreview None = new(null, null);
 }

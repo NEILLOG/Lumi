@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Lumi.Outlook</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lumi.Outlook.Tests" />
+  </ItemGroup>
+
+  <!-- Outlook 的 COM 型別只能出現在這個專案（架構測試 OutlookLibraryRuleTests 守住）。型別直接嵌入，輸出沒有這個 DLL -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Office.Interop.Outlook" EmbedInteropTypes="true" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
+  </ItemGroup>
+
+</Project>

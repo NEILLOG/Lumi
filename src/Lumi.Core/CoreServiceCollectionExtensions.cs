@@ -61,6 +61,7 @@ public static class CoreServiceCollectionExtensions
         services.TryAddSingleton(new MemoryOptions());
         services.TryAddSingleton<IMemoryStore, InMemoryMemoryStore>();
         services.TryAddSingleton<ISkillStore, InMemorySkillStore>();   // M29：App 換成 FileSkillStore
+        services.TryAddSingleton<Lumi.Core.Outlook.IOutlookClient, Lumi.Core.Outlook.NullOutlookClient>();   // 沒有 Outlook 時的預設；Lumi.Outlook 的 AddLumiOutlook 在 Windows 會取代
         services.TryAddSingleton<Lumi.Core.Browser.IBrowserSessions, Lumi.Core.Browser.NullBrowserSessions>();   // 沒有瀏覽器時的預設；Lumi.Browser 的 AddLumiBrowser 會取代（M18）
         services.TryAddSingleton<IMcpToolSource, EmptyMcpToolSource>();   // 沒有 MCP 時的預設；Lumi.Mcp 的 AddLumiMcp 會取代（M16）
 

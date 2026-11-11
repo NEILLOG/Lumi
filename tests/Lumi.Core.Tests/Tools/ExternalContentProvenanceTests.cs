@@ -21,6 +21,9 @@ public class ExternalContentProvenanceTests
     [InlineData("download_file")]
     [InlineData("browser_snapshot")]
     [InlineData("browser_open")]
+    [InlineData("outlook_mail_search")]
+    [InlineData("outlook_mail_read")]
+    [InlineData("outlook_calendar_list")]
     public void Web_and_browser_tools_are_external(string name)
     {
         Assert.True(ExternalContentProvenance.IsExternal(name, NoMcp));
@@ -30,6 +33,8 @@ public class ExternalContentProvenanceTests
     [InlineData("read_file")]
     [InlineData("run_command")]
     [InlineData("write_file")]
+    [InlineData("outlook_mail_draft")]
+    [InlineData("outlook_mail_send_to_self")]
     public void Local_tools_are_not_external(string name)
     {
         Assert.False(ExternalContentProvenance.IsExternal(name, NoMcp));
