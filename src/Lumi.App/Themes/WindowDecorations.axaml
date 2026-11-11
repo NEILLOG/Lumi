@@ -1,0 +1,21 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Avalonia 12 起，Windows 擴展標題列時系統按鈕改由 Avalonia 自己畫（Fluent 的 WindowDrawnDecorations），
+       還會在上面疊一行視窗標題與全螢幕按鈕，壓在自訂標題列上（M33-03）。
+       自訂標題列已經有品牌：拿掉標題文字與全螢幕按鈕，只留最小化、最大化、關閉，並撐滿標題列高度。
+       寬度要和 TitleBarLayout.WindowsCaptionButtonsWidth 對得上。macOS 用系統的紅綠燈，不會套到這裡 -->
+  <ControlTheme x:Key="LumiWindowDecorations" TargetType="WindowDrawnDecorations"
+                BasedOn="{StaticResource {x:Type WindowDrawnDecorations}}">
+    <!-- 範本裡的 IsVisible 是 TemplateBinding，優先權比一般樣式高；帶 pseudo-class 條件的樣式才蓋得過（Fluent 的 :fullscreen 也這樣寫） -->
+    <Style Selector="^:not(:fullscreen) /template/ Panel#PART_TitleTextPanel">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^ /template/ Button#PART_FullScreenButton">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^ /template/ StackPanel#PART_OverlayPanel > Button">
+      <Setter Property="Height" Value="NaN" />
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

@@ -61,6 +61,8 @@ public class SettingsWindowShellTests
         var window = Show(host);
 
         Assert.True(window.ExtendClientAreaToDecorationsHint);
+        // M33-03：Windows 上 Avalonia 自己畫的系統按鈕不疊標題文字（見 CustomTitleBarTests）
+        Assert.Same(Avalonia.Application.Current!.FindResource("LumiWindowDecorations"), window.WindowDecorationsTheme);
         Assert.True(window.Width >= 900);
         Assert.True(window.Height >= 640);
         Assert.Equal(720, window.MinWidth);

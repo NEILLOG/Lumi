@@ -16,7 +16,8 @@
         MinWidth="500" MinHeight="420"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="40">
+        ExtendClientAreaTitleBarHeightHint="40"
+        WindowDecorationsTheme="{StaticResource LumiWindowDecorations}">
 
   <Window.Styles>
     <!-- 歷史抽屜用到的共用樣式；工具列、訊息流、輸入區各自在自己的 UserControl 裡載入 -->

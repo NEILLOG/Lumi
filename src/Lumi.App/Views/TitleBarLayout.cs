@@ -18,8 +18,11 @@ public sealed record TitleBarLayout(double LeftInset, double RightInset, bool Sh
     /// <summary>macOS 紅綠燈佔用的寬度（含與品牌的間距）。</summary>
     public const double MacTrafficLightsWidth = 80;
 
-    /// <summary>Windows 系統按鈕（最小化、最大化、關閉各 46）加上與分隔線的間距 8。</summary>
-    public const double WindowsCaptionButtonsWidth = 138 + 8;
+    /// <summary>
+    /// Windows 系統按鈕（最小化、最大化、關閉各 45、彼此間距 2，Avalonia 12 自己畫的，見 Themes/WindowDecorations.axaml）
+    /// 加上與分隔線的間距 8。
+    /// </summary>
+    public const double WindowsCaptionButtonsWidth = 3 * 45 + 2 * 2 + 8;
 
     private const double Gutter = 16;
 

@@ -11,6 +11,7 @@
         <ResourceInclude Source="avares://Lumi.App/Themes/Typography.axaml" />
         <ResourceInclude Source="avares://Lumi.App/Themes/Metrics.axaml" />
         <ResourceInclude Source="avares://Lumi.App/Themes/Icons.axaml" />
+        <ResourceInclude Source="avares://Lumi.App/Themes/WindowDecorations.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

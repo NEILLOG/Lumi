@@ -1,5 +1,7 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Chrome;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -69,6 +71,24 @@ public class CustomTitleBarTests
         return window.InputHitTest(point);
     }
 
+    /// <summary>
+    /// headless 平台不會要求 Avalonia 自己畫標題列。照 Win32 擴展標題列時的做法（只要求標題列、套視窗的
+    /// WindowDecorationsTheme、高度用 ExtendClientAreaTitleBarHeightHint）直接叫內部的 TopLevelHost，回傳它（視覺樹的根）。
+    /// </summary>
+    private static Visual ShowWindowsDrawnDecorations(Window window)
+    {
+        var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        var host = (Visual)typeof(TopLevel).GetProperty("TopLevelHost", flags)!.GetValue(window)!;
+        var update = host.GetType().GetMethod("UpdateDrawnDecorations", flags)!;
+        var partsType = Nullable.GetUnderlyingType(update.GetParameters()[0].ParameterType)!;
+        update.Invoke(host, [Enum.Parse(partsType, "TitleBar"), window.WindowState, window.WindowDecorationsTheme]);
+        var decorations = (WindowDrawnDecorations)host.GetType().GetProperty("Decorations", flags)!.GetValue(host)!;
+        typeof(WindowDrawnDecorations).GetProperty("TitleBarHeightOverride", flags)!.SetValue(decorations, window.ExtendClientAreaTitleBarHeightHint);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        return host;
+    }
+
     private static Rect BoundsIn(Visual target, Visual root) =>
         new(target.TranslatePoint(default, root)!.Value, target.Bounds.Size);
 
@@ -84,7 +104,7 @@ public class CustomTitleBarTests
         Assert.True(layout.ShowDivider);
         Assert.Equal(16, layout.LeftInset);
         Assert.Equal(TitleBarLayout.WindowsCaptionButtonsWidth, layout.RightInset);
-        Assert.True(layout.RightInset >= 138);   // 三顆各 46
+        Assert.True(layout.RightInset >= 3 * 45);   // 三顆各 45
     }
 
     [Fact]
@@ -151,6 +171,31 @@ public class CustomTitleBarTests
         // 為系統按鈕保留的區域沒有任何互動控制項
         var reserved = new Point(window.Bounds.Width - TitleBarLayout.WindowsCaptionButtonsWidth / 2, TitleBarLayout.Height / 2);
         Assert.False(CustomTitleBar.IsOnInteractiveControl(HitTest(window, reserved)));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Windows_TheDrawnSystemButtons_FitTheReservedArea_WithoutTheWindowTitleOrFullScreen()
+    {
+        // M33-03：Avalonia 12 在 Windows 自己畫系統按鈕，預設還會疊一行視窗標題（壓在品牌上）和全螢幕按鈕（壓在齒輪上）
+        var (window, bar) = Show(new Rig(), TitleBarPlatform.Windows);
+        Assert.Same(Avalonia.Application.Current!.FindResource("LumiWindowDecorations"), window.WindowDecorationsTheme);
+        var host = ShowWindowsDrawnDecorations(window);
+        var drawn = host.GetVisualDescendants().ToList();
+
+        Assert.False(drawn.OfType<Panel>().Single(p => p.Name == "PART_TitleTextPanel").IsEffectivelyVisible);
+        Assert.False(drawn.OfType<Button>().Single(b => b.Name == "PART_FullScreenButton").IsEffectivelyVisible);
+        var captionButtons = drawn.OfType<Button>().Where(b => b.Name is "PART_MinimizeButton" or "PART_MaximizeButton" or "PART_CloseButton").ToList();
+        Assert.Equal(3, captionButtons.Count);
+        Assert.Contains(captionButtons, b => b.Name == "PART_CloseButton" && b.IsEffectivelyVisible);
+        var dividerRight = BoundsIn(bar.FindByName<Border>("Divider"), host).Right;
+        foreach (var button in captionButtons.Where(b => b.IsEffectivelyVisible))
+        {
+            var bounds = BoundsIn(button, host);
+            Assert.True(bounds.Left >= dividerRight + 8, $"{button.Name} 從 {bounds.Left} 開始，壓到分隔線（{dividerRight}）");
+            Assert.True(bounds.Right <= host.Bounds.Width + 0.5, $"{button.Name} 超出視窗");
+            Assert.Equal(TitleBarLayout.Height, bounds.Height);   // 撐滿標題列
+        }
         window.Close();
     }
 

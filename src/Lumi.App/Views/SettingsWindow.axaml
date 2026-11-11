@@ -11,7 +11,8 @@
         Width="1040" Height="760" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="40">
+        ExtendClientAreaTitleBarHeightHint="40"
+        WindowDecorationsTheme="{StaticResource LumiWindowDecorations}">
 
   <Window.Styles>
     <Style Selector="TextBlock.muted">
