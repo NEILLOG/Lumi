@@ -525,6 +525,9 @@ public sealed class ConversationService
                             warnings.Add(NetworkUrlPolicy.Warning(urlCheck, preview.Url!));
                         if (externalWarning)
                             warnings.Add(ExternalContentProvenance.Warning);
+                        // 工具自己的警告（例如收件人不在自己的網域）接在最後
+                        if (preview.Warnings is { } toolWarnings)
+                            warnings.AddRange(toolWarnings);
                         var approvalRequest = new ToolApprovalRequest(use.Id, descriptor.Name, descriptor.DisplayName, descriptor.Permission, preview, use.InputJson)
                         {
                             Warnings = warnings,
