@@ -118,11 +118,24 @@ internal sealed partial class OutlookClient
             throw new OutlookException("這種寄法不支援全部回覆，請改用回覆並列出收件人。");
 
         var item = BuildMail(call, conversationId, request, isSend: true);
+        try
+        {
+            // 實際收件人必須剛好是要求的那些（使用者在確認卡上看到的）；對不上就不寄
+            var expected = request.To.Count + request.Cc.Count + request.Bcc.Count;
+            var recipients = call.Scope.Track(item.Recipients);
+            if (expected == 0 || recipients.Count != expected)
+                throw new OutlookException("收件人和確認的內容對不上，沒有寄出。");
 
-        // Send 之後這個物件就不能再用，所以先記下主旨與實際收件人
-        var result = ResultOf(call, item);
-        item.Send();
-        return result;
+            // Send 之後這個物件就不能再用，所以先記下主旨與實際收件人
+            var result = ResultOf(call, item);
+            item.Send();
+            return result;
+        }
+        catch
+        {
+            Discard(item);
+            throw;
+        }
     }
 
     /// <summary>
@@ -144,6 +157,11 @@ internal sealed partial class OutlookClient
             item.BodyFormat = Interop.OlBodyFormat.olFormatPlain;
             item.Body = body;
             AddAttachments(call, item, attachments);
+
+            // 收件人只能有自己一個
+            if (recipients.Count != 1)
+                throw new OutlookException(NoOwnAddress);
+            item.Send();
         }
         catch
         {
@@ -151,7 +169,6 @@ internal sealed partial class OutlookClient
             throw;
         }
 
-        item.Send();
         return address;
     }
 

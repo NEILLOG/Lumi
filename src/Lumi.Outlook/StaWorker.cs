@@ -10,8 +10,7 @@ namespace Lumi.Outlook;
 /// </summary>
 internal sealed class StaWorker : IDisposable
 {
-    // 和 OutlookErrors 的同名訊息一樣；合併後可以改用 OutlookErrors 的常數
-    private const string NotResponding = "Outlook 沒有回應，請看一下 Outlook 是不是跳出了視窗。";
+    private const string NotResponding = OutlookErrors.NotResponding;
 
     private readonly BlockingCollection<Job> _queue = new();
     private readonly object _gate = new();

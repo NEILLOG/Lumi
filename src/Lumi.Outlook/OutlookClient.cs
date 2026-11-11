@@ -18,7 +18,7 @@ namespace Lumi.Outlook;
 internal sealed partial class OutlookClient : IOutlookClient, IDisposable
 {
     private const string ProgId = "Outlook.Application";
-    private const string HandleExpired = "這個代號已經失效，請重新搜尋。";
+    private const string HandleExpired = OutlookErrors.HandleExpired;
     private const string NoOwnAddress = "讀不到你自己的信箱地址，沒有寄出。";
     private const string CreateFailed = "Outlook 無法建立這個項目。";
 
