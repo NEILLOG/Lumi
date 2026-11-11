@@ -554,6 +554,126 @@ public sealed class ToolsViewModelTests
         Assert.False(vm.CanResetToDefaults);
     }
 
+    // ---- 30E：不可用的工具、群組開關只確認一次 ----
+
+    private static readonly ToolAvailability NotReady = new(ToolAvailabilityKind.Unavailable, "請先開啟 Outlook");
+
+    private ToolsViewModel ViewModelWith(params ITool[] tools) =>
+        new(new FakeToolCatalog(tools), _catalog, _confirm, _mcpSource, new SyncUiDispatcher());
+
+    /// <summary>實作 <see cref="IConditionalTool"/> 的假工具：能不能用由建立時給的結果決定。</summary>
+    private sealed class ConditionalCatalogTool(FakeCatalogTool inner, ToolAvailability availability) : ITool, IConditionalTool
+    {
+        public ToolDescriptor Descriptor => inner.Descriptor;
+
+        public JsonNode InputSchema => inner.InputSchema;
+
+        public ToolPreview Preview(string argumentsJson, ToolContext context) => inner.Preview(argumentsJson, context);
+
+        public Task<ToolResult> ExecuteAsync(string argumentsJson, ToolContext context, CancellationToken ct) =>
+            inner.ExecuteAsync(argumentsJson, context, ct);
+
+        public ToolAvailability CheckAvailability() => availability;
+    }
+
+    private static ITool Conditional(string name, ToolAvailability availability, string group = ToolGroups.Notes, string? optInWarning = null) =>
+        new ConditionalCatalogTool(FakeCatalogTool.Make(name, name, ToolPermission.Write, group, optInWarning: optInWarning), availability);
+
+    [Fact]
+    public void Unavailable_tool_switch_is_disabled_with_reason()
+    {
+        var vm = ViewModelWith(Conditional("note_sync", NotReady));
+
+        var item = vm.Groups.Single().Items.Single();
+        Assert.False(item.IsAvailable);
+        Assert.Equal("請先開啟 Outlook", item.UnavailableReason);
+        Assert.False(item.CanSwitch);
+        Assert.False(item.IsEnabled);   // 設定裡是開的，仍顯示成關
+    }
+
+    [Fact]
+    public void Fully_unavailable_group_shows_reason_once()
+    {
+        var vm = ViewModelWith(Conditional("note_sync", NotReady), Conditional("note_export", NotReady));
+
+        var group = vm.Groups.Single();
+        Assert.False(group.IsAvailable);
+        Assert.True(group.HasUnavailableReason);
+        Assert.Equal("請先開啟 Outlook", group.UnavailableReason);
+        Assert.False(group.CanSwitch);
+        Assert.All(group.Items, i => Assert.False(i.HasUnavailableReason));
+    }
+
+    [Fact]
+    public void Partially_unavailable_group_shows_reason_on_rows()
+    {
+        var vm = ViewModelWith(Conditional("note_sync", NotReady), Conditional("note_add", ToolAvailability.Yes));
+
+        var group = vm.Groups.Single();
+        Assert.True(group.IsAvailable);
+        Assert.False(group.HasUnavailableReason);
+        Assert.True(group.CanSwitch);
+        Assert.True(ItemIn(vm, "note_sync").HasUnavailableReason);
+        Assert.False(ItemIn(vm, "note_add").HasUnavailableReason);
+        Assert.True(ItemIn(vm, "note_add").CanSwitch);
+    }
+
+    [Fact]
+    public void Group_toggle_asks_once_for_same_warning()
+    {
+        var vm = ViewModelWith(
+            Conditional("cmd_a", ToolAvailability.Yes, ToolGroups.Commands, OptInWarning),
+            Conditional("cmd_b", ToolAvailability.Yes, ToolGroups.Commands, OptInWarning),
+            Conditional("cmd_c", ToolAvailability.Yes, ToolGroups.Commands, OptInWarning));
+
+        vm.Groups.Single().IsAllEnabled = true;
+
+        Assert.Single(_confirm.Asked);
+        Assert.Equal(["cmd_a", "cmd_b", "cmd_c"], Saved.Enabled.Order(StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    public void Group_toggle_asks_for_each_distinct_warning()
+    {
+        var vm = ViewModelWith(
+            Conditional("cmd_a", ToolAvailability.Yes, ToolGroups.Commands, "警告甲"),
+            Conditional("cmd_b", ToolAvailability.Yes, ToolGroups.Commands, "警告乙"));
+
+        vm.Groups.Single().IsAllEnabled = true;
+
+        Assert.Equal(["警告甲", "警告乙"], _confirm.Asked.Select(a => a.Message).ToArray());
+        Assert.Equal(["cmd_a", "cmd_b"], Saved.Enabled.Order(StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    public void Group_toggle_cancel_enables_nothing()
+    {
+        var vm = ViewModelWith(
+            Conditional("cmd_a", ToolAvailability.Yes, ToolGroups.Commands, "警告甲"),
+            Conditional("cmd_b", ToolAvailability.Yes, ToolGroups.Commands, "警告乙"));
+        _confirm.Answer = false;
+
+        vm.Groups.Single().IsAllEnabled = true;
+
+        Assert.Single(_confirm.Asked);
+        Assert.Empty(_catalog.ToolSaves);
+        Assert.Empty(Saved.Enabled);
+        Assert.All(vm.Groups.Single().Items, i => Assert.False(i.IsEnabled));
+    }
+
+    [Fact]
+    public void Group_toggle_skips_unavailable_tools()
+    {
+        var vm = ViewModelWith(
+            Conditional("cmd_a", ToolAvailability.Yes, ToolGroups.Commands, OptInWarning),
+            Conditional("cmd_b", NotReady, ToolGroups.Commands, OptInWarning));
+
+        vm.Groups.Single().IsAllEnabled = true;
+
+        Assert.Equal(["cmd_a"], Saved.Enabled);
+        Assert.Single(_confirm.Asked);
+    }
+
     /// <summary>寫入工具設定時丟出 IOException 的目錄；讀取的成員回固定的設定。其餘成員這個測試用不到。</summary>
     private sealed class SaveFailingCatalog : IModelCatalog
     {

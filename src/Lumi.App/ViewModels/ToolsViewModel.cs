@@ -47,11 +47,15 @@ public sealed class ToolItemViewModel
     private readonly Func<ToolItemViewModel, ToolPermission, Task> _setPermission;
     private readonly ToolPermission _permission;
 
-    internal ToolItemViewModel(ITool tool, bool isEnabled, bool alwaysAllow,
+    internal ToolItemViewModel(ITool tool, ToolAvailability availability, bool groupUnavailable, bool isEnabled, bool alwaysAllow,
         Func<ToolItemViewModel, bool, Task> setEnabled, Func<ToolItemViewModel, bool, Task> setAlwaysAllow,
         Func<ToolItemViewModel, ToolPermission, Task> setPermission)
     {
         var descriptor = tool.Descriptor;
+        IsAvailable = availability.Kind == ToolAvailabilityKind.Available;
+        UnavailableReason = IsAvailable ? null : availability.Reason;
+        // 全部不可用時原因只寫在群組標題下方一次，這一列就不再重複
+        HasUnavailableReason = !IsAvailable && !groupUnavailable && UnavailableReason is not null;
         Name = descriptor.Name;
         DisplayName = descriptor.DisplayName;
         Summary = descriptor.Summary;
@@ -99,6 +103,18 @@ public sealed class ToolItemViewModel
 
     /// <summary>MCP 工具（16G）：才顯示權限等級的下拉選單與伺服器的提示。</summary>
     public bool IsMcp { get; }
+
+    /// <summary>這台電腦現在能不能用這個工具（<see cref="IConditionalTool"/>）。不能用時開關停用、顯示成關。</summary>
+    public bool IsAvailable { get; }
+
+    /// <summary>不能用的原因；能用時是 null。</summary>
+    public string? UnavailableReason { get; }
+
+    /// <summary>這一列要不要顯示原因：不能用，而且群組不是全部不能用（全部不能用時群組標題下方已經寫過）。</summary>
+    public bool HasUnavailableReason { get; }
+
+    /// <summary>開關能不能按：能關的工具，而且目前可用。</summary>
+    public bool CanSwitch => CanToggle && IsAvailable;
 
     /// <summary>伺服器標示的說明（「伺服器標示：唯讀」等）；沒有提示或不是 MCP 工具時是 null。</summary>
     public string? HintText { get; }
@@ -164,13 +180,13 @@ public sealed class ToolItemViewModel
         }
     }
 
-    /// <summary>勾選＝啟用。不能關的工具固定是 true。改變時立即儲存。</summary>
+    /// <summary>勾選＝啟用。不能關的工具固定是 true；不能用的工具顯示成關（即使設定裡是開的）。改變時立即儲存。</summary>
     public bool IsEnabled
     {
-        get => _isEnabled;
+        get => _isEnabled && IsAvailable;
         set
         {
-            if (!CanToggle || value == _isEnabled)
+            if (!CanSwitch || value == _isEnabled)
                 return;
             _ = _setEnabled(this, value);
         }
@@ -226,6 +242,18 @@ public sealed class ToolGroupViewModel
     /// <summary>群組裡至少有一個能關的工具；都不能關時群組勾選框停用。</summary>
     public bool CanToggle => Items.Any(i => i.CanToggle);
 
+    /// <summary>群組裡至少有一個工具現在可用。</summary>
+    public bool IsAvailable => Items.Any(i => i.IsAvailable);
+
+    /// <summary>全部不可用時的原因（取第一個有原因的工具）；群組可用時是 null。標題下方只顯示這一次。</summary>
+    public string? UnavailableReason =>
+        IsAvailable ? null : Items.Select(i => i.UnavailableReason).FirstOrDefault(r => r is not null);
+
+    public bool HasUnavailableReason => UnavailableReason is not null;
+
+    /// <summary>群組勾選框能不能按：有能關的工具，而且群組可用。</summary>
+    public bool CanSwitch => CanToggle && IsAvailable;
+
     /// <summary>只有記憶群組、記憶在「記憶」頁關閉時有說明；其餘是 null。</summary>
     public string? MemoryOffNote => Id == ToolGroups.Memory && !_memoryEnabled ? Strings.Tools_MemoryOff : null;
 
@@ -242,7 +270,7 @@ public sealed class ToolGroupViewModel
         }
         set
         {
-            if (!CanToggle)
+            if (!CanSwitch)
                 return;
             // 依「點之前」的狀態決定：勾 → 全部關閉；空或不確定 → 全部啟用（控制項傳進來的值不可靠，三態的順序不一定一樣）
             var enableAll = IsAllEnabled != true;
@@ -336,14 +364,17 @@ public sealed partial class ToolsViewModel : ObservableObject
         Groups.Clear();
         foreach (var group in _tools.ListGroups())
         {
-            var items = group.Tools.Select(tool =>
+            var availability = group.Tools.Select(AvailabilityOf).ToList();
+            // 全部不可用：原因只在群組標題下方顯示一次，各列不再重複
+            var groupUnavailable = availability.All(a => a.Kind != ToolAvailabilityKind.Available);
+            var items = group.Tools.Select((tool, index) =>
             {
                 var descriptor = tool.Descriptor;
                 // 預設關閉的工具只看 Enabled（M31 D13）；不能關的工具一律啟用，不管設定檔寫了什麼；MCP 工具沒有列在設定裡時也是啟用（M16 D6）
                 var enabled = descriptor.OptInWarning is not null
                     ? enabledOptIn.Contains(descriptor.Name)
                     : !descriptor.CanDisable || !disabled.Contains(descriptor.Name);
-                return new ToolItemViewModel(tool, enabled, alwaysAllow.Contains(descriptor.Name),
+                return new ToolItemViewModel(tool, availability[index], groupUnavailable, enabled, alwaysAllow.Contains(descriptor.Name),
                     (item, value) => SetEnabledAsync([item.Name], value),
                     SetAlwaysAllowAsync,
                     SetPermissionAsync);
@@ -421,8 +452,8 @@ public sealed partial class ToolsViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 開關工具或群組（M31 D13、設計 7）。要開啟的名稱裡有預設關閉、目前又沒開的工具，就逐一先確認；
-    /// 任何一個取消，整次變更都不存，畫面重新載入。關閉不需確認，立即生效。
+    /// 開關工具或群組（M31 D13、設計 7）。要開啟的名稱裡有預設關閉、目前又沒開的工具，就確認；同一段警告文字只確認一次（D12），
+    /// 任何一次取消，整次變更都不存，畫面重新載入。要開啟時不能用的工具直接跳過，不寫進 Enabled。關閉不需確認，立即生效。
     /// </summary>
     private async Task SetEnabledAsync(IEnumerable<string> names, bool enabled)
     {
@@ -430,10 +461,15 @@ public sealed partial class ToolsViewModel : ObservableObject
         var optIn = OptInWarnings();
         if (enabled)
         {
+            var unavailable = UnavailableNames();
+            nameList = nameList.Where(n => !unavailable.Contains(n)).ToList();
+
             var current = _catalog.Current.Tools.Enabled;
+            // 群組裡的工具常共用同一段警告，一段文字只問一次
+            var asked = new HashSet<string>(StringComparer.Ordinal);
             foreach (var name in nameList)
             {
-                if (!optIn.TryGetValue(name, out var warning) || current.Contains(name))
+                if (!optIn.TryGetValue(name, out var warning) || current.Contains(name) || !asked.Add(warning))
                     continue;
                 if (!await _confirm.ConfirmDestructiveAsync(warning, Strings.Tools_OptInConfirmButton))
                 {
@@ -444,6 +480,18 @@ public sealed partial class ToolsViewModel : ObservableObject
         }
         await ChangeAsync(tools => WithEnabled(tools, nameList, enabled, optIn.Keys.ToHashSet(StringComparer.Ordinal)));
     }
+
+    /// <summary>現在不能用的工具名稱（<see cref="IConditionalTool"/>）。</summary>
+    private HashSet<string> UnavailableNames() =>
+        _tools.ListGroups()
+            .SelectMany(g => g.Tools)
+            .Where(t => AvailabilityOf(t).Kind != ToolAvailabilityKind.Available)
+            .Select(t => t.Descriptor.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>工具現在能不能用；沒有實作 <see cref="IConditionalTool"/> 的工具一律可用。</summary>
+    private static ToolAvailability AvailabilityOf(ITool tool) =>
+        tool is IConditionalTool conditional ? conditional.CheckAvailability() : ToolAvailability.Yes;
 
     /// <summary>預設關閉的工具：工具名稱對應到開啟前的確認文字（<see cref="ToolDescriptor.OptInWarning"/>）。</summary>
     private Dictionary<string, string> OptInWarnings() =>
