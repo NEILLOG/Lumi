@@ -41,6 +41,7 @@ public partial class WorkbenchViewModel
         if (conversationId != CurrentConversationId)
             return;
         ErrorMessage = null;
+        IsStoppedWithoutReply = false;
         await ReloadMessagesAsync();
         NotifySpriteConversation();
         await History.RefreshAsync(CurrentConversationId);

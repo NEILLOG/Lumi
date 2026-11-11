@@ -398,6 +398,14 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
 
     public bool HasError => ErrorMessage is not null;
 
+    /// <summary>
+    /// 回應還沒有任何內容就被停止（FX-07）：空的回答不存檔，畫面上只剩使用者的訊息，要顯示「你已停止這次回應」與「重試」。
+    /// 只在畫面上，重開對話後不會出現。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RetryCommand))]
+    private bool _isStoppedWithoutReply;
+
     private int InputTokensTotal => LastUsage is { } u ? u.InputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens : 0;
 
     /// <summary>最後一次回應用掉的上下文：輸入（含快取）＋輸出。</summary>
@@ -456,7 +464,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         return RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
     }
 
-    private bool CanRetry() => !IsResponding && !IsCompacting && HasError;
+    private bool CanRetry() => !IsResponding && !IsCompacting && (HasError || IsStoppedWithoutReply);
 
     /// <summary>「換模型重試」：模型已經切好了，接著重送（只有最後一則是使用者訊息時才有東西可重送）。</summary>
     private Task RetryAfterModelSwitchAsync() => RetryCommand.CanExecute(null) ? RetryAsync() : Task.CompletedTask;
@@ -589,6 +597,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         await DismissVisibleHintsAsync();   // 切換或新建對話：目前的提示收起（記為 Dismissed）
         Title = conversation.Title;
         ErrorMessage = null;
+        IsStoppedWithoutReply = false;
         await ReloadMessagesAsync();
         await RefreshCostAsync();
         NotifySpriteConversation();   // 小精靈的專屬對話：「⋯」換成「清除內容」（M22）
@@ -949,6 +958,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     {
         _inCompaction = false;
         ErrorMessage = null;
+        IsStoppedWithoutReply = false;
         IsResponding = true;
 
         if (args.Kind == ChatRunKind.Regenerate)
@@ -1118,6 +1128,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         // 使用者停止：只放附件的訊息（最後一則）標「你已停止這次回應」（ui-spec 3.1）
         if (result.Cancelled && Messages.LastOrDefault() is { IsAttachmentHost: true } stoppedHost)
             stoppedHost.IsStopped = true;
+        // 還沒有任何內容就停止：最後一則是使用者的訊息（FX-07）
+        if (result.Cancelled && Messages.LastOrDefault() is { IsUser: true })
+            IsStoppedWithoutReply = true;
         OnCompactionRunFinished(args);
 
         // 用量：沒有定稿的那次請求不計；失敗或中止時以資料庫實際存下來的為準重算

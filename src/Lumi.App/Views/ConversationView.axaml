@@ -310,6 +310,13 @@
           </Grid>
         </Border>
 
+        <!-- 停止列（FX-07）：回應還沒有任何內容就按了停止，空的回答不存檔；不是錯誤，用一般的淡色文字，不用警告色 -->
+        <Grid x:Name="StoppedRow" IsVisible="{Binding IsStoppedWithoutReply}" ColumnDefinitions="*,Auto">
+          <TextBlock Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" VerticalAlignment="Center" />
+          <Button x:Name="StoppedRetryButton" Grid.Column="1" Classes="secondary" Margin="12,0,0,0" VerticalAlignment="Center"
+                  Content="{x:Static res:Strings.Workbench_Retry}" Command="{Binding RetryCommand}" />
+        </Grid>
+
         <!-- 錯誤列：原因 + 對話內容已保留 + 重試（ui-spec 第 3 節） -->
         <Border IsVisible="{Binding HasError}" Padding="16,12" CornerRadius="10" BorderThickness="1"
                 Background="{DynamicResource LumiWarningBackgroundBrush}"

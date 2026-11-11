@@ -11,7 +11,7 @@ internal sealed class ScriptedChatProvider : IChatProvider
     public ScriptedChatProvider(params ChatEvent[] events) => _events = events;
 
     /// <summary>回放幾個事件之後就停住，等待取消；null 表示全部回放。</summary>
-    public int? HangAfter { get; init; }
+    public int? HangAfter { get; set; }
 
     public List<ChatRequest> Requests { get; } = [];
 

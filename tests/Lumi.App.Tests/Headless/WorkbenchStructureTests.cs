@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
@@ -28,6 +29,26 @@ public class WorkbenchStructureTests
     }
 
     private static WorkbenchWindow Show() => ShowWithVm().Window;
+
+    [AvaloniaFact]
+    public void TheStoppedRow_IsShownOnlyAfterStoppingWithoutAReply_AndItsButtonRetries()
+    {
+        // FX-07：停止列是一般的淡色文字加「重試」，不是錯誤列
+        var (window, vm) = ShowWithVm();
+        var row = window.FindByName<Grid>("StoppedRow");
+        var retry = window.FindByName<Button>("StoppedRetryButton");
+        Assert.False(row.IsEffectivelyVisible);
+
+        vm.IsStoppedWithoutReply = true;
+        window.UpdateLayout();
+
+        Assert.True(row.IsEffectivelyVisible);
+        Assert.Contains(Strings.Workbench_Stopped, row.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Select(t => t.Text));
+        Assert.Same(vm.RetryCommand, retry.Command);
+        Assert.Equal(Strings.Workbench_Retry, retry.Content);
+        Assert.Contains("secondary", retry.Classes);
+        window.Close();
+    }
 
     [AvaloniaFact]
     public async Task TheMessageActions_AreBoundToTheWorkbenchCommands()

@@ -164,6 +164,50 @@ public class WorkbenchViewModelTests
         Assert.Single(vm.Messages);
     }
 
+    [Fact]
+    public async Task Stop_BeforeAnyText_ShowsTheStoppedRow_AndRetryAsksAgain()
+    {
+        // FX-07：空的回答不存檔，畫面上只剩使用者的訊息；要讓人看得出是停止了，並且可以重試
+        var provider = new ScriptedChatProvider(new TextDelta("答"), Reply("答")) { HangAfter = 0 };
+        var (vm, _) = Create(provider);
+        await vm.InitializeAsync();
+        vm.InputText = "問";
+
+        var sending = vm.SendCommand.ExecuteAsync(null);
+        await WaitUntil(() => vm.IsResponding && vm.Messages.Count == 2);
+        vm.StopCommand.Execute(null);
+        await sending;
+
+        Assert.True(vm.IsStoppedWithoutReply);
+        Assert.False(vm.HasError);   // 不是錯誤
+        Assert.True(vm.RetryCommand.CanExecute(null));
+
+        provider.HangAfter = null;
+        await vm.RetryCommand.ExecuteAsync(null);
+
+        Assert.False(vm.IsStoppedWithoutReply);
+        Assert.Equal(2, provider.Requests.Count);
+        Assert.Single(vm.Messages, m => m.IsUser);   // 沒有新增使用者訊息
+        Assert.Equal("答", vm.Messages.Last().Text);
+    }
+
+    [Fact]
+    public async Task Stop_AfterSomeText_DoesNotShowTheStoppedRow()
+    {
+        var provider = new ScriptedChatProvider(new TextDelta("說到一半")) { HangAfter = 1 };
+        var (vm, _) = Create(provider);
+        await vm.InitializeAsync();
+        vm.InputText = "問";
+
+        var sending = vm.SendCommand.ExecuteAsync(null);
+        await WaitUntil(() => vm.Messages.Count == 2 && vm.Messages[1].HasText);
+        vm.StopCommand.Execute(null);
+        await sending;
+
+        Assert.True(vm.Messages[1].IsStopped);   // 已經有文字：在回答底下標「已停止」
+        Assert.False(vm.IsStoppedWithoutReply);
+    }
+
     private sealed class MissingFileProvider : IChatProvider
     {
         public async IAsyncEnumerable<ChatEvent> StreamAsync(ChatRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
