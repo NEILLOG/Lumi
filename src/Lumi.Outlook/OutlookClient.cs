@@ -125,6 +125,11 @@ internal sealed partial class OutlookClient : IOutlookClient, IDisposable
             _logger.LogWarning("Outlook 呼叫失敗：{Method}，HResult {HResult}", method, ex.HResult.ToString("X8", CultureInfo.InvariantCulture));
             throw OutlookErrors.FromHResult(ex.HResult, ex.Message);
         }
+        catch (Exception ex) when (OutlookErrors.IsComponentLoadFailure(ex))
+        {
+            _logger.LogError(ex, "Outlook 元件載入失敗：{Method}", method);
+            throw new OutlookException(OutlookErrors.ComponentLoadFailed);
+        }
     }
 
     private Task<T> CallAsync<T>(string method, TimeSpan timeout, CancellationToken ct, Func<OutlookCall, T> body) =>

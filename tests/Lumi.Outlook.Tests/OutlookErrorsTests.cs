@@ -17,4 +17,13 @@ public class OutlookErrorsTests
         Assert.IsType<OutlookException>(exception);
         Assert.Equal(expected, exception.Message);
     }
+
+    [Fact]
+    public void Assembly_load_failures_are_recognised()
+    {
+        Assert.True(OutlookErrors.IsComponentLoadFailure(new FileNotFoundException("office, Version=15.0.0.0")));
+        Assert.True(OutlookErrors.IsComponentLoadFailure(new FileLoadException()));
+        Assert.True(OutlookErrors.IsComponentLoadFailure(new BadImageFormatException()));
+        Assert.False(OutlookErrors.IsComponentLoadFailure(new InvalidOperationException()));
+    }
 }

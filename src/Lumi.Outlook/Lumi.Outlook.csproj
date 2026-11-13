@@ -8,9 +8,11 @@
     <InternalsVisibleTo Include="Lumi.Outlook.Tests" />
   </ItemGroup>
 
-  <!-- Outlook 的 COM 型別只能出現在這個專案（架構測試 OutlookLibraryRuleTests 守住）。型別直接嵌入，輸出沒有這個 DLL -->
+  <!-- Outlook 的 COM 型別只能出現在這個專案（架構測試 OutlookLibraryRuleTests 守住）。
+       型別直接嵌入，輸出沒有這個 DLL，也不會要求 office.dll。
+       只在 PackageReference 上寫 EmbedInteropTypes 沒有傳到編譯器實際用的參照，所以下面的 target 另外設定 -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Office.Interop.Outlook" EmbedInteropTypes="true" />
+    <PackageReference Include="Microsoft.Office.Interop.Outlook" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
@@ -18,5 +20,14 @@
   <ItemGroup>
     <ProjectReference Include="..\Lumi.Core\Lumi.Core.csproj" />
   </ItemGroup>
+
+  <Target Name="EmbedOutlookInteropTypes" AfterTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <ReferencePath Condition="'%(ReferencePath.NuGetPackageId)' == 'Microsoft.Office.Interop.Outlook'">
+        <EmbedInteropTypes>true</EmbedInteropTypes>
+        <Private>false</Private>
+      </ReferencePath>
+    </ItemGroup>
+  </Target>
 
 </Project>
