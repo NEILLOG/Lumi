@@ -1,6 +1,6 @@
 namespace Lumi.Core.Speech;
 
-/// <summary>語音轉文字（agent.md 第 11 節）。第一個實作是公司內部的 Whisper 服務（<c>Lumi.Speech</c>）。</summary>
+/// <summary>語音轉文字（agent.md 第 11 節）。第一個實作是 Whisper 相容服務（<c>Lumi.Speech</c>）。</summary>
 public interface ISpeechToText
 {
     /// <param name="wav">16 kHz／單聲道／16-bit 的 WAV（含檔頭），整段存在記憶體裡。方法結束時會關閉這個串流。</param>

@@ -24,13 +24,13 @@ internal static class WhisperErrorMapper
     };
 
     /// <summary>
-    /// 連線層的例外。憑證不受信任（內網 CA 沒有安裝）時 <see cref="HttpRequestException"/> 內會有 <see cref="AuthenticationException"/>；
-    /// 這時指引使用者安裝內部 CA，**不提供略過驗證**（Token 會經過這條連線）。
+    /// 連線層的例外。憑證不受信任（自行簽發的根憑證沒有安裝）時 <see cref="HttpRequestException"/> 內會有 <see cref="AuthenticationException"/>；
+    /// 這時指引使用者安裝根憑證，**不提供略過驗證**（Token 會經過這條連線）。
     /// </summary>
     public static SpeechFailure FromException(Exception ex) =>
         HasAuthenticationException(ex)
             ? new(SpeechFailureKind.CertificateUntrusted,
-                "憑證不受信任。請把公司的內部憑證授權單位安裝到系統：Windows 請放進「受信任的根憑證授權單位」；macOS 請在「鑰匙圈存取」匯入，並設為「永遠信任」。",
+                "憑證不受信任。請把簽發這個服務憑證的根憑證安裝到系統：Windows 請放進「受信任的根憑證授權單位」；macOS 請在「鑰匙圈存取」匯入，並設為「永遠信任」。不清楚是哪一張，請洽語音服務的管理者。",
                 false)
             : new(SpeechFailureKind.Network, "無法連線，請確認網址、網路或 VPN。", true);
 

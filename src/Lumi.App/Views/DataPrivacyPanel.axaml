@@ -88,6 +88,7 @@
           <TextBlock Classes="section-title" Text="{x:Static res:Strings.Privacy_SendTitle}" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendModel}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendBrowser}" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.Privacy_SendWeb}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendSpeech}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendFiles}" TextWrapping="Wrap" />
           <TextBlock Text="{x:Static res:Strings.Privacy_SendUpdate}" TextWrapping="Wrap" />

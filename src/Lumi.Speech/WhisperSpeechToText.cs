@@ -5,7 +5,7 @@ using Lumi.Core.Speech;
 namespace Lumi.Speech;
 
 /// <summary>
-/// 公司內部 Whisper 服務的語音轉文字（端點由使用者在設定頁填入）。端點與 Token 每次從設定讀取，
+/// Whisper 相容服務的語音轉文字（端點由使用者在設定頁填入）。端點與 Token 每次從設定讀取，
 /// 所以設定頁改了就立刻生效。
 /// </summary>
 public sealed class WhisperSpeechToText : ISpeechToText

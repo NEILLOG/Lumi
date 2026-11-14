@@ -6,15 +6,16 @@ using Lumi.Infrastructure.Attachments;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
 using Lumi.Platform;
+using Lumi.Tools.Images;
 using Microsoft.Extensions.Options;
 
 namespace Lumi.App.Tests;
 
-/// <summary>M20 20C：「資料與隱私」的位置清單——九筆、順序、路徑來自實際的 Options，檔案與資料夾的區分，鑰匙圈的特例。</summary>
+/// <summary>M20 20C：「資料與隱私」的位置清單——十一筆、順序、路徑來自實際的 Options，檔案與資料夾的區分，鑰匙圈的特例。</summary>
 public sealed class DataLocationProviderTests : IDisposable
 {
     private static readonly string[] ExpectedIds =
-        ["data", "database", "attachments", "settings", "secrets", "logs", "browser", "sprites", "skills", "notes"];
+        ["data", "database", "attachments", "images", "settings", "secrets", "logs", "browser", "sprites", "skills", "notes"];
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "lumi-locations-" + Guid.NewGuid().ToString("N"));
 
@@ -42,7 +43,7 @@ public sealed class DataLocationProviderTests : IDisposable
     }
 
     [Fact]
-    public void GetLocations_ReturnsTenEntries_InTheDisplayOrder()
+    public void GetLocations_ReturnsElevenEntries_InTheDisplayOrder()
     {
         var provider = NewProvider(out _, out _, out _, out _, Sub("notes"));
 
@@ -61,6 +62,7 @@ public sealed class DataLocationProviderTests : IDisposable
         Assert.Equal(LumiPaths.DataDirectory, byId["data"].Path);
         Assert.Equal(persistence.ResolveDatabasePath(), byId["database"].Path);
         Assert.Equal(attachments.ResolveDirectory(), byId["attachments"].Path);
+        Assert.Equal(GeneratedImageStore.DefaultFolder, byId["images"].Path);   // 和圖片工具寫入的是同一個資料夾
         Assert.Equal(models.ResolveSettingsPath(), byId["settings"].Path);
         Assert.Equal(LumiPaths.LogDirectory, byId["logs"].Path);
         Assert.Equal(Path.Combine(LumiPaths.DataDirectory, "browser"), byId["browser"].Path);
@@ -78,7 +80,7 @@ public sealed class DataLocationProviderTests : IDisposable
 
         Assert.True(byId["database"].IsFile);
         Assert.True(byId["settings"].IsFile);
-        foreach (var id in new[] { "data", "attachments", "logs", "browser", "sprites", "skills", "notes" })
+        foreach (var id in new[] { "data", "attachments", "images", "logs", "browser", "sprites", "skills", "notes" })
             Assert.False(byId[id].IsFile, id);
     }
 

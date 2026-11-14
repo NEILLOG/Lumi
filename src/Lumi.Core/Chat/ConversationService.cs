@@ -679,7 +679,7 @@ public sealed class ConversationService
         }
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
-            $"工具呼叫已達到 {_options.MaxIterations} 次上限，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+            $"已經連續使用工具 {_options.MaxIterations} 輪，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
     }
 
     /// <summary>手動整理（M22）：直接做第二層（LLM 摘要），不看門檻。沒有東西可整理時不發任何事件。</summary>

@@ -196,7 +196,7 @@
   <data name="Context_Missing" xml:space="preserve"><value>找不到</value></data>
   <data name="Context_NotText" xml:space="preserve"><value>不是文字檔</value></data>
   <data name="Context_TooLarge" xml:space="preserve"><value>太大，由模型按需讀取</value></data>
-  <data name="Context_DocumentByTool" xml:space="preserve"><value>由模型用 read_document 讀取</value></data>
+  <data name="Context_DocumentByTool" xml:space="preserve"><value>需要時由 Lumi 讀取</value></data>
   <data name="Context_ImageUnsupported" xml:space="preserve"><value>不支援的圖片格式</value></data>
   <data name="Context_ImageTooLarge" xml:space="preserve"><value>圖片太大</value></data>
   <data name="Context_FolderEntries" xml:space="preserve"><value>{0} 個項目</value></data>
@@ -370,14 +370,14 @@
   <data name="Settings_CategorySpeech" xml:space="preserve"><value>語音</value></data>
   <data name="Settings_CategorySpeechSub" xml:space="preserve"><value>Whisper 語音辨識</value></data>
   <data name="Settings_HeaderSpeechTitle" xml:space="preserve"><value>Whisper 語音辨識</value></data>
-  <data name="Settings_HeaderSpeechDescription" xml:space="preserve"><value>語音輸入會把錄音送到公司的 Whisper 服務轉成文字，放進輸入框或直接送出。</value></data>
+  <data name="Settings_HeaderSpeechDescription" xml:space="preserve"><value>語音輸入會把錄音送到你設定的 Whisper 語音服務轉成文字，放進輸入框或直接送出。</value></data>
   <data name="Speech_SectionService" xml:space="preserve"><value>服務</value></data>
   <data name="Speech_SectionToken" xml:space="preserve"><value>Token</value></data>
   <data name="Speech_Endpoint" xml:space="preserve"><value>服務端點</value></data>
   <data name="Speech_EndpointHint" xml:space="preserve"><value>完整網址，必須是 https，例如 https://&lt;host&gt;/…（只有 localhost 可以用 http）。</value></data>
   <data name="Speech_EndpointWatermark" xml:space="preserve"><value>https://&lt;host&gt;/…</value></data>
   <data name="Speech_EndpointRequired" xml:space="preserve"><value>請先輸入服務端點</value></data>
-  <data name="Speech_NoteCertificate" xml:space="preserve"><value>憑證不受信任時，請把公司的內部 CA 安裝到系統。</value></data>
+  <data name="Speech_NoteCertificate" xml:space="preserve"><value>憑證不受信任時，請把簽發這個服務憑證的根憑證安裝到系統；不清楚是哪一張，請洽語音服務的管理者。</value></data>
   <data name="Speech_NotePrivacy" xml:space="preserve"><value>語音會連同錄音與對話 ID（session_id）送到你設定的服務。</value></data>
   <data name="Speech_Language" xml:space="preserve"><value>語言</value></data>
   <data name="Speech_LanguageHint" xml:space="preserve"><value>留空由服務端判斷。</value></data>
@@ -410,8 +410,8 @@
   <data name="Speech_Save" xml:space="preserve"><value>儲存</value></data>
   <data name="Speech_Revert" xml:space="preserve"><value>還原</value></data>
   <data name="Speech_Saved" xml:space="preserve"><value>已儲存。</value></data>
-  <data name="Voice_NotConfigured" xml:space="preserve"><value>尚未設定語音服務，請到設定裡的語音頁</value></data>
-  <data name="Voice_EndpointInvalid" xml:space="preserve"><value>語音服務端點有誤，請到設定裡的語音頁修正</value></data>
+  <data name="Voice_NotConfigured" xml:space="preserve"><value>尚未設定語音服務，請到設定裡的「語音」填寫</value></data>
+  <data name="Voice_EndpointInvalid" xml:space="preserve"><value>語音服務端點有誤，請到設定裡的「語音」修正</value></data>
   <data name="Voice_TokenMissing" xml:space="preserve"><value>語音服務尚未設定 Token</value></data>
   <data name="Voice_RespondingBlocked" xml:space="preserve"><value>回應中，暫時無法語音輸入</value></data>
   <data name="Voice_BusyReason" xml:space="preserve"><value>已在錄音或轉寫中</value></data>
@@ -540,7 +540,7 @@
   <data name="Tools_HeaderDescription" xml:space="preserve"><value>選擇 Lumi 在對話中可以使用哪些工具，以及使用前要不要先問你。</value></data>
   <data name="Tools_EffectNote" xml:space="preserve"><value>啟用與關閉從下一則新對話開始生效；進行中的對話維持原本的工具。</value></data>
   <data name="Tools_ConfirmNote" xml:space="preserve"><value>確認方式改了立即生效。</value></data>
-  <data name="Tools_ModelToolsOff" xml:space="preserve"><value>目前的預設模型「{0}」關閉了「啟用工具」，對話中不會送出任何工具。可以到「AI 連線」的「模型設定」打開。</value></data>
+  <data name="Tools_ModelToolsOff" xml:space="preserve"><value>目前的預設模型「{0}」關閉了「使用工具」，對話中不會送出任何工具。可以到設定裡的「AI 連線」編輯這個模型，勾選「使用工具」。</value></data>
   <data name="Tools_GroupCount" xml:space="preserve"><value>已啟用 {0}／{1}</value></data>
   <data name="Tools_MemoryOff" xml:space="preserve"><value>長期記憶已在「記憶」頁關閉，這些工具目前不會執行。</value></data>
   <data name="Tools_PermissionReadOnly" xml:space="preserve"><value>唯讀</value></data>
@@ -738,9 +738,9 @@
   <data name="Privacy_SizeFormat" xml:space="preserve"><value>約 {0}</value></data>
   <data name="Privacy_NotCreated" xml:space="preserve"><value>尚未建立</value></data>
   <data name="Privacy_LocData" xml:space="preserve"><value>資料資料夾</value></data>
-  <data name="Privacy_LocDataDesc" xml:space="preserve"><value>Lumi 的資料都放在這個資料夾裡（筆記資料夾與系統金鑰除外）。</value></data>
+  <data name="Privacy_LocDataDesc" xml:space="preserve"><value>Lumi 的資料大多放在這個資料夾裡；筆記資料夾與產生的圖片另外存放，macOS 的 API 金鑰在鑰匙圈。</value></data>
   <data name="Privacy_LocDatabase" xml:space="preserve"><value>對話與記憶資料庫</value></data>
-  <data name="Privacy_LocDatabaseDesc" xml:space="preserve"><value>對話與訊息、長期記憶、提醒排程與 MCP 工具快取（lumi.db）。內容是明文，只存在這台電腦。</value></data>
+  <data name="Privacy_LocDatabaseDesc" xml:space="preserve"><value>對話與訊息、長期記憶、提醒與排程、MCP 工具快取，以及用量與費用紀錄（lumi.db）。內容是明文，只存在這台電腦。</value></data>
   <data name="Privacy_LocAttachments" xml:space="preserve"><value>圖片附件</value></data>
   <data name="Privacy_LocAttachmentsDesc" xml:space="preserve"><value>你在對話中貼上或加入的圖片。刪除對話時會一起清掉。</value></data>
   <data name="Privacy_LocSettings" xml:space="preserve"><value>設定檔</value></data>
@@ -750,7 +750,7 @@
   <data name="Privacy_LocSecretsWindows" xml:space="preserve"><value>API 金鑰與密碼</value></data>
   <data name="Privacy_LocSecretsWindowsDesc" xml:space="preserve"><value>存在加密檔案（secrets.json，用你的 Windows 登入帳號加密），不會寫進資料庫或記錄檔。</value></data>
   <data name="Privacy_LocLogs" xml:space="preserve"><value>記錄檔</value></data>
-  <data name="Privacy_LocLogsDesc" xml:space="preserve"><value>程式啟動失敗與未處理的錯誤（lumi-日期.log）。回報問題時可以附上。</value></data>
+  <data name="Privacy_LocLogsDesc" xml:space="preserve"><value>程式的運作紀錄與錯誤（lumi-日期.log），網路請求會記下網址（不含 ? 後面的參數）。回報問題時可以附上。</value></data>
   <data name="Privacy_LocBrowser" xml:space="preserve"><value>瀏覽器登入狀態</value></data>
   <data name="Privacy_LocBrowserDesc" xml:space="preserve"><value>Lumi 專用瀏覽器記住的登入狀態（Cookie），屬於敏感資料。可以到「網路」頁清除。</value></data>
   <data name="Privacy_LocSprites" xml:space="preserve"><value>角色素材</value></data>
@@ -760,8 +760,8 @@
   <data name="Privacy_SendTitle" xml:space="preserve"><value>哪些內容會送出去</value></data>
   <data name="Privacy_SendModel" xml:space="preserve"><value>對話內容、你加入的圖片與檔案內容、長期記憶，以及工具執行的結果，會送到你選擇的 AI 供應商。</value></data>
   <data name="Privacy_SendBrowser" xml:space="preserve"><value>使用瀏覽器工具時，網頁內容與截圖也會送到 AI 供應商。</value></data>
-  <data name="Privacy_SendSpeech" xml:space="preserve"><value>使用語音輸入時，錄音會送到你設定的語音服務。</value></data>
-  <data name="Privacy_SendFiles" xml:space="preserve"><value>Lumi 只讀取你加入對話的檔案與資料夾；看起來像金鑰或憑證的檔案會被排除。</value></data>
+  <data name="Privacy_SendSpeech" xml:space="preserve"><value>使用語音輸入時，錄音會連同目前對話的編號送到你設定的語音服務。</value></data>
+  <data name="Privacy_SendFiles" xml:space="preserve"><value>Lumi 的檔案工具只讀取你加入對話的檔案與資料夾，以及筆記資料夾。加入的資料夾裡，常見的金鑰與憑證檔（例如 .env、.pem、id_rsa）會被排除；直接加入的單一檔案照常讀取，這份名單也不完整，請不要把密碼或金鑰檔加進對話。開啟「執行指令」後，你允許的指令不受這個範圍限制。</value></data>
   <data name="Privacy_SendUpdate" xml:space="preserve"><value>啟動時會連到 GitHub 查詢有沒有新版（只查版本，不會送出你的資料；可在「外觀與操作」關閉）。</value></data>
   <data name="Privacy_SendKeys" xml:space="preserve"><value>API 金鑰只保存在系統的安全儲存空間，不會出現在對話、資料庫或記錄檔裡。</value></data>
   <data name="Privacy_ControlTitle" xml:space="preserve"><value>怎麼控制</value></data>
@@ -892,7 +892,7 @@
   <data name="Home_PendingUntestedTitle" xml:space="preserve"><value>AI 連線尚未測試</value></data>
   <data name="Home_PendingUntestedDescFormat" xml:space="preserve"><value>確認 {0} 的金鑰與 Base URL 能連上</value></data>
   <data name="Home_PendingSpeechTitle" xml:space="preserve"><value>語音辨識尚未設定</value></data>
-  <data name="Home_PendingSpeechDesc" xml:space="preserve"><value>填入 Whisper 端點後，就能用麥克風輸入</value></data>
+  <data name="Home_PendingSpeechDesc" xml:space="preserve"><value>填入語音服務的網址後，就能用麥克風輸入</value></data>
   <data name="Home_ModelTitle" xml:space="preserve"><value>目前模型</value></data>
   <data name="Home_Switch" xml:space="preserve"><value>切換</value></data>
   <data name="Home_Manage" xml:space="preserve"><value>管理</value></data>
@@ -1243,6 +1243,9 @@
   <data name="Skills_ComposerInsertFormat" xml:space="preserve"><value>請用「{0}」技能：</value></data>
   <data name="Privacy_LocSkills" xml:space="preserve"><value>技能</value></data>
   <data name="Privacy_LocSkillsDesc" xml:space="preserve"><value>你存的技能，一個技能一個資料夾。</value></data>
+  <data name="Privacy_LocImages" xml:space="preserve"><value>產生的圖片</value></data>
+  <data name="Privacy_LocImagesDesc" xml:space="preserve"><value>Lumi 產生或編輯的圖片，存在你的「圖片」資料夾裡的 Lumi。刪除對話不會刪掉這些圖片。</value></data>
+  <data name="Privacy_SendWeb" xml:space="preserve"><value>使用網路工具時，Lumi 會直接連到你或模型指定的網址；送出資料到網路 API 一律先問你。讀到的內容之後也會送到 AI 供應商。</value></data>
   <data name="Command_ConfirmTitle" xml:space="preserve"><value>要執行這段指令嗎？</value></data>
   <data name="Command_FieldDescription" xml:space="preserve"><value>Lumi 的說明</value></data>
   <data name="Command_DescriptionNote" xml:space="preserve"><value>這是 Lumi 自己寫的說明，請以下面的指令為準。</value></data>

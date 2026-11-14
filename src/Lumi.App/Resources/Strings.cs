@@ -212,6 +212,9 @@ public static class Strings
     public static string Context_NotText => Get(nameof(Context_NotText));
     public static string Context_TooLarge => Get(nameof(Context_TooLarge));
     public static string Context_DocumentByTool => Get(nameof(Context_DocumentByTool));
+    public static string Privacy_LocImages => Get(nameof(Privacy_LocImages));
+    public static string Privacy_LocImagesDesc => Get(nameof(Privacy_LocImagesDesc));
+    public static string Privacy_SendWeb => Get(nameof(Privacy_SendWeb));
     public static string Context_ImageUnsupported => Get(nameof(Context_ImageUnsupported));
     public static string Context_ImageTooLarge => Get(nameof(Context_ImageTooLarge));
     public static string Context_FolderEntries => Get(nameof(Context_FolderEntries));

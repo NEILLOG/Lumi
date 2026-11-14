@@ -7,6 +7,7 @@ using Lumi.Infrastructure.Attachments;
 using Lumi.Infrastructure.Persistence;
 using Lumi.Infrastructure.Settings;
 using Lumi.Platform;
+using Lumi.Tools.Images;
 using Microsoft.Extensions.Options;
 
 namespace Lumi.App.Services;
@@ -28,6 +29,7 @@ public sealed class DataLocationProvider(
         new("data", Strings.Privacy_LocData, Strings.Privacy_LocDataDesc, LumiPaths.DataDirectory, IsFile: false),
         new("database", Strings.Privacy_LocDatabase, Strings.Privacy_LocDatabaseDesc, persistence.Value.ResolveDatabasePath(), IsFile: true),
         new("attachments", Strings.Privacy_LocAttachments, Strings.Privacy_LocAttachmentsDesc, attachments.Value.ResolveDirectory(), IsFile: false),
+        new("images", Strings.Privacy_LocImages, Strings.Privacy_LocImagesDesc, GeneratedImageStore.DefaultFolder, IsFile: false),
         new("settings", Strings.Privacy_LocSettings, Strings.Privacy_LocSettingsDesc, models.Value.ResolveSettingsPath(), IsFile: true),
         SecretsLocation(secrets.Value),
         new("logs", Strings.Privacy_LocLogs, Strings.Privacy_LocLogsDesc, LumiPaths.LogDirectory, IsFile: false),
