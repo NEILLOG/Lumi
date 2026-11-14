@@ -109,6 +109,13 @@ public partial class MessageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(UsageText), nameof(HasUsage))]
     private TokenUsage? _usage;
 
+    /// <summary>回答這則的模型（供應商回報的名稱，存檔裡的 <c>ModelId</c>）；串流中還沒有，舊資料可能沒有。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasModel))]
+    private string? _modelId;
+
+    public bool HasModel => !string.IsNullOrEmpty(ModelId);
+
     /// <summary>目前的對話裡最後一則助理訊息：只有它有「重新產生」。</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowActions))]
@@ -156,10 +163,10 @@ public partial class MessageViewModel : ObservableObject
 
     public bool HasUsage => Usage is not null;
 
-    /// <summary>已送出、還沒收到任何文字、也沒有附件時顯示「…」（ui-spec 3.1 R4：有附件時改用三圓點）。</summary>
+    /// <summary>已送出、還沒收到任何文字、也沒有附件時顯示會動的三圓點（ui-spec 3.1 R4）。</summary>
     public bool ShowTypingIndicator => IsStreaming && !HasText && !HasReplyAttachments && !IsAttachmentHost;
 
-    /// <summary>工具完成、文字還沒出現而附件已經在：附件下方的小氣泡是三個圓點（ui-spec 3.1 R4）。</summary>
+    /// <summary>工具完成、文字還沒出現而附件已經在：附件下方的小氣泡同樣是三圓點（ui-spec 3.1 R4）。</summary>
     public bool ShowTypingDots => IsStreaming && !HasText && HasReplyAttachments;
 
     /// <summary>只放附件的訊息沒有氣泡（ui-spec 3.1）。</summary>
@@ -253,6 +260,7 @@ public partial class MessageViewModel : ObservableObject
         Text = string.Concat(message.Content.OfType<TextBlock>().Select(b => b.Text));
         Thinking = string.Join("\n\n", message.Content.OfType<ThinkingBlock>().Select(b => b.Thinking).Where(t => t.Length > 0));
         Usage = message.Usage;
+        ModelId = message.ModelId;
     }
 }
 

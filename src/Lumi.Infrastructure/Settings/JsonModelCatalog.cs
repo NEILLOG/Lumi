@@ -259,7 +259,10 @@ public sealed class JsonModelCatalog : IModelCatalog
         MutateAsync(s => s with { ImageGeneration = settings.Normalize() }, ct);
 
     public Task SetShowTokenUsageAsync(bool show, CancellationToken ct = default) =>
-        MutateAsync(s => s with { Display = new DisplaySettings(show).Normalize() }, ct);
+        MutateAsync(s => s with { Display = (s.Display with { ShowTokenUsage = show }).Normalize() }, ct);
+
+    public Task SetShowModelNameAsync(bool show, CancellationToken ct = default) =>
+        MutateAsync(s => s with { Display = (s.Display with { ShowModelName = show }).Normalize() }, ct);
 
     public Task SetBehaviorAsync(BehaviorSettings settings, CancellationToken ct = default) =>
         MutateAsync(s => s with { Behavior = settings.Normalize() }, ct);

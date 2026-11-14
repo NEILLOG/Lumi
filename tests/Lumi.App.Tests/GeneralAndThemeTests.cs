@@ -92,4 +92,22 @@ public sealed class GeneralAndThemeTests
 
         Assert.True(host.General.ShowTokenUsage);
     }
+
+    [Fact]
+    public async Task TheModelNameSwitch_IsOffByDefault_IsSaved_AndLeavesTheTokenUsageSwitchAlone()
+    {
+        using var host = new SettingsHost();
+        Assert.False(host.General.ShowModelName);
+        host.General.ShowTokenUsage = true;
+        await SettingsHost.WaitUntil(() => host.Catalog.Current.Display.ShowTokenUsage);
+
+        host.General.ShowModelName = true;
+        await SettingsHost.WaitUntil(() => host.Catalog.Current.Display.ShowModelName);
+
+        Assert.True(host.Catalog.Current.Display.ShowTokenUsage);
+
+        await host.Catalog.SetShowModelNameAsync(false);
+        Assert.False(host.General.ShowModelName);
+        Assert.True(host.General.ShowTokenUsage);
+    }
 }

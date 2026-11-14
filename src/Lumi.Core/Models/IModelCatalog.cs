@@ -85,6 +85,9 @@ public interface IModelCatalog
     /// <summary>是否在每則回答下方顯示 token 用量（進階）。預設實作不支援，只有 <c>JsonModelCatalog</c> 會存。</summary>
     Task SetShowTokenUsageAsync(bool show, CancellationToken ct = default) => throw new NotSupportedException();
 
+    /// <summary>是否在每則回答下方顯示回答它的模型（進階）。預設實作不支援，只有 <c>JsonModelCatalog</c> 會存。</summary>
+    Task SetShowModelNameAsync(bool show, CancellationToken ct = default) => throw new NotSupportedException();
+
     /// <summary>視窗置頂與更新檢查的設定。存了就通知 <see cref="Changed"/>（視窗聽這個立即改置頂）。預設實作不支援，只有 <c>JsonModelCatalog</c> 會存。</summary>
     Task SetBehaviorAsync(BehaviorSettings settings, CancellationToken ct = default) => throw new NotSupportedException();
 

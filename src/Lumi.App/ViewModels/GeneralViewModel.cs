@@ -76,6 +76,7 @@ public partial class GeneralViewModel : ObservableObject
         _notesFolderSaved = catalog.Current.Notes.Folder;
         _notesFolderInput = _notesFolderSaved;
         _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
+        _showModelName = catalog.Current.Display.ShowModelName;
         catalog.Changed += (_, settings) => dispatcher.Post(() =>
         {
             _selectedTheme = ThemeOption.All.First(o => o.Preference == settings.Theme);
@@ -90,6 +91,11 @@ public partial class GeneralViewModel : ObservableObject
             {
                 _showTokenUsage = settings.Display.ShowTokenUsage;
                 OnPropertyChanged(nameof(ShowTokenUsage));
+            }
+            if (settings.Display.ShowModelName != _showModelName)
+            {
+                _showModelName = settings.Display.ShowModelName;
+                OnPropertyChanged(nameof(ShowModelName));
             }
             // 別處改了資料夾才覆寫輸入框；只是改了主題時不要把正在編輯的文字蓋掉
             if (settings.Notes.Folder != _notesFolderSaved)
@@ -242,6 +248,37 @@ public partial class GeneralViewModel : ObservableObject
             Error = ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed;
             _showTokenUsage = _catalog.Current.Display.ShowTokenUsage;
             OnPropertyChanged(nameof(ShowTokenUsage));
+        }
+    }
+
+    private bool _showModelName;
+
+    /// <summary>進階：在每則回答下方顯示回答它的模型（FT-03）。勾選立即儲存，失敗時還原並顯示錯誤。</summary>
+    public bool ShowModelName
+    {
+        get => _showModelName;
+        set
+        {
+            if (value == _showModelName)
+                return;
+            _showModelName = value;
+            OnPropertyChanged();
+            _ = ApplyShowModelNameAsync(value);
+        }
+    }
+
+    public async Task ApplyShowModelNameAsync(bool show)
+    {
+        Error = null;
+        try
+        {
+            await _catalog.SetShowModelNameAsync(show);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            Error = ex is InvalidOperationException ? ex.Message : Strings.Settings_SaveFailed;
+            _showModelName = _catalog.Current.Display.ShowModelName;
+            OnPropertyChanged(nameof(ShowModelName));
         }
     }
 

@@ -140,6 +140,8 @@
   <data name="Workbench_SpriteModeShort" xml:space="preserve"><value>小精靈</value></data>
   <data name="TitleBar_Brand" xml:space="preserve"><value>Lumi</value></data>
   <data name="TitleBar_LogoMark" xml:space="preserve"><value>L</value></data>
+  <data name="Workbench_Waiting" xml:space="preserve"><value>Lumi 正在回應</value></data>
+  <data name="Workbench_JumpToBottom" xml:space="preserve"><value>回到最新訊息</value></data>
   <data name="Workbench_SwitchBlocked" xml:space="preserve"><value>回應中，暫時無法切換</value></data>
   <data name="Workbench_RetryOtherModel" xml:space="preserve"><value>換模型重試</value></data>
   <data name="Workbench_StatusConnected" xml:space="preserve"><value>已連線</value></data>
@@ -798,6 +800,8 @@
   <data name="Advanced_Title" xml:space="preserve"><value>進階</value></data>
   <data name="Advanced_ShowTokenUsage" xml:space="preserve"><value>在每則回答下方顯示 token 用量</value></data>
   <data name="Advanced_ShowTokenUsageNote" xml:space="preserve"><value>顯示這則回答的輸入與輸出 token 數（含命中快取的部分），用來估算費用。預設關閉。</value></data>
+  <data name="Advanced_ShowModelName" xml:space="preserve"><value>在每則回答下方顯示使用的模型</value></data>
+  <data name="Advanced_ShowModelNameNote" xml:space="preserve"><value>顯示回答這則的模型名稱（供應商回報的名稱）。對話中途換過模型時，看得出每則是哪個模型回的。預設關閉。</value></data>
   <data name="Workbench_Topmost" xml:space="preserve"><value>永遠顯示在最上層</value></data>
   <data name="Workbench_TopmostPin" xml:space="preserve"><value>釘選在最上層：其他視窗不會蓋住 Lumi</value></data>
   <data name="Workbench_TopmostUnpin" xml:space="preserve"><value>已釘選在最上層，按一下取消</value></data>

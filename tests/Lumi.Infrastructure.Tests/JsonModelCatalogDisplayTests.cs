@@ -72,4 +72,29 @@ public sealed class JsonModelCatalogDisplayTests : IDisposable
         Assert.False(current.Display.ShowTokenUsage);
         Assert.Equal(ThemePreference.Dark, current.Theme);
     }
+
+    [Fact]
+    public async Task TheTwoSwitches_AreSavedIndependently()
+    {
+        var catalog = NewCatalog();
+
+        await catalog.SetShowModelNameAsync(true);
+        await catalog.SetShowTokenUsageAsync(true);
+        await catalog.SetShowModelNameAsync(false);
+
+        var reloaded = NewCatalog().Current.Display;
+        Assert.True(reloaded.ShowTokenUsage);
+        Assert.False(reloaded.ShowModelName);
+    }
+
+    [Fact]
+    public void AnOldFileWithoutTheModelSwitch_KeepsItsTokenUsageSwitch()
+    {
+        File.WriteAllText(SettingsPath, "{ \"version\": 1, \"connections\": [], \"models\": [], \"display\": { \"showTokenUsage\": true } }");
+
+        var display = NewCatalog().Current.Display;
+
+        Assert.True(display.ShowTokenUsage);
+        Assert.False(display.ShowModelName);
+    }
 }

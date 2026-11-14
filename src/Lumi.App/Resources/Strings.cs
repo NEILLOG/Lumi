@@ -155,6 +155,8 @@ public static class Strings
     public static string TitleBar_LogoMark => Get(nameof(TitleBar_LogoMark));
     public static string Workbench_SpriteMode => Get(nameof(Workbench_SpriteMode));
     public static string Workbench_SpriteModeShort => Get(nameof(Workbench_SpriteModeShort));
+    public static string Workbench_Waiting => Get(nameof(Workbench_Waiting));
+    public static string Workbench_JumpToBottom => Get(nameof(Workbench_JumpToBottom));
     public static string Workbench_SwitchBlocked => Get(nameof(Workbench_SwitchBlocked));
     public static string Workbench_RetryOtherModel => Get(nameof(Workbench_RetryOtherModel));
     public static string Workbench_StatusConnected => Get(nameof(Workbench_StatusConnected));
@@ -790,6 +792,8 @@ public static class Strings
     public static string Advanced_Title => Get(nameof(Advanced_Title));
     public static string Advanced_ShowTokenUsage => Get(nameof(Advanced_ShowTokenUsage));
     public static string Advanced_ShowTokenUsageNote => Get(nameof(Advanced_ShowTokenUsageNote));
+    public static string Advanced_ShowModelName => Get(nameof(Advanced_ShowModelName));
+    public static string Advanced_ShowModelNameNote => Get(nameof(Advanced_ShowModelNameNote));
     public static string Workbench_Topmost => Get(nameof(Workbench_Topmost));
     public static string Workbench_TopmostPin => Get(nameof(Workbench_TopmostPin));
     public static string Workbench_TopmostUnpin => Get(nameof(Workbench_TopmostUnpin));

@@ -673,6 +673,10 @@
                         Content="{x:Static res:Strings.Advanced_ShowTokenUsage}"
                         AutomationProperties.Name="{x:Static res:Strings.Advanced_ShowTokenUsage}" />
               <TextBlock Classes="muted" Text="{x:Static res:Strings.Advanced_ShowTokenUsageNote}" TextWrapping="Wrap" />
+              <CheckBox x:Name="ShowModelNameBox" IsChecked="{Binding ShowModelName, Mode=TwoWay}" Margin="0,8,0,0"
+                        Content="{x:Static res:Strings.Advanced_ShowModelName}"
+                        AutomationProperties.Name="{x:Static res:Strings.Advanced_ShowModelName}" />
+              <TextBlock Classes="muted" Text="{x:Static res:Strings.Advanced_ShowModelNameNote}" TextWrapping="Wrap" />
             </StackPanel>
 
             <TextBlock x:Name="GeneralError" Classes="error" Margin="0,16,0,0" Text="{Binding Error}"

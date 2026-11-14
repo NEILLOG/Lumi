@@ -99,11 +99,50 @@
     <Style Selector="Window.narrow Border.avatar > TextBlock">
       <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
     </Style>
+    <!-- 等待回應：三個 6px 圓點依序淡入、上浮 3px，1.2 秒一輪（ui-spec 3.1 R4）。只在看得到時套用，隱藏後動畫跟著停 -->
+    <Style Selector="StackPanel.typing-dots > Ellipse">
+      <Setter Property="Width" Value="6" />
+      <Setter Property="Height" Value="6" />
+      <Setter Property="Opacity" Value="0.35" />
+      <Setter Property="Fill" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.typing-dots[IsVisible=True] > Ellipse.dot1">
+      <Style.Animations>
+        <Animation Duration="0:0:1.2" Delay="0:0:0" IterationCount="INFINITE">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="30%"><Setter Property="Opacity" Value="1" /><Setter Property="TranslateTransform.Y" Value="-3" /></KeyFrame>
+          <KeyFrame Cue="60%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="StackPanel.typing-dots[IsVisible=True] > Ellipse.dot2">
+      <Style.Animations>
+        <Animation Duration="0:0:1.2" Delay="0:0:0.15" IterationCount="INFINITE">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="30%"><Setter Property="Opacity" Value="1" /><Setter Property="TranslateTransform.Y" Value="-3" /></KeyFrame>
+          <KeyFrame Cue="60%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="StackPanel.typing-dots[IsVisible=True] > Ellipse.dot3">
+      <Style.Animations>
+        <Animation Duration="0:0:1.2" Delay="0:0:0.3" IterationCount="INFINITE">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="30%"><Setter Property="Opacity" Value="1" /><Setter Property="TranslateTransform.Y" Value="-3" /></KeyFrame>
+          <KeyFrame Cue="60%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0.35" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
   </UserControl.Styles>
 
   <!-- 訊息流：歡迎區、一次性提示、訊息（使用者／助理／工具段落）、錯誤列。ScrollViewer 名稱 MessageScroller 保留給測試與自動捲動 -->
   <!-- BringIntoViewOnFocusChange 關閉：使用者文字可選取、會留住焦點，視窗失焦再啟用或滑鼠點擊時不該把訊息區捲回那段文字；鍵盤導覽改由 code-behind 處理 -->
   <!-- AllowAutoHide 關閉（FX-01）：自動隱藏的捲軸平常只是一條細線，對話很長時幾乎點不到；固定顯示成可以點的寬度 -->
+  <Panel>
   <ScrollViewer x:Name="MessageScroller" BringIntoViewOnFocusChange="False" AllowAutoHide="False">
     <Border x:Name="ConversationPage" Classes="conversation-page">
       <StackPanel x:Name="ConversationStack" Classes="conversation-stack">
@@ -244,12 +283,18 @@
                         </Expander>
                         <!-- 助理的回答用 Markdown 渲染；使用者訊息與思考過程維持純文字 -->
                         <md:MarkdownView IsVisible="{Binding HasText}" Markdown="{Binding Text}" IsStreaming="{Binding IsStreaming}" />
-                        <TextBlock IsVisible="{Binding ShowTypingIndicator}" Text="…" Classes="muted" />
-                        <!-- 附件已經在、文字還沒來：三個 6px 圓點（ui-spec 3.1 R4）；高度 16 加上氣泡的 Padding 12＋12 = 40 -->
-                        <StackPanel IsVisible="{Binding ShowTypingDots}" Orientation="Horizontal" Spacing="4" MinHeight="16">
-                          <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-                          <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
-                          <Ellipse Width="6" Height="6" Fill="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                        <!-- 已送出、文字還沒來（不論有沒有附件）：會動的三個圓點（ui-spec 3.1 R4）；高度 16 加上氣泡的 Padding 12＋12 = 40 -->
+                        <StackPanel x:Name="TypingDots" Classes="typing-dots" Orientation="Horizontal" Spacing="4" MinHeight="16"
+                                    AutomationProperties.Name="{x:Static res:Strings.Workbench_Waiting}">
+                          <StackPanel.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                              <Binding Path="ShowTypingIndicator" />
+                              <Binding Path="ShowTypingDots" />
+                            </MultiBinding>
+                          </StackPanel.IsVisible>
+                          <Ellipse Classes="dot1"><Ellipse.RenderTransform><TranslateTransform /></Ellipse.RenderTransform></Ellipse>
+                          <Ellipse Classes="dot2"><Ellipse.RenderTransform><TranslateTransform /></Ellipse.RenderTransform></Ellipse>
+                          <Ellipse Classes="dot3"><Ellipse.RenderTransform><TranslateTransform /></Ellipse.RenderTransform></Ellipse>
                         </StackPanel>
                         <TextBlock IsVisible="{Binding IsStopped}" Text="{x:Static res:Strings.Workbench_Stopped}" Classes="muted" />
                       </StackPanel>
@@ -274,6 +319,15 @@
                           <TextBlock Classes="action-label" Text="{x:Static res:Strings.Workbench_Regenerate}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
+                      <!-- 回答這則的模型（FT-03）：設定開啟時顯示，在 token 用量前面 -->
+                      <TextBlock x:Name="ModelLabel" Text="{Binding ModelId}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <TextBlock.IsVisible>
+                          <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="HasModel" />
+                            <Binding Path="$parent[views:ConversationView].((vm:WorkbenchViewModel)DataContext).ShowModelName" />
+                          </MultiBinding>
+                        </TextBlock.IsVisible>
+                      </TextBlock>
                       <TextBlock x:Name="UsageLabel" Text="{Binding UsageText}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center">
                         <TextBlock.IsVisible>
                           <MultiBinding Converter="{x:Static BoolConverters.And}">
@@ -342,4 +396,15 @@
       </StackPanel>
     </Border>
   </ScrollViewer>
+
+  <!-- 回到最新訊息（FT-01）：往上捲離開底部時浮在訊息區底部中央；36 圓形 secondary 按鈕，浮起才有陰影（ui-guide 第 9 節） -->
+  <Border x:Name="JumpToBottomHost" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16"
+          CornerRadius="18" BoxShadow="{DynamicResource LumiCardHoverShadow}">
+    <Button x:Name="JumpToBottomButton" Classes="secondary round"
+            ToolTip.Tip="{x:Static res:Strings.Workbench_JumpToBottom}"
+            AutomationProperties.Name="{x:Static res:Strings.Workbench_JumpToBottom}">
+      <ctl:LumiIcon Data="{StaticResource LumiIconArrowDown}" Size="16" />
+    </Button>
+  </Border>
+  </Panel>
 </UserControl>

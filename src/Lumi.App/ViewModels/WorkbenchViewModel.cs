@@ -172,11 +172,13 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _approvals.Resolved += OnApprovalResolved;
 
         _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
+        _showModelName = catalog.Current.Display.ShowModelName;
         _isTopmost = catalog.Current.Behavior.WorkbenchTopmost;
         _isWorkbenchSpriteEnabled = catalog.Current.Behavior.WorkbenchSprite;
         catalog.Changed += (_, settings) => dispatcher.Post(() =>
         {
             ShowTokenUsage = settings.Display.ShowTokenUsage;
+            ShowModelName = settings.Display.ShowModelName;
             IsTopmost = settings.Behavior.WorkbenchTopmost;
             IsWorkbenchSpriteEnabled = settings.Behavior.WorkbenchSprite;
             OnModelSettingsChanged();
@@ -388,6 +390,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// <summary>設定 › 外觀與操作 › 進階：在每則回答下方顯示輸入／輸出 token 數（預設關閉）。</summary>
     [ObservableProperty]
     private bool _showTokenUsage;
+
+    /// <summary>設定 › 外觀與操作 › 進階：在每則回答下方顯示回答它的模型（FT-03，預設關閉）。</summary>
+    [ObservableProperty]
+    private bool _showModelName;
 
     [ObservableProperty]
     private int _turns;
