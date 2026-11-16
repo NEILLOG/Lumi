@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 using Lumi.Core.ContextNotes;
 using Microsoft.Extensions.Logging;
@@ -71,7 +72,9 @@ public partial class HistoryViewModel : ObservableObject
     private readonly ILogger<HistoryViewModel> _logger;
     private readonly SpriteConversationService? _sprite;
     private readonly IContextNoteStore? _contextNotes;
+    private readonly IBranchStore? _branches;
     private readonly Dictionary<string, Conversation> _byId = new(StringComparer.Ordinal);
+    private BranchRows _branchRows = BranchRows.Empty;
     private ConversationListItem? _selected;
     private ConversationListItem? _editing;
     private string? _currentId;
@@ -83,9 +86,11 @@ public partial class HistoryViewModel : ObservableObject
 
     public HistoryViewModel(IConversationStore store, IHistoryHost host, TimeProvider time, HistoryOptions? options = null,
         ConversationDeletionService? deletion = null, IConfirmService? confirm = null, ILogger<HistoryViewModel>? logger = null,
-        SpriteConversationService? sprite = null, ScheduledRunsViewModel? runs = null, IContextNoteStore? contextNotes = null)
+        SpriteConversationService? sprite = null, ScheduledRunsViewModel? runs = null, IContextNoteStore? contextNotes = null,
+        IBranchStore? branches = null)
     {
         _contextNotes = contextNotes;
+        _branches = branches;
         _store = store;
         _host = host;
         _time = time;
@@ -201,6 +206,13 @@ public partial class HistoryViewModel : ObservableObject
         if (generation != _generation || IsSearchMode)
             return;   // 等待期間又重新載入或開始搜尋了：丟掉這次的結果
 
+        var rootIds = page.Select(c => c.Id).ToList();
+        if (sprite is not null)
+            rootIds.Add(sprite.Id);
+        var branches = await LoadBranchRowsAsync(rootIds, currentId);
+        if (generation != _generation || IsSearchMode)
+            return;   // 支線也是等待期間才讀的，一樣丟掉
+
         CancelEditing();
         _byId.Clear();
         Items.Clear();
@@ -210,6 +222,7 @@ public partial class HistoryViewModel : ObservableObject
             AddItem(conversation, "", "");
         _cursor = page.Count > 0 ? CursorOf(page[^1]) : null;
         HasMore = page.Count == _options.PageSize;
+        ApplyBranchRows(branches);
         RebuildGroups();
     }
 
@@ -236,14 +249,18 @@ public partial class HistoryViewModel : ObservableObject
             var page = await _store.ListAsync(_options.PageSize, cursor);
             if (generation != _generation || IsSearchMode)
                 return;
-            foreach (var conversation in page)
-            {
-                if (!_byId.ContainsKey(conversation.Id) && !IsSpriteId(conversation.Id))   // 游標分頁不會重複，這裡是保險；小精靈的對話已經固定在最上方
-                    AddItem(conversation, "", "");
-            }
+            // 游標分頁不會重複，這裡是保險；小精靈的對話已經固定在最上方
+            var fresh = page.Where(c => !_byId.ContainsKey(c.Id) && !IsSpriteId(c.Id)).ToList();
+            var rootIds = Items.Select(i => i.Id).Concat(fresh.Select(c => c.Id)).ToList();
+            var branches = await LoadBranchRowsAsync(rootIds, _currentId);
+            if (generation != _generation || IsSearchMode)
+                return;
+            foreach (var conversation in fresh)
+                AddItem(conversation, "", "");
             if (page.Count > 0)
                 _cursor = CursorOf(page[^1]);
-            HasMore = page.Count == _options.PageSize;
+            HasMore = page.Count == _options.PageSize;   // 分頁只算主線（支線不佔頁數）
+            ApplyBranchRows(branches);
             RebuildGroups();
         }
         finally
@@ -318,8 +335,8 @@ public partial class HistoryViewModel : ObservableObject
     [RelayCommand]
     private void Rename(ConversationListItem? item)
     {
-        if (item is null)
-            return;
+        if (item is null || item.IsBranch)
+            return;   // 支線不能改名
         CancelEditing();
         item.EditText = item.Title;
         item.IsEditing = true;
@@ -355,6 +372,8 @@ public partial class HistoryViewModel : ObservableObject
     public void ApplyTitle(string id, string title)
     {
         Items.FirstOrDefault(i => i.Id == id && !i.IsEditing)?.SetTitle(title);
+        foreach (var branch in BranchItems().Where(i => i.Id == id))
+            branch.SetTitle(title);
         if (_byId.TryGetValue(id, out var conversation))
             _byId[id] = conversation with { Title = title };
     }
@@ -412,7 +431,7 @@ public partial class HistoryViewModel : ObservableObject
     public bool CanDeleteConversation => _deletion is not null && _confirm is not null;
 
     /// <summary>回應中（含小精靈回應中）不能刪除：不分是不是目前的對話，避免清附件時誤刪進行中的圖片。</summary>
-    private bool CanDelete(ConversationListItem? item) => item is not null && !item.IsSprite && CanDeleteConversation && !_host.IsResponding;
+    private bool CanDelete(ConversationListItem? item) => item is not null && !item.IsSprite && !item.IsBranch && CanDeleteConversation && !_host.IsResponding;
 
     /// <summary>
     /// 刪除前經過確認。目前開著的對話會先導向清單中的下一則（沒有就開新的空白對話），再從資料庫刪除。
@@ -420,7 +439,7 @@ public partial class HistoryViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanDelete))]
     private async Task DeleteAsync(ConversationListItem? item)
     {
-        if (item is null || item.IsSprite || !CanDeleteConversation || _host.IsResponding)
+        if (item is null || item.IsSprite || item.IsBranch || !CanDeleteConversation || _host.IsResponding)
             return;
         if (!await ConfirmDeleteAsync(item.Id, item.Title))
             return;
@@ -583,7 +602,9 @@ public partial class HistoryViewModel : ObservableObject
         {
             Groups.Clear();
             Rows.Clear();
-            _selected = Items.FirstOrDefault(i => i.IsCurrent);   // 目前的對話就是清單的選取（不會因此開啟它）
+            // 目前的對話就是清單的選取（不會因此開啟它）；目前是支線時選取支線列
+            IEnumerable<ConversationListItem> listed = IsSearchMode ? Items : Items.Concat(BranchItems());
+            _selected = listed.FirstOrDefault(i => i.IsCurrent);
             if (IsSearchMode)
             {
                 if (Items.Count > 0)
@@ -591,7 +612,7 @@ public partial class HistoryViewModel : ObservableObject
                     var title = Items.Count >= SearchLimit
                         ? string.Format(CultureInfo.CurrentCulture, Strings.History_ResultsCappedFormat, SearchLimit)
                         : string.Format(CultureInfo.CurrentCulture, Strings.History_ResultsFormat, Items.Count);
-                    AddGroup(title, Items);
+                    AddGroup(title, Items, withBranches: false);   // 搜尋模式不列支線
                 }
             }
             else
@@ -600,13 +621,13 @@ public partial class HistoryViewModel : ObservableObject
                 var zone = _time.LocalTimeZone;
                 var pinned = Items.Where(i => i.IsSprite).ToList();   // 小精靈的對話：沒有群組標題，固定在最上方
                 if (pinned.Count > 0)
-                    AddGroup(null, pinned);
+                    AddGroup(null, pinned, withBranches: true);
                 foreach (var bucket in Enum.GetValues<HistoryBucket>())
                 {
                     var members = Items.Where(i => !i.IsSprite && _byId.TryGetValue(i.Id, out var c)
                                                   && HistoryGrouping.BucketOf(c.UpdatedAt, now, zone) == bucket).ToList();
                     if (members.Count > 0)
-                        AddGroup(HistoryGrouping.TitleOf(bucket), members);
+                        AddGroup(HistoryGrouping.TitleOf(bucket), members, withBranches: true);
                 }
             }
         }
@@ -620,13 +641,81 @@ public partial class HistoryViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedItem));   // 清單重建後把目前對話重新選回去
     }
 
-    private void AddGroup(string? title, IReadOnlyList<ConversationListItem> members)
+    private void AddGroup(string? title, IReadOnlyList<ConversationListItem> members, bool withBranches)
     {
-        Groups.Add(new HistoryGroup(title, members));
+        var rows = withBranches ? members.SelectMany(m => WithBranches(m)).ToList() : members.ToList();
+        Groups.Add(new HistoryGroup(title, rows));
         if (title is not null)
             Rows.Add(new HistoryGroupHeader(title));
-        foreach (var member in members)
-            Rows.Add(member);
+        foreach (var row in rows)
+            Rows.Add(row);
+    }
+
+    /// <summary>主線列，後面接它底下的支線（第一層依建立時間，第二層緊接在它的第一層後面）。</summary>
+    private IEnumerable<ConversationListItem> WithBranches(ConversationListItem root)
+    {
+        yield return root;
+        if (!_branchRows.ByParent.TryGetValue(root.Id, out var children))
+            yield break;
+        foreach (var child in children)
+        {
+            foreach (var row in WithBranches(child))
+                yield return row;
+        }
+    }
+
+    /// <summary>目前載入的全部支線列（選取與標題同步用）。</summary>
+    private IEnumerable<ConversationListItem> BranchItems() => _branchRows.ByParent.Values.SelectMany(list => list);
+
+    /// <summary>
+    /// 這些主線底下的支線（兩層）轉成清單列，依上一層分組。讀不到標題的支線不列（它底下的第二層也跟著不列）。
+    /// 沒有支線服務或沒有主線時是空的；讀取失敗記 log，清單照常顯示主線。
+    /// </summary>
+    private async Task<BranchRows> LoadBranchRowsAsync(IReadOnlyList<string> rootIds, string? currentId)
+    {
+        var byParent = new Dictionary<string, List<ConversationListItem>>(StringComparer.Ordinal);
+        var conversations = new Dictionary<string, Conversation>(StringComparer.Ordinal);
+        if (_branches is null || rootIds.Count == 0)
+            return new BranchRows(byParent, conversations);
+        try
+        {
+            // ListByRootsAsync 依 (root_id, created_at) 排序：同一個上一層的支線維持建立順序
+            foreach (var branch in await _branches.ListByRootsAsync(rootIds))
+            {
+                var conversation = await _store.GetConversationAsync(branch.ConversationId);
+                if (conversation is null)
+                    continue;
+                conversations[branch.ConversationId] = conversation;
+                var item = new ConversationListItem(branch.ConversationId, conversation.Title, "", branch.ConversationId == currentId)
+                {
+                    Depth = branch.Depth,
+                    BranchStatus = branch.Status,
+                };
+                if (!byParent.TryGetValue(branch.ParentId, out var children))
+                    byParent[branch.ParentId] = children = [];
+                children.Add(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "讀取支線失敗（歷史抽屜）");
+            byParent.Clear();
+            conversations.Clear();
+        }
+        return new BranchRows(byParent, conversations);
+    }
+
+    private void ApplyBranchRows(BranchRows rows)
+    {
+        foreach (var (id, conversation) in rows.Conversations)
+            _byId[id] = conversation;   // 開啟支線時要用到它的對話
+        _branchRows = rows;
+    }
+
+    /// <summary>載入的支線列：依上一層的 id 分組（順序就是清單順序），以及它們的對話。</summary>
+    private sealed record BranchRows(Dictionary<string, List<ConversationListItem>> ByParent, Dictionary<string, Conversation> Conversations)
+    {
+        public static BranchRows Empty => new([], []);
     }
 
     private static ConversationCursor CursorOf(Conversation conversation) => new(conversation.UpdatedAt, conversation.Id);

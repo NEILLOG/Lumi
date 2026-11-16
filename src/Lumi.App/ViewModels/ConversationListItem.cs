@@ -1,5 +1,7 @@
+using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lumi.App.Resources;
+using Lumi.Core.Branches;
 
 namespace Lumi.App.ViewModels;
 
@@ -56,6 +58,35 @@ public partial class ConversationListItem : ObservableObject
 
     /// <summary>小精靈的專屬對話（M22）：釘在清單最上方，標題旁有小精靈圖示與「小精靈」標籤，「⋯」沒有刪除、改成「清除內容」。</summary>
     public bool IsSprite { get; init; }
+
+    /// <summary>支線的深度：0 是主線，1 是第一層支線，2 是第二層（M36）。支線列沒有時間、沒有「⋯」，不能改名與刪除。</summary>
+    public int Depth { get; init; }
+
+    /// <summary>支線的狀態；主線是 null。</summary>
+    public BranchStatus? BranchStatus { get; init; }
+
+    public bool IsBranch => Depth > 0;
+
+    /// <summary>支線列的縮排：第一層 16、第二層 32，主線是 0。</summary>
+    public Thickness IndentMargin => new(16 * Depth, 0, 0, 0);
+
+    /// <summary>進行中：徽章用 Soft 底。</summary>
+    public bool IsActiveBranch => BranchStatus == Lumi.Core.Branches.BranchStatus.Active;
+
+    /// <summary>已帶回或已放棄：徽章用 SurfaceAlt 底、Muted 字。</summary>
+    public bool IsFinishedBranch => BranchStatus is Lumi.Core.Branches.BranchStatus.Merged or Lumi.Core.Branches.BranchStatus.Abandoned;
+
+    /// <summary>已放棄的支線：標題用 Muted（唯讀保留）。</summary>
+    public bool IsMutedTitle => BranchStatus == Lumi.Core.Branches.BranchStatus.Abandoned;
+
+    /// <summary>支線的狀態文字（徽章）；主線是空字串。</summary>
+    public string StatusText => BranchStatus switch
+    {
+        Lumi.Core.Branches.BranchStatus.Active => Strings.Branch_StatusActive,
+        Lumi.Core.Branches.BranchStatus.Merged => Strings.Branch_StatusMerged,
+        Lumi.Core.Branches.BranchStatus.Abandoned => Strings.Branch_StatusAbandoned,
+        _ => "",
+    };
 
     public string SpriteTagText => Strings.History_SpriteTag;
 
