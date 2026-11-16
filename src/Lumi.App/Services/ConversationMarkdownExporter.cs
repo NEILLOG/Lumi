@@ -74,6 +74,12 @@ public static class ConversationMarkdownExporter
                     break;
                 case ContextBlock { Kind: ContextKind.RecentConversations }:
                     break;   // 近況清單（M26）是程式自動帶入的，使用者看不到，匯出也不列
+                case ContextBlock { Kind: ContextKind.BranchOrigin } origin:
+                    parts.Add(BranchOriginLine(origin));
+                    break;
+                case ContextBlock { Kind: ContextKind.BranchSummary } summary:
+                    parts.Add(BranchSummaryQuote(summary));
+                    break;
                 case ContextBlock context:
                     parts.Add(string.Format(CultureInfo.CurrentCulture, Strings.Export_FileFormat, context.DisplayName));
                     break;
@@ -81,6 +87,27 @@ public static class ConversationMarkdownExporter
             }
         }
         return parts;
+    }
+
+    /// <summary>「&gt; 支線 · {標題}（帶回的摘要）」，摘要的每一行前面加 <c>&gt; </c>。</summary>
+    private static string BranchSummaryQuote(ContextBlock summary)
+    {
+        var lines = new List<string> { $"> **支線 · {summary.DisplayName}**（帶回的摘要）" };
+        lines.AddRange((summary.Content ?? "").ReplaceLineEndings("\n").Split('\n').Select(line => "> " + line));
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>「&gt; 從上一層分出來：{開頭}」；開頭取自出處說明裡「開頭是「…」」那段，取不到就只寫「&gt; 從上一層分出來」。</summary>
+    private static string BranchOriginLine(ContextBlock origin)
+    {
+        const string marker = "開頭是「";
+        var line = (origin.Content ?? "").ReplaceLineEndings("\n").Split('\n').FirstOrDefault(l => l.Contains(marker, StringComparison.Ordinal));
+        var excerpt = line is null ? null : line[(line.IndexOf(marker, StringComparison.Ordinal) + marker.Length)..].TrimEnd();
+        if (excerpt is not null && excerpt.EndsWith('」'))
+            excerpt = excerpt[..^1];
+        return string.IsNullOrWhiteSpace(excerpt)
+            ? "> 從上一層分出來"
+            : $"> 從上一層分出來：{excerpt}";
     }
 
     /// <summary>「&gt; 工具：{名稱} {對象}（成功／失敗）」。</summary>

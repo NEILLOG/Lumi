@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 using Lumi.Core.ContextNotes;
 using Lumi.Core.Tools;
@@ -42,6 +43,9 @@ public sealed class SuggestContextNoteTool(IContextNoteStore notes, IConversatio
 
         if (conversation.Kind == ConversationKind.ScheduledRun)
             return ToolResult.Error("排程執行不能建立研究本。", "排程不能使用");
+
+        if (conversation.Kind == ConversationKind.Branch)
+            return ToolResult.Error(BranchMessages.SuggestInBranchMessage, "支線不能使用");
 
         var goal = args.Goal?.Trim() ?? "";
         if (goal.Length == 0 || goal.Length > ContextNoteLimits.GoalMaxLength)

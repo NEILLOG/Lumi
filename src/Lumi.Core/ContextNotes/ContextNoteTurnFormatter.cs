@@ -129,6 +129,11 @@ public static class ContextNoteTurnFormatter
             case ContextBlock context when context.Kind is ContextKind.File or ContextKind.Folder or ContextKind.Image:
                 lines.Add($"[附加檔案：{context.DisplayName}]");
                 break;
+            // 帶回的支線（M36）：標題加摘要全文；支線出處（BranchOrigin）不寫
+            case ContextBlock { Kind: ContextKind.BranchSummary } summary:
+                var header = $"[帶回的支線：{summary.DisplayName}]";
+                lines.Add(string.IsNullOrEmpty(summary.Content) ? header : $"{header}\n{summary.Content}");
+                break;
             case ImageBlock image:
                 AddImage(image.FileName, image.MediaType, image.DisplayName, lines, images);
                 break;

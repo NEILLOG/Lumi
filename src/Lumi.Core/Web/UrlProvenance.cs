@@ -34,8 +34,8 @@ public sealed partial class UrlProvenance
                         foreach (var url in ExtractUrls(text.Text))
                             provenance._origins.Add(WebOrigin.Of(url));
                         break;
-                    // 近況清單（M26）不算來源：它是程式自動帶入的，不是使用者這次給的，不能因此繞過「沒出現過的網站一定詢問」
-                    case (ChatRole.User, ContextBlock { Kind: not ContextKind.RecentConversations, Content: { } content }):
+                    // 近況清單（M26）、支線出處與帶回的摘要（M36）不算來源：它們是程式或 AI 產生的，不是使用者這次給的，不能因此繞過「沒出現過的網站一定詢問」
+                    case (ChatRole.User, ContextBlock { Kind: not (ContextKind.RecentConversations or ContextKind.BranchOrigin or ContextKind.BranchSummary), Content: { } content }):
                         provenance.AddExact(content);
                         break;
                     case (ChatRole.Tool, ToolResultBlock result):

@@ -184,4 +184,28 @@ public sealed class SuggestContextNoteToolTests
         Assert.Equal("找不到對話", result.Summary);
         Assert.Null(await _notes.GetSuggestionAsync("不存在的對話"));
     }
+
+    [Fact]
+    public async Task Suggest_in_branch_is_rejected()
+    {
+        var branch = _conversations.Add(ConversationKind.Branch);
+
+        var result = await Run(branch.Id, "比較兩個方案");
+
+        Assert.True(result.IsError);
+        Assert.Equal("支線裡不能開研究本。", result.Content);
+        Assert.Equal("支線不能使用", result.Summary);
+        Assert.Null(await _notes.GetSuggestionAsync(branch.Id));
+    }
+
+    [Fact]
+    public async Task Chat_conversation_is_not_affected_by_the_branch_rule()
+    {
+        var chat = _conversations.Add(ConversationKind.Chat);
+
+        var result = await Run(chat.Id, "比較兩個方案");
+
+        Assert.False(result.IsError);
+        Assert.NotNull(await _notes.GetSuggestionAsync(chat.Id));
+    }
 }

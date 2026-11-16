@@ -176,6 +176,28 @@ public sealed class UsageHintRulesTests
     }
 
     [Fact]
+    public void Branch_blocks_are_ignored_by_file_hints()
+    {
+        // 支線出處與帶回的摘要都是程式或 AI 產生的文字，即使很大也不算使用者加入的檔案
+        var origin = File("branch_origin", 15_000) with { Kind = Lumi.Core.Context.ContextKind.BranchOrigin };
+        var summary = File("探討方案", 15_000) with { Kind = Lumi.Core.Context.ContextKind.BranchSummary };
+        var history = new History().UserWith(origin, summary).Replies(20);
+
+        Assert.DoesNotContain(UsageHintIds.BigFile, Rules(Input(history)));
+    }
+
+    [Fact]
+    public void BigFile_StillTriggersForFileNextToBranchBlocks()
+    {
+        var summary = File("探討方案", 15_000) with { Kind = Lumi.Core.Context.ContextKind.BranchSummary };
+        var history = new History().UserWith(summary, File("ScheduleHistory.dc.html", 15_000)).Replies(20);
+
+        var match = Single(Input(history), UsageHintIds.BigFile);
+
+        Assert.Equal("ScheduleHistory.dc.html", match.Key);
+    }
+
+    [Fact]
     public void BigFile_NotTriggeredJustBelow15K()
     {
         var history = new History().UserWith(File("a.txt", 14_999)).Replies(20);
