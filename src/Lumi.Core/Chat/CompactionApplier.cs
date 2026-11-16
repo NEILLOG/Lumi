@@ -1,3 +1,5 @@
+using Lumi.Core.Context;
+
 namespace Lumi.Core.Chat;
 
 /// <summary>
@@ -28,10 +30,16 @@ public static class CompactionApplier
         var lastUserSeq = history.LastOrDefault(m => m.Role == ChatRole.User)?.Seq ?? 0;
 
         var result = new List<ChatMessage>(history.Count);
+        // 摘要涵蓋的範圍裡的支線摘要區塊（M36 D13）：不跟著訊息一起消失，接在摘要後面
+        var keptBranchSummaries = new List<ContentBlock>();
         foreach (var message in history)
         {
             if (message.Seq <= summaryUpto)
+            {
+                if (summaryUpto > 0)
+                    keptBranchSummaries.AddRange(message.Content.Where(IsBranchSummary));
                 continue;
+            }
 
             var kept = message;
             if (message.Role == ChatRole.Tool && message.Seq <= toolUpto)
@@ -41,17 +49,23 @@ public static class CompactionApplier
             result.Add(kept);
         }
 
+        var prefix = new List<ContentBlock>();
         if (summaryUpto > 0 && !string.IsNullOrWhiteSpace(state.Summary))
+            prefix.Add(new TextBlock(SummaryPrefix(state.Summary)));
+        prefix.AddRange(keptBranchSummaries);
+
+        if (prefix.Count > 0)
         {
-            var block = new TextBlock(SummaryPrefix(state.Summary));
             var firstUser = result.FindIndex(m => m.Role == ChatRole.User);
             if (firstUser >= 0)
-                result[firstUser] = result[firstUser] with { Content = [block, .. result[firstUser].Content] };
+                result[firstUser] = result[firstUser] with { Content = [.. prefix, .. result[firstUser].Content] };
             else
-                result.Insert(0, new ChatMessage(ChatMessage.NewId(), ChatRole.User, [block], DateTimeOffset.UtcNow));
+                result.Insert(0, new ChatMessage(ChatMessage.NewId(), ChatRole.User, prefix, DateTimeOffset.UtcNow));
         }
         return result;
     }
+
+    private static bool IsBranchSummary(ContentBlock block) => block is ContextBlock { Kind: ContextKind.BranchSummary };
 
     /// <summary>
     /// 第一層的邊界：倒數第 3 則使用者訊息之前的訊息（回傳它們的最大 <c>seq</c>）。使用者訊息不足 3 則回 0（沒有東西可整理）。
