@@ -1,5 +1,6 @@
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.ContextNotes;
 using Lumi.Core.Tests.TestSupport;
 using Lumi.Core.Tools;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -36,6 +37,49 @@ public class ConversationDeletionServiceTests
         public Task RenameAsync(string conversationId, string title, CancellationToken ct = default) => inner.RenameAsync(conversationId, title, ct);
         public Task<IReadOnlyList<ConversationSearchHit>> SearchAsync(string query, int limit, CancellationToken ct = default) => inner.SearchAsync(query, limit, ct);
         public Task<bool> DeleteAsync(string conversationId, CancellationToken ct = default) => throw new IOException("磁碟壞了");
+    }
+
+    /// <summary>研究本資料夾的假實作：刪除時先呼叫 <c>onDelete</c>（可以記錄或丟例外），其他成員委派給記憶體版。</summary>
+    private sealed class NoteFilesFake(Func<string, Task> onDelete) : IContextNoteFiles
+    {
+        private readonly InMemoryContextNoteFiles _inner = new();
+
+        public InMemoryContextNoteFiles Inner => _inner;
+        public int DeleteCalls { get; private set; }
+
+        public string GetFolder(string noteId) => _inner.GetFolder(noteId);
+        public Task<string?> ReadNoteAsync(string noteId, CancellationToken ct = default) => _inner.ReadNoteAsync(noteId, ct);
+        public Task WriteNoteAsync(string noteId, string fileText, CancellationToken ct = default) => _inner.WriteNoteAsync(noteId, fileText, ct);
+        public Task<string> SaveImageAsync(string noteId, ReadOnlyMemory<byte> data, string mediaType, CancellationToken ct = default) =>
+            _inner.SaveImageAsync(noteId, data, mediaType, ct);
+        public string? ResolveImagePath(string noteId, string relativePath) => _inner.ResolveImagePath(noteId, relativePath);
+        public Task ExportZipAsync(string noteId, string destinationZipPath, CancellationToken ct = default) =>
+            _inner.ExportZipAsync(noteId, destinationZipPath, ct);
+
+        public async Task DeleteAsync(string noteId, CancellationToken ct = default)
+        {
+            DeleteCalls++;
+            await onDelete(noteId).ConfigureAwait(false);
+            await _inner.DeleteAsync(noteId, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>查詢研究本時丟例外的假實作；其他成員不會被這個測試呼叫。</summary>
+    private sealed class ThrowingNoteStore : IContextNoteStore
+    {
+        public Task<ContextNote?> GetByConversationAsync(string conversationId, CancellationToken ct = default) => throw new IOException("讀不到");
+        public Task<ContextNote?> GetAsync(string noteId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ContextNoteRevision?> GetRevisionAsync(string noteId, int version, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<ContextNoteRevisionInfo>> ListRevisionsAsync(string noteId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task CreateAsync(ContextNote note, ContextNoteRevision first, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task AddRevisionAsync(ContextNoteRevision revision, ContextNoteProgress? progress = null, bool setGoalHint = false, string? goalHint = null, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task SetProgressAsync(string noteId, ContextNoteProgress progress, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SetAutoOrganizeAsync(string noteId, bool autoOrganize, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task SetGoalHintAsync(string noteId, string? goalHint, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ContextNoteSuggestion?> GetSuggestionAsync(string conversationId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<bool> TryMarkSuggestedAsync(string conversationId, DateTimeOffset at, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task DismissSuggestionAsync(string conversationId, DateTimeOffset at, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     [Fact]
@@ -102,6 +146,82 @@ public class ConversationDeletionServiceTests
 
         Assert.Empty(await store.ListAsync(100));
         Assert.False(memory.IsAllowed(conversation.Id, ToolPermission.Write));
+    }
+
+    [Fact]
+    public async Task WithANote_TheFolderIsDeleted_AfterTheConversationIsGone()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("有研究本");
+        var notes = new InMemoryContextNoteStore();
+        var note = new ContextNote(ContextNote.NewId(), conversation.Id, "目標", true, 1, 0, null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        await notes.CreateAsync(note, new ContextNoteRevision(ContextNoteRevision.NewId(), note.Id, 1, ContextNoteRevisionKind.StartBlank,
+            "目標", "## 已決定\n\n- 用 SQLite\n", [], null, 0, DateTimeOffset.UtcNow));
+        var storeHadConversation = (bool?)null;
+        var files = new NoteFilesFake(async _ => storeHadConversation = (await store.ListAsync(100)).Any(c => c.Id == conversation.Id));
+        await files.WriteNoteAsync(note.Id, "# 研究本");
+        var service = new ConversationDeletionService(store, new ToolPermissionMemory(),
+            new AttachmentCleaner(new NullAttachmentStore(), new ReferencesSpy(() => Task.FromResult(false), () => false), NullLogger<AttachmentCleaner>.Instance),
+            notes: notes, files: files);
+
+        Assert.True(await service.DeleteAsync(conversation.Id));
+
+        Assert.Equal(1, files.DeleteCalls);
+        Assert.False(storeHadConversation);   // 資料庫刪完之後才刪資料夾
+        Assert.Null(await files.ReadNoteAsync(note.Id));
+    }
+
+    [Fact]
+    public async Task WhenTheFolderCannotBeDeleted_TheConversationIsStillDeleted_AndTheResultIsTrue()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("資料夾刪不掉");
+        var notes = new InMemoryContextNoteStore();
+        var note = new ContextNote(ContextNote.NewId(), conversation.Id, "目標", true, 1, 0, null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        await notes.CreateAsync(note, new ContextNoteRevision(ContextNoteRevision.NewId(), note.Id, 1, ContextNoteRevisionKind.StartBlank,
+            "目標", "", [], null, 0, DateTimeOffset.UtcNow));
+        var files = new NoteFilesFake(_ => throw new IOException("資料夾被佔用"));
+        var service = new ConversationDeletionService(store, new ToolPermissionMemory(),
+            new AttachmentCleaner(new NullAttachmentStore(), new ReferencesSpy(() => Task.FromResult(false), () => false), NullLogger<AttachmentCleaner>.Instance),
+            notes: notes, files: files);
+
+        Assert.True(await service.DeleteAsync(conversation.Id));
+
+        Assert.Equal(1, files.DeleteCalls);
+        Assert.Empty(await store.ListAsync(100));
+    }
+
+    [Fact]
+    public async Task WithoutANote_NoFolderIsTouched()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("沒有研究本");
+        var files = new NoteFilesFake(_ => Task.CompletedTask);
+        await files.WriteNoteAsync("別的研究本", "# 不相干");
+        var service = new ConversationDeletionService(store, new ToolPermissionMemory(),
+            new AttachmentCleaner(new NullAttachmentStore(), new ReferencesSpy(() => Task.FromResult(false), () => false), NullLogger<AttachmentCleaner>.Instance),
+            notes: new InMemoryContextNoteStore(), files: files);
+
+        Assert.True(await service.DeleteAsync(conversation.Id));
+
+        Assert.Equal(0, files.DeleteCalls);
+        Assert.Equal("# 不相干", await files.ReadNoteAsync("別的研究本"));
+    }
+
+    [Fact]
+    public async Task WhenTheNoteLookupFails_TheConversationIsStillDeleted()
+    {
+        var store = new InMemoryConversationStore();
+        var conversation = await store.CreateAsync("查詢會失敗");
+        var files = new NoteFilesFake(_ => Task.CompletedTask);
+        var service = new ConversationDeletionService(store, new ToolPermissionMemory(),
+            new AttachmentCleaner(new NullAttachmentStore(), new ReferencesSpy(() => Task.FromResult(false), () => false), NullLogger<AttachmentCleaner>.Instance),
+            notes: new ThrowingNoteStore(), files: files);
+
+        Assert.True(await service.DeleteAsync(conversation.Id));
+
+        Assert.Empty(await store.ListAsync(100));
+        Assert.Equal(0, files.DeleteCalls);   // 查不到就當成沒有研究本
     }
 
     private sealed class ThrowingReferences : IAttachmentReferences
