@@ -116,6 +116,7 @@ public sealed class ToolTests : IDisposable
         var services = new ServiceCollection();
         // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<Lumi.Core.ContextNotes.IContextNoteStore>(new Lumi.Core.ContextNotes.InMemoryContextNoteStore());   // 建議開研究本（M35）需要研究本儲存
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
         services.AddFakeBrowserServices();
@@ -130,7 +131,7 @@ public sealed class ToolTests : IDisposable
         var registry = new ToolRegistry(provider.GetServices<ITool>());
 
         Assert.Equal(["add_note", "app_help", "browser_back", "browser_click", "browser_close", "browser_download", "browser_extract", "browser_open", "browser_press", "browser_screenshot", "browser_scroll", "browser_select", "browser_snapshot", "browser_type", "browser_upload", "browser_wait_for_user", "calculate", "cancel_reminder", "conversation_search", "copy_file", "create_folder", "create_reminder", "create_scheduled_prompt", "download_file", "edit_image", "generate_image", "get_current_time", "http_request", "http_send", "list_dir",
-                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "outlook_calendar_list", "outlook_calendar_save", "outlook_mail_draft", "outlook_mail_read", "outlook_mail_save_attachment", "outlook_mail_search", "outlook_mail_send", "outlook_mail_send_to_self", "outlook_meeting_draft", "overwrite_file", "read_conversation", "read_document", "read_file", "read_notes", "read_skill", "rss_read", "run_command", "save_skill", "search", "set_reminder_enabled", "show_details", "start_timer", "web_crawl", "web_fetch", "web_links", "write_file"],
+                "list_reminders", "memory_delete", "memory_save", "memory_update", "move_file", "net_check", "outlook_calendar_list", "outlook_calendar_save", "outlook_mail_draft", "outlook_mail_read", "outlook_mail_save_attachment", "outlook_mail_search", "outlook_mail_send", "outlook_mail_send_to_self", "outlook_meeting_draft", "overwrite_file", "read_conversation", "read_document", "read_file", "read_notes", "read_skill", "rss_read", "run_command", "save_skill", "search", "set_reminder_enabled", "show_details", "start_timer", "suggest_context_note", "web_crawl", "web_fetch", "web_links", "write_file"],
             registry.GetAll().Select(t => t.Descriptor.Name));
         Assert.Equal(["add_note", "app_help", "calculate", "cancel_reminder", "conversation_search", "create_reminder", "get_current_time", "list_dir", "list_reminders", "memory_delete", "memory_save", "memory_update", "net_check", "outlook_calendar_list", "outlook_mail_read", "outlook_mail_search", "read_document", "read_file",
                 "read_notes", "read_skill", "rss_read", "search", "set_reminder_enabled", "show_details", "start_timer", "web_fetch", "web_links"],
@@ -201,6 +202,7 @@ public sealed class ToolTests : IDisposable
         var services = new ServiceCollection();
         // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<Lumi.Core.ContextNotes.IContextNoteStore>(new Lumi.Core.ContextNotes.InMemoryContextNoteStore());   // 建議開研究本（M35）需要研究本儲存
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
         services.AddFakeBrowserServices();
@@ -235,6 +237,7 @@ public sealed class ToolTests : IDisposable
         services.AddSingleton<IFileScopeFactory, EmptyFileScopeFactory>();
         // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<Lumi.Core.ContextNotes.IContextNoteStore>(new Lumi.Core.ContextNotes.InMemoryContextNoteStore());   // 建議開研究本（M35）需要研究本儲存
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
         services.AddFakeBrowserServices();
@@ -255,6 +258,7 @@ public sealed class ToolTests : IDisposable
         var services = new ServiceCollection();
         // 筆記搜尋工具需要對話儲存（App 由 Lumi.Infrastructure 註冊）；這裡用測試替身
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<Lumi.Core.ContextNotes.IContextNoteStore>(new Lumi.Core.ContextNotes.InMemoryContextNoteStore());   // 建議開研究本（M35）需要研究本儲存
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
         services.AddFakeBrowserServices();
