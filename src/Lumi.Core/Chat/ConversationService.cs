@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Lumi.Core.Browser;
 using Lumi.Core.Context;
+using Lumi.Core.ContextNotes;
 using Lumi.Core.Memory;
 using Lumi.Core.Models;
 using Lumi.Core.Network;
@@ -78,6 +79,7 @@ public sealed class ConversationService
     private readonly IAttachmentStore? _attachments;
     private readonly ISkillStore _skills;
     private readonly IConversationTitler _titler;
+    private readonly IContextNoteStore _contextNotes;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -108,7 +110,8 @@ public sealed class ConversationService
         IAttachmentStore? attachments = null,
         IUsageRecorder? usageRecorder = null,
         ISkillStore? skills = null,
-        IConversationTitler? titler = null)
+        IConversationTitler? titler = null,
+        IContextNoteStore? contextNotes = null)
     {
         _provider = provider;
         _usage = usageRecorder ?? new NullUsageRecorder();
@@ -130,6 +133,7 @@ public sealed class ConversationService
         _attachments = attachments;
         _skills = skills ?? new InMemorySkillStore();
         _titler = titler ?? new NullConversationTitler();
+        _contextNotes = contextNotes ?? new InMemoryContextNoteStore();
     }
 
     /// <summary>
@@ -266,6 +270,47 @@ public sealed class ConversationService
         }
     }
 
+    /// <summary>
+    /// 研究本的錨（計畫 4.8）。目前的「目標＋已決定」和送出的較早訊息裡最後一次附的不同才附在 <paramref name="turnSuffix"/> 後面。
+    /// 整本研究本（<c>&lt;note&gt;</c>）只在摘要整理之後、送出的訊息裡都沒有錨的時候附，而且不超過 <see cref="ContextNoteLimits.AnchorFullNoteMaxChars"/>。
+    /// 沒有研究本或讀取失敗（只記 log）時原樣回傳。
+    /// </summary>
+    private async Task<string?> AppendContextNoteAnchorAsync(
+        string conversationId, string? turnSuffix, IReadOnlyList<ChatMessage> requestMessages, CompactionState compaction, CancellationToken ct)
+    {
+        try
+        {
+            var note = await _contextNotes.GetByConversationAsync(conversationId, ct).ConfigureAwait(false);
+            if (note is null)
+                return turnSuffix;
+            var revision = await _contextNotes.GetRevisionAsync(note.Id, note.CurrentVersion, ct).ConfigureAwait(false);
+            if (revision is null)
+                return turnSuffix;
+
+            // 送出的較早訊息（套用整理之後）：摘要整理之後原本的錨可能已經不在裡面
+            var sent = requestMessages.Take(requestMessages.Count - 1).Select(m => m.TurnSuffix).ToList();
+            var core = ContextNoteAnchor.Core(note.Goal, ContextNoteDocument.Parse(revision.Content));
+            if (core == ContextNoteAnchor.LastCoreIn(sent))
+                return turnSuffix;
+
+            var fullNote = compaction.SummaryUptoSeq is not null && !ContextNoteAnchor.AnyIn(sent) && revision.Content.Length <= ContextNoteLimits.AnchorFullNoteMaxChars
+                ? revision.Content
+                : null;
+            var anchor = ContextNoteAnchor.Wrap(core, fullNote);
+            return turnSuffix is null ? anchor : turnSuffix + "\n\n" + anchor;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // 只記例外的型別，不記研究本的內容
+            _logger.LogWarning("讀取研究本失敗（{Type}），這一次不附研究本的錨", ex.GetType().Name);
+            return turnSuffix;
+        }
+    }
+
     private async IAsyncEnumerable<ChatEvent> RunTurnAsync(
         string conversationId, ChatMode mode, [EnumeratorCancellation] CancellationToken ct, ConversationRunOptions? options = null)
     {
@@ -353,6 +398,10 @@ public sealed class ConversationService
             var announced = SystemPromptUpdate.LastIn(earlier) ?? system;   // 模型目前看到的最新版本
             if (prompt.System is not null && prompt.System != announced)
                 turnSuffix = turnSuffix is null ? SystemPromptUpdate.Wrap(prompt.System) : turnSuffix + "\n\n" + SystemPromptUpdate.Wrap(prompt.System);
+
+            // 研究本的錨（計畫 4.8）：工作台、非排程、這則對話有研究本時才看；目標或已決定變了才附（和 SystemPromptUpdate 同樣只往後加）
+            if (mode == ChatMode.Workbench && options?.Run is null)
+                turnSuffix = await AppendContextNoteAnchorAsync(conversationId, turnSuffix, requestMessages, compaction, ct).ConfigureAwait(false);
 
             // 這一次的指示跟著這一則（請求的最後一則）存起來，之後每次請求都原樣帶上：歷史只往後加，thinking 簽章才不會失效。
             // 它還是最後一則，所以重試或重新產生時可以直接改成這次的內容
