@@ -63,6 +63,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.TryAddSingleton(new Lumi.Infrastructure.ContextNotes.ContextNoteFileOptions());
         services.Replace(ServiceDescriptor.Singleton<Lumi.Core.ContextNotes.IContextNoteFiles>(sp => new Lumi.Infrastructure.ContextNotes.FileContextNoteFiles(
             sp.GetRequiredService<Lumi.Infrastructure.ContextNotes.ContextNoteFileOptions>(), sp.GetRequiredService<TimeProvider>())));
+        // 支線（M36）：同一個資料庫；取代 Core 預設的記憶體版
+        services.AddSingleton<Lumi.Infrastructure.Branches.SqliteBranchStore>();
+        services.Replace(ServiceDescriptor.Singleton<Lumi.Core.Branches.IBranchStore>(sp => sp.GetRequiredService<Lumi.Infrastructure.Branches.SqliteBranchStore>()));
         // 執行指令的擋掉清單（M31）：要知道技能資料夾在哪裡，才能提醒「指令會動到技能資料夾」
         services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(sp => new Lumi.Core.Commands.CommandGuard(
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SkillStoreOptions>>().Value.ResolveDirectory()));

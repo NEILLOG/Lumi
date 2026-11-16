@@ -162,6 +162,7 @@ public static class AppServiceCollectionExtensions
             sp.GetRequiredService<IWindowHost>(), sp.GetRequiredService<Lumi.Core.ContextNotes.IContextNoteService>(),
             sp.GetRequiredService<IConversationStore>(), sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IContextNoteStartPrompt, ContextNoteStartPrompt>();
+        services.AddSingleton<IBranchMergePrompt, BranchMergePrompt>();   // 支線的帶回對話框（M36）
         services.AddSingleton<ContextNoteCoordinator>();
         services.AddTransient<WorkbenchSpritePresenter>();
         services.AddTransient<WorkbenchWindow>();

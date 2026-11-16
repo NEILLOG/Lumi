@@ -245,6 +245,23 @@ public partial class WorkbenchViewModel : IBranchBarHost
     }
 
     /// <summary>查目前對話的支線狀態（與被鎖住時的下一層標題），再更新按鈕與路徑列。切換對話、支線變動時呼叫。</summary>
+    /// <summary>
+    /// 畫面上有「還沒交出」的摘要卡時，這一輪送出的使用者訊息已經把它交出（ConversationService 存訊息時就標記，不論回應成敗）：
+    /// 重讀支線狀態與訊息，卡片才會移到那則使用者訊息上方、說明文字消失（M36-09）。
+    /// </summary>
+    private void DeferDeliveredBranchCards(RunFinishedArgs args)
+    {
+        if (_branches is null || CurrentConversationId is null || !Messages.Any(m => m is BranchSummaryCardViewModel { IsPending: true }))
+            return;
+        args.Defer(ReloadAfterDeliveryAsync());
+
+        async Task ReloadAfterDeliveryAsync()
+        {
+            await RefreshBranchStateAsync();
+            await ReloadMessagesAsync();
+        }
+    }
+
     private async Task RefreshBranchStateAsync()
     {
         var id = CurrentConversationId;

@@ -68,9 +68,10 @@ public static class CoreServiceCollectionExtensions
         services.TryAddSingleton<Lumi.Core.ContextNotes.IContextNoteScribe, Lumi.Core.ContextNotes.ContextNoteScribe>();   // 書記：每輪整理研究本的那一次 AI 呼叫
         services.TryAddSingleton<Lumi.Core.ContextNotes.IContextNoteService, Lumi.Core.ContextNotes.ContextNoteService>();
 
-        // 支線（M36）：預設是記憶體版與不做事的服務；Lumi.Infrastructure 換成 SQLite 版，整合時換成正式的 BranchService
+        // 支線（M36）：儲存預設是記憶體版，Lumi.Infrastructure 換成 SQLite 版；整理摘要是新的一次 AI 呼叫
         services.TryAddSingleton<Lumi.Core.Branches.IBranchStore, Lumi.Core.Branches.InMemoryBranchStore>();
-        services.TryAddSingleton<Lumi.Core.Branches.IBranchService, Lumi.Core.Branches.NullBranchService>();
+        services.TryAddSingleton<Lumi.Core.Branches.IBranchSummarizer, Lumi.Core.Branches.BranchSummarizer>();
+        services.TryAddSingleton<Lumi.Core.Branches.IBranchService, Lumi.Core.Branches.BranchService>();
         services.TryAddSingleton<Lumi.Core.Outlook.IOutlookClient, Lumi.Core.Outlook.NullOutlookClient>();   // 沒有 Outlook 時的預設；Lumi.Outlook 的 AddLumiOutlook 在 Windows 會取代
         services.TryAddSingleton<Lumi.Core.Browser.IBrowserSessions, Lumi.Core.Browser.NullBrowserSessions>();   // 沒有瀏覽器時的預設；Lumi.Browser 的 AddLumiBrowser 會取代（M18）
         services.TryAddSingleton<IMcpToolSource, EmptyMcpToolSource>();   // 沒有 MCP 時的預設；Lumi.Mcp 的 AddLumiMcp 會取代（M16）

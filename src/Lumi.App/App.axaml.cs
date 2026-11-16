@@ -22,6 +22,19 @@ namespace Lumi.App;
 public partial class App : Application
 {
     // 兩種建立方式：正常（DI 已組好）；或啟動前就失敗（DI 組裝失敗，只能顯示說明視窗，不碰 DI）
+    /// <summary>刪掉建立到一半中斷留下的支線對話（M36 E10）。失敗只記 log。</summary>
+    private static async Task CleanupOrphanBranchesAsync(IServiceProvider services)
+    {
+        try
+        {
+            await services.GetRequiredService<Lumi.Core.Branches.IBranchService>().CleanupOrphansAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            services.GetService<ILogger<App>>()?.LogWarning(ex, "清理沒有完成的支線失敗");
+        }
+    }
+
     private readonly IServiceProvider? _services;
     private readonly StartupFailureReport? _startupFailure;
 
@@ -127,6 +140,7 @@ public partial class App : Application
             services.GetRequiredService<SpriteConversationController>().Attach();
             services.GetRequiredService<BudgetAlertCoordinator>();   // 回應結束後檢查預算（M23）
             services.GetRequiredService<ContextNoteCoordinator>();   // 每輪結束後整理研究本、研究本視窗跟著工作台（M35）
+            _ = CleanupOrphanBranchesAsync(services);   // 建立到一半中斷留下的支線對話（M36 E10），背景做、不擋啟動
             StartPricingAutoFill(services);
             CleanupSkillImports(services);
             var modes = services.GetRequiredService<IAppModeCoordinator>();

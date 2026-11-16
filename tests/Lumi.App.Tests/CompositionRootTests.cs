@@ -130,6 +130,15 @@ public sealed class CompositionRootTests : IDisposable
         Assert.NotNull(services.GetRequiredService<ContextNoteViewModel>());
         Assert.Same(noteStore, typeof(ConversationService).GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
             .Single(f => f.FieldType == typeof(Lumi.Core.ContextNotes.IContextNoteStore)).GetValue(services.GetRequiredService<ConversationService>()));
+
+        // 支線（M36）：SQLite 版的儲存、正式的服務與整理摘要、帶回對話框；對話服務注入的是同一個儲存
+        var branchStore = services.GetRequiredService<Lumi.Core.Branches.IBranchStore>();
+        Assert.IsType<Lumi.Infrastructure.Branches.SqliteBranchStore>(branchStore);
+        Assert.IsType<Lumi.Core.Branches.BranchService>(services.GetRequiredService<Lumi.Core.Branches.IBranchService>());
+        Assert.IsType<Lumi.Core.Branches.BranchSummarizer>(services.GetRequiredService<Lumi.Core.Branches.IBranchSummarizer>());
+        Assert.IsType<Lumi.App.Views.BranchMergePrompt>(services.GetRequiredService<IBranchMergePrompt>());
+        Assert.Same(branchStore, typeof(ConversationService).GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .Single(f => f.FieldType == typeof(Lumi.Core.Branches.IBranchStore)).GetValue(services.GetRequiredService<ConversationService>()));
         Assert.Contains(services.GetServices<Lumi.Core.Prompts.IPromptLayer>(), l => l is Lumi.Core.Prompts.MemoryPromptLayer);
         // ConversationService 的 memoryStore 是可選參數：沒被注入就會靜默失效（第 5 層永遠沒有記憶），所以直接檢查欄位
         var injected = typeof(ConversationService).GetField("_memoryStore", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!

@@ -83,6 +83,7 @@
             <Button x:Name="CompactAndContinueInFlyout" Classes="primary" Height="32" Padding="12,0"
                     Content="{x:Static res:Strings.Usage_CompactAndContinue}" Command="{Binding CompactAndContinueCommand}"
                     IsEnabled="{Binding CanCompactAndContinue}" Click="OnDismissClick"
+                    ToolTip.Tip="{Binding CompactTip}" ToolTip.ShowOnDisabled="True"
                     AutomationProperties.Name="{x:Static res:Strings.Usage_CompactAndContinue}" />
             <!-- 回應中停用：開新對話會打斷正在進行的回應 -->
             <Button x:Name="NewConversationInFlyout" Classes="secondary" Height="32" Padding="12,0"

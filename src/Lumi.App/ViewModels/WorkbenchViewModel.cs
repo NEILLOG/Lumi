@@ -144,7 +144,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
-        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation, scheduledRunsTab, contextNoteStore);
+        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation, scheduledRunsTab, contextNoteStore, branchStore);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, afterSelect: null,
             currentContextTokens: () => ContextUsed, newConversation: () => NewConversationAsync(),
             hints: hintCoordinator, currentConversationId: () => CurrentConversationId);
@@ -1177,6 +1177,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         // 有用到工具的這一輪被停止：ConversationService 已經補好「已停止」結果並存檔，畫面從資料庫重讀才和存檔一致
         if (result.Cancelled && _usedTools && CurrentConversationId is not null)
             args.Defer(ReloadMessagesAsync());
+        DeferDeliveredBranchCards(args);   // 送出時交出了支線摘要：卡片移到那則訊息上方（M36）
 
         if (!_ownRun)
         {

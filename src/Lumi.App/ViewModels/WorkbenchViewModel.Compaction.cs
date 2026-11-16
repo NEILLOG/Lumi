@@ -28,10 +28,10 @@ public partial class WorkbenchViewModel
     /// <summary>用量面板的「整理並繼續」：沒有回應進行中、沒有在整理、有對話；支線裡與上一層被鎖住時不能（M36 4.8、E13）。</summary>
     public bool CanCompactAndContinue => !IsResponding && !IsCompacting && CurrentConversationId is not null && !IsInBranch && !IsBranchLocked;
 
-    /// <summary>「整理並繼續」停用時的原因（沒有原因是空字串）。</summary>
-    public string CompactTip => IsInBranch ? Strings.Branch_CompactDisabledTip
+    /// <summary>「整理並繼續」因為支線而停用時的原因；沒有這個原因是 null（不顯示 Tooltip）。</summary>
+    public string? CompactTip => IsInBranch ? Strings.Branch_CompactDisabledTip
         : IsBranchLocked ? Strings.Branch_LockedActionTip
-        : "";
+        : null;
 
     /// <summary>手動整理（用量面板，快滿時）：直接做摘要，完成後重讀訊息顯示分隔線。</summary>
     [RelayCommand(CanExecute = nameof(CanCompactNow))]
