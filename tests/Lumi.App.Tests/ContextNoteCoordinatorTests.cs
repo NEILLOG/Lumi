@@ -1,5 +1,6 @@
 using Lumi.App.Services;
 using Lumi.App.Tests.TestSupport;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 
 namespace Lumi.App.Tests;
@@ -70,6 +71,24 @@ public class ContextNoteCoordinatorTests
         rig.Session.SwitchConversation("conv-2");
 
         Assert.Equal(["Follow:conv-2"], rig.Window.Calls);
+    }
+
+    [Fact]
+    public async Task Follows_root_when_in_branch()
+    {
+        var session = new FakeChatSession { ConversationId = "conv-1" };
+        var notes = new FakeContextNoteService();
+        var window = new FakeContextNoteWindowService();
+        var branches = new InMemoryBranchStore();
+        await branches.AddAsync(new Branch("branch-1", "conv-1", "conv-1", 1, "fork", "摘錄", DateTimeOffset.UnixEpoch, null,
+            BranchStatus.Active, null, null, DateTimeOffset.UnixEpoch, null));
+        var coordinator = new ContextNoteCoordinator(session, notes, window, new SyncUiDispatcher(), branches: branches);
+
+        session.SwitchConversation("branch-1");
+        await Task.Yield();
+
+        Assert.Equal(["Follow:conv-1"], window.Calls);
+        coordinator.Dispose();
     }
 
     [Fact]

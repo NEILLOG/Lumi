@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.App.Services;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.ContextNotes;
@@ -101,7 +102,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         IContextNoteService? contextNotes = null,
         IContextNoteStore? contextNoteStore = null,
         IContextNoteWindowService? contextNoteWindow = null,
-        IContextNoteStartPrompt? contextNoteStart = null)
+        IContextNoteStartPrompt? contextNoteStart = null,
+        IBranchService? branches = null,
+        IBranchStore? branchStore = null,
+        IBranchMergePrompt? mergePrompt = null)
     {
         _skills = skills;
         _confirm = confirm;
@@ -172,10 +176,12 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             if (mode == ChatMode.Sprite)
                 CloseRunView();   // 切到小精靈：工作台隱藏，排程紀錄檢視一起關掉（不改模式本身）
             OnPropertyChanged(nameof(IsViewOnly));
+            OnPropertyChanged(nameof(InputEnabled));
             EnterSpriteModeCommand.NotifyCanExecuteChanged();
         };
         _approvals.Resolved += OnApprovalResolved;
         InitializeContextNote(contextNotes, contextNoteStore, contextNoteWindow, contextNoteStart);
+        InitializeBranch(branches, branchStore, mergePrompt);
 
         _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
         _showModelName = catalog.Current.Display.ShowModelName;
@@ -330,7 +336,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private string _inputText = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip), nameof(AddFileTip), nameof(AddFolderTip), nameof(CanCompactAndContinue))]
+    [NotifyPropertyChangedFor(nameof(ShowSwitchBlockedHint), nameof(CanSwitchModel), nameof(IsViewOnly), nameof(SpriteModeTip), nameof(ModelCapsuleTip), nameof(AddFileTip), nameof(AddFolderTip), nameof(CanCompactAndContinue), nameof(InputEnabled))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand), nameof(RetryCommand), nameof(RegenerateCommand), nameof(EnterSpriteModeCommand), nameof(CompactAndContinueCommand))]
     private bool _isResponding;
 
@@ -355,6 +361,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         NotifyConversationActions();
         History.HostStateChanged();
         OnContextNoteRespondingChanged(value);
+        ApplyBranchActions();   // 回應中不能開支線（4.8）
     }
 
     partial void OnInputTextChanged(string value)
@@ -439,6 +446,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         {
             var conversation = await NavigateAsync(() => _session.InitializeAsync(Strings.Workbench_NewConversationTitle));
             await LoadAsync(conversation);
+            await OpenActiveBranchAsync(conversation.Id);
         }
         finally
         {
@@ -468,7 +476,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             await Context.RefreshAsync();   // 項目已經變成「已帶入」
     }
 
-    private bool CanSend() => !IsResponding && !IsCompacting && !IsVoiceActive && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText);
+    private bool CanSend() => !IsResponding && !IsCompacting && !IsVoiceActive && CurrentConversationId is not null && !string.IsNullOrWhiteSpace(InputText)
+        && !IsBranchLocked && !IsBranchFinished;
 
     [RelayCommand(CanExecute = nameof(CanRetry))]
     private Task RetryAsync()
@@ -477,7 +486,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         return RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
     }
 
-    private bool CanRetry() => !IsResponding && !IsCompacting && (HasError || IsStoppedWithoutReply);
+    private bool CanRetry() => !IsResponding && !IsCompacting && (HasError || IsStoppedWithoutReply) && !IsBranchLocked && !IsBranchFinished;
 
     /// <summary>「換模型重試」：模型已經切好了，接著重送（只有最後一則是使用者訊息時才有東西可重送）。</summary>
     private Task RetryAfterModelSwitchAsync() => RetryCommand.CanExecute(null) ? RetryAsync() : Task.CompletedTask;
@@ -492,7 +501,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         return RunResponseAsync(() => _session.RegenerateAsync(), reloadOnFailure: true);
     }
 
-    private bool CanRegenerate() => !IsResponding && !IsCompacting && CurrentConversationId is not null && Messages.LastOrDefault() is { IsUser: false };
+    private bool CanRegenerate() => !IsResponding && !IsCompacting && CurrentConversationId is not null && Messages.LastOrDefault(m => !m.IsMarker) is { IsUser: false }
+        && !IsBranchLocked && !IsBranchFinished;
 
     [RelayCommand(CanExecute = nameof(IsResponding))]
     private void Stop() => _session.Stop();
@@ -507,7 +517,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     {
         CloseRunView();
         // 目前這則還沒有任何訊息：已經是空白的了，不重複建立（小精靈的專屬對話不算：它要留給小精靈）
-        if (Messages.Count == 0 && CurrentConversationId is not null && !IsSpriteConversation)
+        if (!Messages.Any(m => !m.IsMarker) && CurrentConversationId is not null && !IsSpriteConversation)
             return;
 
         await CreateNewConversationAsync();
@@ -611,6 +621,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Title = conversation.Title;
         ErrorMessage = null;
         IsStoppedWithoutReply = false;
+        await RefreshBranchStateAsync();        // 路徑列、輸入框與研究本（跟著主線）要在訊息重建之前知道這則對話的支線狀態
         await RefreshContextNoteStateAsync();   // 研究本按鈕與建議卡片要在訊息重建之前知道這則對話的狀態
         await ReloadMessagesAsync();
         await RefreshCostAsync();
@@ -622,14 +633,18 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     {
         var messages = await _store.GetMessagesAsync(CurrentConversationId!);
         var compaction = await _store.GetCompactionStateAsync(CurrentConversationId!);
+        var branches = await BuildBranchTimelineAsync();
         Messages.Clear();
-        foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson), compaction))
+        foreach (var item in ConversationTimeline.Build(messages, use => NewCard(use.Id, use.Name, use.Name, null, null, use.InputJson), compaction, branches: branches))
             Messages.Add(item);
         HasCompactionFailure = false;
 
         LoadUsageTally(messages, await _store.GetCompactionUsageAsync(CurrentConversationId!));
         var lastWithUsage = messages.LastOrDefault(m => m.Usage is not null);
         LastUsage = lastWithUsage?.Usage;
+        // 空支線（還沒有任何回應）：上下文圓環沿用上一層最後一次的用量（E11）
+        if (lastWithUsage is null && CurrentBranchState is { IsBranch: true } branch)
+            LastUsage = (await _store.GetMessagesAsync(branch.Path[^2].ConversationId)).LastOrDefault(m => m.Usage is not null)?.Usage;
         // 整理過、而且還沒有整理之後的回應：舊的用量不代表現在送出的大小，改用估算，用量圓環整理完就變小（M22）
         if (!compaction.IsEmpty && (lastWithUsage is null || lastWithUsage.Seq <= compaction.AppliedAtSeq))
             LastUsage = await EstimateCompactedUsageAsync(CurrentConversationId!, messages, compaction);
@@ -667,8 +682,8 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         var answered = true;
         foreach (var item in Messages)
         {
-            if (item is CompactionDividerViewModel)
-                continue;   // 整理的分隔線不是回應
+            if (item.IsMarker)
+                continue;   // 整理的分隔線、支線的出處與摘要卡不是回應
             if (item.IsUser)
                 answered = false;
             else if (!answered && !item.IsStreaming)
@@ -679,13 +694,15 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         }
         Turns = turns;
 
-        var last = Messages.LastOrDefault();
+        var last = Messages.LastOrDefault(m => !m.IsMarker);
         for (var i = 0; i < Messages.Count; i++)
         {
             var message = Messages[i];
             message.IsLastAssistant = message.IsAssistant && ReferenceEquals(message, last);
             message.IsFollowedByTools = i + 1 < Messages.Count && Messages[i + 1] is ToolRunViewModel;
         }
+        ApplyBranchActions();
+        RefreshBranchBar();
         RegenerateCommand.NotifyCanExecuteChanged();
     }
 
@@ -981,7 +998,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         if (args.Kind == ChatRunKind.Regenerate)
         {
             // 重新產生會移除整輪（氣泡與工具段落都要一起移除，一路到最後一則使用者訊息）
-            while (Messages.LastOrDefault() is { IsUser: false } old)
+            while (Messages.LastOrDefault(m => !m.IsMarker) is { IsUser: false } old)
                 Messages.Remove(old);
         }
         else if (!_ownRun && args.Kind == ChatRunKind.Send && args.UserText is { } text)

@@ -35,6 +35,8 @@ public partial class WorkbenchWindow : Window
         if (Toolbar.CapsuleButton.Flyout is { } modelFlyout)
             modelFlyout.Closed += (_, _) => _ = viewModel.ModelSwitcher.DismissPendingSwitchAsync();
         viewModel.RetrySwitcher.Selected += () => Conversation.RetryOtherModelButton.Flyout?.Hide();
+        // 新開支線（開支線、問這段）：路徑列播進入動畫（色條與出處卡片在 ConversationView 播，36G）
+        viewModel.BranchEntered += (_, _) => BranchBarView.PlayEnterAnimation();
         Opened += OnOpened;
         if (sprite is not null)
         {

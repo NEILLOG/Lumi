@@ -59,6 +59,7 @@ public partial class ChatComposer : UserControl
             _attached.PropertyChanged -= OnViewModelPropertyChanged;
             _attached.FocusInputRequested -= OnFocusInputRequested;
             _attached.FocusInputAtEndRequested -= OnFocusInputAtEndRequested;
+            _attached.SelectInputRequested -= OnSelectInputRequested;
         }
         _attached = ViewModel;
         if (_attached is not null)
@@ -66,10 +67,23 @@ public partial class ChatComposer : UserControl
             _attached.PropertyChanged += OnViewModelPropertyChanged;
             _attached.FocusInputRequested += OnFocusInputRequested;
             _attached.FocusInputAtEndRequested += OnFocusInputAtEndRequested;
+            _attached.SelectInputRequested += OnSelectInputRequested;
         }
     }
 
     private void OnFocusInputRequested(object? sender, EventArgs e) => FocusInput();
+
+    /// <summary>「問這段」：預先填好的問題要全選，讓使用者直接打字覆蓋（M36 E8）。延後一拍，等文字綁定寫進輸入框。</summary>
+    private void OnSelectInputRequested(object? sender, EventArgs e) =>
+        Dispatcher.UIThread.Post(SelectInput, DispatcherPriority.Background);
+
+    private void SelectInput()
+    {
+        if (!InputBox.IsEffectivelyVisible || !InputBox.IsEnabled)
+            return;
+        InputBox.Focus();
+        InputBox.SelectAll();
+    }
 
     /// <summary>
     /// 技能插入後：焦點回輸入框、游標移到文字最後。延後一拍（Background）：選單的 Click 結束後，Flyout 會把焦點還給觸發按鈕，
