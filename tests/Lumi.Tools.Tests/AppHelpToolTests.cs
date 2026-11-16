@@ -8,7 +8,7 @@ public sealed class AppHelpToolTests
 {
     private static readonly string[] GuideIds =
     [
-        "browser", "chat", "commands", "connections", "context-notes", "files", "getting-started", "images", "mcp", "memory", "network",
+        "branches", "browser", "chat", "commands", "connections", "context-notes", "files", "getting-started", "images", "mcp", "memory", "network",
         "outlook", "personalize", "privacy", "reminders", "skills", "sprite", "tarot", "tools", "troubleshooting", "usage-cost", "voice",
     ];
 
