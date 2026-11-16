@@ -1,7 +1,118 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
              x:Class="Lumi.App.Views.ContextNoteHistoryView"
              x:DataType="vm:ContextNoteHistoryViewModel">
-  <!-- TODO(35I)：Phase 0 只有空殼 -->
+
+  <UserControl.Styles>
+    <!-- 版本清單的列：同工作台歷史清單（圓角 10、內距 12／8、列距 4；選取＝Soft 底） -->
+    <Style Selector="ListBox.history-versions ListBoxItem">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+    </Style>
+    <Style Selector="ListBox.history-versions ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="ListBox.history-versions ListBoxItem:selected /template/ ContentPresenter, ListBox.history-versions ListBoxItem:selected:pointerover /template/ ContentPresenter, ListBox.history-versions ListBoxItem:selected:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- 刪除的整列文字：次要文字色＋刪除線 -->
+    <Style Selector="TextBlock.removed">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- 上方一列：回到研究本、比較標題、退回 -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="16,8">
+      <Button Grid.Column="0" Classes="tertiary" Command="{Binding BackCommand}" VerticalAlignment="Center"
+              ToolTip.Tip="{x:Static res:Strings.ContextNote_History_Back}"
+              AutomationProperties.Name="{x:Static res:Strings.ContextNote_History_Back}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ctl:LumiIcon Data="{StaticResource LumiIconArrowLeft}" Size="16" />
+          <TextBlock Text="{x:Static res:Strings.ContextNote_History_Back}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+      <TextBlock Grid.Column="1" Text="{Binding CompareText}" FontWeight="Bold" VerticalAlignment="Center"
+                 TextTrimming="CharacterEllipsis" />
+      <Button Grid.Column="2" Classes="secondary" Command="{Binding RevertCommand}" Content="{Binding RevertText}"
+              VerticalAlignment="Center" />
+    </Grid>
+
+    <!-- 本體：寬的時候左差異、右清單（260）；窄的時候清單在上（高 160），由 code-behind 依寬度換行列 -->
+    <Grid x:Name="BodyGrid" Grid.Row="1" ColumnDefinitions="*,260" RowDefinitions="*">
+      <ScrollViewer x:Name="DiffScroll" Grid.Row="0" Grid.Column="0" Padding="16,8,16,24">
+        <StackPanel Spacing="4">
+          <Border IsVisible="{Binding HasGoalChange}" Background="{DynamicResource LumiSurfaceAltBrush}"
+                  CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+            <TextBlock Text="{Binding GoalChangedText}" TextWrapping="Wrap" />
+          </Border>
+          <TextBlock IsVisible="{Binding HasNoChange}" Classes="caption" Text="{Binding NoChangeText}" />
+
+          <ItemsControl ItemsSource="{Binding Sections}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ContextNoteDiffSection">
+                <StackPanel Spacing="4" Margin="0,12,0,0">
+                  <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+                  <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ContextNoteDiffRow">
+                        <Grid>
+                          <!-- 新增：Success 淡底（Success 色、不透明度 12%）；刪除：Danger 淡底。底色畫在內容後面，文字一定有徽章 -->
+                          <Border IsVisible="{Binding IsAdded}" Background="{DynamicResource LumiSuccessBrush}"
+                                  Opacity="0.12" CornerRadius="8" />
+                          <Border IsVisible="{Binding IsRemoved}" Background="{DynamicResource LumiDangerBackgroundBrush}"
+                                  CornerRadius="8" />
+                          <Border Padding="12,8" CornerRadius="8">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                              <Border Grid.Column="0" Classes="badge" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding KindText}" />
+                              </Border>
+                              <TextBlock Grid.Column="1" Text="{Binding Text}" TextWrapping="Wrap"
+                                         IsVisible="{Binding !IsChanged}" Classes.removed="{Binding IsRemoved}" />
+                              <!-- 修改：列內的增刪字由 code-behind 組成 Run（DataContextChanged 時重建） -->
+                              <TextBlock Grid.Column="1" TextWrapping="Wrap" IsVisible="{Binding IsChanged}"
+                                         DataContextChanged="OnChangedTextDataContextChanged" />
+                            </Grid>
+                          </Border>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+
+      <ListBox x:Name="VersionList" Grid.Row="0" Grid.Column="1" Classes="history-versions"
+               ItemsSource="{Binding Revisions}" SelectedItem="{Binding Selected, Mode=TwoWay}"
+               Padding="12,8" Background="Transparent" AutomationProperties.Name="{x:Static res:Strings.ContextNote_History_Versions}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ContextNoteRevisionRow">
+            <StackPanel Spacing="4">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding VersionText}" FontWeight="Bold" VerticalAlignment="Center" />
+                <Border Classes="badge">
+                  <TextBlock Text="{Binding AuthorText}" />
+                </Border>
+              </StackPanel>
+              <TextBlock Classes="caption" Text="{Binding CaptionText}" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Grid>
 </UserControl>
