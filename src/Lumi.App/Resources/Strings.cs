@@ -865,6 +865,9 @@ public static class Strings
     public static string Export_HeadingAssistant => Get(nameof(Export_HeadingAssistant));
     public static string Export_ExportedAtFormat => Get(nameof(Export_ExportedAtFormat));
     public static string Export_ToolFormat => Get(nameof(Export_ToolFormat));
+    public static string Export_BranchSummaryFormat => Get(nameof(Export_BranchSummaryFormat));
+    public static string Export_BranchOrigin => Get(nameof(Export_BranchOrigin));
+    public static string Export_BranchOriginFormat => Get(nameof(Export_BranchOriginFormat));
     public static string Export_ToolOk => Get(nameof(Export_ToolOk));
     public static string Export_ToolFailed => Get(nameof(Export_ToolFailed));
     public static string Export_ImageFormat => Get(nameof(Export_ImageFormat));

@@ -873,6 +873,9 @@
   <data name="Export_HeadingAssistant" xml:space="preserve"><value>Lumi</value></data>
   <data name="Export_ExportedAtFormat" xml:space="preserve"><value>匯出時間：{0}</value></data>
   <data name="Export_ToolFormat" xml:space="preserve"><value>工具：{0}</value></data>
+  <data name="Export_BranchSummaryFormat" xml:space="preserve"><value>**支線 · {0}**（帶回的摘要）</value></data>
+  <data name="Export_BranchOrigin" xml:space="preserve"><value>從上一層分出來</value></data>
+  <data name="Export_BranchOriginFormat" xml:space="preserve"><value>從上一層分出來：{0}</value></data>
   <data name="Export_ToolOk" xml:space="preserve"><value>成功</value></data>
   <data name="Export_ToolFailed" xml:space="preserve"><value>失敗</value></data>
   <data name="Export_ImageFormat" xml:space="preserve"><value>[圖片：{0}]</value></data>

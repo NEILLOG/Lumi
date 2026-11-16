@@ -92,7 +92,7 @@ public static class ConversationMarkdownExporter
     /// <summary>「&gt; 支線 · {標題}（帶回的摘要）」，摘要的每一行前面加 <c>&gt; </c>。</summary>
     private static string BranchSummaryQuote(ContextBlock summary)
     {
-        var lines = new List<string> { $"> **支線 · {summary.DisplayName}**（帶回的摘要）" };
+        var lines = new List<string> { "> " + string.Format(CultureInfo.CurrentCulture, Strings.Export_BranchSummaryFormat, summary.DisplayName) };
         lines.AddRange((summary.Content ?? "").ReplaceLineEndings("\n").Split('\n').Select(line => "> " + line));
         return string.Join("\n", lines);
     }
@@ -106,8 +106,8 @@ public static class ConversationMarkdownExporter
         if (excerpt is not null && excerpt.EndsWith('」'))
             excerpt = excerpt[..^1];
         return string.IsNullOrWhiteSpace(excerpt)
-            ? "> 從上一層分出來"
-            : $"> 從上一層分出來：{excerpt}";
+            ? "> " + Strings.Export_BranchOrigin
+            : "> " + string.Format(CultureInfo.CurrentCulture, Strings.Export_BranchOriginFormat, excerpt);
     }
 
     /// <summary>「&gt; 工具：{名稱} {對象}（成功／失敗）」。</summary>
