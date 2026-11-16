@@ -75,8 +75,8 @@ public partial class HistoryDrawer : UserControl
             return;
         }
 
-        if (item is null)
-            return;   // 群組標題列
+        if (item is null || item.IsBranch)
+            return;   // 群組標題列；支線列沒有改名、刪除與選單
         switch (e.Key)
         {
             case Key.F2:
@@ -99,7 +99,7 @@ public partial class HistoryDrawer : UserControl
     /// <summary>右鍵：和「…」開同一個選單。</summary>
     private void OnListContextRequested(object? sender, ContextRequestedEventArgs e)
     {
-        if (e.Source is not Control source || source.DataContext is not ConversationListItem)
+        if (e.Source is not Control source || source.DataContext is not ConversationListItem { IsBranch: false })
             return;
         ShowRowMenu(source);
         e.Handled = true;
@@ -164,6 +164,8 @@ public partial class HistoryDrawer : UserControl
     private static void ShowRowMenu(Control source)
     {
         var row = source.GetSelfAndVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
+        if (row?.DataContext is ConversationListItem { IsBranch: true })
+            return;   // 支線列沒有「⋯」
         var more = row?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("row-more"));
         if (more is not null)
             FlyoutBase.ShowAttachedFlyout(more);

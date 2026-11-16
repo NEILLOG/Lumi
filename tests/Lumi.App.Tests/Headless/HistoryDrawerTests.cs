@@ -11,6 +11,7 @@ using Lumi.App.Services;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
 using Lumi.App.Views;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -371,5 +372,65 @@ public class HistoryDrawerTests
         Assert.False(rig.Drawer.IsEffectivelyVisible);
         Assert.All(rig.RowMoreButtons, b => Assert.False(b.IsEffectivelyVisible));
         rig.Window.Close();
+    }
+
+    /// <summary>等待條件成立（列是虛擬化的，版面排好後才有實體列）。</summary>
+    private static async Task PumpWindowUntil(Window window, Func<bool> condition)
+    {
+        for (var i = 0; i < 300 && !condition(); i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(10);
+        }
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        Assert.True(condition());
+    }
+
+    /// <summary>標題是這段文字的支線列（包住它的那一列 Grid，DataContext 是支線）。</summary>
+    private static Grid BranchRowGrid(HistoryDrawer drawer, string title) =>
+        drawer.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Single(t => t.Text == title)
+            .GetVisualAncestors().OfType<Grid>().First(g => g.DataContext is ConversationListItem { IsBranch: true });
+
+    private static int VisibleTextCount(HistoryDrawer drawer, string text) =>
+        drawer.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Count(t => t.Text == text && t.IsEffectivelyVisible);
+
+    [AvaloniaFact]
+    public async Task Branch_row_indent_and_badge()
+    {
+        var store = new InMemoryConversationStore();
+        var branches = new InMemoryBranchStore();
+        var now = DateTimeOffset.UtcNow;
+        var root = await store.CreateAsync("主線");
+        await store.AppendMessageAsync(root.Id,
+            new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new Lumi.Core.Chat.TextBlock("主線")], now));
+        var merged = await store.CreateAsync("第一層 已帶回", ConversationKind.Branch);
+        var active = await store.CreateAsync("第一層 進行中", ConversationKind.Branch);
+        var nested = await store.CreateAsync("第二層 甲", ConversationKind.Branch);
+        await branches.AddAsync(new Branch(merged.Id, root.Id, root.Id, 1, "fork", "分岔", now, null,
+            BranchStatus.Merged, "摘要", null, now, now));
+        await branches.AddAsync(new Branch(active.Id, root.Id, root.Id, 1, "fork", "分岔", now.AddMinutes(1), null,
+            BranchStatus.Active, null, null, now.AddMinutes(1), null));
+        await branches.AddAsync(new Branch(nested.Id, active.Id, root.Id, 2, "fork", "分岔", now.AddMinutes(2), null,
+            BranchStatus.Active, null, null, now.AddMinutes(2), null));
+
+        var vm = new HistoryViewModel(store, new FakeHistoryHost(), new ManualTimeProvider(now), branches: branches);
+        var drawer = new HistoryDrawer { DataContext = vm };
+        var window = new Window { Width = 260, Height = 700, Content = drawer };
+        window.Show();
+        vm.IsOpen = true;
+        await PumpWindowUntil(window, () => drawer.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>().Any(t => t.Text == "第二層 甲"));
+
+        // 縮排：第一層 16、第二層 32
+        Assert.Equal(16, BranchRowGrid(drawer, "第一層 進行中").Margin.Left);
+        Assert.Equal(32, BranchRowGrid(drawer, "第二層 甲").Margin.Left);
+        // 徽章：進行中（第一層與第二層各一個）用 Soft 底的文字；已帶回只有一個可見
+        Assert.Equal(2, VisibleTextCount(drawer, Strings.Branch_StatusActive));
+        Assert.Equal(1, VisibleTextCount(drawer, Strings.Branch_StatusMerged));
+        // 支線列沒有「⋯」
+        Assert.All(drawer.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("row-more")
+                                                                          && b.DataContext is ConversationListItem { IsBranch: true }),
+            b => Assert.False(b.IsEffectivelyVisible));
+        window.Close();
     }
 }

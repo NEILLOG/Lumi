@@ -20,6 +20,13 @@
     <Style Selector="ListBoxItem:pointerover Button.row-more, ListBoxItem:focus-within Button.row-more">
       <Setter Property="Opacity" Value="1" />
     </Style>
+    <!-- 支線列的分支圖示：平常 Muted，選取時跟著選取項目的文字色（M36） -->
+    <Style Selector="ctl|LumiIcon.branch-icon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected ctl|LumiIcon.branch-icon">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
     <!-- 搜尋命中的字：加粗（顏色不變，避免和選取列的 TextOnSoft 文字打架） -->
     <Style Selector="TextBlock.hit">
       <Setter Property="FontWeight" Value="Bold" />
@@ -109,7 +116,29 @@
                 </DataTemplate>
 
                 <DataTemplate x:DataType="vm:ConversationListItem">
-                  <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                  <Panel>
+                  <!-- 支線列（M36）：縮排 16／32、高 32、字級 13；左側分支圖示，標題後面是狀態徽章。沒有時間、沒有「⋯」，不能改名與刪除 -->
+                  <Grid ColumnDefinitions="Auto,*,Auto" Height="32" VerticalAlignment="Center" Margin="{Binding IndentMargin}"
+                        IsVisible="{Binding IsBranch}">
+                    <ctl:LumiIcon Grid.Column="0" Classes="branch-icon" Data="{StaticResource LumiIconGitBranch}" Size="14"
+                                  VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" Classes.muted="{Binding IsMutedTitle}" />
+                    <!-- 進行中：Soft 底、AccentText 字 -->
+                    <Border Grid.Column="2" Margin="8,0,0,0" Height="20" Padding="8,0" CornerRadius="12" VerticalAlignment="Center"
+                            Background="{DynamicResource LumiAccentSoftBrush}" IsVisible="{Binding IsActiveBranch}">
+                      <TextBlock Text="{Binding StatusText}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                                 Foreground="{DynamicResource LumiAccentTextBrush}" VerticalAlignment="Center" />
+                    </Border>
+                    <!-- 已帶回、已放棄：SurfaceAlt 底、Muted 字 -->
+                    <Border Grid.Column="2" Margin="8,0,0,0" Height="20" Padding="8,0" CornerRadius="12" VerticalAlignment="Center"
+                            Background="{DynamicResource LumiSurfaceAltBrush}" IsVisible="{Binding IsFinishedBranch}">
+                      <TextBlock Text="{Binding StatusText}" FontSize="{DynamicResource LumiFontSizeCaption}"
+                                 Foreground="{DynamicResource LumiTextMutedBrush}" VerticalAlignment="Center" />
+                    </Border>
+                  </Grid>
+
+                  <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center" IsVisible="{Binding !IsBranch}">
                     <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
                       <!-- 小精靈的專屬對話（釘在最上方）：小精靈圖示加「小精靈」標籤 -->
                       <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSprite}">
@@ -161,6 +190,7 @@
                       </Button.Flyout>
                     </Button>
                   </Grid>
+                  </Panel>
                 </DataTemplate>
               </ListBox.DataTemplates>
             </ListBox>

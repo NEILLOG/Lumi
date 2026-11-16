@@ -1,6 +1,7 @@
 using Lumi.App.Resources;
 using Lumi.App.Tests.TestSupport;
 using Lumi.App.ViewModels;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 
 namespace Lumi.App.Tests;
@@ -586,5 +587,163 @@ public class HistoryViewModelTests
     {
         var parts = ConversationListItem.Highlight("沒有查詢", "");
         Assert.Equal(new[] { ("沒有查詢", false) }, parts.Select(p => (p.Text, p.Hit)).ToArray());
+    }
+
+    // ---- 支線（M36）：掛在主線底下 ----
+
+    private sealed record BranchRig(HistoryViewModel Vm, InMemoryConversationStore Store, InMemoryBranchStore Branches, FakeHistoryHost Host, ManualTimeProvider Time);
+
+    private static BranchRig CreateBranchRig(HistoryOptions? options = null)
+    {
+        var store = new InMemoryConversationStore();
+        var branches = new InMemoryBranchStore();
+        var host = new FakeHistoryHost();
+        var time = new ManualTimeProvider(Now);
+        var vm = new HistoryViewModel(store, host, time, options, HistoryTestSupport.Deletion(store), new FakeConfirmService(), branches: branches);
+        return new BranchRig(vm, store, branches, host, time);
+    }
+
+    /// <summary>建一則有訊息的主線（只有有訊息的對話才會列在清單裡）。</summary>
+    private static async Task<Conversation> AddRootAsync(BranchRig rig, string title)
+    {
+        var conversation = await rig.Store.CreateAsync(title);
+        await rig.Store.AppendMessageAsync(conversation.Id,
+            new ChatMessage(ChatMessage.NewId(), ChatRole.User, [new Lumi.Core.Chat.TextBlock(title)], DateTimeOffset.UtcNow));
+        return conversation;
+    }
+
+    /// <summary>建一條支線：支線那則對話加上支線列。建立時間由參數指定，排序才可預期。</summary>
+    private static async Task<Conversation> AddBranchAsync(BranchRig rig, string title, string parentId, string rootId, int depth,
+        DateTimeOffset createdAt, BranchStatus status = BranchStatus.Active)
+    {
+        var conversation = await rig.Store.CreateAsync(title, ConversationKind.Branch);
+        await rig.Branches.AddAsync(new Branch(conversation.Id, parentId, rootId, depth, "fork-message", "分岔的回答",
+            createdAt, null, status, null, null, createdAt, status == BranchStatus.Active ? null : createdAt));
+        return conversation;
+    }
+
+    private static string[] ListedTitles(HistoryViewModel vm) => vm.Rows.OfType<ConversationListItem>().Select(i => i.Title).ToArray();
+
+    private static ConversationListItem RowTitled(HistoryViewModel vm, string title) =>
+        vm.Rows.OfType<ConversationListItem>().Single(i => i.Title == title);
+
+    [Fact]
+    public async Task Branches_follow_their_root()
+    {
+        var rig = CreateBranchRig();
+        var a = await AddRootAsync(rig, "主線 A");
+        await Task.Delay(3);
+        var b = await AddRootAsync(rig, "主線 B");   // 比較新：排在前面
+        await AddBranchAsync(rig, "A 的支線", a.Id, a.Id, 1, Now);
+        await AddBranchAsync(rig, "B 的支線", b.Id, b.Id, 1, Now);
+        await rig.Vm.RefreshAsync(null);
+
+        Assert.Equal(new[] { "主線 B", "B 的支線", "主線 A", "A 的支線" }, ListedTitles(rig.Vm));
+    }
+
+    [Fact]
+    public async Task Second_level_follows_first_level()
+    {
+        var rig = CreateBranchRig();
+        var root = await AddRootAsync(rig, "主線");
+        var first = await AddBranchAsync(rig, "第一層 甲", root.Id, root.Id, 1, Now);
+        await AddBranchAsync(rig, "第一層 丙", root.Id, root.Id, 1, Now.AddMinutes(1));
+        await AddBranchAsync(rig, "第二層 乙", first.Id, root.Id, 2, Now.AddMinutes(5));   // 雖然建立得最晚，仍緊接在甲後面
+        await rig.Vm.RefreshAsync(null);
+
+        Assert.Equal(new[] { "主線", "第一層 甲", "第二層 乙", "第一層 丙" }, ListedTitles(rig.Vm));
+        Assert.Equal(2, RowTitled(rig.Vm, "第二層 乙").Depth);
+        Assert.Equal(1, RowTitled(rig.Vm, "第一層 甲").Depth);
+    }
+
+    [Fact]
+    public async Task Branch_rows_have_no_menu_and_time()
+    {
+        var rig = CreateBranchRig();
+        var root = await AddRootAsync(rig, "主線");
+        await AddBranchAsync(rig, "支線", root.Id, root.Id, 1, Now);
+        await rig.Vm.RefreshAsync(null);
+        var branch = RowTitled(rig.Vm, "支線");
+
+        Assert.True(branch.IsBranch);
+        Assert.Equal("", branch.TimeText);
+        Assert.True(rig.Vm.DeleteCommand.CanExecute(RowTitled(rig.Vm, "主線")));   // 對照：主線列可以刪除
+        Assert.False(rig.Vm.DeleteCommand.CanExecute(branch));
+        rig.Vm.RenameCommand.Execute(branch);
+        Assert.False(branch.IsEditing);
+        Assert.Equal("支線", branch.Title);
+    }
+
+    [Fact]
+    public async Task Search_mode_has_no_branches()
+    {
+        var rig = CreateBranchRig();
+        var root = await AddRootAsync(rig, "報告主線");
+        await AddBranchAsync(rig, "報告支線", root.Id, root.Id, 1, Now);
+        await rig.Vm.RefreshAsync(null);
+        Assert.Equal(new[] { "報告主線", "報告支線" }, ListedTitles(rig.Vm));   // 瀏覽時列出支線
+
+        rig.Vm.SearchText = "報告";
+        rig.Time.Advance(TimeSpan.FromMilliseconds(250));
+        await SettingsHost.WaitUntil(() => !rig.Vm.IsSearching);
+
+        Assert.Equal(new[] { "報告主線" }, ListedTitles(rig.Vm));
+        Assert.DoesNotContain(rig.Vm.Rows.OfType<ConversationListItem>(), i => i.IsBranch);
+    }
+
+    [Fact]
+    public async Task Paging_counts_roots_only()
+    {
+        var rig = CreateBranchRig(new HistoryOptions { PageSize = 2 });
+        var r1 = await AddRootAsync(rig, "一");
+        await Task.Delay(3);
+        var r2 = await AddRootAsync(rig, "二");
+        await Task.Delay(3);
+        await AddRootAsync(rig, "三");
+        await AddBranchAsync(rig, "一的支線", r1.Id, r1.Id, 1, Now);
+        await AddBranchAsync(rig, "二的支線", r2.Id, r2.Id, 1, Now);
+        await rig.Vm.RefreshAsync(null);
+
+        // 第一頁兩筆主線（三、二）；支線不佔頁數，所以「二的支線」也列得出來
+        Assert.Equal(2, rig.Vm.Items.Count);
+        Assert.True(rig.Vm.HasMore);
+        Assert.Contains("二的支線", ListedTitles(rig.Vm));
+
+        await rig.Vm.LoadMoreCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, rig.Vm.Items.Count);
+        Assert.False(rig.Vm.HasMore);
+        Assert.Contains("一的支線", ListedTitles(rig.Vm));
+    }
+
+    [Fact]
+    public async Task Abandoned_title_is_muted()
+    {
+        var rig = CreateBranchRig();
+        var root = await AddRootAsync(rig, "主線");
+        await AddBranchAsync(rig, "放棄的", root.Id, root.Id, 1, Now, BranchStatus.Abandoned);
+        await AddBranchAsync(rig, "帶回的", root.Id, root.Id, 1, Now.AddMinutes(1), BranchStatus.Merged);
+        await AddBranchAsync(rig, "進行中的", root.Id, root.Id, 1, Now.AddMinutes(2));
+        await rig.Vm.RefreshAsync(null);
+
+        Assert.True(RowTitled(rig.Vm, "放棄的").IsMutedTitle);
+        Assert.Equal(Strings.Branch_StatusAbandoned, RowTitled(rig.Vm, "放棄的").StatusText);
+        Assert.False(RowTitled(rig.Vm, "帶回的").IsMutedTitle);
+        Assert.Equal(Strings.Branch_StatusMerged, RowTitled(rig.Vm, "帶回的").StatusText);
+        Assert.False(RowTitled(rig.Vm, "進行中的").IsMutedTitle);
+        Assert.Equal(Strings.Branch_StatusActive, RowTitled(rig.Vm, "進行中的").StatusText);
+    }
+
+    [Fact]
+    public async Task Click_branch_opens_it()
+    {
+        var rig = CreateBranchRig();
+        var root = await AddRootAsync(rig, "主線");
+        var branch = await AddBranchAsync(rig, "支線", root.Id, root.Id, 1, Now);
+        await rig.Vm.RefreshAsync(null);
+
+        rig.Vm.SelectedItem = RowTitled(rig.Vm, "支線");
+
+        Assert.Equal(new[] { branch.Id }, rig.Host.Opened);
     }
 }
