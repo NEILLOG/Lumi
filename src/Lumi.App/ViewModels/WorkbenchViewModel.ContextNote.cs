@@ -40,7 +40,7 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
             // 研究本的變動可能來自背景（書記），切回 UI 執行緒再查
             notes.NoteChanged += (_, args) => _dispatcher.Post(() =>
             {
-                if (args.ConversationId == CurrentConversationId)
+                if (args.ConversationId == RootConversationId)
                     _ = RefreshContextNoteStateAsync();
             });
         }
@@ -60,10 +60,11 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
     /// <summary>目前對話有研究本：按鈕是「on」狀態，按了直接開視窗。</summary>
     public bool HasContextNote => _hasContextNote;
 
-    /// <summary>有研究本時一定能按（打開）；沒有研究本時，回應中停用（C8）。</summary>
-    public bool ContextNoteButtonEnabled => HasContextNote || (!IsResponding && CurrentConversationId is not null);
+    /// <summary>有研究本時一定能按（打開）；沒有研究本時，回應中停用（C8）；支線裡而且主線沒有研究本也停用（E5）。</summary>
+    public bool ContextNoteButtonEnabled => HasContextNote || (!IsResponding && CurrentConversationId is not null && !IsInBranch);
 
     public string ContextNoteButtonTip => HasContextNote ? Strings.ContextNote_ButtonTipOpen
+        : IsInBranch ? Strings.Branch_NoteDisabledTip
         : IsResponding ? Strings.ContextNote_ButtonTipBusy
         : Strings.ContextNote_ButtonTipStart;
 
@@ -71,7 +72,7 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
     [RelayCommand(CanExecute = nameof(CanOpenContextNote))]
     private async Task OpenContextNoteAsync()
     {
-        if (CurrentConversationId is not { } id || _contextNoteWindow is null)
+        if (RootConversationId is not { } id || _contextNoteWindow is null)
             return;
         if (HasContextNote)
         {
@@ -91,7 +92,7 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
     /// </summary>
     private async Task StartContextNoteAsync(string suggestedGoal)
     {
-        if (CurrentConversationId is not { } id || _contextNotes is null || _contextNoteWindow is null || _contextNoteStart is null)
+        if (CurrentConversationId is not { } id || IsInBranch || _contextNotes is null || _contextNoteWindow is null || _contextNoteStart is null)
             return;
         try
         {
@@ -131,9 +132,10 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
 
         try
         {
-            var has = await _contextNotes!.GetViewAsync(id) is not null;
+            var noteId = RootConversationId ?? id;   // 支線用主線的研究本（E5）
+            var has = await _contextNotes!.GetViewAsync(noteId) is not null;
             var dismissed = !has && _contextNoteStore is not null
-                && (await _contextNoteStore.GetSuggestionAsync(id))?.DismissedAt is not null;
+                && (await _contextNoteStore.GetSuggestionAsync(noteId))?.DismissedAt is not null;
             if (version != _contextNoteVersion || id != CurrentConversationId)
                 return;   // 較新的查詢已經開始，或對話已經換了
             ApplyContextNoteState(has, dismissed);
@@ -177,7 +179,10 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
     {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(ViewingRun) or nameof(IsViewingRun))
+        {
             OnPropertyChanged(nameof(ShowContextNoteButton));
+            RefreshBranchBar();   // 看排程紀錄時路徑列隱藏
+        }
     }
 
     // ---- INoteSuggestionHost ----
@@ -187,7 +192,7 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
         : NoteSuggestionState.Pending;
 
     /// <summary>回應中不能開始研究本（C8）。</summary>
-    public bool CanCreate => !IsResponding;
+    public bool CanCreate => !IsResponding && !IsInBranch;
 
     public Task CreateFromSuggestionAsync(string goal) => CanCreate ? StartContextNoteAsync(goal) : Task.CompletedTask;
 
@@ -210,5 +215,5 @@ public partial class WorkbenchViewModel : INoteSuggestionHost
     }
 
     public Task OpenNoteAsync() =>
-        CurrentConversationId is { } id && _contextNoteWindow is not null ? _contextNoteWindow.ShowAsync(id) : Task.CompletedTask;
+        RootConversationId is { } id && _contextNoteWindow is not null ? _contextNoteWindow.ShowAsync(id) : Task.CompletedTask;
 }

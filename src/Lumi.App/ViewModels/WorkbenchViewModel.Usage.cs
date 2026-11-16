@@ -39,9 +39,10 @@ public partial class WorkbenchViewModel
         var conversationId = CurrentConversationId;
         try
         {
+            // 費用算在主線那則（D8）：支線的每次呼叫都記在主線的 id 底下
             var conversation = conversationId is null
                 ? ConversationCost.Empty
-                : await _usageStore.GetConversationCostAsync(conversationId);
+                : await _usageStore.GetConversationCostAsync(RootConversationId ?? conversationId);
             var (spent, budget) = await _budget.GetMonthAsync();
             if (conversationId != CurrentConversationId)
                 return;   // 查詢途中切到別的對話：那邊的載入會再查一次

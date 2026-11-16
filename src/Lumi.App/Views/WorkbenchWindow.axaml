@@ -72,7 +72,7 @@
         <views:HistoryDrawer x:Name="HistoryDrawerView" DataContext="{Binding History}" IsVisible="{Binding IsOpen}" />
       </SplitView.Pane>
 
-      <Grid RowDefinitions="Auto,Auto,*,Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
         <!-- 有新版的提醒、提醒通知列：沒有內容時都不佔空間（ui-spec 第 13 節） -->
         <StackPanel Grid.Row="0">
           <views:UpdateBanner x:Name="UpdateBannerView" DataContext="{Binding Update}" />
@@ -102,11 +102,14 @@
           </Grid>
         </Border>
 
+        <!-- 支線路徑列（M36 36F）：支線進行中、已結束、或上一層被鎖住時才顯示（BranchBarViewModel.Show） -->
+        <views:BranchBar x:Name="BranchBarView" Grid.Row="2" DataContext="{Binding BranchBar}" IsVisible="{Binding Show}" />
+
         <!-- 訊息流（MessageScroller、RetryOtherModelButton 在它裡面） -->
-        <views:ConversationView x:Name="Conversation" Grid.Row="2" />
+        <views:ConversationView x:Name="Conversation" Grid.Row="3" />
 
         <!-- 輸入區（InputArea、InputBox、ContextBar、AddFileButton… 在它裡面） -->
-        <views:ChatComposer x:Name="Composer" Grid.Row="3" />
+        <views:ChatComposer x:Name="Composer" Grid.Row="4" />
       </Grid>
     </SplitView>
   </Grid>

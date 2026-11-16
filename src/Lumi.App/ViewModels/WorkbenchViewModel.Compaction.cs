@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lumi.App.Resources;
 using Lumi.Core.Chat;
 using Microsoft.Extensions.Logging;
 
@@ -24,8 +25,13 @@ public partial class WorkbenchViewModel
     /// <summary>整理完成後要重讀訊息（分隔線的位置要從資料庫算）。回應中先記下，回應結束時再重讀。</summary>
     private bool _reloadAfterCompaction;
 
-    /// <summary>用量面板的「整理並繼續」：沒有回應進行中、沒有在整理、有對話。</summary>
-    public bool CanCompactAndContinue => !IsResponding && !IsCompacting && CurrentConversationId is not null;
+    /// <summary>用量面板的「整理並繼續」：沒有回應進行中、沒有在整理、有對話；支線裡與上一層被鎖住時不能（M36 4.8、E13）。</summary>
+    public bool CanCompactAndContinue => !IsResponding && !IsCompacting && CurrentConversationId is not null && !IsInBranch && !IsBranchLocked;
+
+    /// <summary>「整理並繼續」停用時的原因（沒有原因是空字串）。</summary>
+    public string CompactTip => IsInBranch ? Strings.Branch_CompactDisabledTip
+        : IsBranchLocked ? Strings.Branch_LockedActionTip
+        : "";
 
     /// <summary>手動整理（用量面板，快滿時）：直接做摘要，完成後重讀訊息顯示分隔線。</summary>
     [RelayCommand(CanExecute = nameof(CanCompactNow))]

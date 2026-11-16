@@ -1,0 +1,137 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:res="using:Lumi.App.Resources"
+             x:Class="Lumi.App.Views.BranchBar"
+             x:DataType="vm:BranchBarViewModel">
+  <!--
+    工作台的支線路徑列（M36 36F，ui-spec 第 2 節與計畫 4.8）：工具列下方一列，左邊是路徑（主線 › 支線），右邊是動作。
+    進行中：放棄支線（tertiary）＋帶回（唯一的 primary；第二層是「帶回上一層」＋更多的分開按鈕）。
+    已結束：狀態字＋回到主線／上一層（secondary，唯讀）。上一層被鎖住：說明列＋回到支線（primary）。
+    只用 token 上色；Narrow 時中間那一節收成「…」。
+  -->
+  <Border Background="{DynamicResource LumiAccentSoftBrush}" BorderBrush="{DynamicResource LumiAccentBorderBrush}"
+          BorderThickness="0,0,0,1" MinHeight="44" Padding="12,0,16,0">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+
+      <!-- 左：路徑。主線與中間的支線是 tertiary 按鈕（點了打開它），目前這一節是文字 -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="{Binding ShowCrumbs}">
+        <Button x:Name="MainCrumbButton" Classes="tertiary" Command="{Binding OpenMainCommand}"
+                AutomationProperties.Name="{x:Static res:Strings.Branch_MainCrumb}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconCornerUpLeft}" Size="14" />
+            <TextBlock Text="{Binding MainCrumbText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="240" />
+          </StackPanel>
+        </Button>
+        <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" Foreground="{DynamicResource LumiTextMutedBrush}"
+                      VerticalAlignment="Center" />
+
+        <Button x:Name="MiddleCrumbButton" Classes="tertiary" Command="{Binding OpenMiddleCommand}" IsVisible="{Binding ShowMiddleCrumb}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconGitBranch}" Size="14" />
+            <TextBlock Text="{Binding MiddleCrumbText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160" />
+          </StackPanel>
+        </Button>
+        <!-- Narrow：中間那一節收成「…」，點開是一個選單，只有那一節 -->
+        <Button x:Name="MoreCrumbButton" Classes="tertiary" IsVisible="{Binding ShowMoreCrumb}"
+                ToolTip.Tip="{x:Static res:Strings.Branch_MoreCrumbs}" AutomationProperties.Name="{x:Static res:Strings.Branch_MoreCrumbs}">
+          <TextBlock Text="…" VerticalAlignment="Center" />
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+              <MenuItem Header="{Binding MiddleCrumbText}" Command="{Binding OpenMiddleCommand}" />
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+        <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" Foreground="{DynamicResource LumiTextMutedBrush}"
+                      VerticalAlignment="Center" IsVisible="{Binding ShowMiddleCrumbs}" />
+
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="4,0,0,0" VerticalAlignment="Center">
+          <ctl:LumiIcon Data="{StaticResource LumiIconGitBranch}" Size="14" Foreground="{DynamicResource LumiAccentTextBrush}" />
+          <TextBlock x:Name="CurrentCrumbText" Text="{Binding CurrentCrumbText}" FontWeight="Bold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- 第二層的徽章：第 2 層 · 上限 -->
+        <Border x:Name="DepthBadge" Margin="4,0,0,0" Padding="8,0" CornerRadius="8" VerticalAlignment="Center"
+                Background="{DynamicResource LumiSurfaceBrush}" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="1"
+                IsVisible="{Binding ShowDepthBadge}">
+          <TextBlock Text="{x:Static res:Strings.Branch_DepthMaxBadge}" Foreground="{DynamicResource LumiTextMutedBrush}"
+                     FontSize="{DynamicResource LumiFontSizeCaption}" />
+        </Border>
+
+        <!-- 已結束：狀態字（已帶回／已放棄） -->
+        <Border x:Name="StatusBadge" Margin="4,0,0,0" Padding="8,0" CornerRadius="8" VerticalAlignment="Center"
+                Background="{DynamicResource LumiSurfaceAltBrush}" IsVisible="{Binding ShowStatus}">
+          <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource LumiTextMutedBrush}"
+                     FontSize="{DynamicResource LumiFontSizeCaption}" />
+        </Border>
+
+        <!-- 上一層被鎖住：說明（回到支線的按鈕在右邊） -->
+        <TextBlock x:Name="LockedText" Text="{Binding LockedText}" VerticalAlignment="Center" TextWrapping="NoWrap"
+                   TextTrimming="CharacterEllipsis" IsVisible="{Binding ShowLocked}" />
+      </StackPanel>
+
+      <!-- 右：動作 -->
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button x:Name="AbandonButton" Classes="tertiary" Command="{Binding AbandonCommand}" IsVisible="{Binding ShowAbandon}"
+                Content="{x:Static res:Strings.Branch_Abandon}" />
+
+        <!-- 第一層：帶回主線（唯一的 primary，空支線停用並說明） -->
+        <Button x:Name="MergeButton" Classes="primary" Command="{Binding MergeCommand}" IsVisible="{Binding ShowMerge}"
+                IsEnabled="{Binding CanMerge}" ToolTip.Tip="{Binding MergeTip}" ToolTip.ShowOnDisabled="True">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:LumiIcon Data="{StaticResource LumiIconGitMerge}" Size="14" />
+            <TextBlock Text="{Binding MergeText}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <!-- 第二層：「帶回上一層」＋ 右邊緊貼的圖示按鈕（更多帶回方式），兩顆一組 -->
+        <StackPanel x:Name="MergeSplit" Orientation="Horizontal" Spacing="0" IsVisible="{Binding ShowMergeSplit}">
+          <Button x:Name="MergeUpButton" Classes="primary" Command="{Binding MergeCommand}" CornerRadius="10,0,0,10"
+                  IsEnabled="{Binding CanMerge}" ToolTip.Tip="{Binding MergeTip}" ToolTip.ShowOnDisabled="True">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconGitMerge}" Size="14" />
+              <TextBlock Text="{Binding MergeText}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Border Width="1" Background="{DynamicResource LumiPrimaryButtonHoverBrush}" />
+          <Button x:Name="MergeMenuButton" Classes="primary" CornerRadius="0,10,10,0" Padding="8,0"
+                  IsEnabled="{Binding CanMerge}" ToolTip.Tip="{x:Static res:Strings.Branch_MergeMoreTip}" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{x:Static res:Strings.Branch_MergeMoreTip}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconChevronDown}" Size="14" />
+            <Button.Flyout>
+              <MenuFlyout Placement="TopEdgeAlignedRight">
+                <MenuItem Command="{Binding MergeCommand}">
+                  <MenuItem.Header>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="{x:Static res:Strings.Branch_MergeUp}" />
+                      <TextBlock Text="{Binding MergeUpDetailText}" Foreground="{DynamicResource LumiTextMutedBrush}"
+                                 FontSize="{DynamicResource LumiFontSizeCaption}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Command="{Binding MergeAllCommand}">
+                  <MenuItem.Header>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="{x:Static res:Strings.Branch_MergeAll}" />
+                      <TextBlock Text="{x:Static res:Strings.Branch_MergeAllDetail}" Foreground="{DynamicResource LumiTextMutedBrush}"
+                                 FontSize="{DynamicResource LumiFontSizeCaption}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+
+        <!-- 已結束：回到主線或上一層（唯讀，secondary） -->
+        <Button x:Name="BackButton" Classes="secondary" Command="{Binding BackCommand}" IsVisible="{Binding ShowBack}"
+                Content="{Binding BackText}" />
+
+        <!-- 上一層被鎖住：回到支線（唯一的 primary） -->
+        <Button x:Name="ReturnButton" Classes="primary" Command="{Binding ReturnToBranchCommand}" IsVisible="{Binding ShowLocked}"
+                Content="{x:Static res:Strings.Branch_ReturnToBranch}" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>
