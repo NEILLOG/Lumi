@@ -433,6 +433,8 @@ public class ContextNoteViewModelTests
         Put(rig, Body);
         await rig.Vm.LoadAsync(Conversation);
         var callsBefore = rig.Notes.Calls.Count;
+        // 重新讀取會再問一次服務的狀態：讓服務也回報「整理中」，結果才不受重新讀取與狀態事件誰先完成影響
+        rig.Notes.Statuses["note-1"] = new ContextNoteStatus("note-1", ScribeState.Running);
 
         await Task.Run(() =>
         {

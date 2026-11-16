@@ -243,6 +243,29 @@ internal static class SqliteSchema
           dismissed_at    TEXT
         );
         """,
+
+        // 15：支線（M36）。支線本身是一則 conversations.kind = 'branch' 的對話；這張表記上一層、主線、層數、分岔位置、狀態與摘要。
+        // fork_message_id 不設外鍵（上一層重新產生可能移除那則）。外鍵只刪這張表的列，不刪支線的對話：刪除一律經過 ConversationDeletionService，它先刪支線。
+        // status 存 active／merged／abandoned；時間存 UTC 固定格式。
+        """
+        CREATE TABLE conversation_branches (
+          conversation_id      TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+          parent_id            TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          root_id              TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+          depth                INTEGER NOT NULL,
+          fork_message_id      TEXT NOT NULL,
+          fork_excerpt         TEXT NOT NULL,
+          fork_message_at      TEXT NOT NULL,
+          quote                TEXT,
+          status               TEXT NOT NULL,
+          summary              TEXT,
+          delivered_message_id TEXT,
+          created_at           TEXT NOT NULL,
+          ended_at             TEXT
+        );
+        CREATE INDEX ix_conversation_branches_parent ON conversation_branches(parent_id, created_at);
+        CREATE INDEX ix_conversation_branches_root ON conversation_branches(root_id, created_at);
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

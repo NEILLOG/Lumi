@@ -104,4 +104,12 @@
   <StreamGeometry x:Key="LumiIconHistory">M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M12 7v5l4 2</StreamGeometry>
   <!-- 建議、提示（lucide: lightbulb） -->
   <StreamGeometry x:Key="LumiIconLightbulb">M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4</StreamGeometry>
+  <!-- 支線（M36）（lucide: git-branch） -->
+  <StreamGeometry x:Key="LumiIconGitBranch">M6 3V15 M15 6A3 3 0 0 1 18 3A3 3 0 0 1 21 6A3 3 0 0 1 18 9A3 3 0 0 1 15 6Z M3 18A3 3 0 0 1 6 15A3 3 0 0 1 9 18A3 3 0 0 1 6 21A3 3 0 0 1 3 18Z M18 9a9 9 0 0 1-9 9</StreamGeometry>
+  <!-- 帶回（lucide: git-merge） -->
+  <StreamGeometry x:Key="LumiIconGitMerge">M15 18A3 3 0 0 1 18 15A3 3 0 0 1 21 18A3 3 0 0 1 18 21A3 3 0 0 1 15 18Z M3 6A3 3 0 0 1 6 3A3 3 0 0 1 9 6A3 3 0 0 1 6 9A3 3 0 0 1 3 6Z M6 21V9a9 9 0 0 0 9 9</StreamGeometry>
+  <!-- 回到主線（lucide: corner-up-left） -->
+  <StreamGeometry x:Key="LumiIconCornerUpLeft">M9 14L4 9L9 4 M20 20v-7a4 4 0 0 0-4-4H4</StreamGeometry>
+  <!-- 向上箭頭（收合）（lucide: chevron-up） -->
+  <StreamGeometry x:Key="LumiIconChevronUp">M18 15l-6-6-6 6</StreamGeometry>
 </ResourceDictionary>

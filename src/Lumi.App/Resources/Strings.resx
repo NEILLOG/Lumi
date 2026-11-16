@@ -1380,4 +1380,63 @@
   <data name="ContextNote_DeleteWithConversation" xml:space="preserve"><value>這則對話的研究本也會一起刪除。要保留請先匯出。</value></data>
   <data name="Privacy_LocContextNotes" xml:space="preserve"><value>研究本</value></data>
   <data name="Privacy_LocContextNotesDesc" xml:space="preserve"><value>每本研究本一個資料夾，裡面是 note.md 和用到的圖片</value></data>
+  <!-- 支線（M36） -->
+  <data name="Branch_Start" xml:space="preserve"><value>開支線</value></data>
+  <data name="Branch_StartTip" xml:space="preserve"><value>從這則回答分出去問別的，問完再帶回來</value></data>
+  <data name="Branch_StartBusyTip" xml:space="preserve"><value>等這一輪回應結束再開</value></data>
+  <data name="Branch_StartDepthTip" xml:space="preserve"><value>最多兩層支線，先帶回上一層再開</value></data>
+  <data name="Branch_Ask" xml:space="preserve"><value>問這段</value></data>
+  <data name="Branch_Copy" xml:space="preserve"><value>複製</value></data>
+  <data name="Branch_QuestionDraftFormat" xml:space="preserve"><value>「{0}」是什麼意思？</value></data>
+  <data name="Branch_MainCrumb" xml:space="preserve"><value>主線</value></data>
+  <data name="Branch_MainCrumbFormat" xml:space="preserve"><value>主線 · {0}</value></data>
+  <data name="Branch_CrumbFormat" xml:space="preserve"><value>支線 · {0}</value></data>
+  <data name="Branch_MoreCrumbs" xml:space="preserve"><value>中間的支線</value></data>
+  <data name="Branch_DepthMaxBadge" xml:space="preserve"><value>第 2 層 · 上限</value></data>
+  <data name="Branch_Merge" xml:space="preserve"><value>帶回主線</value></data>
+  <data name="Branch_MergeUp" xml:space="preserve"><value>帶回上一層</value></data>
+  <data name="Branch_MergeMoreTip" xml:space="preserve"><value>更多帶回方式</value></data>
+  <data name="Branch_MergeUpDetailFormat" xml:space="preserve"><value>回到「{0}」繼續問</value></data>
+  <data name="Branch_MergeAll" xml:space="preserve"><value>一路帶回主線</value></data>
+  <data name="Branch_MergeAllDetail" xml:space="preserve"><value>兩層各自整理摘要，直接回到主線</value></data>
+  <data name="Branch_MergeEmptyTip" xml:space="preserve"><value>支線裡還沒有內容，可以直接放棄</value></data>
+  <data name="Branch_Abandon" xml:space="preserve"><value>放棄支線</value></data>
+  <data name="Branch_AbandonConfirm" xml:space="preserve"><value>放棄這條支線？主線不會留下任何內容，支線的內容仍然留在歷史對話裡。已經執行過的工具（例如寫入的檔案、寄出的信）不會復原。</value></data>
+  <data name="Branch_BackToMain" xml:space="preserve"><value>回到主線</value></data>
+  <data name="Branch_BackToParent" xml:space="preserve"><value>回到上一層</value></data>
+  <data name="Branch_ReturnToBranch" xml:space="preserve"><value>回到支線</value></data>
+  <data name="Branch_LockedFormat" xml:space="preserve"><value>支線「{0}」還沒結束。回到支線，帶回或放棄之後才能繼續這裡。</value></data>
+  <data name="Branch_StatusActive" xml:space="preserve"><value>進行中</value></data>
+  <data name="Branch_StatusMerged" xml:space="preserve"><value>已帶回</value></data>
+  <data name="Branch_StatusAbandoned" xml:space="preserve"><value>已放棄</value></data>
+  <data name="Branch_InputPlaceholder" xml:space="preserve"><value>在支線裡繼續問…</value></data>
+  <data name="Branch_InputLocked" xml:space="preserve"><value>支線還沒結束，這裡暫時不能送出</value></data>
+  <data name="Branch_InputFinished" xml:space="preserve"><value>這條支線已經結束，只能查看</value></data>
+  <data name="Branch_OriginFromMainFormat" xml:space="preserve"><value>從主線分出來 · Lumi {0} 的回答</value></data>
+  <data name="Branch_OriginFromBranchFormat" xml:space="preserve"><value>從「{0}」分出來 · Lumi {1} 的回答</value></data>
+  <data name="Branch_OriginQuoteFormat" xml:space="preserve"><value>你選的：「{0}」</value></data>
+  <data name="Branch_CardTitleFormat" xml:space="preserve"><value>支線 · {0}</value></data>
+  <data name="Branch_CardMetaFormat" xml:space="preserve"><value>{0}～{1} · {2} 則訊息 · 從 Lumi {3} 的回答分出來</value></data>
+  <data name="Branch_CardMetaWithChildrenFormat" xml:space="preserve"><value>{0}～{1} · {2} 則訊息，含 {3} 條支線 · 從 Lumi {4} 的回答分出來</value></data>
+  <data name="Branch_CardPending" xml:space="preserve"><value>Lumi 會在你的下一則訊息一起讀到這段摘要</value></data>
+  <data name="Branch_CardOpen" xml:space="preserve"><value>看完整支線</value></data>
+  <data name="Branch_CardCollapse" xml:space="preserve"><value>收合</value></data>
+  <data name="Branch_CardExpand" xml:space="preserve"><value>展開</value></data>
+  <data name="Branch_MergeDialogTitle" xml:space="preserve"><value>把支線帶回主線</value></data>
+  <data name="Branch_MergeDialogTitleUp" xml:space="preserve"><value>把支線帶回上一層</value></data>
+  <data name="Branch_MergeStepFormat" xml:space="preserve"><value>第 {0} 步，共 {1} 步：「{2}」帶回「{3}」</value></data>
+  <data name="Branch_MergeSummaryLabel" xml:space="preserve"><value>帶回的摘要</value></data>
+  <data name="Branch_MergeEditable" xml:space="preserve"><value>可以修改</value></data>
+  <data name="Branch_MergeRedraft" xml:space="preserve"><value>重新整理一次</value></data>
+  <data name="Branch_MergeDrafting" xml:space="preserve"><value>正在整理摘要…</value></data>
+  <data name="Branch_MergeFailedFormat" xml:space="preserve"><value>沒有整理出摘要：{0}。可以再試一次，或自己寫。</value></data>
+  <data name="Branch_MergeNoModel" xml:space="preserve"><value>還沒有可用的模型，請自己寫摘要，或先到設定加入模型。</value></data>
+  <data name="Branch_MergeExplainFormat" xml:space="preserve"><value>上一層的 AI 只會讀到這段摘要，不會讀到支線裡的 {0} 則訊息。完整的支線仍然留在歷史對話裡。</value></data>
+  <data name="Branch_MergeCostFormat" xml:space="preserve"><value>整理摘要使用目前的模型 {0}，費用算在「{1}」這則對話裡。</value></data>
+  <data name="Branch_MergeTooLongFormat" xml:space="preserve"><value>摘要最多 {0} 字（現在 {1} 字）</value></data>
+  <data name="Branch_MergeNext" xml:space="preserve"><value>下一步</value></data>
+  <data name="Branch_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Branch_NoteDisabledTip" xml:space="preserve"><value>支線裡不能開研究本，帶回主線之後再開</value></data>
+  <data name="Branch_CompactDisabledTip" xml:space="preserve"><value>支線不能整理上下文。內容太長時，請帶回或放棄這條支線</value></data>
+  <data name="Branch_LockedActionTip" xml:space="preserve"><value>支線還沒結束，先回到支線</value></data>
 </root>

@@ -9,7 +9,9 @@ namespace Lumi.App.ViewModels;
 /// </summary>
 internal static class ConversationTimeline
 {
-    public static List<MessageViewModel> Build(IReadOnlyList<ChatMessage> history, Func<ToolUseBlock, ToolCardViewModel> createCard, CompactionState? compaction = null, bool markUnfinished = true)
+    /// <param name="branches">支線的出處卡片與摘要卡（M36）；null 時輸出和沒有這個參數時完全相同。TODO(36G)：Phase 0 只加參數。</param>
+    public static List<MessageViewModel> Build(IReadOnlyList<ChatMessage> history, Func<ToolUseBlock, ToolCardViewModel> createCard, CompactionState? compaction = null, bool markUnfinished = true,
+        BranchTimelineInfo? branches = null)
     {
         var items = new List<MessageViewModel>();
         var cards = new Dictionary<string, ToolCardViewModel>(StringComparer.Ordinal);

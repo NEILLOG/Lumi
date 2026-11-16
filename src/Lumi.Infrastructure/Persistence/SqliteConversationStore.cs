@@ -635,6 +635,8 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         ContextKind.Image => "image",
         ContextKind.ScheduledRun => "scheduled_run",
         ContextKind.RecentConversations => "recent_conversations",
+        ContextKind.BranchOrigin => "branch_origin",
+        ContextKind.BranchSummary => "branch_summary",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -646,6 +648,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         ConversationKind.Chat => "chat",
         ConversationKind.ScheduledRun => "scheduled_run",
+        ConversationKind.Branch => "branch",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -653,6 +656,7 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
     {
         "chat" => ConversationKind.Chat,
         "scheduled_run" => ConversationKind.ScheduledRun,
+        "branch" => ConversationKind.Branch,
         _ => throw new InvalidDataException($"未知的對話種類：{text}"),
     };
 
@@ -663,6 +667,8 @@ public sealed class SqliteConversationStore : IConversationStore, IConversationC
         "image" => ContextKind.Image,
         "scheduled_run" => ContextKind.ScheduledRun,
         "recent_conversations" => ContextKind.RecentConversations,
+        "branch_origin" => ContextKind.BranchOrigin,
+        "branch_summary" => ContextKind.BranchSummary,
         _ => throw new InvalidDataException($"未知的上下文種類：{text}"),
     };
 

@@ -16,6 +16,8 @@ public partial class CompactionDividerViewModel : MessageViewModel
 
     public override bool IsAssistant => false;
 
+    public override bool IsMarker => true;
+
     /// <summary>摘要全文。</summary>
     public string Summary { get; }
 

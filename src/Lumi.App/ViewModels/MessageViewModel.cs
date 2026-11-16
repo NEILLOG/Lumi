@@ -116,6 +116,25 @@ public partial class MessageViewModel : ObservableObject
 
     public bool HasModel => !string.IsNullOrEmpty(ModelId);
 
+    /// <summary>存檔的訊息 id（開支線要用）；串流中的是 null，工作台在 <c>Completed</c> 時補上（M36）。</summary>
+    [ObservableProperty]
+    private string? _messageId;
+
+    /// <summary>不是對話內容的項目：整理分隔線、支線的出處卡片、摘要卡（M36）。判斷「最後一則」「沒有訊息」時要略過。</summary>
+    public virtual bool IsMarker => false;
+
+    /// <summary>動作列顯示「開支線」（M36，工作台設定）。</summary>
+    [ObservableProperty]
+    private bool _showBranchAction;
+
+    /// <summary>「開支線」可以按（回應中、已經在第二層時不行）。</summary>
+    [ObservableProperty]
+    private bool _canBranch;
+
+    /// <summary>「開支線」的 Tooltip（停用時說明原因）。</summary>
+    [ObservableProperty]
+    private string _branchTip = "";
+
     /// <summary>目前的對話裡最後一則助理訊息：只有它有「重新產生」。</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowActions))]
@@ -261,6 +280,7 @@ public partial class MessageViewModel : ObservableObject
         Thinking = string.Join("\n\n", message.Content.OfType<ThinkingBlock>().Select(b => b.Thinking).Where(t => t.Length > 0));
         Usage = message.Usage;
         ModelId = message.ModelId;
+        MessageId = message.Id;
     }
 }
 

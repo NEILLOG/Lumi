@@ -19,6 +19,7 @@ public class IconTests
         "LumiIconUser", "LumiIconChevronRight", "LumiIconBan", "LumiIconLoader", "LumiIconBell",
         "LumiIconArrowDown", "LumiIconArrowRight", "LumiIconRepeat", "LumiIconDownload",
         "LumiIconNotebook", "LumiIconColumns", "LumiIconLock", "LumiIconHistory", "LumiIconLightbulb",   // M35 研究本
+        "LumiIconGitBranch", "LumiIconGitMerge", "LumiIconCornerUpLeft", "LumiIconChevronUp",   // M36 支線
     ];
 
     private static Geometry Icon(string key)

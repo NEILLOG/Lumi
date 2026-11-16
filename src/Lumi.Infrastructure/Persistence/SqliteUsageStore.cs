@@ -154,6 +154,8 @@ internal sealed class SqliteUsageStore(SqliteConversationStore database) : IUsag
         UsagePurpose.Compaction => "compaction",
         UsagePurpose.Title => "title",
         UsagePurpose.ContextNote => "context_note",
+        UsagePurpose.Branch => "branch",
+        UsagePurpose.BranchSummary => "branch_summary",
         _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, null),
     };
 
@@ -163,6 +165,8 @@ internal sealed class SqliteUsageStore(SqliteConversationStore database) : IUsag
         "compaction" => UsagePurpose.Compaction,
         "title" => UsagePurpose.Title,
         "context_note" => UsagePurpose.ContextNote,
+        "branch" => UsagePurpose.Branch,
+        "branch_summary" => UsagePurpose.BranchSummary,
         _ => throw new InvalidDataException($"未知的用量用途：{text}"),
     };
 
