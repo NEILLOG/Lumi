@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Text.RegularExpressions;
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.Tools;
@@ -47,6 +49,8 @@ public sealed class ReadConversationTool(IConversationStore conversations) : Too
                 return ToolResult.Error("找不到這則對話（可能已經刪除）。");
             if (conversation.Kind == ConversationKind.ScheduledRun)
                 return ToolResult.Error("這是排程紀錄，不是一般對話，無法讀取。");
+            if (conversation.Kind == ConversationKind.Branch)
+                return ToolResult.Error(BranchMessages.ReadBranchMessage);
 
             var messages = await conversations.GetMessagesAsync(id, ct);
             var entries = RenderMessages(messages);
@@ -86,7 +90,12 @@ public sealed class ReadConversationTool(IConversationStore conversations) : Too
                     case ToolResultBlock result:
                         lines.Add("[工具] " + ToolLine(result));
                         break;
-                    case ContextBlock { Kind: not ContextKind.RecentConversations } context when isUser:
+                    // 帶回的支線摘要（M36）：一行，摘要前 300 字
+                    case ContextBlock { Kind: ContextKind.BranchSummary } summary:
+                        lines.Add(BranchSummaryLine(summary));
+                        break;
+                    // 近況清單（M26）與支線出處說明（M36）是程式帶入的，不列；出處說明不輸出
+                    case ContextBlock { Kind: not (ContextKind.RecentConversations or ContextKind.BranchOrigin) } context when isUser:
                         lines.Add("[附件] " + context.DisplayName);
                         break;
                     case ImageBlock image when isUser:
@@ -100,6 +109,14 @@ public sealed class ReadConversationTool(IConversationStore conversations) : Too
         }
 
         return entries;
+    }
+
+    /// <summary>「[支線摘要：{標題}] {摘要前 300 字，連續空白縮成一個}」。</summary>
+    private static string BranchSummaryLine(ContextBlock summary)
+    {
+        var flat = Regex.Replace(summary.Content ?? "", @"\s+", " ").Trim();
+        flat = CutStart(flat, BranchLimits.ReadConversationSummaryChars);
+        return $"[支線摘要：{summary.DisplayName}] {flat}";
     }
 
     /// <summary>工具一行：名稱、對象、結果摘要以「 · 」連接；失敗與被拒絕加在句尾。不含工具結果原文。</summary>

@@ -114,6 +114,55 @@ public class ConversationMarkdownExporterTests
     }
 
     [Fact]
+    public void Export_writes_branch_summary_as_quote()
+    {
+        var markdown = ConversationMarkdownExporter.Export("標題", [
+            User(
+                new TextBlock("帶回來吧"),
+                new ContextBlock(ContextKind.BranchSummary, "比較方案", "b1", "第一行\n\n第二行", Embedded: true)),
+        ], ExportedAt);
+
+        Assert.Contains("> **支線 · 比較方案**（帶回的摘要）\n> 第一行\n> \n> 第二行", markdown);
+    }
+
+    [Fact]
+    public void Export_writes_branch_origin_line()
+    {
+        var markdown = ConversationMarkdownExporter.Export("標題", [
+            User(
+                new ContextBlock(ContextKind.BranchOrigin, "branch_origin", "m1",
+                    "<branch_start>\n使用者從上面的對話開了一條「支線」\n分出來的位置：你在 2026/10/27 16:30 的回答，開頭是「這是分岔的開頭文字」\n</branch_start>", Embedded: true),
+                new TextBlock("想問一件事")),
+        ], ExportedAt);
+
+        Assert.Contains("> 從上一層分出來：這是分岔的開頭文字\n\n想問一件事", markdown);
+        Assert.DoesNotContain("branch_start", markdown);
+    }
+
+    [Fact]
+    public void Export_branch_origin_without_excerpt_writes_plain_line()
+    {
+        var markdown = ConversationMarkdownExporter.Export("標題", [
+            User(new ContextBlock(ContextKind.BranchOrigin, "branch_origin", "m1", "沒有開頭的說明", Embedded: true), new TextBlock("問")),
+        ], ExportedAt);
+
+        Assert.Contains("> 從上一層分出來\n\n問", markdown);
+    }
+
+    [Fact]
+    public void File_context_is_still_exported_next_to_branch_blocks()
+    {
+        var markdown = ConversationMarkdownExporter.Export("標題", [
+            User(
+                new ContextBlock(ContextKind.File, "notes.txt", "/x/notes.txt", "內容", Embedded: true),
+                new ContextBlock(ContextKind.BranchSummary, "方案", "b1", "摘要", Embedded: true)),
+        ], ExportedAt);
+
+        Assert.Contains("notes.txt", markdown);
+        Assert.Contains("> **支線 · 方案**（帶回的摘要）\n> 摘要", markdown);
+    }
+
+    [Fact]
     public void RecentConversationsDigest_IsNotExported()
     {
         var markdown = ConversationMarkdownExporter.Export("標題", [

@@ -32,6 +32,27 @@ public class UrlProvenanceTests
     }
 
     [Fact]
+    public void Branch_blocks_are_not_url_sources()
+    {
+        var provenance = From(Message(ChatRole.User,
+            new ContextBlock(ContextKind.BranchOrigin, "branch_origin", "m1", "開頭是「見 https://origin.example/a」", true),
+            new ContextBlock(ContextKind.BranchSummary, "探討方案", "b1", "摘要提到 https://summary.example/b", true)));
+
+        Assert.False(provenance.IsKnown(U("https://origin.example/a")));
+        Assert.False(provenance.IsKnown(U("https://summary.example/b")));
+    }
+
+    [Fact]
+    public void File_block_url_is_still_a_source_next_to_branch_blocks()
+    {
+        var provenance = From(Message(ChatRole.User,
+            new ContextBlock(ContextKind.BranchSummary, "探討方案", "b1", "摘要", true),
+            new ContextBlock(ContextKind.File, "a.txt", "/a.txt", "內容 https://file.example/c", true)));
+
+        Assert.True(provenance.IsKnown(U("https://file.example/c")));
+    }
+
+    [Fact]
     public void User_text_url_allows_the_whole_site()
     {
         var provenance = From(UserText("看一下 https://a.example/docs/intro 這頁"));

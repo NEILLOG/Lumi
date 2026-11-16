@@ -114,6 +114,33 @@ public class ContextNoteTurnFormatterTests
     }
 
     [Fact]
+    public void Scribe_sees_branch_summary()
+    {
+        var turn = ContextNoteTurnFormatter.Format(
+            [Msg(1, ChatRole.User, new TextBlock("帶回來吧"), new ContextBlock(ContextKind.BranchSummary, "比較方案", "b1", "摘要第一行\n摘要第二行", true))]);
+
+        Assert.Equal("【使用者】\n帶回來吧\n[帶回的支線：比較方案]\n摘要第一行\n摘要第二行", turn.Text);
+    }
+
+    [Fact]
+    public void BranchOrigin_is_not_written()
+    {
+        var turn = ContextNoteTurnFormatter.Format(
+            [Msg(1, ChatRole.User, new ContextBlock(ContextKind.BranchOrigin, "branch_origin", "m1", "<branch_start>出處全文</branch_start>", true), new TextBlock("正文"))]);
+
+        Assert.Equal("【使用者】\n正文", turn.Text);
+    }
+
+    [Fact]
+    public void File_context_is_unchanged_next_to_branch_blocks()
+    {
+        var turn = ContextNoteTurnFormatter.Format(
+            [Msg(1, ChatRole.User, new ContextBlock(ContextKind.File, "報告.pdf", "/路徑/報告.pdf", "全文", true), new ContextBlock(ContextKind.BranchSummary, "方案", "b1", "摘要", true))]);
+
+        Assert.Equal("【使用者】\n[附加檔案：報告.pdf]\n[帶回的支線：方案]\n摘要", turn.Text);
+    }
+
+    [Fact]
     public void ScheduledRunAndRecentConversations_AreSkipped()
     {
         var turn = ContextNoteTurnFormatter.Format(

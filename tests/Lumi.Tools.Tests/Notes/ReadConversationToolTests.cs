@@ -256,6 +256,43 @@ public sealed class ReadConversationToolTests
     }
 
     [Fact]
+    public async Task Branch_conversation_cannot_be_read()
+    {
+        _store.Conversations["branch"] = new Conversation("branch", "支線", Now, Now, ConversationKind.Branch);
+        _store.Messages["branch"] = [Msg(ChatRole.User, Now, new TextBlock("支線裡的內容"))];
+
+        var result = await Tool().ExecuteAsync("""{"conversation_id":"branch"}""", Context(), default);
+
+        Assert.True(result.IsError);
+        Assert.Equal("這是支線，不能讀取。", result.Content);
+        Assert.DoesNotContain("支線裡的內容", result.Content);
+    }
+
+    [Fact]
+    public async Task Branch_summary_is_listed_in_one_line()
+    {
+        var tail = new string('甲', 299) + "乙丙";   // 摘要超過 300 字的部分不列
+        AddConversation("main", "主線", LocalAt(2026, 11, 2, 9, 0),
+            Msg(ChatRole.User, LocalAt(2026, 11, 2, 9, 0),
+                new ContextBlock(ContextKind.BranchOrigin, "branch_origin", "m1", "出處說明 ORIGIN-MARK", true),
+                new TextBlock("先問一件事"),
+                new ContextBlock(ContextKind.File, "報價.xlsx", "/報價.xlsx", "檔案內容", true)),
+            Msg(ChatRole.User, LocalAt(2026, 11, 2, 9, 5),
+                new ContextBlock(ContextKind.BranchSummary, "比較方案", "b1", "第一行\n\n  第二行\t結尾" + tail, true),
+                new TextBlock("帶回來了")));
+
+        var result = await Tool().ExecuteAsync("""{"conversation_id":"main"}""", Context(), default);
+
+        Assert.False(result.IsError);
+        Assert.DoesNotContain("ORIGIN-MARK", result.Content);
+        Assert.Contains("[附件] 報價.xlsx", result.Content);
+        var summaryLine = result.Content.Split('\n').Single(l => l.StartsWith("[支線摘要：", StringComparison.Ordinal));
+        // 摘要字數：「第一行 第二行 結尾」10 個字（空白縮成一個）＋ 290 個甲 = 300；「乙丙」被截掉
+        var expected = "[支線摘要：比較方案] 第一行 第二行 結尾" + new string('甲', 290);
+        Assert.Equal(expected, summaryLine);
+    }
+
+    [Fact]
     public async Task OverLimit_KeepsFirstUserMessageAndTheNewest_AndSaysHowManyWereOmitted()
     {
         var messages = new List<ChatMessage>();

@@ -117,8 +117,8 @@ public static class UsageHintRules
             if (message.Role != ChatRole.User || message.Seq <= summarizedUpto)
                 continue;
 
-            // 近況清單（M26）不是使用者加入的檔案，不提示
-            foreach (var block in message.Content.OfType<ContextBlock>().Where(b => b.Kind != ContextKind.RecentConversations))
+            // 近況清單（M26）、支線出處與帶回的摘要（M36）不是使用者加入的檔案，不提示
+            foreach (var block in message.Content.OfType<ContextBlock>().Where(b => b.Kind is not (ContextKind.RecentConversations or ContextKind.BranchOrigin or ContextKind.BranchSummary)))
             {
                 var tokens = ContextEstimator.EstimateText(block.Content);
                 if (tokens < UsageHintThresholds.BigFileTokens || tokens <= bestTokens)
