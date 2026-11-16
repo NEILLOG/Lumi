@@ -1,3 +1,4 @@
+using Lumi.Core.Branches;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
 using Lumi.Core.ContextNotes;
@@ -222,6 +223,62 @@ public class ConversationDeletionServiceTests
 
         Assert.Empty(await store.ListAsync(100));
         Assert.Equal(0, files.DeleteCalls);   // 查不到就當成沒有研究本
+    }
+
+    private static readonly DateTimeOffset BranchNow = new(2026, 11, 16, 12, 0, 0, TimeSpan.Zero);
+
+    /// <summary>一條進行中的支線列（對話本身要先建好）。</summary>
+    private static Branch BranchRow(string childId, string parentId, string rootId, int depth) =>
+        new(childId, parentId, rootId, depth, "fork", "摘錄", BranchNow, null, BranchStatus.Active, null, null, BranchNow, null);
+
+    [Fact]
+    public async Task Deleting_root_deletes_both_levels_of_branches()
+    {
+        var store = new InMemoryConversationStore();
+        var branches = new InMemoryBranchStore();
+        var main = await store.CreateAsync("主線");
+        var first = await store.CreateAsync("第一層", ConversationKind.Branch);
+        var second = await store.CreateAsync("第二層", ConversationKind.Branch);
+        await branches.AddAsync(BranchRow(first.Id, main.Id, main.Id, 1));
+        await branches.AddAsync(BranchRow(second.Id, first.Id, main.Id, 2));
+        var spy = new ReferencesSpy(() => Task.FromResult(false), () => false);
+        var service = new ConversationDeletionService(store, new ToolPermissionMemory(),
+            new AttachmentCleaner(new NullAttachmentStore(), spy, NullLogger<AttachmentCleaner>.Instance), branches: branches);
+
+        Assert.True(await service.DeleteAsync(main.Id));
+
+        Assert.Null(await store.GetConversationAsync(main.Id));
+        Assert.Null(await store.GetConversationAsync(first.Id));
+        Assert.Null(await store.GetConversationAsync(second.Id));
+        Assert.Equal(1, spy.Calls);   // 附件清理只在最後做一次
+    }
+
+    [Fact]
+    public async Task Branch_notes_and_memory_are_cleared()
+    {
+        var store = new InMemoryConversationStore();
+        var branches = new InMemoryBranchStore();
+        var main = await store.CreateAsync("主線");
+        var child = await store.CreateAsync("支線", ConversationKind.Branch);
+        await branches.AddAsync(BranchRow(child.Id, main.Id, main.Id, 1));
+
+        // 支線自己的研究本與權限記憶：刪主線時一起清掉
+        var notes = new InMemoryContextNoteStore();
+        var note = new ContextNote(ContextNote.NewId(), child.Id, "目標", true, 1, 0, null, null, BranchNow, BranchNow);
+        await notes.CreateAsync(note, new ContextNoteRevision(ContextNoteRevision.NewId(), note.Id, 1, ContextNoteRevisionKind.StartBlank,
+            "目標", "", [], null, 0, BranchNow));
+        var memory = new ToolPermissionMemory();
+        memory.Allow(child.Id, ToolPermission.Write);
+        var files = new NoteFilesFake(_ => Task.CompletedTask);
+        var spy = new ReferencesSpy(() => Task.FromResult(false), () => false);
+        var service = new ConversationDeletionService(store, memory,
+            new AttachmentCleaner(new NullAttachmentStore(), spy, NullLogger<AttachmentCleaner>.Instance),
+            notes: notes, files: files, branches: branches);
+
+        await service.DeleteAsync(main.Id);
+
+        Assert.False(memory.IsAllowed(child.Id, ToolPermission.Write));
+        Assert.Equal(1, files.DeleteCalls);
     }
 
     private sealed class ThrowingReferences : IAttachmentReferences
