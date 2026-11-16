@@ -20,6 +20,7 @@ public sealed class ToolGroupTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<IConversationStore>(new FakeSearchConversations());
+        services.AddSingleton<Lumi.Core.ContextNotes.IContextNoteStore>(new Lumi.Core.ContextNotes.InMemoryContextNoteStore());   // 建議開研究本（M35）需要研究本儲存
         services.AddSingleton<IDocumentReader>(new FakeDocumentReader());
         services.AddFakeWebServices();
         services.AddFakeBrowserServices();

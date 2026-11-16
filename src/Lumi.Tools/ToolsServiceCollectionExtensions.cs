@@ -4,6 +4,7 @@ using Lumi.Core.Notes;
 using Lumi.Core.Tools;
 using Lumi.Tools.Browser;
 using Lumi.Tools.Commands;
+using Lumi.Tools.ContextNotes;
 using Lumi.Tools.Images;
 using Lumi.Tools.Memory;
 using Lumi.Tools.Notes;
@@ -58,6 +59,7 @@ public static class ToolsServiceCollectionExtensions
         services.AddLumiTool<ReadNotesTool>();
         services.AddLumiTool<ConversationSearchTool>();
         services.AddLumiTool<ReadConversationTool>();
+        services.AddLumiTool<SuggestContextNoteTool>();   // 建議開研究本（M35 D9）：IContextNoteStore 由 Lumi.Core 註冊
 
         // 提醒與排程（M10 10E）：IReminderService 與 ReminderOptions 由 Lumi.Core 註冊
         services.AddLumiTool<CreateReminderTool>();
