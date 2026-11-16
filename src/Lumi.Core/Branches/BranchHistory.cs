@@ -9,5 +9,11 @@ public sealed record BranchHistoryLayer(IReadOnlyList<ChatMessage> Messages, Com
 public static class BranchHistory
 {
     /// <summary>由上而下（主線在前）把每一層套用整理狀態後接起來（4.3 第 1 點）。</summary>
-    public static IReadOnlyList<ChatMessage> Combine(IReadOnlyList<BranchHistoryLayer> layers) => throw new NotImplementedException("TODO(36B)");
+    public static IReadOnlyList<ChatMessage> Combine(IReadOnlyList<BranchHistoryLayer> layers)
+    {
+        var result = new List<ChatMessage>();
+        foreach (var layer in layers)
+            result.AddRange(CompactionApplier.Apply(layer.Messages, layer.Compaction));
+        return result;
+    }
 }
