@@ -3,10 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input.Platform;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Lumi.App.Markdown;
 using Lumi.App.Resources;
+using Lumi.Core.Branches;
 
 namespace Lumi.App.Controls;
 
@@ -32,7 +34,37 @@ public class EmojiTextBlock : SelectableTextBlock
 
         var copy = new MenuItem { Header = Strings.Workbench_Copy };
         copy.Click += (_, _) => CopyTextOrSelection();
-        ContextMenu = new ContextMenu { Items = { copy } };
+        // 「問這段」（M36）：只有在可以開支線的助理回答裡、有選取的文字時才在選單裡（開選單時才決定，見下）
+        var ask = new MenuItem { Header = Strings.Branch_Ask };
+        ask.Click += (_, _) => RaiseAskRequested();
+        var menu = new ContextMenu { Items = { copy } };
+        ContextMenu = menu;
+        // 開選單的預設處理會把事件標成已處理，所以要 handledEventsToo，否則這裡收不到
+        AddHandler(ContextRequestedEvent, (_, _) => SetAskItem(menu, ask, AskableQuote() is not null),
+            RoutingStrategies.Direct | RoutingStrategies.Bubble, handledEventsToo: true);
+    }
+
+    private static void SetAskItem(ContextMenu menu, MenuItem ask, bool visible)
+    {
+        if (visible && !menu.Items.Contains(ask))
+            menu.Items.Add(ask);
+        else if (!visible)
+            menu.Items.Remove(ask);
+    }
+
+    /// <summary>目前的選取能不能「問這段」：回傳正規化後的引用文字，不能問是 null。</summary>
+    private string? AskableQuote()
+    {
+        var view = this.FindAncestorOfType<MarkdownView>();
+        if (BranchSelectionEvents.AskableMessage(view) is null)
+            return null;
+        return BranchBlocks.NormalizeQuote(view!.SelectedText);
+    }
+
+    private void RaiseAskRequested()
+    {
+        if (AskableQuote() is { } quote)
+            RaiseEvent(new AskSelectionEventArgs(BranchSelectionEvents.AskRequestedEvent, quote));
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

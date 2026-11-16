@@ -62,6 +62,41 @@
       <Setter Property="Fraction" Value="0.8" />
     </Style>
 
+    <!-- 支線（M36 4.8）：色條只在支線裡有。間距只用尺度（架構測試）：左框 4＋左內距 16＋列表左邊界 4 ＝ 內容往右 24（色條寬 3 改成 4） -->
+    <Style Selector="Border#BranchRail.branch">
+      <Setter Property="BorderThickness" Value="4,0,0,0" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBrush}" />
+      <Setter Property="Padding" Value="16,0,0,0" />
+    </Style>
+    <Style Selector="Border#BranchRail.branch > ItemsControl">
+      <Setter Property="Margin" Value="4,0,0,0" />
+    </Style>
+    <!-- 出處卡片、摘要卡：Surface、1px Border、圓角 14；內距由各卡自己設 -->
+    <Style Selector="Border.branch-card">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusCard}" />
+    </Style>
+    <!-- 剛帶回的摘要卡：Opacity 0→1、200ms（ui-spec 4.8 進入動畫；只在 Timeline 判定「剛帶回」時加上 class） -->
+    <Style Selector="Border.branch-card.card-enter">
+      <Style.Animations>
+        <Animation Duration="0:0:0.2" FillMode="Forward" Easing="CubicEaseOut">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <!-- 「問這段」的浮動工具列（E8）：高 32，內距 4，1px 框、圓角 10、浮起的陰影 -->
+    <Style Selector="Border.ask-popup">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="4" />
+      <Setter Property="BoxShadow" Value="{DynamicResource LumiCardHoverShadow}" />
+    </Style>
+
     <!-- 高度規則（RWD原則 第 5 節）：short 訊息垂直間距 24 → 16、歡迎區留白縮小；veryshort 隱藏歡迎區 -->
     <Style Selector="Window.short StackPanel.conversation-stack, Window.veryshort StackPanel.conversation-stack">
       <Setter Property="Spacing" Value="16" />
@@ -175,6 +210,9 @@
           </Grid>
         </Border>
 
+        <Grid>
+        <!-- 支線裡訊息列表左邊有色條（4.8「色條」）；Classes.branch 綁 IsInBranch（36F 實作）。覆蓋條只在進入動畫時顯示 -->
+        <Border x:Name="BranchRail" Classes.branch="{Binding IsInBranch}">
         <ItemsControl ItemsSource="{Binding ShownMessages}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
@@ -199,6 +237,77 @@
                 </Expander.Header>
                 <ctl:EmojiTextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
               </Expander>
+            </DataTemplate>
+            <!-- 支線的出處卡片（M36 4.8）：訊息列表最上面，寬度同助理訊息；有選取的文字就標底色 -->
+            <DataTemplate DataType="vm:BranchOriginViewModel" x:DataType="vm:BranchOriginViewModel">
+              <ctl:FractionWidthLimiter Classes="assistant" HorizontalAlignment="Left">
+                <Border x:Name="BranchOriginCard" Classes="branch-card" Padding="16,12" RenderTransformOrigin="0%,0%">
+                  <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
+                  <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <ctl:LumiIcon Data="{StaticResource LumiIconGitBranch}" Size="12" Foreground="{DynamicResource LumiAccentTextBrush}" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Eyebrow}" FontSize="{DynamicResource LumiFontSizeCaption}" FontWeight="Bold"
+                                 Foreground="{DynamicResource LumiAccentTextBrush}" />
+                    </StackPanel>
+                    <Border BorderThickness="2,0,0,0" BorderBrush="{DynamicResource LumiBorderStrongBrush}" Padding="12,0,0,0">
+                      <WrapPanel>
+                        <ctl:EmojiTextBlock Text="{Binding ExcerptBefore}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                        <Border IsVisible="{Binding HasHighlight}" Background="{DynamicResource LumiAccentSoftBrush}">
+                          <ctl:EmojiTextBlock Text="{Binding ExcerptQuote}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                        </Border>
+                        <ctl:EmojiTextBlock Text="{Binding ExcerptAfter}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                      </WrapPanel>
+                    </Border>
+                    <ctl:EmojiTextBlock IsVisible="{Binding ExtraQuoteText, Converter={x:Static ObjectConverters.IsNotNull}}" Text="{Binding ExtraQuoteText}"
+                                        TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource LumiTextMutedBrush}" />
+                  </StackPanel>
+                </Border>
+              </ctl:FractionWidthLimiter>
+            </DataTemplate>
+            <!-- 上一層的摘要卡（M36 4.8）：置中、寬度同助理訊息的上限；標頭、摘要全文（可選取）、「看完整支線」 -->
+            <DataTemplate DataType="vm:BranchSummaryCardViewModel" x:DataType="vm:BranchSummaryCardViewModel">
+              <ctl:FractionWidthLimiter Classes="assistant" HorizontalAlignment="Center">
+                <Border Classes="branch-card" Classes.card-enter="{Binding PlayEnterAnimation}" Padding="16">
+                  <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                      <Border Grid.Column="0" Width="32" Height="32" CornerRadius="10" Background="{DynamicResource LumiAccentSoftBrush}" VerticalAlignment="Top">
+                        <ctl:LumiIcon Data="{StaticResource LumiIconGitMerge}" Size="16" Foreground="{DynamicResource LumiAccentTextBrush}" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="{DynamicResource LumiTextBrush}" VerticalAlignment="Center" />
+                          <Border Classes="badge" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Static res:Strings.Branch_StatusMerged}" />
+                          </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding MetaText}" Classes="muted" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <Button Grid.Column="2" Classes="tertiary" VerticalAlignment="Top" Command="{Binding ToggleCommand}"
+                              ToolTip.Tip="{Binding ToggleTip}" AutomationProperties.Name="{Binding ToggleTip}">
+                        <Panel>
+                          <ctl:LumiIcon IsVisible="{Binding IsExpanded}" Data="{StaticResource LumiIconChevronUp}" Size="16" />
+                          <ctl:LumiIcon IsVisible="{Binding IsExpanded, Converter={x:Static BoolConverters.Not}}" Data="{StaticResource LumiIconChevronDown}" Size="16" />
+                        </Panel>
+                      </Button>
+                    </Grid>
+                    <md:MarkdownView IsVisible="{Binding IsExpanded}" Markdown="{Binding Summary}" />
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                      <Button Grid.Column="0" Classes="tertiary small" VerticalAlignment="Center"
+                              Command="{Binding $parent[views:ConversationView].((vm:WorkbenchViewModel)DataContext).OpenBranchCommand}"
+                              CommandParameter="{Binding ConversationId}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="{x:Static res:Strings.Branch_CardOpen}" VerticalAlignment="Center" />
+                          <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="12" />
+                        </StackPanel>
+                      </Button>
+                      <!-- 還沒交出：下一則訊息會一起讀到這段摘要（右邊的說明） -->
+                      <TextBlock Grid.Column="1" Text="{x:Static res:Strings.Branch_CardPending}" Classes="muted" TextWrapping="Wrap"
+                                 TextAlignment="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                 IsVisible="{Binding IsPending}" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </ctl:FractionWidthLimiter>
             </DataTemplate>
             <DataTemplate DataType="vm:MessageViewModel" x:DataType="vm:MessageViewModel">
               <Panel>
@@ -319,6 +428,18 @@
                           <TextBlock Classes="action-label" Text="{x:Static res:Strings.Workbench_Regenerate}" VerticalAlignment="Center" />
                         </StackPanel>
                       </Button>
+                      <!-- 開支線（M36 4.8「入口」）：每則有文字的助理回答都有；回應中或已在第二層時停用，說明放在 Tooltip -->
+                      <!-- 顯示條件在外層 Border（隱藏時整列不佔位，也不算進動作按鈕） -->
+                      <Border IsVisible="{Binding ShowBranchAction}">
+                        <Button Classes="tertiary small message-action" IsEnabled="{Binding CanBranch}"
+                                Command="{Binding $parent[views:ConversationView].((vm:WorkbenchViewModel)DataContext).StartBranchCommand}" CommandParameter="{Binding}"
+                                ToolTip.Tip="{Binding BranchTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{x:Static res:Strings.Branch_Start}">
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <ctl:LumiIcon Data="{StaticResource LumiIconGitBranch}" Size="14" />
+                            <TextBlock Classes="action-label" Text="{x:Static res:Strings.Branch_Start}" VerticalAlignment="Center" />
+                          </StackPanel>
+                        </Button>
+                      </Border>
                       <!-- 回答這則的模型（FT-03）：設定開啟時顯示，在 token 用量前面 -->
                       <TextBlock x:Name="ModelLabel" Text="{Binding ModelId}" Classes="muted" Margin="8,0,0,0" VerticalAlignment="Center">
                         <TextBlock.IsVisible>
@@ -344,6 +465,12 @@
             </DataTemplate>
           </ItemsControl.DataTemplates>
         </ItemsControl>
+        </Border>
+        <Border x:Name="BranchRailGrow" Width="3" HorizontalAlignment="Left" VerticalAlignment="Stretch" IsHitTestVisible="False"
+                IsVisible="False" Background="{DynamicResource LumiAccentBrush}" RenderTransformOrigin="0%,0%">
+          <Border.RenderTransform><ScaleTransform ScaleY="0" /></Border.RenderTransform>
+        </Border>
+        </Grid>
 
         <!-- 整理中（M22 22I）：等待中的樣式（淡底氣泡），摘要呼叫進行時顯示在訊息區底部 -->
         <Border IsVisible="{Binding IsCompacting}" HorizontalAlignment="Left" Padding="16,12" CornerRadius="{StaticResource LumiRadiusCard}"
@@ -396,6 +523,21 @@
       </StackPanel>
     </Border>
   </ScrollViewer>
+
+  <!-- 「問這段」（M36 E8）：選取助理回答的文字、放開滑鼠後出現在滑鼠上方 8；按鈕不搶焦點，選取保留到按下為止 -->
+  <Popup x:Name="AskPopup" Placement="Pointer" VerticalOffset="-40" IsLightDismissEnabled="True">
+    <Border Classes="ask-popup">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button x:Name="AskCopyButton" Classes="tertiary small" Focusable="False" Content="{x:Static res:Strings.Branch_Copy}" />
+        <Button x:Name="AskButton" Classes="tertiary small" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.Branch_Ask}">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <ctl:LumiIcon Data="{StaticResource LumiIconGitBranch}" Size="14" />
+            <TextBlock Text="{x:Static res:Strings.Branch_Ask}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </Popup>
 
   <!-- 回到最新訊息（FT-01）：往上捲離開底部時浮在訊息區底部中央；36 圓形 secondary 按鈕，浮起才有陰影（ui-guide 第 9 節） -->
   <Border x:Name="JumpToBottomHost" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16"
