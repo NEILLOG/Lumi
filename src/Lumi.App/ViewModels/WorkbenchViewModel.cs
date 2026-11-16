@@ -7,6 +7,7 @@ using Lumi.App.Resources;
 using Lumi.App.Services;
 using Lumi.Core.Chat;
 using Lumi.Core.Context;
+using Lumi.Core.ContextNotes;
 using Lumi.Core.Models;
 using Lumi.Core.Reminders;
 using Lumi.Core.Skills;
@@ -96,7 +97,11 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         IToolCatalog? toolCatalog = null,
         IAttachmentStore? attachments = null,
         ISkillStore? skills = null,
-        IConversationTitler? titler = null)
+        IConversationTitler? titler = null,
+        IContextNoteService? contextNotes = null,
+        IContextNoteStore? contextNoteStore = null,
+        IContextNoteWindowService? contextNoteWindow = null,
+        IContextNoteStartPrompt? contextNoteStart = null)
     {
         _skills = skills;
         _confirm = confirm;
@@ -135,7 +140,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Context = contextBar ?? ContextBarViewModel.CreateInert(store, time);
         _notice = catalog.LoadProblem;
 
-        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation, scheduledRunsTab);
+        History = new HistoryViewModel(store, this, time, HistoryOptions.Default, deletion, confirm, historyLogger, spriteConversation, scheduledRunsTab, contextNoteStore);
         ModelSwitcher = new ModelSwitcherViewModel(catalog, status, settingsWindow, dispatcher, () => IsResponding, afterSelect: null,
             currentContextTokens: () => ContextUsed, newConversation: () => NewConversationAsync(),
             hints: hintCoordinator, currentConversationId: () => CurrentConversationId);
@@ -170,6 +175,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             EnterSpriteModeCommand.NotifyCanExecuteChanged();
         };
         _approvals.Resolved += OnApprovalResolved;
+        InitializeContextNote(contextNotes, contextNoteStore, contextNoteWindow, contextNoteStart);
 
         _showTokenUsage = catalog.Current.Display.ShowTokenUsage;
         _showModelName = catalog.Current.Display.ShowModelName;
@@ -348,6 +354,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         RaiseVoiceProperties();
         NotifyConversationActions();
         History.HostStateChanged();
+        OnContextNoteRespondingChanged(value);
     }
 
     partial void OnInputTextChanged(string value)
@@ -604,6 +611,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         Title = conversation.Title;
         ErrorMessage = null;
         IsStoppedWithoutReply = false;
+        await RefreshContextNoteStateAsync();   // 研究本按鈕與建議卡片要在訊息重建之前知道這則對話的狀態
         await ReloadMessagesAsync();
         await RefreshCostAsync();
         NotifySpriteConversation();   // 小精靈的專屬對話：「⋯」換成「清除內容」（M22）
@@ -634,7 +642,10 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private ToolCardViewModel NewCard(string callId, string toolName, string displayName, ToolPermission? permission, string? target, string argumentsJson)
     {
         // 卡片與工作台同生命週期（卡片只被訊息列表與 _cards 參照）；附件換掉時（完成、或產生中途換佔位）重新分配
-        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time, attachments: _attachments);
+        var card = new ToolCardViewModel(callId, toolName, displayName, permission, target, argumentsJson, _approvals, _clipboard, _time, attachments: _attachments)
+        {
+            NoteSuggestions = SuggestionHostForNewCards,   // 建議卡片的宿主（排程紀錄檢視的卡片不經過這裡）
+        };
         card.PropertyChanged += OnCardPropertyChanged;
         return card;
     }
