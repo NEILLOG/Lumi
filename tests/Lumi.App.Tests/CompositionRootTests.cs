@@ -117,6 +117,19 @@ public sealed class CompositionRootTests : IDisposable
             services.GetRequiredService<IToolRegistry>().GetAll().Select(t => t.Descriptor.Name));
         // 長期記憶（M14）：SQLite 版取代 Core 預設的記憶體版；第 5 層、清理服務都要能解析
         Assert.IsType<Lumi.Infrastructure.Persistence.SqliteMemoryStore>(services.GetRequiredService<Lumi.Core.Memory.IMemoryStore>());
+
+        // 研究本（M35）：SQLite 與檔案版、正式的服務與書記；對話服務注入的是同一個儲存
+        var noteStore = services.GetRequiredService<Lumi.Core.ContextNotes.IContextNoteStore>();
+        Assert.IsType<Lumi.Infrastructure.ContextNotes.SqliteContextNoteStore>(noteStore);
+        Assert.IsType<Lumi.Infrastructure.ContextNotes.FileContextNoteFiles>(services.GetRequiredService<Lumi.Core.ContextNotes.IContextNoteFiles>());
+        Assert.IsType<Lumi.Core.ContextNotes.ContextNoteService>(services.GetRequiredService<Lumi.Core.ContextNotes.IContextNoteService>());
+        Assert.IsType<Lumi.Core.ContextNotes.ContextNoteScribe>(services.GetRequiredService<Lumi.Core.ContextNotes.IContextNoteScribe>());
+        Assert.IsType<Lumi.App.Views.ContextNoteWindowService>(services.GetRequiredService<IContextNoteWindowService>());
+        Assert.IsType<Lumi.App.Views.ContextNoteStartPrompt>(services.GetRequiredService<IContextNoteStartPrompt>());
+        Assert.NotNull(services.GetRequiredService<Lumi.App.Services.ContextNoteCoordinator>());
+        Assert.NotNull(services.GetRequiredService<ContextNoteViewModel>());
+        Assert.Same(noteStore, typeof(ConversationService).GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .Single(f => f.FieldType == typeof(Lumi.Core.ContextNotes.IContextNoteStore)).GetValue(services.GetRequiredService<ConversationService>()));
         Assert.Contains(services.GetServices<Lumi.Core.Prompts.IPromptLayer>(), l => l is Lumi.Core.Prompts.MemoryPromptLayer);
         // ConversationService 的 memoryStore 是可選參數：沒被注入就會靜默失效（第 5 層永遠沒有記憶），所以直接檢查欄位
         var injected = typeof(ConversationService).GetField("_memoryStore", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!

@@ -15,7 +15,7 @@ namespace Lumi.App.Tests;
 public sealed class DataLocationProviderTests : IDisposable
 {
     private static readonly string[] ExpectedIds =
-        ["data", "database", "attachments", "images", "settings", "secrets", "logs", "browser", "sprites", "skills", "notes"];
+        ["data", "database", "attachments", "images", "settings", "secrets", "logs", "browser", "sprites", "skills", "notes", "context-notes"];
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "lumi-locations-" + Guid.NewGuid().ToString("N"));
 
@@ -80,7 +80,7 @@ public sealed class DataLocationProviderTests : IDisposable
 
         Assert.True(byId["database"].IsFile);
         Assert.True(byId["settings"].IsFile);
-        foreach (var id in new[] { "data", "attachments", "images", "logs", "browser", "sprites", "skills", "notes" })
+        foreach (var id in new[] { "data", "attachments", "images", "logs", "browser", "sprites", "skills", "notes", "context-notes" })
             Assert.False(byId[id].IsFile, id);
     }
 

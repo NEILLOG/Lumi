@@ -153,6 +153,16 @@ public static class AppServiceCollectionExtensions
             sp.GetRequiredService<IScheduledRunService>(), () => sp.GetRequiredService<IScheduledRunViewer>(), sp.GetRequiredService<ISettingsWindowService>(),
             sp.GetRequiredService<IConfirmService>(), sp.GetRequiredService<IUiDispatcher>(), sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ScheduledRunOptions>(), sp.GetRequiredService<ILogger<ScheduledRunsViewModel>>()));
+        // 研究本（M35）：視窗只有一個（服務負責開關），每次開視窗重新建立 ViewModel；協調者在啟動時建立一次
+        services.AddTransient<ContextNoteEditorViewModel>();
+        services.AddTransient<ContextNoteHistoryViewModel>();
+        services.AddTransient<ContextNoteViewModel>();
+        services.AddTransient<ContextNoteWindow>();
+        services.AddSingleton<IContextNoteWindowService>(sp => new ContextNoteWindowService(() => sp.GetRequiredService<ContextNoteWindow>(),
+            sp.GetRequiredService<IWindowHost>(), sp.GetRequiredService<Lumi.Core.ContextNotes.IContextNoteService>(),
+            sp.GetRequiredService<IConversationStore>(), sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IContextNoteStartPrompt, ContextNoteStartPrompt>();
+        services.AddSingleton<ContextNoteCoordinator>();
         services.AddTransient<WorkbenchSpritePresenter>();
         services.AddTransient<WorkbenchWindow>();
         return services;

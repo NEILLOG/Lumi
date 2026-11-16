@@ -57,6 +57,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton(sp => ActivatorUtilities.CreateInstance<FileSkillStore>(sp,
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SkillStoreOptions>>().Value.ResolveDirectory()));
         services.Replace(ServiceDescriptor.Singleton<ISkillStore>(sp => sp.GetRequiredService<FileSkillStore>()));
+        // 研究本（M35）：同一個資料庫；成品資料夾在使用者資料夾的 context-notes/；取代 Core 預設的記憶體版
+        services.AddSingleton<Lumi.Infrastructure.ContextNotes.SqliteContextNoteStore>();
+        services.Replace(ServiceDescriptor.Singleton<Lumi.Core.ContextNotes.IContextNoteStore>(sp => sp.GetRequiredService<Lumi.Infrastructure.ContextNotes.SqliteContextNoteStore>()));
+        services.TryAddSingleton(new Lumi.Infrastructure.ContextNotes.ContextNoteFileOptions());
+        services.Replace(ServiceDescriptor.Singleton<Lumi.Core.ContextNotes.IContextNoteFiles>(sp => new Lumi.Infrastructure.ContextNotes.FileContextNoteFiles(
+            sp.GetRequiredService<Lumi.Infrastructure.ContextNotes.ContextNoteFileOptions>(), sp.GetRequiredService<TimeProvider>())));
         // 執行指令的擋掉清單（M31）：要知道技能資料夾在哪裡，才能提醒「指令會動到技能資料夾」
         services.AddSingleton<Lumi.Core.Commands.ICommandGuard>(sp => new Lumi.Core.Commands.CommandGuard(
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SkillStoreOptions>>().Value.ResolveDirectory()));

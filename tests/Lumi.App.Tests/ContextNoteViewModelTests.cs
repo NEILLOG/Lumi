@@ -582,14 +582,26 @@ public class ContextNoteViewModelTests
         Put(rig, Body);
         await rig.Vm.LoadAsync(Conversation);
 
-        // 編輯器（35H）還是空殼：Begin 丟 NotImplementedException。接上正式實作後，這裡會改成檢查 BeginUserEdit 與 Mode。
-        var ex = Record.Exception(() => rig.Vm.EnterEditCommand.Execute(null));
-        Assert.True(ex is null or NotImplementedException);
-        if (ex is null)
-        {
-            Assert.True(rig.Vm.IsEdit);
-            Assert.Contains("BeginUserEdit:note-1", rig.Notes.Calls);
-        }
+        rig.Vm.EnterEditCommand.Execute(null);
+
+        Assert.True(rig.Vm.IsEdit);
+        Assert.Contains("BeginUserEdit:note-1", rig.Notes.Calls);
+        Assert.Equal(rig.Vm.Editor.Text, (await rig.Notes.GetViewAsync(Conversation))!.Current.Content);
+    }
+
+    [Fact]
+    public async Task ShowPreview_WhileEditing_CommitsAndReturnsToPreview()
+    {
+        var rig = new Rig();
+        Put(rig, Body);
+        await rig.Vm.LoadAsync(Conversation);
+        rig.Vm.EnterEditCommand.Execute(null);
+        rig.Vm.Editor.Text += "\n- 我自己加的";
+
+        await rig.Vm.ShowPreviewCommand.ExecuteAsync(null);
+
+        Assert.True(rig.Vm.IsPreview);
+        Assert.Contains("EndUserEdit:note-1:content", rig.Notes.Calls);
     }
 
     [Fact]

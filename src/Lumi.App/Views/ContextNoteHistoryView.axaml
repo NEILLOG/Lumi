@@ -69,8 +69,8 @@
                       <DataTemplate x:DataType="vm:ContextNoteDiffRow">
                         <Grid>
                           <!-- 新增：Success 淡底（Success 色、不透明度 12%）；刪除：Danger 淡底。底色畫在內容後面，文字一定有徽章 -->
-                          <Border IsVisible="{Binding IsAdded}" Background="{DynamicResource LumiSuccessBrush}"
-                                  Opacity="0.12" CornerRadius="8" />
+                          <Border IsVisible="{Binding IsAdded}" Background="{DynamicResource LumiSuccessBackgroundBrush}"
+                                  CornerRadius="8" />
                           <Border IsVisible="{Binding IsRemoved}" Background="{DynamicResource LumiDangerBackgroundBrush}"
                                   CornerRadius="8" />
                           <Border Padding="12,8" CornerRadius="8">

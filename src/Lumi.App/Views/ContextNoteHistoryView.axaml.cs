@@ -80,7 +80,7 @@ public partial class ContextNoteHistoryView : UserControl
             switch (segment.Kind)
             {
                 case DiffKind.Added:
-                    run.Foreground = FindBrush(text, "LumiSuccessBrush");
+                    run.Background = FindBrush(text, "LumiSuccessBackgroundBrush");
                     run.TextDecorations = TextDecorations.Underline;
                     break;
                 case DiffKind.Removed:

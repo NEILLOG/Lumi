@@ -35,6 +35,7 @@
       <Color x:Key="LumiSuccessColor">#1F7A52</Color>
       <Color x:Key="LumiDangerColor">#A1360B</Color>
       <Color x:Key="LumiDangerBackgroundColor">#FDF2EE</Color>
+      <Color x:Key="LumiSuccessBackgroundColor">#EDF8F3</Color>   <!-- 成功色的淡底（研究本版本歷史的「新增」，M35） -->
       <Color x:Key="LumiDangerBorderColor">#E3A58C</Color>
       <Color x:Key="LumiWarningIconColor">#B26B00</Color>
       <Color x:Key="LumiWarningTextColor">#8A5A0B</Color>
@@ -48,6 +49,7 @@
       <SolidColorBrush x:Key="LumiSuccessBrush" Color="{StaticResource LumiSuccessColor}" />
       <SolidColorBrush x:Key="LumiDangerBrush" Color="{StaticResource LumiDangerColor}" />
       <SolidColorBrush x:Key="LumiDangerBackgroundBrush" Color="{StaticResource LumiDangerBackgroundColor}" />
+      <SolidColorBrush x:Key="LumiSuccessBackgroundBrush" Color="{StaticResource LumiSuccessBackgroundColor}" />
       <SolidColorBrush x:Key="LumiDangerBorderBrush" Color="{StaticResource LumiDangerBorderColor}" />
       <SolidColorBrush x:Key="LumiWarningIconBrush" Color="{StaticResource LumiWarningIconColor}" />
       <SolidColorBrush x:Key="LumiWarningTextBrush" Color="{StaticResource LumiWarningTextColor}" />
@@ -69,6 +71,7 @@
       <Color x:Key="LumiSuccessColor">#4CC28A</Color>
       <Color x:Key="LumiDangerColor">#F08A5D</Color>
       <Color x:Key="LumiDangerBackgroundColor">#2D1A14</Color>
+      <Color x:Key="LumiSuccessBackgroundColor">#17271F</Color>   <!-- 成功色的淡底（研究本版本歷史的「新增」，M35） -->
       <Color x:Key="LumiDangerBorderColor">#7A3B25</Color>
       <Color x:Key="LumiWarningIconColor">#F2B544</Color>
       <Color x:Key="LumiWarningTextColor">#F5C66B</Color>
@@ -82,6 +85,7 @@
       <SolidColorBrush x:Key="LumiSuccessBrush" Color="{StaticResource LumiSuccessColor}" />
       <SolidColorBrush x:Key="LumiDangerBrush" Color="{StaticResource LumiDangerColor}" />
       <SolidColorBrush x:Key="LumiDangerBackgroundBrush" Color="{StaticResource LumiDangerBackgroundColor}" />
+      <SolidColorBrush x:Key="LumiSuccessBackgroundBrush" Color="{StaticResource LumiSuccessBackgroundColor}" />
       <SolidColorBrush x:Key="LumiDangerBorderBrush" Color="{StaticResource LumiDangerBorderColor}" />
       <SolidColorBrush x:Key="LumiWarningIconBrush" Color="{StaticResource LumiWarningIconColor}" />
       <SolidColorBrush x:Key="LumiWarningTextBrush" Color="{StaticResource LumiWarningTextColor}" />

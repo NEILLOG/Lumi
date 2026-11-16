@@ -126,6 +126,7 @@ public partial class App : Application
             await services.GetRequiredService<WorkbenchViewModel>().InitializeAsync();
             services.GetRequiredService<SpriteConversationController>().Attach();
             services.GetRequiredService<BudgetAlertCoordinator>();   // 回應結束後檢查預算（M23）
+            services.GetRequiredService<ContextNoteCoordinator>();   // 每輪結束後整理研究本、研究本視窗跟著工作台（M35）
             StartPricingAutoFill(services);
             CleanupSkillImports(services);
             var modes = services.GetRequiredService<IAppModeCoordinator>();

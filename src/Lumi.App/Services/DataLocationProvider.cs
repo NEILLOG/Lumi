@@ -22,7 +22,8 @@ public sealed class DataLocationProvider(
     IOptions<AttachmentOptions> attachments,
     IOptions<ModelCatalogOptions> models,
     IOptions<SecretStoreOptions> secrets,
-    INoteFolderProvider notes) : IDataLocationProvider
+    INoteFolderProvider notes,
+    Lumi.Infrastructure.ContextNotes.ContextNoteFileOptions? contextNotes = null) : IDataLocationProvider
 {
     public IReadOnlyList<DataLocation> GetLocations() =>
     [
@@ -37,6 +38,8 @@ public sealed class DataLocationProvider(
         new("sprites", Strings.Privacy_LocSprites, Strings.Privacy_LocSpritesDesc, Path.Combine(LumiPaths.DataDirectory, "sprites"), IsFile: false),
         new("skills", Strings.Privacy_LocSkills, Strings.Privacy_LocSkillsDesc, Path.Combine(LumiPaths.DataDirectory, "skills"), IsFile: false),
         new("notes", Strings.Privacy_LocNotes, Strings.Privacy_LocNotesDesc, notes.Folder, IsFile: false),
+        new("context-notes", Strings.Privacy_LocContextNotes, Strings.Privacy_LocContextNotesDesc,
+            (contextNotes ?? new Lumi.Infrastructure.ContextNotes.ContextNoteFileOptions()).ResolveDirectory(), IsFile: false),
     ];
 
     private static DataLocation SecretsLocation(SecretStoreOptions options)
