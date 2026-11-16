@@ -1,0 +1,57 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        xmlns:vm="using:Lumi.App.ViewModels"
+        xmlns:ctl="using:Lumi.App.Controls"
+        x:Class="Lumi.App.Views.BranchMergeDialog"
+        x:DataType="vm:BranchMergeDialogViewModel"
+        Title="{Binding Title}"
+        Width="560" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+  <!--
+    帶回對話框（M36 4.8「帶回的對話框」，仿 ContextNoteStartDialog）。「帶回主線／上一層／下一步」＝primary（IsDefault），
+    「取消」＝tertiary（IsCancel，Esc）。整理中輸入框停用，顯示「正在整理摘要…」（用 Watermark）。
+  -->
+  <StackPanel Margin="24" Spacing="16">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding Title}" FontWeight="Bold" TextWrapping="Wrap" />
+      <TextBlock x:Name="StepBlock" Text="{Binding StepText}" IsVisible="{Binding ShowStepText}"
+                 Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+      <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Branch_MergeSummaryLabel}" FontWeight="Bold" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{x:Static res:Strings.Branch_MergeEditable}" Classes="muted" VerticalAlignment="Center" />
+      <Button x:Name="RedraftButton" Grid.Column="3" Classes="tertiary small" IsEnabled="{Binding CanRedraft}" Command="{Binding RedraftCommand}"
+              AutomationProperties.Name="{x:Static res:Strings.Branch_MergeRedraft}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ctl:LumiIcon Data="{StaticResource LumiIconRefresh}" Size="14" />
+          <TextBlock Text="{x:Static res:Strings.Branch_MergeRedraft}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <StackPanel Spacing="8">
+      <TextBox x:Name="SummaryBox" Height="220" AcceptsReturn="True" TextWrapping="Wrap"
+               Text="{Binding SummaryText}" PlaceholderText="{Binding SummaryPlaceholder}" IsEnabled="{Binding !IsDrafting}"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"
+               AutomationProperties.Name="{x:Static res:Strings.Branch_MergeSummaryLabel}" />
+      <TextBlock x:Name="ErrorBlock" Text="{Binding ErrorText}" IsVisible="{Binding HasError}"
+                 Foreground="{DynamicResource LumiDangerBrush}" TextWrapping="Wrap" />
+      <TextBlock x:Name="TooLongBlock" Text="{Binding TooLongText}" IsVisible="{Binding HasTooLong}"
+                 Foreground="{DynamicResource LumiDangerBrush}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <StackPanel Spacing="8">
+      <TextBlock x:Name="ExplainBlock" Text="{Binding ExplainText}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock x:Name="CostBlock" Text="{Binding CostText}" IsVisible="{Binding HasCost}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="CancelButton" Classes="tertiary" Padding="16,8" Content="{x:Static res:Strings.Branch_Cancel}"
+              IsCancel="True" Command="{Binding CancelCommand}" />
+      <Button x:Name="ConfirmButton" Classes="primary" Padding="16,8" Content="{Binding PrimaryText}"
+              IsDefault="True" IsEnabled="{Binding CanConfirm}" Command="{Binding ConfirmCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>
