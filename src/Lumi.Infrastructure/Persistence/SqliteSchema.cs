@@ -205,6 +205,44 @@ internal static class SqliteSchema
         CREATE INDEX ix_scheduled_runs_unread ON scheduled_runs(read_at);
         CREATE INDEX ix_scheduled_runs_conversation ON scheduled_runs(conversation_id);
         """,
+
+        // 14：研究本（M35）。一則對話一本（conversation_id UNIQUE），隨對話刪除；版本存全文（goal、protected_json 跟著每一版）。
+        // context_note_suggestions 記 suggest_context_note 建議過哪些對話。kind 存小寫底線字串；時間存 UTC 固定格式。
+        """
+        CREATE TABLE context_notes (
+          id                      TEXT PRIMARY KEY,
+          conversation_id         TEXT NOT NULL UNIQUE REFERENCES conversations(id) ON DELETE CASCADE,
+          goal                    TEXT NOT NULL,
+          auto_organize           INTEGER NOT NULL DEFAULT 1,
+          current_version         INTEGER NOT NULL DEFAULT 0,
+          scribed_upto_seq        INTEGER NOT NULL DEFAULT 0,
+          scribed_upto_message_id TEXT,
+          goal_hint               TEXT,
+          created_at              TEXT NOT NULL,
+          updated_at              TEXT NOT NULL
+        );
+
+        CREATE TABLE context_note_revisions (
+          id              TEXT PRIMARY KEY,
+          note_id         TEXT NOT NULL REFERENCES context_notes(id) ON DELETE CASCADE,
+          version         INTEGER NOT NULL,
+          kind            TEXT NOT NULL,
+          goal            TEXT NOT NULL,
+          content         TEXT NOT NULL,
+          protected_json  TEXT NOT NULL DEFAULT '[]',
+          trigger_excerpt TEXT,
+          restored_count  INTEGER NOT NULL DEFAULT 0,
+          created_at      TEXT NOT NULL,
+          UNIQUE (note_id, version)
+        );
+        CREATE INDEX ix_context_note_revisions_note ON context_note_revisions(note_id, version);
+
+        CREATE TABLE context_note_suggestions (
+          conversation_id TEXT PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+          suggested_at    TEXT NOT NULL,
+          dismissed_at    TEXT
+        );
+        """,
     ];
 
     public static int LatestVersion => Migrations.Length;

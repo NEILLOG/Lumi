@@ -24,6 +24,12 @@ public interface IWindowHost
     void ScrollWorkbenchToCall(string callId);
 
     void Exit();
+
+    /// <summary>工作台目前所在螢幕的工作區與縮放；工作台沒顯示時回 null（研究本的「並排」，M35）。</summary>
+    Lumi.App.Views.WindowScreen? GetWorkbenchScreen() => null;
+
+    /// <summary>把工作台還原成一般大小並放到指定位置（並排用）。位置是螢幕像素，寬高是 DIP。</summary>
+    void PlaceWorkbench(Avalonia.PixelPoint position, double width, double height) { }
 }
 
 public interface IAppModeCoordinator

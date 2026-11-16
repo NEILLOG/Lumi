@@ -18,6 +18,7 @@ public class IconTests
         "LumiIconArrowLeft", "LumiIconHome", "LumiIconDiamond", "LumiIconSun", "LumiIconShield", "LumiIconAlertTriangle",
         "LumiIconUser", "LumiIconChevronRight", "LumiIconBan", "LumiIconLoader", "LumiIconBell",
         "LumiIconArrowDown", "LumiIconArrowRight", "LumiIconRepeat", "LumiIconDownload",
+        "LumiIconNotebook", "LumiIconColumns", "LumiIconLock", "LumiIconHistory", "LumiIconLightbulb",   // M35 研究本
     ];
 
     private static Geometry Icon(string key)

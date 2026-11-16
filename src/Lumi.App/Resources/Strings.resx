@@ -1272,4 +1272,112 @@
   <data name="Diagram_ViewLarger" xml:space="preserve"><value>點一下放大檢視</value></data>
   <data name="Diagram_ViewerTitle" xml:space="preserve"><value>流程圖</value></data>
   <data name="Diagram_FailedFormat" xml:space="preserve"><value>無法畫出流程圖，以下是原始碼。{0}</value></data>
+  <!-- 研究本（M35） -->
+  <data name="ContextNote_Button" xml:space="preserve"><value>研究本</value></data>
+  <data name="ContextNote_ButtonTipStart" xml:space="preserve"><value>開一本研究本：把這則對話的重點整理起來</value></data>
+  <data name="ContextNote_ButtonTipOpen" xml:space="preserve"><value>打開這則對話的研究本</value></data>
+  <data name="ContextNote_ButtonTipBusy" xml:space="preserve"><value>等這一輪回應結束再開始</value></data>
+  <data name="ContextNote_Start_Title" xml:space="preserve"><value>開一本研究本</value></data>
+  <data name="ContextNote_Start_GoalLabel" xml:space="preserve"><value>目標</value></data>
+  <data name="ContextNote_Start_Required" xml:space="preserve"><value>必填</value></data>
+  <data name="ContextNote_Start_GoalHint" xml:space="preserve"><value>一兩句話就好。之後隨時可以在研究本上方修改。</value></data>
+  <data name="ContextNote_Start_FromLabel" xml:space="preserve"><value>從哪裡開始</value></data>
+  <data name="ContextNote_Start_FromConversation" xml:space="preserve"><value>從目前的對話整理</value></data>
+  <data name="ContextNote_Start_FromConversationDescFormat" xml:space="preserve"><value>先讀過這則對話的 {0} 則訊息，整理出第一版。</value></data>
+  <data name="ContextNote_Start_FromConversationEmpty" xml:space="preserve"><value>這則對話還沒有內容。</value></data>
+  <data name="ContextNote_Start_Blank" xml:space="preserve"><value>從空白開始</value></data>
+  <data name="ContextNote_Start_BlankDesc" xml:space="preserve"><value>只有目標，之後的對話才開始整理。</value></data>
+  <data name="ContextNote_Start_CostNoteFormat" xml:space="preserve"><value>整理研究本使用目前的模型 {0}，費用算在這則對話裡。</value></data>
+  <data name="ContextNote_Start_NoModel" xml:space="preserve"><value>還沒有可用的模型。研究本可以先開，設定好模型之後才會自動整理。</value></data>
+  <data name="ContextNote_Start_Confirm" xml:space="preserve"><value>開始</value></data>
+  <data name="ContextNote_Start_Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="ContextNote_Suggest_Title" xml:space="preserve"><value>要不要為這個問題開一本研究本？</value></data>
+  <data name="ContextNote_Suggest_Desc" xml:space="preserve"><value>研究本會在每輪對話後自動整理目標、決定、放棄的選項與理由。</value></data>
+  <data name="ContextNote_Suggest_GoalLabel" xml:space="preserve"><value>建議的目標</value></data>
+  <data name="ContextNote_Suggest_Create" xml:space="preserve"><value>開研究本</value></data>
+  <data name="ContextNote_Suggest_Dismiss" xml:space="preserve"><value>不用</value></data>
+  <data name="ContextNote_Suggest_Created" xml:space="preserve"><value>已經開了研究本</value></data>
+  <data name="ContextNote_Suggest_Open" xml:space="preserve"><value>打開研究本</value></data>
+  <data name="ContextNote_Suggest_Dismissed" xml:space="preserve"><value>已略過，這則對話不會再詢問。</value></data>
+  <data name="ContextNote_Window_Title" xml:space="preserve"><value>研究本</value></data>
+  <data name="ContextNote_Window_TitleFormat" xml:space="preserve"><value>研究本 · {0}</value></data>
+  <data name="ContextNote_Mode_Preview" xml:space="preserve"><value>預覽</value></data>
+  <data name="ContextNote_Mode_Edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="ContextNote_Status_UpdatedFormat" xml:space="preserve"><value>第 {0} 版 · {1} 更新</value></data>
+  <data name="ContextNote_Status_Running" xml:space="preserve"><value>正在整理這一輪的對話…</value></data>
+  <data name="ContextNote_Status_Waiting" xml:space="preserve"><value>有新的對話內容，等你編輯完再整理</value></data>
+  <data name="ContextNote_Status_Paused" xml:space="preserve"><value>自動整理已關閉</value></data>
+  <data name="ContextNote_Status_Failed" xml:space="preserve"><value>這次整理失敗，研究本沒有改變。</value></data>
+  <data name="ContextNote_Status_Rejected" xml:space="preserve"><value>這次整理的結果不完整，沒有套用，研究本沒有改變。</value></data>
+  <data name="ContextNote_Status_NoModel" xml:space="preserve"><value>還沒有可用的模型，無法整理。</value></data>
+  <data name="ContextNote_Status_RestoredFormat" xml:space="preserve"><value>有 {0} 段你寫的內容被移動或刪除，已經放回去。</value></data>
+  <data name="ContextNote_Retry" xml:space="preserve"><value>再整理一次</value></data>
+  <data name="ContextNote_LongNote" xml:space="preserve"><value>研究本很長了，每次整理會比較貴。可以關閉自動整理，需要時再按「現在整理一次」。</value></data>
+  <data name="ContextNote_Auto" xml:space="preserve"><value>自動整理</value></data>
+  <data name="ContextNote_AutoTip" xml:space="preserve"><value>每輪對話結束後自動整理研究本。關閉後可以用「現在整理一次」。</value></data>
+  <data name="ContextNote_History" xml:space="preserve"><value>版本歷史</value></data>
+  <data name="ContextNote_SideBySide" xml:space="preserve"><value>並排</value></data>
+  <data name="ContextNote_SideBySideTip" xml:space="preserve"><value>把工作台與研究本排成左右兩邊</value></data>
+  <data name="ContextNote_SideBySideTooNarrow" xml:space="preserve"><value>螢幕太窄，無法並排</value></data>
+  <data name="ContextNote_More" xml:space="preserve"><value>更多</value></data>
+  <data name="ContextNote_OrganizeNow" xml:space="preserve"><value>現在整理一次</value></data>
+  <data name="ContextNote_OpenFolder" xml:space="preserve"><value>打開研究本所在的資料夾</value></data>
+  <data name="ContextNote_Export" xml:space="preserve"><value>匯出成 zip</value></data>
+  <data name="ContextNote_ExportDoneFormat" xml:space="preserve"><value>已匯出到 {0}</value></data>
+  <data name="ContextNote_ExportFailed" xml:space="preserve"><value>匯出失敗，請換一個位置再試。</value></data>
+  <data name="ContextNote_GoalLabel" xml:space="preserve"><value>目標</value></data>
+  <data name="ContextNote_GoalEdit" xml:space="preserve"><value>修改目標</value></data>
+  <data name="ContextNote_GoalSave" xml:space="preserve"><value>儲存</value></data>
+  <data name="ContextNote_GoalCancel" xml:space="preserve"><value>取消</value></data>
+  <data name="ContextNote_GoalHintTitle" xml:space="preserve"><value>目標可能要調整</value></data>
+  <data name="ContextNote_GoalHintDismiss" xml:space="preserve"><value>不用</value></data>
+  <data name="ContextNote_Badge_Updated" xml:space="preserve"><value>剛更新</value></data>
+  <data name="ContextNote_Badge_Mine" xml:space="preserve"><value>你寫的</value></data>
+  <data name="ContextNote_Quote_Show" xml:space="preserve"><value>原話</value></data>
+  <data name="ContextNote_Quote_Hide" xml:space="preserve"><value>收起原話</value></data>
+  <data name="ContextNote_Block_Actions" xml:space="preserve"><value>這一段的操作</value></data>
+  <data name="ContextNote_Block_MarkDecided" xml:space="preserve"><value>標成已決定</value></data>
+  <data name="ContextNote_Block_Confirm" xml:space="preserve"><value>確認這個決定</value></data>
+  <data name="ContextNote_Block_Unprotect" xml:space="preserve"><value>取消保護</value></data>
+  <data name="ContextNote_Block_ProtectedTip" xml:space="preserve"><value>這一段受保護，整理研究本時不會被修改。</value></data>
+  <data name="ContextNote_Side_CountFormat" xml:space="preserve"><value>{0} 則</value></data>
+  <data name="ContextNote_Section_Empty" xml:space="preserve"><value>（還沒有內容）</value></data>
+  <data name="ContextNote_ImageMissing" xml:space="preserve"><value>找不到圖片</value></data>
+  <data name="ContextNote_Edit_Banner" xml:space="preserve"><value>你正在編輯。切回預覽後，書記會以你的版本為基礎整理新的對話內容。</value></data>
+  <data name="ContextNote_Edit_Hint" xml:space="preserve"><value>七個區段的標題請保留，書記靠它們整理。你改過的段落會受保護。</value></data>
+  <data name="ContextNote_Edit_Done" xml:space="preserve"><value>完成</value></data>
+  <data name="ContextNote_Edit_Discard" xml:space="preserve"><value>放棄修改</value></data>
+  <data name="ContextNote_Edit_DiscardConfirm" xml:space="preserve"><value>要放棄這次的修改嗎？</value></data>
+  <data name="ContextNote_Edit_TooLongFormat" xml:space="preserve"><value>研究本最多 {0} 個字，目前 {1} 個字。</value></data>
+  <data name="ContextNote_Edit_PasteImageFailed" xml:space="preserve"><value>圖片貼不進來：格式不支援或檔案太大。</value></data>
+  <data name="ContextNote_Edit_AutomationName" xml:space="preserve"><value>研究本內容</value></data>
+  <data name="ContextNote_History_Back" xml:space="preserve"><value>回到研究本</value></data>
+  <data name="ContextNote_History_Versions" xml:space="preserve"><value>版本</value></data>
+  <data name="ContextNote_History_VersionFormat" xml:space="preserve"><value>第 {0} 版</value></data>
+  <data name="ContextNote_History_CompareFormat" xml:space="preserve"><value>第 {0} 版和第 {1} 版的差異</value></data>
+  <data name="ContextNote_History_RevertFormat" xml:space="preserve"><value>退回到第 {0} 版</value></data>
+  <data name="ContextNote_History_RevertConfirmFormat" xml:space="preserve"><value>要把研究本退回到第 {0} 版嗎？目前的內容會留在版本歷史裡，之後還可以再退回來。</value></data>
+  <data name="ContextNote_History_NoTextChange" xml:space="preserve"><value>這一版的內容和前一版相同，只改了目標或保護。</value></data>
+  <data name="ContextNote_History_GoalChangedFormat" xml:space="preserve"><value>目標改成：{0}</value></data>
+  <data name="ContextNote_History_Added" xml:space="preserve"><value>新增</value></data>
+  <data name="ContextNote_History_Removed" xml:space="preserve"><value>刪除</value></data>
+  <data name="ContextNote_History_Changed" xml:space="preserve"><value>修改</value></data>
+  <data name="ContextNote_Author_Start" xml:space="preserve"><value>開始</value></data>
+  <data name="ContextNote_Author_Scribe" xml:space="preserve"><value>書記</value></data>
+  <data name="ContextNote_Author_User" xml:space="preserve"><value>你</value></data>
+  <data name="ContextNote_Author_External" xml:space="preserve"><value>外部修改</value></data>
+  <data name="ContextNote_Author_Revert" xml:space="preserve"><value>退回</value></data>
+  <data name="ContextNote_Reason_StartConversation" xml:space="preserve"><value>從目前的對話整理</value></data>
+  <data name="ContextNote_Reason_StartBlank" xml:space="preserve"><value>從空白開始</value></data>
+  <data name="ContextNote_Reason_ScribeFirst" xml:space="preserve"><value>整理了開始之前的對話</value></data>
+  <data name="ContextNote_Reason_ScribeFormat" xml:space="preserve"><value>因為你說「{0}」</value></data>
+  <data name="ContextNote_Reason_ScribeManual" xml:space="preserve"><value>手動整理</value></data>
+  <data name="ContextNote_Reason_UserEdit" xml:space="preserve"><value>在研究本視窗編輯</value></data>
+  <data name="ContextNote_Reason_UserAction" xml:space="preserve"><value>調整了決定或保護</value></data>
+  <data name="ContextNote_Reason_UserGoal" xml:space="preserve"><value>修改了目標</value></data>
+  <data name="ContextNote_Reason_External" xml:space="preserve"><value>在其他程式改過 note.md</value></data>
+  <data name="ContextNote_Reason_RevertFormat" xml:space="preserve"><value>退回到第 {0} 版</value></data>
+  <data name="ContextNote_DeleteWithConversation" xml:space="preserve"><value>這則對話的研究本也會一起刪除。要保留請先匯出。</value></data>
+  <data name="Privacy_LocContextNotes" xml:space="preserve"><value>研究本</value></data>
+  <data name="Privacy_LocContextNotesDesc" xml:space="preserve"><value>每本研究本一個資料夾，裡面是 note.md 和用到的圖片</value></data>
 </root>

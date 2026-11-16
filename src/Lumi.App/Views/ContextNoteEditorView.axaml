@@ -1,0 +1,7 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             x:Class="Lumi.App.Views.ContextNoteEditorView"
+             x:DataType="vm:ContextNoteEditorViewModel">
+  <!-- TODO(35H)：Phase 0 只有空殼 -->
+</UserControl>
