@@ -120,22 +120,9 @@ public sealed class ContextNoteService(
     {
         if (_runtimes.TryGetValue(noteId, out var rt) && rt.Status is { } known)
             return known;
-        var auto = rt?.AutoOrganize ?? LoadAutoOrganizeBlocking(noteId);
+        // 沒有讀過這本研究本（GetViewAsync 會記下自動整理的開關）時當成 Idle，不同步等資料庫
+        var auto = rt?.AutoOrganize;
         return new ContextNoteStatus(noteId, auto is false ? ScribeState.Paused : ScribeState.Idle);
-    }
-
-    /// <summary>同步讀取（只在沒有執行期狀態時用）；讀不到就當成開啟。用 Task.Run 避免卡住同步化的內容。</summary>
-    private bool? LoadAutoOrganizeBlocking(string noteId)
-    {
-        try
-        {
-            return Task.Run(() => store.GetAsync(noteId)).GetAwaiter().GetResult()?.AutoOrganize;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogWarning(ex, "讀取研究本的狀態失敗。");
-            return null;
-        }
     }
 
     // ---- 建立 ----
