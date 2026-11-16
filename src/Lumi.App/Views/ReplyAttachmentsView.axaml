@@ -22,6 +22,9 @@
       <DataTemplate DataType="vm:ImageAttachmentViewModel">
         <views:ImageAttachmentView />
       </DataTemplate>
+      <DataTemplate DataType="vm:NoteSuggestionAttachmentViewModel">
+        <views:NoteSuggestionView />
+      </DataTemplate>
     </ItemsControl.DataTemplates>
   </ItemsControl>
 </UserControl>

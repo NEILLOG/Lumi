@@ -10,6 +10,7 @@ using Lumi.Core.Commands;
 using Lumi.Core.Context;
 using Lumi.Core.Mcp;
 using Lumi.Core.Tools;
+using Lumi.Tools.ContextNotes;
 using Lumi.Tools;
 using Lumi.Tarot;
 
@@ -47,6 +48,11 @@ public partial class ToolCardViewModel : ObservableObject
     /// 由建立卡片的人在建立時設定。
     /// </summary>
     public bool IsScheduledRun { get; init; }
+
+    /// <summary>
+    /// 建議卡片的宿主（M35 4.9）：工作台建立卡片時設定；沒有設定（排程紀錄、沒有研究本服務）時 `suggest_context_note` 不產生建議卡片。
+    /// </summary>
+    public INoteSuggestionHost? NoteSuggestions { get; init; }
 
     /// <summary>
     /// 排程紀錄裡的確認屬於排除類（記憶、上傳檔案、等你登入、管理排程、沒出現過的網站，M24 卡點 5）：
@@ -508,7 +514,7 @@ public partial class ToolCardViewModel : ObservableObject
         Approval = result.Approval;
         Images = [.. (result.ImageFiles ?? []).Select(p => new ToolCardImage(p, System.IO.Path.GetFileName(p), File.Exists(p))), .. McpImages(result)];
         TarotSpread = ToolName == TarotToolNames.Draw && !result.IsError && TarotSpreadParser.TryParse(result.Content, out var spread) ? spread : null;
-        ReplyAttachments = BuildAttachments();
+        ReplyAttachments = BuildAttachments(result);
         ScheduleSummary = IsCreateSchedule && result is { IsError: false, Approval: not ToolApproval.Denied } ? CreatedSummary(result.Content) : null;
         Request = null;
         State = result.Approval == ToolApproval.Denied ? ToolCardState.Denied
@@ -532,15 +538,39 @@ public partial class ToolCardViewModel : ObservableObject
     }
 
     /// <summary>完成後的附件：牌陣一個、每張圖片一個（尺寸取自參數，沒填時當正方形）。</summary>
-    private IReadOnlyList<ReplyAttachmentViewModel> BuildAttachments()
+    private IReadOnlyList<ReplyAttachmentViewModel> BuildAttachments(ToolResultBlock result)
     {
         var attachments = new List<ReplyAttachmentViewModel>();
         if (TarotSpread is { } spread)
             attachments.Add(new TarotAttachmentViewModel(CallId, spread));
+        // 建議卡片（M35 4.9）：只有真的被記下來的建議（成功、沒有被拒絕）才顯示；目標取自參數
+        if (ToolName == SuggestContextNoteTool.ToolName && NoteSuggestions is { } host
+            && result is { IsError: false, Approval: not ToolApproval.Denied } && SuggestedGoal() is { Length: > 0 } goal)
+            attachments.Add(new NoteSuggestionAttachmentViewModel(CallId, goal, host));
         var (width, height) = ImageSizeArgument();
         foreach (var image in Images)
             attachments.Add(ImageAttachmentViewModel.ForFile(CallId, image.FilePath, image.Exists, width, height, image.FileName));
         return attachments;
+    }
+
+    /// <summary>參數裡的 <c>goal</c>（系統的序列化可能是小寫或原樣，兩種都認）；看不懂時是 null。</summary>
+    private string? SuggestedGoal()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(_argumentsJson) ? "{}" : _argumentsJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                return null;
+            foreach (var name in new[] { "goal", "Goal" })
+            {
+                if (doc.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String)
+                    return value.GetString()?.Trim();
+            }
+        }
+        catch (JsonException)
+        {
+        }
+        return null;
     }
 
     /// <summary>參數裡的 <c>size</c>（例如 <c>1536x1024</c>）；沒填或看不懂時是 1024×1024。</summary>

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lumi.App.Resources;
 using Lumi.Core.Chat;
+using Lumi.Core.ContextNotes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -69,6 +70,7 @@ public partial class HistoryViewModel : ObservableObject
     private readonly IConfirmService? _confirm;
     private readonly ILogger<HistoryViewModel> _logger;
     private readonly SpriteConversationService? _sprite;
+    private readonly IContextNoteStore? _contextNotes;
     private readonly Dictionary<string, Conversation> _byId = new(StringComparer.Ordinal);
     private ConversationListItem? _selected;
     private ConversationListItem? _editing;
@@ -81,8 +83,9 @@ public partial class HistoryViewModel : ObservableObject
 
     public HistoryViewModel(IConversationStore store, IHistoryHost host, TimeProvider time, HistoryOptions? options = null,
         ConversationDeletionService? deletion = null, IConfirmService? confirm = null, ILogger<HistoryViewModel>? logger = null,
-        SpriteConversationService? sprite = null, ScheduledRunsViewModel? runs = null)
+        SpriteConversationService? sprite = null, ScheduledRunsViewModel? runs = null, IContextNoteStore? contextNotes = null)
     {
+        _contextNotes = contextNotes;
         _store = store;
         _host = host;
         _time = time;
@@ -419,7 +422,7 @@ public partial class HistoryViewModel : ObservableObject
     {
         if (item is null || item.IsSprite || !CanDeleteConversation || _host.IsResponding)
             return;
-        if (!await ConfirmDeleteAsync(item.Title))
+        if (!await ConfirmDeleteAsync(item.Id, item.Title))
             return;
         // 確認期間可能開始回應或列表已經換過了
         if (_host.IsResponding || !Items.Contains(item))
@@ -434,7 +437,7 @@ public partial class HistoryViewModel : ObservableObject
     {
         if (!CanDeleteConversation || _host.IsResponding || IsSpriteId(id))
             return;   // 小精靈的專屬對話不能刪除，只能清除內容
-        if (!await ConfirmDeleteAsync(title))
+        if (!await ConfirmDeleteAsync(id, title))
             return;
         if (_host.IsResponding)
             return;
@@ -482,12 +485,34 @@ public partial class HistoryViewModel : ObservableObject
         await _host.ConversationClearedAsync(id);
     }
 
-    private Task<bool> ConfirmDeleteAsync(string title)
+    /// <summary>
+    /// 刪除確認。這則對話有研究本時，確認文字後面空一行說明研究本會一起刪除（M35 C2）。
+    /// 工作台「⋯」的刪除也經過這裡。
+    /// </summary>
+    private async Task<bool> ConfirmDeleteAsync(string id, string title)
     {
         if (_confirm is null)
-            return Task.FromResult(false);
+            return false;
         var message = string.Format(CultureInfo.CurrentCulture, Strings.History_DeleteConfirmFormat, title);
-        return _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Delete);
+        if (await HasContextNoteAsync(id))
+            message += "\n\n" + Strings.ContextNote_DeleteWithConversation;
+        return await _confirm.ConfirmDestructiveAsync(message, Strings.Confirm_Delete);
+    }
+
+    private async Task<bool> HasContextNoteAsync(string id)
+    {
+        if (_contextNotes is null)
+            return false;
+        try
+        {
+            return await _contextNotes.GetByConversationAsync(id) is not null;
+        }
+        catch (Exception ex)
+        {
+            // 讀不到就照一般的確認文字；刪除本身不受影響
+            _logger.LogWarning(ex, "讀取研究本失敗（刪除確認）");
+            return false;
+        }
     }
 
     /// <summary>已確認：只有刪的是目前開著的對話才決定下一則；刪資料庫，更新清單，最後通知工作台。</summary>

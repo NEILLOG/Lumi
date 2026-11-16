@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             x:Class="Lumi.App.Views.NoteSuggestionView"
+             x:DataType="vm:NoteSuggestionAttachmentViewModel">
+  <!--
+    建議卡片（M35 4.9、4.11，ui-guide 第 7、9、11 節）：圓角 14、內距 16、最寬 520，靠左。
+    等待中：「開研究本」（primary）「不用」（tertiary）；已建立：文字＋「打開研究本」；已略過：文字。
+    狀態都用文字說明，不只靠顏色或圖示。
+  -->
+  <Border Background="{DynamicResource LumiSurfaceBrush}" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="1"
+          CornerRadius="14" Padding="16" MaxWidth="520" HorizontalAlignment="Left">
+    <StackPanel Spacing="12">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+        <Border Grid.Column="0" Width="32" Height="32" CornerRadius="10" VerticalAlignment="Top"
+                Background="{DynamicResource LumiAccentSoftBrush}">
+          <ctl:LumiIcon Data="{StaticResource LumiIconLightbulb}" Size="16" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Foreground="{DynamicResource LumiTextOnSoftBrush}" />
+        </Border>
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Text="{x:Static res:Strings.ContextNote_Suggest_Title}" FontWeight="Bold" TextWrapping="Wrap" />
+          <TextBlock Text="{x:Static res:Strings.ContextNote_Suggest_Desc}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+
+      <!-- 建議的目標：區塊底色用 SurfaceAlt，圓角 10 -->
+      <Border Background="{DynamicResource LumiSurfaceAltBrush}" CornerRadius="10" Padding="12">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{x:Static res:Strings.ContextNote_Suggest_GoalLabel}" Classes="muted" FontSize="{DynamicResource LumiFontSizeCaption}" />
+          <TextBlock Text="{Binding Goal}" FontWeight="Bold" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <!-- 等待中 -->
+      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsPending}">
+        <Button x:Name="CreateButton" Classes="primary" Padding="16,8" Content="{x:Static res:Strings.ContextNote_Suggest_Create}"
+                Command="{Binding CreateCommand}" />
+        <Button x:Name="DismissButton" Classes="tertiary" Padding="16,8" Content="{x:Static res:Strings.ContextNote_Suggest_Dismiss}"
+                Command="{Binding DismissCommand}" />
+      </StackPanel>
+
+      <!-- 已建立 -->
+      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsCreated}">
+        <TextBlock Text="{x:Static res:Strings.ContextNote_Suggest_Created}" VerticalAlignment="Center" />
+        <Button x:Name="OpenButton" Classes="secondary" Padding="16,8" Content="{x:Static res:Strings.ContextNote_Suggest_Open}"
+                Command="{Binding OpenCommand}" />
+      </StackPanel>
+
+      <!-- 已略過 -->
+      <TextBlock IsVisible="{Binding IsDismissed}" Text="{x:Static res:Strings.ContextNote_Suggest_Dismissed}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</UserControl>

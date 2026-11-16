@@ -1,0 +1,80 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="using:Lumi.App.Resources"
+        x:Class="Lumi.App.Views.ContextNoteStartDialog"
+        Title="{x:Static res:Strings.ContextNote_Start_Title}"
+        Width="480" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+  <!--
+    啟動研究本（M35 4.11、mockup B，仿 RenameDialog）。「開始」＝primary（IsDefault，Enter），「取消」＝tertiary（IsCancel，Esc）。
+    兩張選取卡片是同一個 RadioButton 群組：Tab 只停一次、方向鍵切換；停用時降低不透明度並保留說明文字。
+  -->
+  <Window.Styles>
+    <!-- 選取卡片：圓角 14、內距 16×12、Border 框；選中時 AccentSoft 底、AccentBorder 框、圓形選取點 -->
+    <Style Selector="RadioButton.start-card">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="14" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <ContentPresenter Grid.Column="0" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+              <Border Grid.Column="1" Width="16" Height="16" CornerRadius="8" VerticalAlignment="Center"
+                      BorderBrush="{DynamicResource LumiBorderStrongBrush}" BorderThickness="1">
+                <Ellipse Name="SelectDot" Width="8" Height="8" Fill="{DynamicResource LumiAccentBrush}" IsVisible="False" />
+              </Border>
+            </Grid>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="RadioButton.start-card:checked">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <Style Selector="RadioButton.start-card:checked /template/ Ellipse#SelectDot">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="RadioButton.start-card:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+  </Window.Styles>
+
+  <StackPanel Margin="24" Spacing="16">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="{x:Static res:Strings.ContextNote_Start_GoalLabel}" FontWeight="Bold" VerticalAlignment="Center" />
+      <TextBlock Text="{x:Static res:Strings.ContextNote_Start_Required}" Classes="muted" VerticalAlignment="Center" />
+    </StackPanel>
+    <TextBox x:Name="GoalBox" Height="64" TextWrapping="Wrap" AcceptsReturn="False"
+             AutomationProperties.Name="{x:Static res:Strings.ContextNote_Start_GoalLabel}" />
+    <TextBlock Text="{x:Static res:Strings.ContextNote_Start_GoalHint}" Classes="muted" TextWrapping="Wrap" />
+
+    <TextBlock Text="{x:Static res:Strings.ContextNote_Start_FromLabel}" FontWeight="Bold" />
+    <StackPanel Spacing="8">
+      <RadioButton x:Name="FromConversationCard" GroupName="ContextNoteStart" Classes="start-card">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{x:Static res:Strings.ContextNote_Start_FromConversation}" FontWeight="Bold" />
+          <TextBlock x:Name="FromConversationDesc" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+      </RadioButton>
+      <RadioButton x:Name="BlankCard" GroupName="ContextNoteStart" Classes="start-card">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{x:Static res:Strings.ContextNote_Start_Blank}" FontWeight="Bold" />
+          <TextBlock Text="{x:Static res:Strings.ContextNote_Start_BlankDesc}" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+      </RadioButton>
+    </StackPanel>
+
+    <TextBlock x:Name="CostNote" Classes="muted" TextWrapping="Wrap" />
+
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="CancelButton" Classes="tertiary" Padding="16,8" Content="{x:Static res:Strings.ContextNote_Start_Cancel}" IsCancel="True" />
+      <Button x:Name="StartButton" Classes="primary" Padding="16,8" Content="{x:Static res:Strings.ContextNote_Start_Confirm}" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>
