@@ -1,0 +1,185 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Lumi.App.ViewModels"
+        xmlns:res="using:Lumi.App.Resources"
+        xmlns:ctl="using:Lumi.App.Controls"
+        xmlns:views="using:Lumi.App.Views"
+        Icon="avares://Lumi.App/Assets/Icons/lumi-256.png"
+        x:Class="Lumi.App.Views.ContextNoteWindow"
+        x:DataType="vm:ContextNoteViewModel"
+        Title="{Binding WindowTitle}"
+        Width="720" Height="760" MinWidth="480" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="40"
+        WindowDecorationsTheme="{StaticResource LumiWindowDecorations}">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <Style Selector="TextBlock.warning">
+      <Setter Property="Foreground" Value="{DynamicResource LumiWarningTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- 工具列按鈕統一 32 高（同 ChatToolbar） -->
+    <Style Selector="Button.toolbar">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.toolbar.iconOnly">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <!-- RWD：寬度不到 620（narrow）時「版本歷史」只剩圖示（狀態文字由 TextTrimming 省略） -->
+    <Style Selector="Window.narrow TextBlock.collapsible-label">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Window.narrow Button.collapsible">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.toolbar-divider">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Background" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="Margin" Value="4,0" />
+    </Style>
+    <!-- 提示列（有才顯示）：SurfaceAlt 底、Border 框；整理失敗與放回說明用 Warning 色 -->
+    <Style Selector="Border.hint">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+    <!-- 自訂標題列：只要 L 標誌與品牌，沒有小精靈按鈕 -->
+    <views:CustomTitleBar x:Name="TitleBar" Grid.Row="0" ShowSpriteButton="False" DataContext="{x:Null}" />
+
+    <!-- 工具列（高 48）：左＝預覽｜編輯、狀態文字；右＝自動整理、版本歷史、並排、更多 -->
+    <Border Grid.Row="1" Height="48" Padding="16,8" BorderBrush="{DynamicResource LumiBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Grid.Column="0" Classes="segmented" VerticalAlignment="Center">
+          <StackPanel x:Name="ModeSwitchPanel" Orientation="Horizontal" Spacing="4" KeyboardNavigation.TabNavigation="Once"
+                      AutomationProperties.Name="{x:Static res:Strings.ContextNote_Window_Title}">
+            <RadioButton x:Name="PreviewSegment" GroupName="ContextNoteMode" Content="{x:Static res:Strings.ContextNote_Mode_Preview}"
+                         IsChecked="{Binding IsPreview, Mode=OneWay}" Command="{Binding ShowPreviewCommand}" />
+            <RadioButton x:Name="EditSegment" GroupName="ContextNoteMode" Content="{x:Static res:Strings.ContextNote_Mode_Edit}"
+                         IsChecked="{Binding IsEdit, Mode=OneWay}" Command="{Binding EnterEditCommand}" />
+          </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Column="1" x:Name="StatusTextBlock" Classes="muted" Text="{Binding StatusText}"
+                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0,8,0" />
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <ToggleSwitch x:Name="AutoOrganizeSwitch" Content="{x:Static res:Strings.ContextNote_Auto}"
+                        IsChecked="{Binding AutoOrganize, Mode=TwoWay}" ToolTip.Tip="{x:Static res:Strings.ContextNote_AutoTip}"
+                        AutomationProperties.Name="{x:Static res:Strings.ContextNote_Auto}" />
+
+          <Border Classes="toolbar-divider" />
+
+          <Button x:Name="HistoryButton" Classes="secondary toolbar collapsible" Command="{Binding ShowHistoryCommand}"
+                  ToolTip.Tip="{x:Static res:Strings.ContextNote_History}"
+                  AutomationProperties.Name="{x:Static res:Strings.ContextNote_History}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ctl:LumiIcon Data="{StaticResource LumiIconHistory}" Size="16" />
+              <TextBlock Classes="collapsible-label" Text="{x:Static res:Strings.ContextNote_History}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+
+          <Button x:Name="SideBySideButton" Classes="tertiary toolbar iconOnly" IsEnabled="{Binding CanSideBySide}"
+                  Click="OnSideBySideClick" ToolTip.Tip="{Binding SideBySideTip}"
+                  AutomationProperties.Name="{x:Static res:Strings.ContextNote_SideBySide}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconColumns}" Size="16" />
+          </Button>
+
+          <Button x:Name="MoreButton" Classes="tertiary toolbar iconOnly" ToolTip.Tip="{x:Static res:Strings.ContextNote_More}"
+                  AutomationProperties.Name="{x:Static res:Strings.ContextNote_More}">
+            <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem x:Name="OrganizeNowItem" Header="{x:Static res:Strings.ContextNote_OrganizeNow}" Command="{Binding OrganizeNowCommand}" />
+                <MenuItem x:Name="OpenFolderItem" Header="{x:Static res:Strings.ContextNote_OpenFolder}" Command="{Binding OpenFolderCommand}" />
+                <MenuItem x:Name="ExportItem" Header="{x:Static res:Strings.ContextNote_Export}" Command="{Binding ExportCommand}" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- 目標區：小標「目標」＋目標文字（16／700）＋「修改目標」；按下後原地變成輸入框與「儲存」「取消」 -->
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="16,12,16,8">
+      <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+        <TextBlock Classes="muted" Text="{x:Static res:Strings.ContextNote_GoalLabel}" />
+        <TextBlock x:Name="GoalText" Text="{Binding Goal}" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"
+                   IsVisible="{Binding !IsEditingGoal}" />
+        <StackPanel x:Name="GoalEditPanel" IsVisible="{Binding IsEditingGoal}" Spacing="8">
+          <TextBox x:Name="GoalBox" Text="{Binding GoalDraft, Mode=TwoWay}" MaxLength="200" TextWrapping="Wrap" MinHeight="64"
+                   AutomationProperties.Name="{x:Static res:Strings.ContextNote_GoalLabel}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="SaveGoalButton" Classes="primary" Content="{x:Static res:Strings.ContextNote_GoalSave}" Command="{Binding SaveGoalCommand}" />
+            <Button x:Name="CancelGoalButton" Classes="tertiary" Content="{x:Static res:Strings.ContextNote_GoalCancel}" Command="{Binding CancelGoalCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+      <Button x:Name="EditGoalButton" Grid.Column="1" Classes="tertiary" VerticalAlignment="Top" Command="{Binding EditGoalCommand}"
+              IsVisible="{Binding !IsEditingGoal}" ToolTip.Tip="{x:Static res:Strings.ContextNote_GoalEdit}"
+              AutomationProperties.Name="{x:Static res:Strings.ContextNote_GoalEdit}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ctl:LumiIcon Data="{StaticResource LumiIconPencil}" Size="16" />
+          <TextBlock Text="{x:Static res:Strings.ContextNote_GoalEdit}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <!-- 提示列（有才顯示）：目標提示、整理失敗、放回說明、很長的提醒、匯出結果 -->
+    <Border Grid.Row="3" Classes="hint" IsVisible="{Binding ShowHintRow}" Margin="16,0,16,8">
+      <StackPanel Spacing="8">
+        <Grid x:Name="GoalHintRow" ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding HasGoalHint}">
+          <ctl:LumiIcon Grid.Column="0" Data="{StaticResource LumiIconLightbulb}" Size="16" Margin="0,0,8,0" VerticalAlignment="Top"
+                        Foreground="{DynamicResource LumiAccentTextBrush}" />
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Text="{x:Static res:Strings.ContextNote_GoalHintTitle}" FontWeight="Bold" />
+            <TextBlock Text="{Binding GoalHint}" Classes="muted" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+            <Button Classes="secondary" Content="{x:Static res:Strings.ContextNote_GoalEdit}" Command="{Binding AcceptGoalHintCommand}" />
+            <Button Classes="tertiary" Content="{x:Static res:Strings.ContextNote_GoalHintDismiss}" Command="{Binding DismissGoalHintCommand}" />
+          </StackPanel>
+        </Grid>
+
+        <Grid x:Name="RetryRow" ColumnDefinitions="*,Auto" IsVisible="{Binding ShowRetry}">
+          <TextBlock Grid.Column="0" Classes="warning" Text="{Binding StatusDetailText}" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="secondary" Content="{x:Static res:Strings.ContextNote_Retry}" Command="{Binding OrganizeNowCommand}" />
+        </Grid>
+
+        <TextBlock x:Name="RestoredText" Classes="muted" Text="{Binding RestoredText}" TextWrapping="Wrap" IsVisible="{Binding HasRestored}" />
+        <TextBlock x:Name="LongNoteText" Classes="warning" Text="{x:Static res:Strings.ContextNote_LongNote}" IsVisible="{Binding ShowLongNote}" />
+        <TextBlock x:Name="NoticeText" Classes="muted" Text="{Binding Notice}" TextWrapping="Wrap" IsVisible="{Binding HasNotice}" />
+      </StackPanel>
+    </Border>
+
+    <!-- 內容區：預覽／編輯／版本歷史三選一（用 IsVisible 切換，三個都在視覺樹裡） -->
+    <Grid Grid.Row="4">
+      <views:ContextNotePreviewView IsVisible="{Binding IsPreview}" />
+      <!-- 編輯與歷史的 DataContext 是各自的 ViewModel，所以可見性綁在外層的 Grid（仍是視窗的 ViewModel） -->
+      <Grid IsVisible="{Binding IsEdit}">
+        <views:ContextNoteEditorView DataContext="{Binding Editor}" />
+      </Grid>
+      <Grid IsVisible="{Binding IsHistory}">
+        <views:ContextNoteHistoryView DataContext="{Binding History}" />
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>
