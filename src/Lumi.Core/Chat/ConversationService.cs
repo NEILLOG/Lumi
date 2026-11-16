@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Lumi.Core.Branches;
 using Lumi.Core.Browser;
 using Lumi.Core.Context;
 using Lumi.Core.ContextNotes;
@@ -80,6 +81,7 @@ public sealed class ConversationService
     private readonly ISkillStore _skills;
     private readonly IConversationTitler _titler;
     private readonly IContextNoteStore _contextNotes;
+    private readonly IBranchStore _branches;
     private readonly ConcurrentDictionary<string, byte> _active = new(StringComparer.Ordinal);
 
     /// <summary>不帶任何工具的最小組合（測試與不需要工具的場合）。</summary>
@@ -111,7 +113,8 @@ public sealed class ConversationService
         IUsageRecorder? usageRecorder = null,
         ISkillStore? skills = null,
         IConversationTitler? titler = null,
-        IContextNoteStore? contextNotes = null)
+        IContextNoteStore? contextNotes = null,
+        IBranchStore? branches = null)
     {
         _provider = provider;
         _usage = usageRecorder ?? new NullUsageRecorder();
@@ -134,6 +137,7 @@ public sealed class ConversationService
         _skills = skills ?? new InMemorySkillStore();
         _titler = titler ?? new NullConversationTitler();
         _contextNotes = contextNotes ?? new InMemoryContextNoteStore();
+        _branches = branches ?? new InMemoryBranchStore();
     }
 
     /// <summary>
@@ -148,6 +152,8 @@ public sealed class ConversationService
         Begin(conversationId);
         try
         {
+            await EnsureCanAdvanceAsync(conversationId, ct).ConfigureAwait(false);
+            var branch = await _branches.GetAsync(conversationId, ct).ConfigureAwait(false);
             var existing = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
 
             // 還沒送出的上下文項目：把「現在」的內容拍成快照，和使用者的文字一起存成同一則訊息，之後不再重複送（M4 的 Q1）
@@ -156,17 +162,32 @@ public sealed class ConversationService
                 ? ContextAttachments.None
                 : await _attachmentBuilder.BuildAsync(pending, ct).ConfigureAwait(false);
 
-            // 近況清單（M26）：新對話的第一則、工作台、非排程、設定開啟時才帶入。要在存使用者訊息之前讀，
-            // 這時目前對話還沒有訊息，ListAsync 不會列到它；失敗只記 log，這則就不帶（D9）
-            var digest = existing.Count == 0 && mode == ChatMode.Workbench && options?.Run is null && _catalog.Current.Memory.RecentConversations
+            // 近況清單（M26）：新對話的第一則、工作台、非排程、設定開啟時才帶入；支線不帶（M36 4.3）。
+            // 要在存使用者訊息之前讀，這時目前對話還沒有訊息，ListAsync 不會列到它；失敗只記 log，這則就不帶（D9）
+            var digest = existing.Count == 0 && branch is null && mode == ChatMode.Workbench && options?.Run is null && _catalog.Current.Memory.RecentConversations
                 ? await BuildRecentDigestAsync(conversationId, ct).ConfigureAwait(false)
                 : null;
 
+            // 支線（M36 4.3 送出 2、3）：第一則帶出處；已帶回、還沒交出的下一層摘要（主線也一樣，帶回的摘要交給上一層的下一則訊息）
+            IReadOnlyList<Branch> deliverable = await _branches.ListUndeliveredAsync(conversationId, ct).ConfigureAwait(false);
+
             List<ContentBlock> content = digest is null ? [] : [digest];
+            if (branch is not null && existing.Count == 0)
+                content.Add(BranchBlocks.Origin(branch, TimeZoneInfo.Local));
+            foreach (var child in deliverable)
+            {
+                var childTitle = (await _store.GetConversationAsync(child.ConversationId, ct).ConfigureAwait(false))?.Title ?? BranchLimits.DefaultTitle;
+                content.Add(BranchBlocks.Summary(child, childTitle));
+            }
             content.AddRange(attachments.Blocks);
             content.Add(new TextBlock(userText));
             var userMessage = new ChatMessage(ChatMessage.NewId(), ChatRole.User, content, DateTimeOffset.UtcNow);
             await _store.AppendMessageAsync(conversationId, userMessage, ct).ConfigureAwait(false);
+            if (deliverable.Count > 0)
+            {
+                // 訊息已經存好：標記不受取消影響，否則下一則會再帶一次摘要
+                await _branches.MarkDeliveredAsync(deliverable.Select(c => c.ConversationId).ToList(), userMessage.Id, CancellationToken.None).ConfigureAwait(false);
+            }
             if (attachments.ItemIds.Count > 0)
             {
                 // 訊息已經存好：標記不受取消影響，否則下次會把同樣的內容再帶一次
@@ -200,6 +221,7 @@ public sealed class ConversationService
         Begin(conversationId);
         try
         {
+            await EnsureCanAdvanceAsync(conversationId, ct).ConfigureAwait(false);
             await foreach (var chatEvent in RunTurnAsync(conversationId, mode, ct).ConfigureAwait(false))
                 yield return chatEvent;
         }
@@ -220,6 +242,7 @@ public sealed class ConversationService
         Begin(conversationId);
         try
         {
+            await EnsureCanAdvanceAsync(conversationId, ct).ConfigureAwait(false);
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
             if (history.Count == 0 || history[^1].Role == ChatRole.User)
                 throw new InvalidOperationException("最後一則必須是助理訊息才能重新產生。");
@@ -242,6 +265,46 @@ public sealed class ConversationService
         {
             End(conversationId);
         }
+    }
+
+    /// <summary>
+    /// 支線（M36 E13）：上一層有進行中的下一層時，這則對話不能前進（送出、重試、重新產生）；這則本身是支線、已經結束時也不能送。
+    /// 上一層一變，進行中支線的前綴就和存檔不一致（thinking 簽章會 400）。
+    /// </summary>
+    private async Task EnsureCanAdvanceAsync(string conversationId, CancellationToken ct)
+    {
+        if (await HasActiveChildAsync(conversationId, ct).ConfigureAwait(false))
+            throw new InvalidOperationException(BranchMessages.ActiveChildMessage);
+        if (await _branches.GetAsync(conversationId, ct).ConfigureAwait(false) is { Status: not BranchStatus.Active })
+            throw new InvalidOperationException(BranchMessages.FinishedBranchMessage);
+    }
+
+    /// <summary>這則對話有沒有進行中的下一層支線（最多一條）。</summary>
+    private async Task<bool> HasActiveChildAsync(string conversationId, CancellationToken ct) =>
+        (await _branches.ListChildrenAsync(conversationId, ct).ConfigureAwait(false)).Any(c => c.Status == BranchStatus.Active);
+
+    /// <summary>
+    /// 支線的歷史（4.3 第 1 點）：由上而下（主線在前）的每一層。主線用它的訊息與整理狀態；中間的支線與支線自己用它的訊息、沒有整理狀態。
+    /// </summary>
+    private async Task<IReadOnlyList<BranchHistoryLayer>> BranchLayersAsync(Branch branch, CancellationToken ct)
+    {
+        // 由自己往上走到第一層支線（上一層是主線時 GetAsync 回 null）
+        var chain = new List<Branch>();
+        Branch? current = branch;
+        while (current is not null)
+        {
+            chain.Add(current);
+            current = await _branches.GetAsync(current.ParentId, ct).ConfigureAwait(false);
+        }
+
+        var layers = new List<BranchHistoryLayer>
+        {
+            new(await _store.GetMessagesAsync(branch.RootId, ct).ConfigureAwait(false),
+                await _store.GetCompactionStateAsync(branch.RootId, ct).ConfigureAwait(false)),
+        };
+        for (var i = chain.Count - 1; i >= 0; i--)
+            layers.Add(new BranchHistoryLayer(await _store.GetMessagesAsync(chain[i].ConversationId, ct).ConfigureAwait(false), CompactionState.Empty));
+        return layers;
     }
 
     /// <summary>
@@ -321,6 +384,11 @@ public sealed class ConversationService
             yield break;
         }
 
+        // 支線（M36 4.3）：是支線時請求的歷史是上一層（與上上層）接上自己的；用量記在主線（D8）。不是支線時下面都照舊
+        var branch = await _branches.GetAsync(conversationId, ct).ConfigureAwait(false);
+        var usageId = branch?.RootId ?? conversationId;
+        var purpose = branch is null ? UsagePurpose.Chat : UsagePurpose.Branch;
+
         // 模型設定的「使用工具」關掉時，請求完全不帶工具定義，也不記快照。
         // 其他情況送的是這則對話的工具快照（M15 D1），不依模式過濾：切換模式改變工具清單會讓整個快取失效（M5 的 Q1），模式在執行時檢查
         var offered = model.Model.ToolsEnabled ? await ResolveToolSnapshotAsync(conversationId, ct).ConfigureAwait(false) : [];
@@ -343,10 +411,15 @@ public sealed class ConversationService
             var context = new ToolContext(conversationId, mode, _time, scope);
 
             var history = await _store.GetMessagesAsync(conversationId, ct).ConfigureAwait(false);
+            // 支線：由上而下（主線在前）每一層的訊息。主線套用它的整理狀態，支線本身沒有（4.3 第 1 點）
+            IReadOnlyList<BranchHistoryLayer>? layers = branch is null ? null : await BranchLayersAsync(branch, ct).ConfigureAwait(false);
+            // 網址來源與外部內容警告看的歷史：支線看合併後的（主線使用者給的網址，在支線裡也算看過）
+            IReadOnlyList<ChatMessage> visible = layers is null ? history : layers.SelectMany(layer => layer.Messages).ToList();
 
             // ---- 上下文整理（M22）：估算超過上限的 80% 先清舊工具結果，仍超過 70% 再做 LLM 摘要。只影響送出的內容，存檔不變 ----
-            var compaction = await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false);
-            if (model.Model.ContextWindow > 0)
+            // 支線不做（C4）：支線的前綴要和上一層相同，整理會讓它不同
+            var compaction = layers is null ? await _store.GetCompactionStateAsync(conversationId, ct).ConfigureAwait(false) : CompactionState.Empty;
+            if (layers is null && model.Model.ContextWindow > 0)
             {
                 var window = model.Model.ContextWindow;
                 var overhead = ContextEstimator.EstimateText(await _store.GetSystemPromptAsync(conversationId, ct).ConfigureAwait(false))
@@ -374,7 +447,7 @@ public sealed class ConversationService
                 }
             }
 
-            var requestMessages = BuildRequestMessages(CompactionApplier.Apply(history, compaction));
+            var requestMessages = BuildRequestMessages(layers is null ? CompactionApplier.Apply(history, compaction) : BranchHistory.Combine(layers));
             if (requestMessages.Count == 0 || requestMessages[^1].Role is not (ChatRole.User or ChatRole.Tool))
                 throw new InvalidOperationException("最後一則訊息必須是使用者訊息或工具結果才能要求回應。");
 
@@ -418,8 +491,14 @@ public sealed class ConversationService
 
             Failed? tooLong = null;
 
-            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model, mode, toolDefinitionTokens, ct).ConfigureAwait(false))
+            await foreach (var chatEvent in StreamOnceAsync(conversationId, request, model, mode, toolDefinitionTokens, usageId, purpose, ct).ConfigureAwait(false))
             {
+                // 支線超過上限：不整理，直接回失敗（C4）
+                if (branch is not null && chatEvent is Failed { Failure.Kind: ChatFailureKind.ContextTooLong } branchTooLong)
+                {
+                    yield return new Failed(branchTooLong.Failure with { Message = BranchMessages.BranchTooLongMessage });
+                    yield break;
+                }
                 // 超過上限：先不轉發，下面整理後重送一次（還是失敗才回報）
                 if (chatEvent is Failed { Failure.Kind: ChatFailureKind.ContextTooLong } overLimit && !contextRetried)
                 {
@@ -543,7 +622,7 @@ public sealed class ConversationService
                 var urlCheck = UrlCheck.Known;
                 if (preview.Url is { } url)
                 {
-                    var provenance = UrlProvenance.From(history, results);
+                    var provenance = UrlProvenance.From(visible, results);
                     urlCheck = NetworkUrlPolicy.Check(url, provenance, origin => _memory.IsSiteApproved(conversationId, origin));
                 }
                 var mustAsk = urlCheck != UrlCheck.Known;
@@ -568,7 +647,7 @@ public sealed class ConversationService
                     {
                         // 外部內容警告（M31 D12）放在網址警告之後；這則對話讀過網頁或外部工具的內容時才加
                         var externalWarning = descriptor.WarnsAfterExternalContent
-                            && ExternalContentProvenance.Seen(history, executedNames, name => _toolCatalog.Find(name)?.Descriptor.Group.StartsWith("mcp:", StringComparison.Ordinal) == true);
+                            && ExternalContentProvenance.Seen(visible, executedNames, name => _toolCatalog.Find(name)?.Descriptor.Group.StartsWith("mcp:", StringComparison.Ordinal) == true);
                         var warnings = new List<string>();
                         if (mustAsk)
                             warnings.Add(NetworkUrlPolicy.Warning(urlCheck, preview.Url!));
@@ -737,6 +816,18 @@ public sealed class ConversationService
         Begin(conversationId);
         try
         {
+            // 支線（M36 4.3）：上一層有進行中的支線時不能整理（上一層一變，支線的前綴就對不上）；支線本身不做整理（C4）
+            if (await HasActiveChildAsync(conversationId, ct).ConfigureAwait(false))
+            {
+                yield return new CompactionFailed(CompactionKind.Summary, new ChatFailure(ChatFailureKind.Unknown, BranchMessages.ActiveChildMessage, Retryable: false));
+                yield break;
+            }
+            if (await _branches.GetAsync(conversationId, ct).ConfigureAwait(false) is not null)
+            {
+                yield return new CompactionFailed(CompactionKind.Summary, new ChatFailure(ChatFailureKind.Unknown, BranchMessages.BranchCompactMessage, Retryable: false));
+                yield break;
+            }
+
             var model = ResolveModel();
             if (model is null)
             {
@@ -975,7 +1066,7 @@ public sealed class ConversationService
     /// <summary>呼叫一次供應商：轉發事件、完成時存助理訊息、取消時把已收到的文字存成「已停止」。</summary>
     private async IAsyncEnumerable<ChatEvent> StreamOnceAsync(
         string conversationId, ChatRequest request, ResolvedModel model, ChatMode mode, int toolDefinitionTokens,
-        [EnumeratorCancellation] CancellationToken ct)
+        string usageId, UsagePurpose purpose, [EnumeratorCancellation] CancellationToken ct)
     {
         var modelId = model.Model.ModelId;
         var receivedText = new StringBuilder();
@@ -1000,7 +1091,7 @@ public sealed class ConversationService
                         DateTimeOffset.UtcNow, MessageStatus.Stopped, modelId);
                     await _store.AppendMessageAsync(conversationId, stopped, CancellationToken.None).ConfigureAwait(false);
                 }
-                await RecordCallAsync(conversationId, UsagePurpose.Chat, mode, model, request, toolDefinitionTokens, tally, null).ConfigureAwait(false);
+                await RecordCallAsync(usageId, purpose, mode, model, request, toolDefinitionTokens, tally, null).ConfigureAwait(false);
                 throw;
             }
 
@@ -1018,11 +1109,11 @@ public sealed class ConversationService
                 case Completed completed:
                     // 先存檔再通知，UI 收到 Completed 時資料庫已經是最新狀態；用量也在通知之前記下
                     await _store.AppendMessageAsync(conversationId, completed.Message, CancellationToken.None).ConfigureAwait(false);
-                    await RecordCallAsync(conversationId, UsagePurpose.Chat, mode, model, request, toolDefinitionTokens, tally, completed).ConfigureAwait(false);
+                    await RecordCallAsync(usageId, purpose, mode, model, request, toolDefinitionTokens, tally, completed).ConfigureAwait(false);
                     break;
                 case Failed:
                     // 失敗：只有收到過事件才記（例如 401、連不上什麼都沒有，不記）
-                    await RecordCallAsync(conversationId, UsagePurpose.Chat, mode, model, request, toolDefinitionTokens, tally, null).ConfigureAwait(false);
+                    await RecordCallAsync(usageId, purpose, mode, model, request, toolDefinitionTokens, tally, null).ConfigureAwait(false);
                     break;
                 // Failed：不存（Q15）；失敗文字的補充（離線、RetryAfter）在這裡一處套用，錯誤列與小精靈氣泡共用
             }
@@ -1037,7 +1128,7 @@ public sealed class ConversationService
     /// 記錄失敗只記 log，不影響對話。
     /// </summary>
     private async Task RecordCallAsync(
-        string conversationId, UsagePurpose purpose, ChatMode mode, ResolvedModel model, ChatRequest request,
+        string usageId, UsagePurpose purpose, ChatMode mode, ResolvedModel model, ChatRequest request,
         int toolDefinitionTokens, CallUsage tally, Completed? completed)
     {
         if (completed is null && !tally.AnyEvent)
@@ -1047,7 +1138,7 @@ public sealed class ConversationService
         try
         {
             await _usage.RecordAsync(
-                new UsageObservation(conversationId, purpose, mode, model, tokens, estimated, toolDefinitionTokens),
+                new UsageObservation(usageId, purpose, mode, model, tokens, estimated, toolDefinitionTokens),
                 CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
