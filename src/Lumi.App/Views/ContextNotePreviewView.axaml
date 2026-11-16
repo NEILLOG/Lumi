@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
+             xmlns:ctl="using:Lumi.App.Controls"
+             xmlns:md="using:Lumi.App.Markdown"
+             xmlns:views="using:Lumi.App.Views"
+             x:Class="Lumi.App.Views.ContextNotePreviewView"
+             x:DataType="vm:ContextNoteViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+    </Style>
+    <!-- 區塊一列：Border 框；剛更新＝AccentSoft 底（加左側色條與文字徽章） -->
+    <Style Selector="Border.block">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{StaticResource LumiRadiusInput}" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="Border.block.updated">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource LumiAccentBorderBrush}" />
+    </Style>
+    <!-- 徽章：圓角 12、高 20、11px（ui-guide.html 第 11 節） -->
+    <Style Selector="Border.badge">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.badge.updated">
+      <Setter Property="Background" Value="{DynamicResource LumiAccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.badge.mine">
+      <Setter Property="Background" Value="{DynamicResource LumiSurfaceAltBrush}" />
+    </Style>
+    <Style Selector="Border.badge TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource LumiFontSizeCaption}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.badge.updated TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextOnSoftBrush}" />
+    </Style>
+    <Style Selector="Border.badge.mine TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource LumiTextMutedBrush}" />
+    </Style>
+    <Style Selector="Button.iconOnly">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.accent-bar">
+      <Setter Property="Width" Value="3" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="Background" Value="{DynamicResource LumiAccentBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,0,16,24">
+    <ItemsControl ItemsSource="{Binding Sections}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ContextNoteSectionViewModel">
+          <StackPanel Spacing="8" Margin="0,16,0,0">
+
+            <!-- 區段標題；旁支預設收合，標題旁顯示則數 -->
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{DynamicResource LumiFontSizeCard}" />
+                <TextBlock Classes="muted" Text="{Binding CountText}" IsVisible="{Binding IsSide}" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="tertiary iconOnly" IsVisible="{Binding IsSide}" Command="{Binding ToggleCollapsedCommand}"
+                      AutomationProperties.Name="{Binding Name}">
+                <Grid>
+                  <ctl:LumiIcon Data="{StaticResource LumiIconChevronRight}" Size="16" IsVisible="{Binding IsCollapsed}" />
+                  <ctl:LumiIcon Data="{StaticResource LumiIconChevronDown}" Size="16" IsVisible="{Binding !IsCollapsed}" />
+                </Grid>
+              </Button>
+            </Grid>
+
+            <TextBlock Classes="muted" Text="{x:Static res:Strings.ContextNote_Section_Empty}" IsVisible="{Binding ShowEmpty}" />
+
+            <ItemsControl ItemsSource="{Binding Blocks}" IsVisible="{Binding ShowBlocks}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ContextNoteBlockViewModel">
+                  <Border Classes="block" Classes.updated="{Binding IsUpdated}" Margin="0,0,0,8">
+                    <Grid ColumnDefinitions="Auto,8,*,Auto">
+                      <Border Grid.Column="0" Classes="accent-bar" IsVisible="{Binding IsUpdated}" />
+
+                      <StackPanel Grid.Column="2" Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsUpdated}">
+                          <Border Classes="badge updated">
+                            <TextBlock Text="{x:Static res:Strings.ContextNote_Badge_Updated}" />
+                          </Border>
+                        </StackPanel>
+                        <Border Classes="badge mine" HorizontalAlignment="Left" IsVisible="{Binding IsProtected}"
+                                ToolTip.Tip="{x:Static res:Strings.ContextNote_Block_ProtectedTip}">
+                          <StackPanel Orientation="Horizontal" Spacing="4">
+                            <ctl:LumiIcon Data="{StaticResource LumiIconLock}" Size="14" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Static res:Strings.ContextNote_Badge_Mine}" />
+                          </StackPanel>
+                        </Border>
+
+                        <ItemsControl ItemsSource="{Binding Parts}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ContextNotePart">
+                              <Grid>
+                                <md:MarkdownView Markdown="{Binding Markdown}" IsVisible="{Binding IsText}" />
+                                <Image Source="{Binding ImagePath, Converter={x:Static views:ContextNoteImageConverter.Instance}}"
+                                       MaxWidth="460" HorizontalAlignment="Left" IsVisible="{Binding HasImage}" Cursor="Hand"
+                                       Tapped="OnImageTapped" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ImageMissing}">
+                                  <ctl:LumiIcon Data="{StaticResource LumiIconImageOff}" Size="16" />
+                                  <TextBlock Classes="muted" Text="{x:Static res:Strings.ContextNote_ImageMissing}" VerticalAlignment="Center" />
+                                </StackPanel>
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Classes="muted" Text="{Binding Quote}" TextWrapping="Wrap" IsVisible="{Binding IsQuoteOpen}" />
+                      </StackPanel>
+
+                      <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                        <Button Classes="tertiary" Content="{Binding QuoteToggleText}" IsVisible="{Binding HasQuote}"
+                                Click="OnQuoteToggleClick" />
+                        <Button Classes="tertiary iconOnly" ToolTip.Tip="{x:Static res:Strings.ContextNote_Block_Actions}"
+                                AutomationProperties.Name="{x:Static res:Strings.ContextNote_Block_Actions}">
+                          <ctl:LumiIcon Data="{StaticResource LumiIconMoreHorizontal}" Size="16" />
+                          <Button.Flyout>
+                            <MenuFlyout>
+                              <MenuItem Header="{x:Static res:Strings.ContextNote_Block_MarkDecided}" Command="{Binding MarkDecidedCommand}"
+                                        IsVisible="{Binding CanMarkDecided}" />
+                              <MenuItem Header="{x:Static res:Strings.ContextNote_Block_Confirm}" Command="{Binding ConfirmCommand}"
+                                        IsVisible="{Binding CanConfirm}" />
+                              <MenuItem Header="{x:Static res:Strings.ContextNote_Block_Unprotect}" Command="{Binding UnprotectCommand}"
+                                        IsVisible="{Binding CanUnprotect}" />
+                            </MenuFlyout>
+                          </Button.Flyout>
+                        </Button>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </ScrollViewer>
+</UserControl>

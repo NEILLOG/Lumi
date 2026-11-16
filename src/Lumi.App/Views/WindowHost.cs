@@ -46,6 +46,25 @@ public sealed class WindowHost(IServiceProvider services) : IWindowHost
 
     public void ScrollWorkbenchToCall(string callId) => Workbench.ScrollToCall(callId);
 
+    /// <summary>工作台顯示中時回它所在螢幕的工作區與縮放（研究本的「並排」，M35）；沒顯示時回 null。不會因此建立工作台視窗。</summary>
+    public WindowScreen? GetWorkbenchScreen()
+    {
+        if (_workbench is not { IsVisible: true } window)
+            return null;
+        var screen = window.Screens.ScreenFromWindow(window);
+        return screen is null ? null : new WindowScreen(screen.WorkingArea, screen.Scaling);
+    }
+
+    /// <summary>把工作台還原成一般大小並放到指定位置（並排用）。位置是螢幕像素，寬高是 DIP。</summary>
+    public void PlaceWorkbench(PixelPoint position, double width, double height)
+    {
+        var window = Workbench;
+        window.WindowState = WindowState.Normal;
+        window.Position = position;
+        window.Width = width;
+        window.Height = height;
+    }
+
     public void Exit()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
