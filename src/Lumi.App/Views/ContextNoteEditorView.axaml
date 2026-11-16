@@ -1,7 +1,67 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Lumi.App.ViewModels"
+             xmlns:res="using:Lumi.App.Resources"
              x:Class="Lumi.App.Views.ContextNoteEditorView"
              x:DataType="vm:ContextNoteEditorViewModel">
-  <!-- TODO(35H)：Phase 0 只有空殼 -->
+  <!--
+    研究本的編輯模式（plan 35 第 4.11 節、mockup E）：上方警告色說明列、等寬字的整份文字、下方說明與按鈕。
+    只用主題 token 與 4 的倍數間距。貼圖（Ctrl／Cmd+V）在 code-behind 攔截。
+  -->
+  <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+    <Border Grid.Row="0" Padding="16,8"
+            Background="{DynamicResource LumiWarningBackgroundBrush}"
+            BorderBrush="{DynamicResource LumiWarningBorderBrush}"
+            BorderThickness="0,0,0,1">
+      <TextBlock Text="{x:Static res:Strings.ContextNote_Edit_Banner}"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource LumiWarningTextBrush}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" />
+    </Border>
+
+    <TextBox x:Name="EditorBox" Grid.Row="1"
+             Margin="16,12,16,0"
+             AcceptsReturn="True"
+             AcceptsTab="True"
+             TextWrapping="Wrap"
+             FontFamily="{DynamicResource LumiMonoFont}"
+             Text="{Binding Text, Mode=TwoWay}"
+             AutomationProperties.Name="{x:Static res:Strings.ContextNote_Edit_AutomationName}" />
+
+    <Grid Grid.Row="2" Margin="16,8,16,0" ColumnDefinitions="*,Auto">
+      <TextBlock Grid.Column="0"
+                 Text="{x:Static res:Strings.ContextNote_Edit_Hint}"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource LumiTextMutedBrush}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" />
+      <TextBlock Grid.Column="1" Margin="8,0,0,0"
+                 Text="{Binding CharCountText}"
+                 Foreground="{DynamicResource LumiTextMutedBrush}"
+                 FontSize="{DynamicResource LumiFontSizeCaption}" />
+    </Grid>
+
+    <TextBlock Grid.Row="3" Margin="16,8,16,0"
+               Text="{Binding TooLongText}"
+               IsVisible="{Binding IsTooLong}"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource LumiDangerBrush}"
+               FontSize="{DynamicResource LumiFontSizeCaption}" />
+
+    <TextBlock Grid.Row="4" Margin="16,8,16,0"
+               Text="{Binding ErrorText}"
+               IsVisible="{Binding ErrorText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource LumiDangerBrush}"
+               FontSize="{DynamicResource LumiFontSizeCaption}" />
+
+    <StackPanel Grid.Row="5" Margin="16,12,16,16"
+                Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="tertiary"
+              Content="{x:Static res:Strings.ContextNote_Edit_Discard}"
+              Command="{Binding DiscardCommand}" />
+      <Button Classes="primary"
+              Content="{x:Static res:Strings.ContextNote_Edit_Done}"
+              Command="{Binding CommitCommand}" />
+    </StackPanel>
+  </Grid>
 </UserControl>
