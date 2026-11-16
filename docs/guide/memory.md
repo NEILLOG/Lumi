@@ -95,6 +95,7 @@ Lumi 會把這份清單當作參考資料，只在和你這次的問題有關時
 - [資料與隱私](privacy.md)
 - [工具與權限確認](tools.md)
 - [加入檔案與資料夾](files.md)
+- [研究本](context-notes.md)：討論一個問題時整理成一份文件，和筆記、長期記憶的分別。
 - [調整 Lumi 的個性與外觀](personalize.md)
 - [對話與歷史紀錄](chat.md)
 - [常見問題與錯誤訊息](troubleshooting.md)
