@@ -376,6 +376,82 @@ public class WorkbenchViewModelTests
         Assert.False(vm.HasNotice);
     }
 
+    // ---- FX-14：使用者開始一輪回應時要求訊息區回到最下面 ----
+
+    [Fact]
+    public async Task ScrollToLatest_IsRequested_WhenSendingRetryingAndRegenerating()
+    {
+        var switchable = new SwitchableChatProvider(new ScriptedChatProvider(new Failed(new ChatFailure(ChatFailureKind.Overloaded, "過載", true))));
+        var (vm, _) = Create(switchable);
+        await vm.InitializeAsync();
+        var requests = 0;
+        vm.ScrollToLatestRequested += (_, _) => requests++;
+
+        vm.InputText = "問";
+        await vm.SendCommand.ExecuteAsync(null);
+        Assert.Equal(1, requests);
+
+        switchable.Current = new ScriptedChatProvider(Reply("好"));
+        await vm.RetryCommand.ExecuteAsync(null);
+        Assert.Equal(2, requests);
+
+        switchable.Current = new ScriptedChatProvider(Reply("重新產生的答案"));
+        await vm.RegenerateCommand.ExecuteAsync(null);
+        Assert.Equal(3, requests);
+    }
+
+    // ---- FX-17：工具用到上限時錯誤列的按鈕是「繼續」 ----
+
+    [Theory]
+    [InlineData(ChatFailureKind.ToolLoopLimit, true)]
+    [InlineData(ChatFailureKind.ToolRepeatedFailure, false)]
+    [InlineData(ChatFailureKind.Overloaded, false)]
+    public async Task RetryText_IsContinueOnlyForTheToolLoopLimit(ChatFailureKind kind, bool isContinue)
+    {
+        var (vm, _) = Create(new ScriptedChatProvider(new Failed(new ChatFailure(kind, "錯誤原因", true))));
+        await vm.InitializeAsync();
+        vm.InputText = "問";
+
+        await vm.SendCommand.ExecuteAsync(null);
+
+        Assert.True(vm.HasError);
+        Assert.Equal(isContinue ? Strings.Workbench_Continue : Strings.Workbench_Retry, vm.RetryText);
+    }
+
+    [Fact]
+    public async Task Continue_RunsTheSameRetry_AndTheTextGoesBackToRetryAfterwards()
+    {
+        var switchable = new SwitchableChatProvider(new ScriptedChatProvider(new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit, "工具用到上限", true))));
+        var (vm, _) = Create(switchable);
+        await vm.InitializeAsync();
+        vm.InputText = "問";
+        await vm.SendCommand.ExecuteAsync(null);
+        Assert.Equal(Strings.Workbench_Continue, vm.RetryText);
+        Assert.True(vm.RetryCommand.CanExecute(null));
+
+        switchable.Current = new ScriptedChatProvider(Reply("接著做完了"));
+        await vm.RetryCommand.ExecuteAsync(null);
+
+        Assert.False(vm.HasError);
+        Assert.Equal(Strings.Workbench_Retry, vm.RetryText);
+        Assert.Equal("接著做完了", vm.Messages[^1].Text);
+    }
+
+    [Theory]
+    [InlineData(ChatFailureKind.ToolLoopLimit)]
+    [InlineData(ChatFailureKind.Overloaded)]
+    public async Task RetryText_GoesBackToRetry_WhenTheErrorIsCleared(ChatFailureKind kind)
+    {
+        var (vm, _) = Create(new ScriptedChatProvider(new Failed(new ChatFailure(kind, "錯誤原因", true))));
+        await vm.InitializeAsync();
+        vm.InputText = "問";
+        await vm.SendCommand.ExecuteAsync(null);
+
+        vm.ErrorMessage = null;
+
+        Assert.Equal(Strings.Workbench_Retry, vm.RetryText);
+    }
+
     [Theory]
     [InlineData(0, "0")]
     [InlineData(950, "950")]
