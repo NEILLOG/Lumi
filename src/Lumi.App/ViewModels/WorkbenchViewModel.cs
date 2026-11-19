@@ -393,9 +393,24 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private string? AddBlockedTip => IsResponding ? Strings.Composer_AddBlocked : IsVoiceActive ? Strings.Composer_VoiceBlocked : null;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
+    [NotifyPropertyChangedFor(nameof(HasError), nameof(RetryText))]
     [NotifyCanExecuteChangedFor(nameof(RetryCommand))]
     private string? _errorMessage;
+
+    /// <summary>目前錯誤列的種類（只在這一輪有效；清掉錯誤或開始新一輪時歸零，重新載入對話後本來就沒有錯誤列）。</summary>
+    private ChatFailureKind? _errorKind;
+
+    /// <summary>
+    /// 錯誤列的重試按鈕文字（FX-17）：工具用到上限（已完成的步驟保留，接著做）是「繼續」，其他錯誤（含連續失敗）都是「重試」。
+    /// 按下去的行為一樣，都是 <see cref="RetryCommand"/>。
+    /// </summary>
+    public string RetryText => _errorKind == ChatFailureKind.ToolLoopLimit ? Strings.Workbench_Continue : Strings.Workbench_Retry;
+
+    partial void OnErrorMessageChanged(string? value)
+    {
+        if (value is null)
+            _errorKind = null;
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ContextUsed), nameof(ContextText))]
@@ -470,6 +485,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         }
         // 待送出的項目這次會帶進訊息：氣泡上先顯示它們的 chip
         Messages.Add(MessageViewModel.User(text, MessageChipViewModel.FromChips(Context.PendingChips()), _time.GetUtcNow()));
+        RequestScrollToLatest();
         await DismissVisibleHintsAsync();   // 送出新訊息：目前的提示收起（記為 Dismissed）
         await RunResponseAsync(() => _session.SendAsync(text), reloadOnFailure: false);
         if (conversationId == CurrentConversationId)
@@ -483,6 +499,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     private Task RetryAsync()
     {
         _modes?.WorkbenchWillSend();
+        RequestScrollToLatest();
         return RunResponseAsync(() => _session.RetryAsync(), reloadOnFailure: false);
     }
 
@@ -498,6 +515,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         _modes?.WorkbenchWillSend();
         ErrorMessage = null;
         CountRegenerate();
+        RequestScrollToLatest();
         return RunResponseAsync(() => _session.RegenerateAsync(), reloadOnFailure: true);
     }
 
@@ -768,6 +786,14 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// <summary>技能插入之後：把焦點移到輸入框並把游標放到文字最後。由 ChatComposer 處理。</summary>
     public event EventHandler? FocusInputAtEndRequested;
 
+    /// <summary>
+    /// 使用者主動開始一輪回應（送出、重試／繼續、重新產生）：訊息區要回到最下面並恢復跟著捲動（FX-14）。
+    /// 在新訊息加進列表之後發出；由 ConversationView 處理（排版完成後再捲一次）。
+    /// </summary>
+    public event EventHandler? ScrollToLatestRequested;
+
+    private void RequestScrollToLatest() => ScrollToLatestRequested?.Invoke(this, EventArgs.Empty);
+
     // ---- 輸入框的「技能」按鈕（M29 E1、5.7）----
 
     /// <summary>選單列出的技能：只含啟用中、讀得進來的（<see cref="SkillInfo.IsUsable"/>），依名稱排序。</summary>
@@ -984,7 +1010,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
         }
 
         if (conversationId == CurrentConversationId)
-            ShowError(failure.Message);
+            ShowError(failure.Message, failure.Kind);
         await History.RefreshAsync(CurrentConversationId);
     }
 
@@ -1043,7 +1069,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
     /// 錯誤列的原因句尾：最後一則只放附件（工具之後沒有文字）時，補「抽到的牌已保留。」或「圖片已保留。」（ui-spec 3.1 狀態表、R3）。
     /// 呼叫時分配已經完成（失敗路徑都在 <see cref="RefreshMessageState"/> 之後才設定錯誤），所以看得到最後一則的附件。
     /// </summary>
-    private void ShowError(string message)
+    private void ShowError(string message, ChatFailureKind? kind = null)
     {
         var note = "";
         if (Messages.LastOrDefault() is { IsAttachmentHost: true } host)
@@ -1053,7 +1079,9 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             else if (host.ReplyAttachments.Count > 0)
                 note = " " + Strings.Attachment_KeptImage;
         }
+        _errorKind = kind;
         ErrorMessage = message + note;
+        OnPropertyChanged(nameof(RetryText));   // 同一句錯誤重複出現時 ErrorMessage 不變，按鈕文字仍要更新
     }
 
     private void OnEventReceived(object? sender, ChatEvent chatEvent)
@@ -1185,7 +1213,7 @@ public partial class WorkbenchViewModel : ObservableObject, IHistoryHost
             if (result.Unexpected)
                 ShowError(Strings.Workbench_UnexpectedError);
             else if (result.Failure is { } failure)
-                ShowError(failure.Message);
+                ShowError(failure.Message, failure.Kind);
             args.Defer(History.RefreshAsync(CurrentConversationId));
         }
 

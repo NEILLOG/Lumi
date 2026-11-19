@@ -28,11 +28,12 @@ public class ConversationScrollAidsTests
         public ConversationView View { get; }
         public ScrollViewer Scroller { get; }
 
-        public Rig(string answer = "好")
+        public Rig(string answer = "好", int turns = 1)
         {
             var store = new InMemoryConversationStore();
             var catalog = new FakeModelCatalog();
-            var service = new ConversationService(new SequenceChatProvider(SequenceChatProvider.Answer(answer)), store, catalog);
+            var service = new ConversationService(
+                new SequenceChatProvider(Enumerable.Range(0, turns).Select(_ => SequenceChatProvider.Answer(answer)).ToArray()), store, catalog);
             Vm = new WorkbenchViewModel(service, store, catalog, new FakeApiKeyPrompt(false), new FakeSettingsWindowService(),
                 new ConnectionStatusCache(), new FakeClipboardService(), new SyncUiDispatcher(), new FakeTimeProvider(),
                 NullLogger<WorkbenchViewModel>.Instance);
@@ -86,6 +87,24 @@ public class ConversationScrollAidsTests
         rig.Window.UpdateLayout();
 
         Assert.True(rig.DistanceToBottom <= 1, $"還差 {rig.DistanceToBottom}");
+        Assert.False(rig.JumpHost.IsVisible);
+        rig.Window.Close();
+    }
+
+    // FX-14：往上捲過之後送出，要回到最下面，而且之後的內容照樣跟著捲
+    [AvaloniaFact]
+    public async Task Sending_AfterScrollingUp_ReturnsToTheBottom_AndKeepsFollowing()
+    {
+        var rig = new Rig(turns: 2);
+        await rig.SendLongPromptAsync();
+        rig.ScrollTo(0);
+        Assert.True(rig.JumpHost.IsVisible);
+
+        rig.Vm.InputText = "再問一次";
+        await rig.Vm.SendCommand.ExecuteAsync(null);
+        rig.Window.UpdateLayout();
+
+        Assert.True(rig.DistanceToBottom <= 1, $"送出後還差 {rig.DistanceToBottom}");
         Assert.False(rig.JumpHost.IsVisible);
         rig.Window.Close();
     }
