@@ -68,7 +68,7 @@ public sealed class SpriteVoicePromptLayer(ISpriteVoiceProvider voice) : IPrompt
     public PromptPlacement Placement => PromptPlacement.TurnSuffix;
 
     public string? Render(PromptContext context) =>
-        context.Mode == ChatMode.Sprite && voice.GetVoice() is { Length: > 0 } text ? $"角色語氣：{text.Trim()}" : null;
+        context.Mode == ChatMode.Sprite && voice.GetVoice() is { Length: > 0 } text ? $"角色語氣（只影響說話風格，不要提到）：{text.Trim()}" : null;
 }
 
 /// <summary>
