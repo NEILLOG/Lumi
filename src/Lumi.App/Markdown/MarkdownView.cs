@@ -374,5 +374,10 @@ public sealed class MarkdownView : Decorator, ITextSelectionScope
                 viewer.Show(owner);
             else
                 viewer.Show();
+        },
+        async (markdown, tabText) =>
+        {
+            if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+                await MarkdownClipboard.SetTableAsync(clipboard, markdown, tabText);
         });
 }
