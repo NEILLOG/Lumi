@@ -64,7 +64,7 @@ public sealed class MarkdownRenderer
     // ---- 文字 ----
 
     private MarkdownTextBlock CreateText(IReadOnlyList<MdInline> inlines, CopyContext copy, string? cssClass = null,
-        MarkdownCopyKind kind = MarkdownCopyKind.Text, int row = 0, bool headerRow = false)
+        MarkdownCopyKind kind = MarkdownCopyKind.Text, int row = 0, bool headerRow = false, int column = 0)
     {
         var block = new MarkdownTextBlock { TextWrapping = TextWrapping.Wrap };
         if (cssClass is not null)
@@ -75,7 +75,7 @@ public sealed class MarkdownRenderer
         builder.Add(inlines, InlineStyle.Plain);
         block.Inlines = collection;
         block.Links = builder.Links;
-        MarkdownCopy.SetInfo(block, new MarkdownCopyInfo(copy.Root, copy.First, copy.Rest, kind, builder.Spans, Row: row, HeaderRow: headerRow));
+        MarkdownCopy.SetInfo(block, new MarkdownCopyInfo(copy.Root, copy.First, copy.Rest, kind, builder.Spans, Row: row, HeaderRow: headerRow, Column: column));
         block.LinkClicked += uri => _ = _services.OpenLink(uri);
         return block;
     }
@@ -221,7 +221,7 @@ public sealed class MarkdownRenderer
     private Control CreateCodeBlock(MdCodeBlock block, CopyContext context)
     {
         var language = new TextBlock { Text = block.Language ?? "", VerticalAlignment = VerticalAlignment.Center, Classes = { "md-codelang" } };
-        var copy = CreateCopyButton(block.Code);
+        var copy = CreateCopyButton(() => _services.CopyText(block.Code));
 
         var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         Grid.SetColumn(language, 0);
@@ -240,7 +240,7 @@ public sealed class MarkdownRenderer
     private static bool IsMermaid(MdCodeBlock block) => string.Equals(block.Language, "mermaid", StringComparison.OrdinalIgnoreCase);
 
     private Control CreateMermaidBlock(MdCodeBlock block, CopyContext copy) =>
-        new MermaidBlock(block.Code, _services, CreateCodeScroller(block, copy), CreateCopyButton(block.Code));
+        new MermaidBlock(block.Code, _services, CreateCodeScroller(block, copy), CreateCopyButton(() => _services.CopyText(block.Code)));
 
     /// <summary>
     /// 水平捲動的程式碼區（不換行）。捲軸不自動隱藏（FX-02、FX-03）：自動隱藏時捲軸疊在內容上面，會蓋住最後一行，
@@ -260,36 +260,42 @@ public sealed class MarkdownRenderer
         };
     }
 
-    /// <summary>標題列右側的「複製」：複製後短暫變成打勾圖示加「已複製」。</summary>
-    private Button CreateCopyButton(string code)
+    /// <summary>
+    /// 複製鈕（md-copy）：程式碼區塊標頭與表格上方共用。按下後執行 <paramref name="copy"/>，短暫變成打勾圖示加「已複製」。
+    /// <paramref name="caption"/> 是按鈕上的文字（預設「複製」），<paramref name="tooltip"/> 是提示與無障礙名稱（預設同文字）。
+    /// </summary>
+    private Button CreateCopyButton(Func<Task> copy, string? caption = null, string? tooltip = null)
     {
+        caption ??= Strings.Workbench_Copy;
+        tooltip ??= caption;
+
         var icon = new LumiIcon { Size = 14 };
         icon.Bind(LumiIcon.DataProperty, new DynamicResourceExtension("LumiIconCopy"));
-        var label = new TextBlock { Text = Strings.Workbench_Copy, VerticalAlignment = VerticalAlignment.Center };
-        var copy = new Button
+        var label = new TextBlock { Text = caption, VerticalAlignment = VerticalAlignment.Center };
+        var button = new Button
         {
             Classes = { "md-copy" },
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
             Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { icon, label } },
         };
-        ToolTip.SetTip(copy, Strings.Workbench_Copy);
-        AutomationProperties.SetName(copy, Strings.Workbench_Copy);
+        ToolTip.SetTip(button, tooltip);
+        AutomationProperties.SetName(button, tooltip);
 
         void ShowCopied(bool copied)
         {
             icon.Bind(LumiIcon.DataProperty, new DynamicResourceExtension(copied ? "LumiIconCheck" : "LumiIconCopy"));
-            label.Text = copied ? Strings.Workbench_Copied : Strings.Workbench_Copy;
+            label.Text = copied ? Strings.Workbench_Copied : caption;
         }
 
-        copy.Click += async (_, _) =>
+        button.Click += async (_, _) =>
         {
-            await _services.CopyText(code);
+            await copy();
             ShowCopied(true);
             await Task.Delay(1500);
             Dispatcher.UIThread.Post(() => ShowCopied(false));
         };
-        return copy;
+        return button;
     }
 
     // ---- 表格 ----
@@ -308,7 +314,7 @@ public sealed class MarkdownRenderer
             for (var c = 0; c < columns; c++)
             {
                 var inlines = c < cells.Count ? cells[c].Inlines : [];
-                var text = CreateText(inlines, row == 0 ? copy : copy.Following, kind: MarkdownCopyKind.TableCell, row: row, headerRow: header);
+                var text = CreateText(inlines, row == 0 ? copy : copy.Following, kind: MarkdownCopyKind.TableCell, row: row, headerRow: header, column: c);
                 text.MaxWidth = 360;
                 text.TextAlignment = (c < table.Alignments.Count ? table.Alignments[c] : MdAlign.Left) switch
                 {
@@ -332,12 +338,21 @@ public sealed class MarkdownRenderer
         foreach (var r in table.Rows)
             AddRow(r, header: false);
 
-        return new ScrollViewer
+        var scroller = new ScrollViewer
         {
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             AllowAutoHide = false,   // 寬表格的橫向捲軸固定顯示成可以點的寬度（FX-02）
             Content = new Border { Classes = { "md-table" }, Child = grid },
         };
+
+        // 表格上方一列、靠右的「複製表格」（常駐顯示，和程式碼區塊的複製鈕同一種樣式）：HTML 與 Tab 分隔文字
+        var copyButton = CreateCopyButton(
+            () => _services.CopyTable is { } copyTable
+                ? copyTable(table.Source, MarkdownClipboard.ToTabText(table))
+                : _services.CopyText(MarkdownClipboard.ToTabText(table)),
+            Strings.Markdown_CopyTable,
+            Strings.Markdown_CopyTableTip);
+        return new StackPanel { Spacing = 4, Children = { copyButton, scroller } };
     }
 }

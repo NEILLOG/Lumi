@@ -21,14 +21,23 @@ public static class MarkdownClipboard
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseEmphasisExtras()
+        .UseCjkFriendlyEmphasis()   // 「**重點：**內容」的粗體結尾緊接標點、後面接中文時也算結束（FX-12）
         .UseAutoLinks()
         .DisableHtml()
         .Build();
 
-    public static async Task SetAsync(IClipboard clipboard, string markdown)
+    public static Task SetAsync(IClipboard clipboard, string markdown) => SetAsync(clipboard, markdown, plainText: markdown);
+
+    /// <summary>
+    /// 表格的複製鈕：HTML 用表格的 Markdown（<paramref name="markdown"/>），純文字用 Tab 分隔（<paramref name="tabText"/>，
+    /// 貼到 Excel 會自動分欄，貼到記事本也看得懂）。
+    /// </summary>
+    public static Task SetTableAsync(IClipboard clipboard, string markdown, string tabText) => SetAsync(clipboard, markdown, plainText: tabText);
+
+    private static async Task SetAsync(IClipboard clipboard, string markdown, string plainText)
     {
         var item = new DataTransferItem();
-        item.SetText(markdown);
+        item.SetText(plainText);
         if (OperatingSystem.IsWindows())
             item.Set(WindowsHtml, ToCfHtml(ToHtml(markdown)));
         else if (OperatingSystem.IsMacOS())
@@ -37,6 +46,46 @@ public static class MarkdownClipboard
         var transfer = new DataTransfer();
         transfer.Add(item);
         await clipboard.SetDataAsync(transfer);
+    }
+
+    /// <summary>
+    /// 表格轉 Tab 分隔的純文字：每列一行，儲存格之間用 Tab，空儲存格保留成空欄，欄數和表頭（最寬的一列）一致。
+    /// 只留文字（粗體、連結等格式不保留，連結只留文字）；儲存格裡的換行與 Tab 改成空白。Markdown 的跳脫（<c>\|</c>）已經變成文字，不再加回去。
+    /// </summary>
+    public static string ToTabText(MdTable table)
+    {
+        var rows = new List<IReadOnlyList<MdTableCell>>();
+        if (table.Header.Count > 0)
+            rows.Add(table.Header);
+        rows.AddRange(table.Rows);
+
+        var columns = rows.Select(r => r.Count).DefaultIfEmpty(0).Max();
+        return string.Join("\n", rows.Select(row => string.Join("\t", Enumerable.Range(0, columns).Select(c =>
+            c < row.Count ? CellText(row[c].Inlines) : ""))));
+    }
+
+    private static string CellText(IEnumerable<MdInline> inlines)
+    {
+        var builder = new StringBuilder();
+        AppendPlain(builder, inlines);
+        return builder.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ').ToString();
+    }
+
+    private static void AppendPlain(StringBuilder builder, IEnumerable<MdInline> inlines)
+    {
+        foreach (var inline in inlines)
+        {
+            switch (inline)
+            {
+                case MdText t: builder.Append(t.Text); break;
+                case MdCode c: builder.Append(c.Text); break;
+                case MdStrong s: AppendPlain(builder, s.Children); break;
+                case MdEmphasis e: AppendPlain(builder, e.Children); break;
+                case MdStrike s: AppendPlain(builder, s.Children); break;
+                case MdLink l: AppendPlain(builder, l.Children); break;
+                case MdLineBreak: builder.Append(' '); break;
+            }
+        }
     }
 
     /// <summary>

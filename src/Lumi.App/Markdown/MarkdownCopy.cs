@@ -17,9 +17,10 @@ public enum MarkdownCopyKind { Text, Code, TableCell }
 /// <summary>
 /// 一個可選取文字區塊在原文裡的位置。<paramref name="Root"/> 是它所屬的最上層區塊（同一個清單、引用、表格的區塊相同，比對用參考相等）；
 /// <paramref name="Prefix"/> 加在第一行前面（「## 」「- 」「&gt; 」），<paramref name="Indent"/> 加在之後每一行前面。
+/// 表格儲存格另記所在的列（<paramref name="Row"/>）與欄（<paramref name="Column"/>），複製時才能補上空的儲存格。
 /// </summary>
 public sealed record MarkdownCopyInfo(object Root, string Prefix, string Indent, MarkdownCopyKind Kind, IReadOnlyList<MarkdownSpan> Spans,
-    string? Language = null, int Row = 0, bool HeaderRow = false);
+    string? Language = null, int Row = 0, bool HeaderRow = false, int Column = 0);
 
 /// <summary>一個文字區塊裡選取的範圍；<paramref name="SelectedText"/> 是畫面上的文字（程式碼區塊直接用它）。</summary>
 public sealed record MarkdownSelectionPart(MarkdownCopyInfo Info, int Start, int End, string SelectedText);
@@ -103,15 +104,23 @@ public static class MarkdownCopy
         return builder.Append('\n').Append(part.Info.Indent).Append(fence).ToString();
     }
 
-    /// <summary>表格：選到的儲存格逐列接成「| a | b |」，標題列後面補分隔列。</summary>
+    /// <summary>
+    /// 表格：選到的儲存格逐列接成「| a | b |」，標題列後面補分隔列。只輸出選到的欄位範圍（最小欄到最大欄）；
+    /// 沒有選到文字的儲存格（空白的儲存格沒有選取片段）補空格，所以每列的欄數都和範圍的欄數一致（FX-16）。
+    /// </summary>
     private static string Table(IReadOnlyList<MarkdownSelectionPart> cells)
     {
+        var first = cells.Min(c => c.Info.Column);
+        var columns = cells.Max(c => c.Info.Column) - first + 1;
         var builder = new StringBuilder();
         foreach (var row in cells.GroupBy(c => c.Info.Row))
         {
             var info = row.First().Info;
             builder.Append(builder.Length == 0 ? info.Prefix : "\n" + info.Indent);
-            var texts = row.Select(c => Inline(c.Info.Spans, c.Start, c.End).Replace("\n", " ", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal)).ToList();
+            var texts = new string[columns];
+            Array.Fill(texts, "");
+            foreach (var c in row)
+                texts[c.Info.Column - first] = Inline(c.Info.Spans, c.Start, c.End).Replace("\n", " ", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal);
             builder.Append("| ").Append(string.Join(" | ", texts)).Append(" |");
             if (info.HeaderRow)
                 builder.Append('\n').Append(info.Indent).Append('|').Append(string.Concat(texts.Select(_ => " --- |")));
