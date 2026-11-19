@@ -1442,4 +1442,9 @@
   <data name="Branch_NoteDisabledTip" xml:space="preserve"><value>支線裡不能開研究本，帶回主線之後再開</value></data>
   <data name="Branch_CompactDisabledTip" xml:space="preserve"><value>支線不能整理上下文。內容太長時，請帶回或放棄這條支線</value></data>
   <data name="Branch_LockedActionTip" xml:space="preserve"><value>支線還沒結束，先回到支線</value></data>
+  <data name="Workbench_Continue" xml:space="preserve"><value>繼續</value></data>
+  <data name="Sprite_Continue" xml:space="preserve"><value>繼續</value></data>
+  <data name="Sprite_DismissError" xml:space="preserve"><value>關閉</value></data>
+  <data name="Markdown_CopyTable" xml:space="preserve"><value>複製表格</value></data>
+  <data name="Markdown_CopyTableTip" xml:space="preserve"><value>複製整個表格，可以直接貼到 Excel 或 Word</value></data>
 </root>

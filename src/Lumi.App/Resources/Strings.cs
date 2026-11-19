@@ -1439,4 +1439,9 @@ public static class Strings
     public static string Branch_NoteDisabledTip => Get(nameof(Branch_NoteDisabledTip));
     public static string Branch_CompactDisabledTip => Get(nameof(Branch_CompactDisabledTip));
     public static string Branch_LockedActionTip => Get(nameof(Branch_LockedActionTip));
+    public static string Workbench_Continue => Get(nameof(Workbench_Continue));
+    public static string Sprite_Continue => Get(nameof(Sprite_Continue));
+    public static string Sprite_DismissError => Get(nameof(Sprite_DismissError));
+    public static string Markdown_CopyTable => Get(nameof(Markdown_CopyTable));
+    public static string Markdown_CopyTableTip => Get(nameof(Markdown_CopyTableTip));
 }

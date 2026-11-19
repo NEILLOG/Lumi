@@ -799,7 +799,7 @@ public sealed class ConversationService
             if (repeatedFailure.Count >= RepeatedToolFailureLimit && single is not null)
             {
                 _logger.LogInformation("工具 {Tool} 連續失敗 {Count} 次，提早停止", uses[0].Name, repeatedFailure.Count);
-                yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
+                yield return new Failed(new ChatFailure(ChatFailureKind.ToolRepeatedFailure,
                     $"「{single.DisplayName}」連續 {RepeatedToolFailureLimit} 次失敗，先停下來了。最後一次的錯誤：{single.Summary ?? single.Content}。可以補充說明後再試。",
                     Retryable: true));
                 yield break;
@@ -807,7 +807,7 @@ public sealed class ConversationService
         }
 
         yield return new Failed(new ChatFailure(ChatFailureKind.ToolLoopLimit,
-            $"已經連續使用工具 {_options.MaxIterations} 輪，先停下來了。已完成的步驟都保留，可以按「重試」接著做。", Retryable: true));
+            $"已經連續使用工具 {_options.MaxIterations} 輪，先停下來了。已完成的步驟都保留，按「繼續」接著做。", Retryable: true));
     }
 
     /// <summary>手動整理（M22）：直接做第二層（LLM 摘要），不看門檻。沒有東西可整理時不發任何事件。</summary>

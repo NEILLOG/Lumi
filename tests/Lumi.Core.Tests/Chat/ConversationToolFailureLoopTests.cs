@@ -34,7 +34,7 @@ public class ConversationToolFailureLoopTests
         new() { Behavior = (_, _) => Task.FromResult(ToolResult.Error(message)) };
 
     [Fact]
-    public async Task SameToolSameArguments_ThreeFailuresInARow_StopsWithToolLoopLimit()
+    public async Task SameToolSameArguments_ThreeFailuresInARow_StopsWithToolRepeatedFailure()
     {
         var provider = new SequenceChatProvider(
             Round(Use("a")), Round(Use("b")), Round(Use("c")), SequenceChatProvider.Answer("不會到這裡"));
@@ -43,7 +43,7 @@ public class ConversationToolFailureLoopTests
         var events = await Collect(service.SendAsync(conversation.Id, "讀檔"));
 
         var failed = Assert.IsType<Failed>(events[^1]);
-        Assert.Equal(ChatFailureKind.ToolLoopLimit, failed.Failure.Kind);
+        Assert.Equal(ChatFailureKind.ToolRepeatedFailure, failed.Failure.Kind);
         Assert.True(failed.Failure.Retryable);
         Assert.Contains("「回聲」連續 3 次失敗", failed.Failure.Message);
         Assert.Contains("檔案不存在", failed.Failure.Message);
@@ -61,7 +61,7 @@ public class ConversationToolFailureLoopTests
 
         var events = await Collect(service.SendAsync(conversation.Id, "讀檔"));
 
-        Assert.Equal(ChatFailureKind.ToolLoopLimit, Assert.IsType<Failed>(events[^1]).Failure.Kind);
+        Assert.Equal(ChatFailureKind.ToolRepeatedFailure, Assert.IsType<Failed>(events[^1]).Failure.Kind);
         Assert.Equal(3, provider.Requests.Count);
     }
 
