@@ -315,6 +315,48 @@ public class UsagePanelTests
         window.Close();
     }
 
+    [AvaloniaFact]
+    public async Task DailyBars_EveryDayColumn_IsHoverable_EvenWhereNoBarIsDrawn()
+    {
+        var (vm, _) = await RichAsync();
+        var window = Host(vm);
+        var bars = window.GetVisualDescendants().OfType<DailyCostBars>().Single();
+        var items = bars.Items!;
+
+        // 10/1–10/22 金額是 0（只畫 2px），10/23–10/28 是矮長條；每一天都要能停留，不只高的長條
+        Assert.Contains(items, i => !i.IsFuture && i.Usd == 0m);
+
+        var slot = bars.Bounds.Width / items.Count;
+        for (var index = 0; index < items.Count; index++)
+        {
+            if (items[index].IsFuture)
+                continue;
+
+            var centerX = slot * (index + 0.5);
+            var expected = items[index].Date.ToString("M/d", System.Globalization.CultureInfo.InvariantCulture) + " · ";
+
+            // 欄的上方（長條上方的空白）
+            window.MouseMove(bars.TranslatePoint(new Point(centerX, 1), window)!.Value);
+            Relayout(window);
+            Assert.True(bars.IsPointerOver, $"第 {index + 1} 天上方空白沒有停留");
+            Assert.StartsWith(expected, ToolTip.GetTip(bars) as string);
+
+            // 欄的底部（長條所在的位置，0 元的日子是 2px 短條）
+            window.MouseMove(bars.TranslatePoint(new Point(centerX, bars.Bounds.Height - 1), window)!.Value);
+            Relayout(window);
+            Assert.True(bars.IsPointerOver, $"第 {index + 1} 天長條沒有停留");
+            Assert.StartsWith(expected, ToolTip.GetTip(bars) as string);
+        }
+
+        // 未來的日子（10/30、10/31）：控制項仍然命中，但沒有提示
+        var futureX = slot * (29 + 0.5);
+        window.MouseMove(bars.TranslatePoint(new Point(futureX, 1), window)!.Value);
+        Relayout(window);
+        Assert.True(bars.IsPointerOver);
+        Assert.Null(ToolTip.GetTip(bars));
+        window.Close();
+    }
+
     // ===== 對比 =====
 
     [AvaloniaFact]

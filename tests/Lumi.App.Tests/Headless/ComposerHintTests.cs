@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
@@ -48,7 +49,26 @@ public class ComposerHintTests
         Assert.Contains("secondary", Named(host, "HintPrimaryButton").Classes);
         Assert.Contains("secondary", Named(host, "HintSecondaryButton").Classes);
         Assert.Contains("tertiary", Named(host, "HintDismissButton").Classes);
-        Assert.Contains("small", Named(host, "HintMuteButton").Classes);
+        Assert.Contains("tertiary", Named(host, "HintMuteButton").Classes);
+        Assert.DoesNotContain("small", Named(host, "HintMuteButton").Classes);
+        host.Close();
+    }
+
+    [AvaloniaFact]
+    public void FourButtons_ShareOneRow_SameHeightFontSizeAndTop()
+    {
+        // ui-guide 第 06 節：同一列 Secondary 與 Tertiary 都是 32 高、預設字級，只靠顏色與框線區分
+        var vm = new ComposerHintViewModel();
+        vm.Show(Content());
+        var (_, host) = Host(vm);
+
+        var names = new[] { "HintPrimaryButton", "HintSecondaryButton", "HintDismissButton", "HintMuteButton" };
+        var buttons = names.Select(n => Named(host, n)).ToArray();
+        var tops = buttons.Select(b => b.TranslatePoint(new Point(0, 0), host)!.Value.Y).ToArray();
+
+        Assert.All(buttons, b => Assert.Equal(32, b.Height));
+        Assert.Single(buttons.Select(b => b.FontSize).Distinct());
+        Assert.Single(tops.Distinct());
         host.Close();
     }
 
