@@ -30,7 +30,7 @@ internal static class OpenXmlSafety
     /// <summary>檢查 zip 目錄：項目數、解壓後總量、單一項目的壓縮比。失敗丟 <see cref="DocumentRejectedException"/>。</summary>
     public static void Verify(string path, OpenXmlLimits? limits = null)
     {
-        using var stream = File.OpenRead(path);
+        using var stream = DocumentFiles.OpenShared(path);
         Verify(stream, limits);
     }
 

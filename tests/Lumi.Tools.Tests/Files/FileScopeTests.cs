@@ -329,9 +329,9 @@ public sealed class FileScopeTests : IDisposable
     // ---- 平台規則 ----
 
     [Theory]
-    [InlineData(@"\\server\share\a.txt")]
     [InlineData(@"\\?\C:\a.txt")]
-    [InlineData("//server/share")]
+    [InlineData(@"\\.\COM1")]
+    [InlineData(@"\\?\UNC\server\share\a.txt")]
     [InlineData("CON")]
     [InlineData("src/NUL.txt")]
     [InlineData("com1")]
@@ -358,6 +358,75 @@ public sealed class FileScopeTests : IDisposable
 
         AssertDenied(scope.Resolve("NUL"));
         AssertDenied(scope.Resolve("a.txt:hidden"));
+        AssertDenied(scope.Resolve(@"\\?\C:\x"));
+        AssertDenied(scope.Resolve(@"\\.\COM1"));
+    }
+
+    // ---- 網路路徑（FX-13）：只有使用者自己加入的根之下才能讀 ----
+
+    private static readonly ScopeRoot SharedFolder = new("共用", @"\\server\share\folder", true);
+
+    [Theory]
+    [InlineData(@"\\server\share\folder")]
+    [InlineData(@"\\server\share\folder\a.txt")]
+    [InlineData(@"\\server\share\folder\src\deep\a.cs")]
+    [InlineData(@"\\SERVER\Share\FOLDER\a.txt")]          // Windows 不分大小寫
+    [InlineData(@"\\server\share\folder\sub\..\a.txt")]   // 收合之後仍在範圍內
+    public void NetworkPath_InsideUserAddedRoot_IsInScope(string path) =>
+        Assert.True(FileScope.IsNetworkPathInScope(path, [SharedFolder], ignoreCase: true));
+
+    [Theory]
+    [InlineData(@"\\other\share\x.txt")]                  // 模型自己給的別的主機
+    [InlineData(@"\\server\share\other\x.txt")]           // 同一主機、不是加入的資料夾
+    [InlineData(@"\\server\share\folder2\x.txt")]         // 前綴相同但不是子資料夾
+    [InlineData(@"\\server\share\folder\..\..\x")]        // .. 跳出分享名稱
+    [InlineData(@"\\server\share\..\x")]
+    [InlineData(@"\\server\share\folder\..\other\x")]
+    public void NetworkPath_OutsideRoot_IsNotInScope(string path) =>
+        Assert.False(FileScope.IsNetworkPathInScope(path, [SharedFolder], ignoreCase: true));
+
+    [Fact]
+    public void NetworkPath_RootWithDifferentCase_MatchesOnlyWhenIgnoringCase()
+    {
+        var root = new ScopeRoot("共用", @"\\SERVER\Share\Folder", true);
+
+        Assert.True(FileScope.IsNetworkPathInScope(@"\\server\share\folder\a.txt", [root], ignoreCase: true));
+        Assert.False(FileScope.IsNetworkPathInScope(@"\\server\share\folder\a.txt", [root], ignoreCase: false));
+    }
+
+    [Fact]
+    public void NetworkPath_SingleFileRoot_OnlyAllowsThatFile()
+    {
+        var root = new ScopeRoot("報告", @"\\server\share\folder\report.docx", false);
+
+        Assert.True(FileScope.IsNetworkPathInScope(@"\\server\share\folder\report.docx", [root], ignoreCase: true));
+        Assert.False(FileScope.IsNetworkPathInScope(@"\\server\share\folder\other.docx", [root], ignoreCase: true));
+    }
+
+    [Theory]
+    [InlineData(@"C:\Users\me\a.txt")]
+    [InlineData("/Users/me/a.txt")]
+    public void LocalPath_IsNotDecidedByNetworkRules(string path) =>
+        Assert.True(FileScope.IsNetworkPathInScope(path, [SharedFolder], ignoreCase: true));
+
+    [Theory]
+    [InlineData(@"\\server\share\a.txt", true)]
+    [InlineData("//server/share", true)]
+    [InlineData(@"\\?\C:\a.txt", false)]
+    [InlineData(@"\\.\COM1", false)]
+    [InlineData(@"C:\a.txt", false)]
+    public void IsNetworkPath_ExcludesDevicePaths(string path, bool expected) =>
+        Assert.Equal(expected, FileScope.IsNetworkPath(path));
+
+    [SkippableFact]
+    public void NetworkPath_OutsideRoot_IsDeniedBeforeAnyNetworkAccess()
+    {
+        // 網路路徑的解析依 Windows 路徑規則；Mac 上的 Path.GetFullPath 不認得 \\ 開頭，這個測試只在 Windows 有意義
+        Skip.IfNot(OperatingSystem.IsWindows(), "網路路徑的解析只在 Windows 路徑規則下進行");
+        var scope = new FileScope([SharedFolder], new FileScopeRules(CaseInsensitive: true, WindowsPathRules: true, NormalizeUnicode: false));
+
+        AssertDenied(scope.Resolve(@"\\other\share\x.txt"), "只能讀你自己加入的網路資料夾或檔案");
+        AssertDenied(scope.Resolve(@"\\server\share\folder\..\..\x"));
     }
 
     // ---- 大小寫、Unicode ----

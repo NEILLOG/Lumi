@@ -43,7 +43,7 @@ internal sealed class PdfDocumentReader : IDocumentFormatReader
     private static DocumentReadResult Read(DocumentReadRequest request, CancellationToken ct)
     {
         // 唯讀開啟並允許別的程式同時開著；PdfPig 讀取這個串流期間檔案保持開啟
-        using var stream = new FileStream(request.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = DocumentFiles.OpenShared(request.FullPath);
         using var document = PdfDocument.Open(stream, new ParsingOptions { UseLenientParsing = true, SkipMissingFonts = true });
         ct.ThrowIfCancellationRequested();
 

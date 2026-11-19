@@ -35,7 +35,10 @@ internal static class TextFiles
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             stream?.Dispose();
-            error = e is UnauthorizedAccessException ? "沒有權限讀取這個檔案。" : e is FileNotFoundException or DirectoryNotFoundException ? "找不到檔案。" : "無法讀取這個檔案。";
+            error = e is UnauthorizedAccessException ? "沒有權限讀取這個檔案。"
+                : e is FileNotFoundException or DirectoryNotFoundException ? "找不到檔案。"
+                : FileScope.IsNetworkPath(path) ? FileScope.NetworkUnreachableMessage
+                : "無法讀取這個檔案。";
             return null;
         }
     }

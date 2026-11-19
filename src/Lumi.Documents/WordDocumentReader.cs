@@ -51,7 +51,7 @@ internal sealed class WordDocumentReader : IDocumentFormatReader
 
         // 整份檔案只讀一次，之後的 zip 檢查、部件大小檢查與開啟都用同一份位元組，避免檢查之後檔案被改寫
         byte[] bytes;
-        using (var file = new FileStream(request.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var file = DocumentFiles.OpenShared(request.FullPath))
         using (var copy = new MemoryStream())
         {
             file.CopyTo(copy);
