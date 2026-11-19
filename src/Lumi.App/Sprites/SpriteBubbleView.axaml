@@ -151,13 +151,21 @@
           </StackPanel>
         </StackPanel>
 
-        <!-- 錯誤：一句說明，加上重試與在工作台查看（金鑰問題帶「開啟設定」）；語音轉寫失敗改為「重試轉寫」「放棄這段錄音」 -->
+        <!-- 錯誤：一句說明（右上角一顆關閉鈕，樣式同提醒氣泡），加上重試與在工作台查看（金鑰問題帶「開啟設定」）；語音轉寫失敗改為「重試轉寫」「放棄這段錄音」，不提供關閉 -->
         <StackPanel x:Name="ErrorArea" IsVisible="{Binding IsError}" Spacing="8">
-          <ctl:EmojiTextBlock x:Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
-                              FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
+          <Grid ColumnDefinitions="*,Auto">
+            <ctl:EmojiTextBlock x:Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Foreground="{DynamicResource LumiDangerBrush}"
+                                FontSize="{DynamicResource LumiFontSizeCard}" IsHitTestVisible="False" />
+            <Button x:Name="ErrorDismissButton" Grid.Column="1" Classes="tertiary" Width="24" Height="24" Padding="0" VerticalAlignment="Top"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsVisible="{Binding !IsVoiceFailure}"
+                    Command="{Binding DismissCommand}" ToolTip.Tip="{x:Static res:Strings.Sprite_DismissError}"
+                    AutomationProperties.Name="{x:Static res:Strings.Sprite_DismissError}">
+              <ctl:LumiIcon Data="{StaticResource LumiIconX}" Size="14" />
+            </Button>
+          </Grid>
           <WrapPanel IsVisible="{Binding !IsVoiceFailure}">
-            <Button x:Name="RetryButton" Classes="small primary" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{x:Static res:Strings.Sprite_Retry}"
-                    Command="{Binding RetryCommand}" />
+            <Button x:Name="RetryButton" Classes="small primary" Margin="0,0,6,6" IsVisible="{Binding CanRetry}" Content="{Binding RetryText}"
+                    AutomationProperties.Name="{Binding RetryText}" Command="{Binding RetryCommand}" />
             <Button x:Name="SettingsButton" Classes="small secondary" Margin="0,0,6,6" IsVisible="{Binding CanOpenSettings}"
                     Content="{x:Static res:Strings.Sprite_OpenSettings}" Command="{Binding OpenSettingsCommand}" />
           </WrapPanel>
