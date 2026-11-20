@@ -73,6 +73,8 @@ jobs:
         with:
           name: win-x64
           path: artifacts/release/*
+          # 只是給下面的 release job 接手用，Release 本身會留一份；放一天就刪，避免佔滿 Actions 儲存空間（免費額度 0.5 GB）
+          retention-days: 1
 
   macos:
     needs: test
@@ -101,6 +103,8 @@ jobs:
         with:
           name: osx-arm64
           path: artifacts/release/*
+          # 只是給下面的 release job 接手用，Release 本身會留一份；放一天就刪，避免佔滿 Actions 儲存空間（免費額度 0.5 GB）
+          retention-days: 1
 
   release:
     needs: [windows, macos]
