@@ -436,11 +436,15 @@ public class ContextNoteViewModelTests
         // 重新讀取會再問一次服務的狀態：讓服務也回報「整理中」，結果才不受重新讀取與狀態事件誰先完成影響
         rig.Notes.Statuses["note-1"] = new ContextNoteStatus("note-1", ScribeState.Running);
 
-        await Task.Run(() =>
+        // 用獨立的執行緒送事件，不用 Task.Run：建立派送器的執行緒在 await 之後可能已經回到執行緒池，
+        // Task.Run 有機會拿到同一條，派送器就會當成 UI 執行緒直接執行（CI 上偶爾發生）
+        var background = new Thread(() =>
         {
             rig.Notes.RaiseNoteChanged(new ContextNoteChangedArgs(Conversation, "note-1", 2));
             rig.Notes.RaiseStatusChanged(new ContextNoteStatus("note-1", ScribeState.Running));
         });
+        background.Start();
+        background.Join();
 
         // 背景執行緒來的事件只排進佇列，還沒有碰到畫面的狀態
         Assert.Equal(2, context.PostCount);
