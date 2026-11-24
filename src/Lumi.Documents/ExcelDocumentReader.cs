@@ -49,7 +49,7 @@ internal sealed class ExcelDocumentReader : IDocumentFormatReader
         }
 
         OpenXmlSafety.Verify(request.FullPath);
-        using var stream = new FileStream(request.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = DocumentFiles.OpenShared(request.FullPath);
         using var document = SpreadsheetDocument.Open(stream, false, OpenXmlSafety.CreateOpenSettings());
         var workbookPart = document.WorkbookPart ?? throw new InvalidDataException("活頁簿缺少 workbook 部件。");
         var date1904 = workbookPart.Workbook!.WorkbookProperties?.Date1904?.Value ?? false;

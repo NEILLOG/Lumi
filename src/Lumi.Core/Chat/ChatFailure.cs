@@ -52,8 +52,11 @@ public enum ChatFailureKind
     /// <summary><c>stop_reason: refusal</c>（含開啟 fallback 後，所有候補模型也都拒絕）。</summary>
     Refused,
 
-    /// <summary>工具迴圈達到次數上限；已完成的步驟都保留，使用者可以「重試」接著跑。</summary>
+    /// <summary>工具迴圈達到次數上限；已完成的步驟都保留，使用者按「繼續」接著跑（畫面的按鈕文字是「繼續」，不是「重試」）。</summary>
     ToolLoopLimit,
+
+    /// <summary>同一個工具用同樣的參數連續失敗而提早停下；使用者補充說明後「重試」。</summary>
+    ToolRepeatedFailure,
 
     /// <summary>程式檔案不完整（載入組件時 <see cref="System.IO.FileNotFoundException"/>／<see cref="System.IO.FileLoadException"/>，M22）。</summary>
     AppFilesMissing,

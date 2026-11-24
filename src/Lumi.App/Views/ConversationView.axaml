@@ -516,7 +516,9 @@
                   </Flyout>
                 </Button.Flyout>
               </Button>
-              <Button x:Name="RetryButton" Classes="primary" Content="{x:Static res:Strings.Workbench_Retry}" Command="{Binding RetryCommand}" />
+              <!-- 工具用到上限時是「繼續」（FX-17），按下去仍是同一個 RetryCommand -->
+              <Button x:Name="RetryButton" Classes="primary" Content="{Binding RetryText}" AutomationProperties.Name="{Binding RetryText}"
+                      Command="{Binding RetryCommand}" />
             </StackPanel>
           </Grid>
         </Border>

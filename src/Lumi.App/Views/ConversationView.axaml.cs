@@ -49,14 +49,21 @@ public partial class ConversationView : UserControl
         AskCopyButton.Click += (_, _) => CopyAsk();
         AskButton.Click += (_, _) => SendAsk();
 
-        // 進入支線的動畫：WorkbenchViewModel.BranchEntered（新建支線之後才發）
+        // 進入支線的動畫：WorkbenchViewModel.BranchEntered（新建支線之後才發）；
+        // 使用者送出（FX-14）：ScrollToLatestRequested，回到最下面並恢復跟著捲動
         DataContextChanged += (_, _) =>
         {
             if (_branchVm is not null)
+            {
                 _branchVm.BranchEntered -= OnBranchEntered;
+                _branchVm.ScrollToLatestRequested -= OnScrollToLatestRequested;
+            }
             _branchVm = DataContext as WorkbenchViewModel;
             if (_branchVm is not null)
+            {
                 _branchVm.BranchEntered += OnBranchEntered;
+                _branchVm.ScrollToLatestRequested += OnScrollToLatestRequested;
+            }
         };
     }
 
@@ -107,6 +114,18 @@ public partial class ConversationView : UserControl
 
         _stickToBottom = DistanceToBottom <= StickToBottomTolerance;
         UpdateJumpToBottom();
+    }
+
+    // 使用者開始一輪回應（FX-14）：立刻回到底部、恢復跟著捲動；排版完成後（新訊息與氣泡已經加進列表）再捲一次，
+    // 仿照 WorkbenchWindow.ScrollToCall 的寫法。延後的那次只在還跟著底部時才做：排隊期間使用者往上捲就不拉回去
+    private void OnScrollToLatestRequested(object? sender, EventArgs e)
+    {
+        JumpToBottom();
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_stickToBottom)
+                JumpToBottom();
+        }, DispatcherPriority.Loaded);
     }
 
     // ---- 問這段（M36 E8）----

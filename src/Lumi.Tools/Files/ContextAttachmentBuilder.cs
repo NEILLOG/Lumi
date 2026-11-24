@@ -154,7 +154,11 @@ public sealed class ContextAttachmentBuilder(
         if (size > ImageFormats.MaxBytes)
             return Missing(item, $"圖片太大（{TextFiles.FormatSize(size)}，上限 {TextFiles.FormatSize(ImageFormats.MaxBytes)}）");
 
-        var bytes = await File.ReadAllBytesAsync(item.Path, ct).ConfigureAwait(false);
+        // 允許其他程式同時開著（圖片被編輯軟體開著時仍可讀，FX-11）
+        using var file = new FileStream(item.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, useAsync: true);
+        using var copy = new MemoryStream();
+        await file.CopyToAsync(copy, ct).ConfigureAwait(false);
+        var bytes = copy.ToArray();
         var mediaType = ImageFormats.Detect(bytes);
         if (mediaType is null)
             return Missing(item, "不支援的圖片格式（支援 PNG、JPEG、GIF、WebP）");

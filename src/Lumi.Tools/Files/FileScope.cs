@@ -24,8 +24,14 @@ public sealed class FileScope : IFileScope
 
     private static readonly char[] Separators = ['/', '\\'];
 
+    /// <summary>網路路徑在範圍外時的說明（給模型看，不出現「UNC」等術語）。</summary>
+    public const string NetworkOutsideScopeMessage = "只能讀你自己加入的網路資料夾或檔案，這個網路路徑不在範圍內。";
+
+    /// <summary>網路路徑讀不到（網路慢、斷線、VPN 沒連）時的說明。</summary>
+    public const string NetworkUnreachableMessage = "連不到這個網路資料夾，請確認網路或 VPN。";
+
     private readonly IReadOnlyList<ScopeRoot> _roots;
-    private readonly string[] _realRoots;
+    private readonly Lazy<string>[] _realRoots;   // 延後解析：建立範圍時不碰檔案系統（網路路徑可能很慢）
     private readonly FileScopeRules _rules;
     private readonly StringComparison _comparison;
 
@@ -34,7 +40,7 @@ public sealed class FileScope : IFileScope
         _rules = rules ?? FileScopeRules.ForCurrentOs;
         _comparison = _rules.CaseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         _roots = roots;
-        _realRoots = roots.Select(r => SafeReal(r.Path)).ToArray();
+        _realRoots = roots.Select(r => new Lazy<string>(() => SafeReal(r.Path))).ToArray();
     }
 
     public IReadOnlyList<ScopeRoot> Roots => _roots;
@@ -64,20 +70,30 @@ public sealed class FileScope : IFileScope
             return ScopeResolution.Denied($"路徑不合法：{path}");
         }
 
+        // 網路路徑：在做任何檔案系統存取之前，先確認它在使用者加入的根之下（不連線、不解析符號連結）
+        if (!NetworkPathAllowed(full))
+            return ScopeResolution.Denied(NetworkOutsideScopeMessage);
+
         string real;
         try
         {
             real = ResolveReal(full, 0);
         }
+        catch (OutsideNetworkScopeException)
+        {
+            return ScopeResolution.Denied(NetworkOutsideScopeMessage);
+        }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
+            if (IsNetworkPath(full))
+                return ScopeResolution.Denied(NetworkUnreachableMessage);
             return ScopeResolution.Denied($"無法解析路徑（符號連結層數過多或無法存取）：{path}");
         }
 
         for (var i = 0; i < _roots.Count; i++)
         {
             var root = _roots[i];
-            var rootReal = _realRoots[i];
+            var rootReal = _realRoots[i].Value;
             if (root.IsDirectory ? !IsUnderDirectory(real, rootReal) : !Same(real, rootReal))
                 continue;
 
@@ -106,7 +122,7 @@ public sealed class FileScope : IFileScope
         for (var i = 0; i < _roots.Count; i++)
         {
             var root = _roots[i];
-            var rootReal = _realRoots[i];
+            var rootReal = _realRoots[i].Value;
             if (root.IsDirectory ? IsUnderDirectory(real, rootReal) : Same(real, rootReal))
             {
                 var relative = Same(real, rootReal) ? "" : Path.GetRelativePath(rootReal, real).Replace('\\', '/');
@@ -177,11 +193,14 @@ public sealed class FileScope : IFileScope
 
     private static readonly Regex DeviceName = new(@"^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\..*)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    /// <summary>UNC 與裝置路徑（<c>\\server\share</c>、<c>\\?\</c>）、保留的裝置名稱、替代資料流（<c>a.txt:stream</c>）、結尾是點或空白的名稱。</summary>
+    /// <summary>
+    /// 裝置路徑（<c>\\?\</c>、<c>\\.\</c>）一律擋；保留的裝置名稱、替代資料流（<c>a.txt:stream</c>）、結尾是點或空白的名稱也擋。
+    /// 網路路徑（<c>\\server\share</c>）不在這裡擋：要看是不是使用者加入的根之下（<see cref="IsNetworkPathInScope"/>）。
+    /// </summary>
     public static string? CheckWindowsRules(string path)
     {
-        if (path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal))
-            return "不支援網路路徑（UNC）與裝置路徑。";
+        if (IsDevicePath(path))
+            return "不支援裝置路徑。";
 
         var rest = path;
         if (path.Length >= 2 && char.IsAsciiLetter(path[0]) && path[1] == ':')
@@ -199,7 +218,81 @@ public sealed class FileScope : IFileScope
         return null;
     }
 
+    // ---- 網路路徑（只看字串，不碰檔案系統） ----
+
+    /// <summary>裝置路徑：<c>\\?\</c>、<c>\\.\</c>（含 <c>//?/</c>、<c>//./</c>）。</summary>
+    public static bool IsDevicePath(string path) =>
+        path.StartsWith(@"\\?\", StringComparison.Ordinal) || path.StartsWith(@"\\.\", StringComparison.Ordinal)
+        || path.StartsWith("//?/", StringComparison.Ordinal) || path.StartsWith("//./", StringComparison.Ordinal);
+
+    /// <summary>網路路徑（<c>\\server\share\...</c>）。裝置路徑不算。</summary>
+    public static bool IsNetworkPath(string path) =>
+        (path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal)) && !IsDevicePath(path);
+
+    /// <summary>
+    /// 網路路徑是否落在某個根之下。純字串比對：不連線、不解析符號連結，所以可以在任何檔案系統存取之前呼叫。
+    /// 先收合 <c>.</c>、<c>..</c>，<c>..</c> 跳出共用資料夾的分享名稱就視為不在範圍內。非網路路徑一律回 true（由其他規則判斷）。
+    /// </summary>
+    public static bool IsNetworkPathInScope(string fullPath, IReadOnlyList<ScopeRoot> roots, bool ignoreCase)
+    {
+        if (!IsNetworkPath(fullPath))
+            return true;
+
+        var candidate = LexicalWindowsPath(fullPath);
+        if (candidate is null)
+            return false;
+
+        var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        foreach (var root in roots)
+        {
+            var rootPath = LexicalWindowsPath(root.Path);
+            if (rootPath is null)
+                continue;
+            if (string.Equals(candidate, rootPath, comparison))
+                return true;
+            if (root.IsDirectory && candidate.StartsWith(rootPath + '\\', comparison))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 收合 Windows 路徑的 <c>.</c>、<c>..</c>，統一用 <c>\</c>。UNC 的前兩段（主機、分享名稱）保留；
+    /// <c>..</c> 不能跳出分享名稱，這種路徑回 null。
+    /// </summary>
+    private static string? LexicalWindowsPath(string path)
+    {
+        var unc = path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);
+        var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+        var fixedCount = unc ? 2 : 0;
+        if (unc && parts.Length < 2)
+            return null;
+
+        var stack = new List<string>();
+        foreach (var part in parts)
+        {
+            if (part == ".")
+                continue;
+            if (part == "..")
+            {
+                if (stack.Count <= fixedCount)
+                    return null;
+                stack.RemoveAt(stack.Count - 1);
+                continue;
+            }
+            stack.Add(part);
+        }
+        return (unc ? @"\\" : "") + string.Join('\\', stack);
+    }
+
     // ---- 符號連結：逐段展開成真實路徑 ----
+
+    /// <summary>網路路徑在解析途中走到使用者加入的根之外（例如符號連結指向別的主機）。不做任何存取，直接停止。</summary>
+    private sealed class OutsideNetworkScopeException() : IOException("網路路徑不在範圍內。");
+
+    /// <summary>網路路徑是否在範圍內（只有 Windows 規則才有網路路徑）。</summary>
+    private bool NetworkPathAllowed(string fullPath) =>
+        !_rules.WindowsPathRules || IsNetworkPathInScope(fullPath, _roots, _rules.CaseInsensitive);
 
     private string SafeReal(string path)
     {
@@ -213,10 +306,12 @@ public sealed class FileScope : IFileScope
         }
     }
 
-    private static string ResolveReal(string fullPath, int depth)
+    private string ResolveReal(string fullPath, int depth)
     {
         if (depth > MaxLinkHops)
             throw new InvalidOperationException("符號連結層數過多。");
+        if (!NetworkPathAllowed(fullPath))
+            throw new OutsideNetworkScopeException();
 
         var root = Path.GetPathRoot(fullPath) ?? "";
         var segments = fullPath[root.Length..].Split(Separators, StringSplitOptions.RemoveEmptyEntries);
@@ -224,29 +319,21 @@ public sealed class FileScope : IFileScope
         for (var i = 0; i < segments.Length; i++)
         {
             var next = Path.Combine(current, segments[i]);
-            FileSystemInfo? info = Directory.Exists(next) ? new DirectoryInfo(next) : File.Exists(next) ? new FileInfo(next) : null;
-            if (info is null)
-            {
-                // 懸空的符號連結（目標不存在）：File.Exists 回 false，但它確實指向某處。照目標展開，
-                // 否則之後寫入新檔會跟著連結跑到範圍外（寫入是新檔的情境，這裡不能當成一般的不存在路徑）
-                if (new FileInfo(next).LinkTarget is { } dangling)
-                {
-                    var danglingTarget = Path.IsPathRooted(dangling) ? dangling : Path.Combine(Path.GetDirectoryName(next) ?? current, dangling);
-                    var rebuilt = Path.Combine(new[] { danglingTarget }.Concat(segments.Skip(i + 1)).ToArray());
-                    return ResolveReal(Path.GetFullPath(rebuilt), depth + 1);
-                }
 
-                // 路徑不存在：後面的部分原樣接上（之後讀取自然會失敗；範圍檢查用的還是已展開的前綴）
-                return Path.Combine(new[] { next }.Concat(segments.Skip(i + 1)).ToArray());
+            // 先用「不跟隨連結」的方式讀連結目標：Directory.Exists 會跟隨連結，連結指向範圍外的網路主機時就會去連那台主機
+            var linkText = new FileInfo(next).LinkTarget ?? new DirectoryInfo(next).LinkTarget;
+            if (linkText is not null)
+            {
+                // 連結（含懸空的連結）：照目標展開。懸空時也要展開，否則之後寫入新檔會跟著連結跑到範圍外（寫入是新檔的情境）
+                var target = Path.IsPathRooted(linkText) ? linkText : Path.Combine(Path.GetDirectoryName(next) ?? current, linkText);
+                var rebuilt = Path.Combine(new[] { Path.GetFullPath(target) }.Concat(segments.Skip(i + 1)).ToArray());
+                return ResolveReal(Path.GetFullPath(rebuilt), depth + 1);   // 目標路徑本身也可能經過符號連結（例如 macOS 的 /var）
             }
 
-            if (info.LinkTarget is not null)
+            if (!Directory.Exists(next) && !File.Exists(next))
             {
-                var target = info.ResolveLinkTarget(returnFinalTarget: true);
-                if (target is null)
-                    throw new IOException("符號連結的目標不存在。");
-                var rebuilt = Path.Combine(new[] { target.FullName }.Concat(segments.Skip(i + 1)).ToArray());
-                return ResolveReal(Path.GetFullPath(rebuilt), depth + 1);   // 目標路徑本身也可能經過符號連結（例如 macOS 的 /var）
+                // 路徑不存在：後面的部分原樣接上（之後讀取自然會失敗；範圍檢查用的還是已展開的前綴）
+                return Path.Combine(new[] { next }.Concat(segments.Skip(i + 1)).ToArray());
             }
             current = next;
         }

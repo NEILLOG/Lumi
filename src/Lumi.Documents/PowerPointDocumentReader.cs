@@ -42,7 +42,7 @@ internal sealed class PowerPointDocumentReader : IDocumentFormatReader
         ct.ThrowIfCancellationRequested();
 
         OpenXmlSafety.Verify(request.FullPath);
-        using var stream = new FileStream(request.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var stream = DocumentFiles.OpenShared(request.FullPath);
         using var document = PresentationDocument.Open(stream, isEditable: false, OpenXmlSafety.CreateOpenSettings());
 
         var presentationPart = document.PresentationPart ?? throw new InvalidDataException("簡報缺少主要部件。");

@@ -17,6 +17,7 @@ internal sealed class DocumentReader : IDocumentReader
     internal const string FailedMessage = "無法讀取這份文件（檔案可能已損毀）。";
     internal const string TimeoutMessage = "讀取文件逾時，已停止。";
     internal const string TooLargeMessage = "檔案超過 50 MB，無法讀取。";
+    internal const string NetworkUnreachableMessage = "連不到這個網路資料夾，請確認網路或 VPN。";
 
     private static readonly byte[] OleSignature = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
     private static readonly string[] OpenXmlExtensions = [".docx", ".xlsx", ".xlsm", ".pptx"];
@@ -64,7 +65,7 @@ internal sealed class DocumentReader : IDocumentReader
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             _logger.LogWarning(e, "讀取文件前檢查檔案失敗（{Extension}）", extension);
-            return Error(FailedMessage);
+            return Error(DocumentFiles.IsNetworkPath(request.FullPath) ? NetworkUnreachableMessage : FailedMessage);
         }
 
         try
@@ -97,6 +98,11 @@ internal sealed class DocumentReader : IDocumentReader
             _logger.LogWarning("讀取文件逾時（{Extension}，上限 {Seconds} 秒）", extension, _options.ReadTimeout.TotalSeconds);
             return Error(TimeoutMessage);
         }
+        catch (IOException e) when (DocumentFiles.IsNetworkPath(request.FullPath))
+        {
+            _logger.LogWarning(e, "讀取網路上的文件失敗（{Extension}）", extension);
+            return Error(NetworkUnreachableMessage);
+        }
         catch (DocumentRejectedException e)
         {
             _logger.LogWarning(e, "文件被安全檢查拒絕（{Extension}）", extension);
@@ -124,7 +130,7 @@ internal sealed class DocumentReader : IDocumentReader
             return false;
 
         Span<byte> header = stackalloc byte[OleSignature.Length];
-        using var stream = File.OpenRead(path);
+        using var stream = DocumentFiles.OpenShared(path);
         var read = stream.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
         return read == header.Length && header.SequenceEqual(OleSignature);
     }

@@ -197,6 +197,10 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
     [ObservableProperty]
     private bool _canRetry;
 
+    /// <summary>錯誤的重試鍵文字：工具用到上限是「繼續」（已完成的步驟保留，接著做），其餘是「重試」。</summary>
+    [ObservableProperty]
+    private string _retryText = Strings.Sprite_Retry;
+
     [ObservableProperty]
     private bool _canOpenSettings;
 
@@ -329,6 +333,7 @@ public sealed partial class SpriteBubbleViewModel : ObservableObject
         var failure = result.Failure ?? _failure;
         ErrorText = result.Unexpected || failure is null ? Strings.Workbench_UnexpectedError : failure.Message;
         CanRetry = failure is null || failure.Retryable || failure.Kind is ChatFailureKind.MissingApiKey or ChatFailureKind.InvalidApiKey or ChatFailureKind.SecretUnreadable;
+        RetryText = failure?.Kind == ChatFailureKind.ToolLoopLimit ? Strings.Sprite_Continue : Strings.Sprite_Retry;
         CanOpenSettings = failure?.Kind is ChatFailureKind.MissingApiKey or ChatFailureKind.InvalidApiKey or ChatFailureKind.SecretUnreadable
             or ChatFailureKind.ModelNotConfigured;
         Kind = SpriteBubbleKind.Error;

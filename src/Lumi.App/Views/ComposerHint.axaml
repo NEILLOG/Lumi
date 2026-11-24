@@ -8,7 +8,7 @@
     <StyleInclude Source="avares://Lumi.App/Themes/ChatStyles.axaml" />
   </UserControl.Styles>
   <!--
-    輸入框上方的使用習慣提示列（plan 23 第 7.1 節）：一行文字，第二行是最多兩個動作按鈕（secondary，32 高）加「知道了」「不再提醒這類」（tertiary small）。
+    輸入框上方的使用習慣提示列（plan 23 第 7.1 節）：一行文字，第二行是最多兩個動作按鈕（secondary，32 高）加「知道了」「不再提醒這類」（tertiary，同樣 32 高、預設字級，見 ui-guide 第 06 節「同一列混用層級」）。
     樣式同用量面板的快滿提醒（Warning 底、圓角 10、內距 12、文字 13px）。左右邊距由 ChatComposer 的外層決定（跟隨輸入框外框）。
   -->
   <Border CornerRadius="10" Padding="12" BorderThickness="1"
@@ -23,10 +23,10 @@
         <Button x:Name="HintSecondaryButton" Classes="secondary" Height="32" Padding="12,0"
                 IsVisible="{Binding HasSecondary}" Content="{Binding SecondaryText}" Command="{Binding SecondaryCommand}"
                 AutomationProperties.Name="{Binding SecondaryText}" />
-        <Button x:Name="HintDismissButton" Classes="tertiary small"
+        <Button x:Name="HintDismissButton" Classes="tertiary" Height="32" Padding="12,0"
                 Content="{x:Static res:Strings.Hint_Dismiss}" Command="{Binding DismissCommand}"
                 AutomationProperties.Name="{x:Static res:Strings.Hint_Dismiss}" />
-        <Button x:Name="HintMuteButton" Classes="tertiary small"
+        <Button x:Name="HintMuteButton" Classes="tertiary" Height="32" Padding="12,0"
                 Content="{x:Static res:Strings.Hint_Mute}" Command="{Binding MuteCommand}"
                 AutomationProperties.Name="{x:Static res:Strings.Hint_Mute}" />
       </WrapPanel>

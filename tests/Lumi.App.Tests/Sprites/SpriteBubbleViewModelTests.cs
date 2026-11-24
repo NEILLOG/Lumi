@@ -555,4 +555,40 @@ public class SpriteBubbleViewModelTests
         Assert.False(rig.Bubble.IsVisible);
         Assert.Equal(1, rig.Dismissals);
     }
+
+    [Fact]
+    public void ToolLoopLimit_OffersContinue_InsteadOfRetry()
+    {
+        var rig = new Rig();
+        rig.Bubble.OnRunStarted();
+
+        rig.Bubble.OnRunFinished(Ev.Finished(Ev.Failure(ChatFailureKind.ToolLoopLimit, "已經連續使用工具 10 輪", retryable: true)));
+
+        Assert.Equal(Strings.Sprite_Continue, rig.Bubble.RetryText);
+    }
+
+    [Fact]
+    public void ToolRepeatedFailure_StillOffersRetry()
+    {
+        var rig = new Rig();
+        rig.Bubble.OnRunStarted();
+
+        rig.Bubble.OnRunFinished(Ev.Finished(Ev.Failure(ChatFailureKind.ToolRepeatedFailure, "連續失敗", retryable: true)));
+
+        Assert.Equal(Strings.Sprite_Retry, rig.Bubble.RetryText);
+    }
+
+    [Fact]
+    public void DismissCommand_IsAvailableForAnError()
+    {
+        var rig = new Rig();
+        rig.Bubble.OnRunStarted();
+        rig.Bubble.OnRunFinished(Ev.Finished(Ev.Failure()));
+
+        Assert.Equal(SpriteBubbleKind.Error, rig.Bubble.Kind);
+        Assert.True(rig.Bubble.DismissCommand.CanExecute(null));
+        rig.Bubble.DismissCommand.Execute(null);
+        Assert.Equal(SpriteBubbleKind.Hidden, rig.Bubble.Kind);
+        Assert.Equal(1, rig.Dismissals);
+    }
 }

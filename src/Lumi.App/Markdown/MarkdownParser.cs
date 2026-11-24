@@ -12,6 +12,7 @@ public static class MarkdownParser
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UsePipeTables()
         .UseEmphasisExtras()
+        .UseCjkFriendlyEmphasis()   // 「**重點：**內容」的粗體結尾緊接標點、後面接中文時也算結束（FX-12）
         .UseAutoLinks()
         .DisableHtml()
         .Build();

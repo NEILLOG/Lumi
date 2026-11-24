@@ -34,7 +34,9 @@ public sealed class ReadFileTool(FileToolOptions options) : ToolBase<ReadFileArg
         if (Directory.Exists(full))
             return ToolResult.Error($"「{display}」是資料夾，請用 list_dir 列出內容。", "是資料夾");
         if (!File.Exists(full))
-            return ToolResult.Error($"找不到檔案：{display}", "找不到檔案");
+            return ToolResult.Error(FileScope.IsNetworkPath(full)
+                ? $"找不到檔案：{display}（如果是網路資料夾，請確認網路或 VPN 已連線）"
+                : $"找不到檔案：{display}", "找不到檔案");
 
         var offset = args.Offset ?? 1;
         if (offset < 1)
@@ -104,7 +106,10 @@ public sealed class ReadFileTool(FileToolOptions options) : ToolBase<ReadFileArg
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return ToolResult.Error($"無法讀取：{display}", "無法讀取");
+            // 網路路徑讀到一半斷線：給使用者看得懂的原因，不是「無法讀取」
+            return ToolResult.Error(FileScope.IsNetworkPath(full)
+                ? $"{display}：{FileScope.NetworkUnreachableMessage}"
+                : $"無法讀取：{display}", "無法讀取");
         }
     }
 }
